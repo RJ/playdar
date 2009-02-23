@@ -1,0 +1,8 @@
+Experimental Boost.process, never made it to review afaik
+handles cross platform spawning processes and piping their stdin/stdout
+
+Used for gateway resolver plugins, so perl scripts (etc) can be resolvers.
+
+headers only
+
+https://svn.boost.org/svn/boost/sandbox/process

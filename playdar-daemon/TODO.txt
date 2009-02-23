@@ -1,0 +1,78 @@
+Playdar TODO list
+=================
+Some misc thoughts on what the future might hold. Want to focus on the scenario
+when you know the name of the song you want to play (or some *other* software /
+webapp provided the name), and you just need to find a way to play it.
+All the clever social music / gui stuff is the layer above Playdar.
+The Playdar daemon itself is just about finding and serving up your music.
+
+Scanner 
+------- 
+Scanner is rather primitive. It only bothers with MP3s atm, but it uses taglib
+so trivial to index ogg, flac etc. NB: if you're using flash for playback only
+mp3 works. database and app are mimetype aware, should be easy to add more.
+
+
+Your local library / media player capabilities 
+----------------------------------------------
+Web interface that shows your local library, allowing you to browse and 
+play stuff. Can be all javascript + flash, using the web API to playdar 
+over localhost HTTP. Basically a media player with the brower as a GUI. 
+Been done before, but now there's a good reason for it.
+Anyone can host a GUI/player - it relies on localhost http API to work.
+JSON api exists to enumerate artists/tracks.
+
+
+XSPF Playlist support
+---------------------
+Parse XSPF and make a sexy local http gui with ajax showing files being
+searched/resolved. Make them light up if a source is found. Like the 
+github fork queue thing. Associate the XSPF filetype with playdar, and
+start using it for any XSPF you find. Use flash so the browser is the
+media player, no need to launch iTunes if you don't want to. It could
+create a .m3u or .pls with pre-resolved localhost urls if you really
+want to load it in iTunes or some real media player.
+
+Alternatively, make a real GUI app and associate it with .xspf files.
+Have it use the playdar local JSON api to resolve, and make it play too.
+This means it could play any file format, not just mp3 like flash.
+(this would probably be the first decent desktop XSPF-resolver app)
+
+
+The content resolving framework
+-------------------------------
+Make ResolverService plugins into shared-libraries and have playdar load them
+at runtime, so installing new ways to resolve content is just adding a .so/.dll
+Use http://sourceforge.net/projects/pdl-cpp/ for portability?
+Or maybe the experimental Boost.Extension.
+
+Make Resolver cleverer than just hitting up resolverservices sequentially. 
+some sort of pipeline with resolverservices specifying their priority level,
+based on how fast they can typically resolve stuff. 
+Local=fastest, p2p=slower etc. Resolverservices of equal weights queried in
+parallel. Start with fastest. Stop when query is solved.
+
+resolversevice that uses libjingle, and searches and streams from remote hosts
+found via jabber. login multiple times to jabber with your JID/resource
+ie: rj@example.com/work rj@example.com/home etc.
+and have the plugin query a list of jids you give it.
+Perhaps check every JID in your roster for JID/playdar, which could be default.
+Or gloox (nicer xmpp lib IMO) and do our own STUN/transfer stuff.
+Probably requires streaming-over-udp, can't rely on tcp in many cases.
+rasterbar-libtorrent has a boost UPnP control library I have my eye on for NAT
+busting and setting up port forwards automatically.
+
+resolverservice plugins for other sources of music:
+itunes/daap, rhapsody, magnatune, smb/win32, archive.org etc.
+
+Unicode / UTF8
+--------------
+With a couple of changes to the json parsing and sqlite function names (toss in
+a 'w' here and there) the whole app should be fully utf8-compatible. I've not
+tried or tested this, but shouldn't be far off.
+
+
+Installers and Packages
+-----------------------
+My CMake-fu is still pretty weak.
+

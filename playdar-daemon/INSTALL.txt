@@ -1,0 +1,93 @@
+Installation
+============
+This covers building from source specifically on Debian Linux.
+Should be easy on other Linuxes too. 
+Playdar also builds on Windows, using visual studio express.
+Playdar also builds on Mac OS X (intel) using gcc + stuff from ports.
+
+
+Linux Dependencies
+------------------
+Assuming debian/ubuntu. Otherwise find similarly named packages:
+
+1) sudo apt-get install \
+    sqlite3 libsqlite3-dev \
+    cmake \
+    libtag1-dev \
+    liburiparser1 liburiparser-dev \
+    libossp-uuid-dev libossp-uuid15
+
+    NB: "libossp-uuid" is different to "libuuid" in debian. 
+        make sure you install the correct uuid package.
+
+    NB: if you defined LAME_UUIDS_PLEASE you don't need the uuid library.
+        (it creates them using the cstdlib rand() function)
+
+2) Need boost, but also boost::asio, which was only added to boost "recently".
+   If your distro has >= boost 1.35 then install all the 1.35 boost packages
+   you can find, including -dev versions, and it will work. Deb/Lenny has it.
+
+   If your distro boost packages are < 1.35:
+   Build boost from source. It's easy, but can take ~45mins to build. 
+   See boost.org for latest version.
+   NB: check the --layout option to configure, i missed this and it left 
+       -gcc43-mt in the filenames, I ended up fixing it manually like this:
+       $ cd /usr/local/lib
+       $ for f in `ls libboo*-gcc43-mt.so`; do L=`echo $f \
+         | sed 's/-gcc43-mt//'`; echo $L; ln -s $f $L; done
+
+
+Mac Dependencies
+----------------
+Using Leopard MacPorts:
+
+    sudo port selfupdate
+    sudo port upgrade installed
+    sudo port install cmake boost ossp-uuid uriparser taglib
+
+You need to edit CMakeLists.txt. The link targets bits. Change ossp-uuid to 
+uuid. Add -mt to the end of all boost linkages. Maybe you don't have to do 
+this if you built boost non multithreaded? I dunno --mxcl
+
+
+Windows Dependenceies
+---------------------
+Good luck! Just install everything listed and hope for the best.
+
+
+Compile it:
+-----------
+0) Look in CMakeLists.txt at the include/library paths and make changes if
+   you've installed boost/something in unusual places.
+1) 
+    $ cmake .
+2) 
+    $ make
+
+
+First Run and Scanning
+----------------------
+Make the empty database:
+
+    $ sqlite3 ./collection.db < etc/schema.sql   #>
+
+Now run the scanner to index your music:
+
+    $ ./scanner ./collection.db /your/mp3/dir
+
+
+Running Playdar
+---------------
+Edit etc/playdar.ini and specify your name, private ip etc.
+Run playdar from the same directory you built it in: 
+
+    $ ./bin/playdar -c ./etc/playdar.ini
+
+FWIW you can also override ini file options on command line like this:
+
+    $ ./bin/playdar -c ./etc/playdar.ini --resolver.udp_lan.enabled no
+
+Now hit up: http://localhost:8888/ to check it's running.
+Make JSON requests yourself, go to /stats, or more importantly:
+
+Check out www.playdar.org for the latest demo interface.

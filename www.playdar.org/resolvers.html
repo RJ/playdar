@@ -1,0 +1,57 @@
+<!--#set var="title" value="Playdar - Music Content Resolving Framework" --><!--#include virtual="/inc/header.html" -->
+<h2>Playdar Content Resolving Framework</h2>
+<p>
+The Playdar scanner creates a database of your "local library", ie music 
+files that you have on your computer. It also maintains a text search index 
+capable of fuzzy searching. You search for "Radiohed" it finds "Radiohead".
+This is all stored in an sqlite database, with a custom ngram fuzzy-search implementation.
+</p>
+<p>
+Fundamental to the design of Playdar is a pluggable, asynchronous content-
+resolving framework. The following resolvers are already working:
+<ul>
+<li>
+  <strong>Local library resolver</strong> - uses the fuzzy search index as mentioned above.
+  If the song exists on your computer, this plugin finds it instantly.
+  (Already works; sqlite with custom ngram indexing)
+</li>
+<li>
+  <strong>Local area network resolver</strong> - find other Playdar installs on the LAN
+  (Already works; UDP multicast)
+</li>
+<li>
+  <strong>Remote Playdar connector</strong> - give it an IP:port of a remote computer running
+  Playdar and you can resolve content from that machine too (eg: work~home). I'm using this over
+  SSH tunnels at the moment to hook up home-work.
+  (Already works; uses the Playdar HTTP API on remote machine directly)
+</li>
+<li>
+  <strong>Gateway Plugin</strong> - Will spawn another binary/script, and pipe queries to it via stdin, and expect results from stdout.
+  This means you can write resolver plugins in any language or shell script, provided you can parse and output JSON. 
+  There is a (somewhat crappy) example php script which is capable of resolving one hardcoded track from magnatune.com.
+</li>
+</ul>
+</p>
+
+<h3>Other resolver plugins...</h3>
+<p>
+What other sources can you think of to resolve music from? You can make a plugin using C++ that will load into Playdar directly, or in a language of your choice if you use the Gateway plugin and handle queries from stdin.
+</p>
+<p>
+Here are some ideas:
+</p>
+<ul>
+    <li>Searching free sources such as magnatune.com or archive.org</li>
+    <li>Got a Rhapsody account? A resolver could use their API to play from Rhapsody</li>
+    <li>iTunes shared libraries (not sure if this is possible due to silly encryption apple added?)</li>
+    <li>UPnP Media Devices</li>
+    <li>Any online service that has a search/streaming API</li>
+    <li></li>
+    <li><b>Your idea here</b></li>
+</ul>
+
+</p>
+
+
+</body>
+</html>
