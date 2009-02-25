@@ -49,7 +49,7 @@ namespace sqlite3pp
       typedef boost::function<int (int)> busy_handler;
       typedef boost::function<int ()> commit_handler;
       typedef boost::function<void ()> rollback_handler;
-      typedef boost::function<void (int, char const*, char const*, int64_t)> update_handler;
+      typedef boost::function<void (int, char const*, char const*, boost::int64_t)> update_handler;
       typedef boost::function<int (int, char const*, char const*, char const*, char const*)> authorize_handler;
 
       explicit database(char const* dbname = 0);
@@ -61,7 +61,7 @@ namespace sqlite3pp
       int attach(char const* dbname, char const* name);
       int detach(char const* name);
 
-      int64_t last_insert_rowid() const;
+      boost::int64_t last_insert_rowid() const;
 
       int error_code() const;
       char const* error_msg() const;
@@ -98,7 +98,7 @@ namespace sqlite3pp
 
       int bind(int idx, int value);
       int bind(int idx, double value);
-      int bind(int idx, int64_t value);
+      int bind(int idx, boost::int64_t value);
       int bind(int idx, char const* value, bool fstatic = true);
       int bind(int idx, void const* value, int n, bool fstatic = true);
       int bind(int idx);
@@ -106,7 +106,7 @@ namespace sqlite3pp
 
       int bind(char const* name, int value);
       int bind(char const* name, double value);
-      int bind(char const* name, int64_t value);
+      int bind(char const* name, boost::int64_t value);
       int bind(char const* name, char const* value, bool fstatic = true);
       int bind(char const* name, void const* value, int n, bool fstatic = true);
       int bind(char const* name);
@@ -223,7 +223,7 @@ namespace sqlite3pp
 	private:
 	  int get(int idx, int) const;
 	  double get(int idx, double) const;
-	  int64_t get(int idx, int64_t) const;
+	  boost::int64_t get(int idx, boost::int64_t) const;
 	  char const* get(int idx, char const*) const;
 	  std::string get(int idx, std::string) const;
 	  void const* get(int idx, void const*) const;

@@ -8,6 +8,8 @@
 
 #include "sqlite3pp.h"
 
+using namespace boost;
+
 namespace sqlite3pp
 {
 
