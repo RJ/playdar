@@ -1,0 +1,26 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playdar", "playdar.vcproj", "{EF72373B-C32C-4AC7-83A4-C61BDC9154EC}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scanner", "..\win32-scanner\scanner.vcproj", "{86B234FE-250D-4BA6-899A-987034D1FE11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF72373B-C32C-4AC7-83A4-C61BDC9154EC}.Debug|Win32.ActiveCfg = Debug|Win32
+		{EF72373B-C32C-4AC7-83A4-C61BDC9154EC}.Debug|Win32.Build.0 = Debug|Win32
+		{EF72373B-C32C-4AC7-83A4-C61BDC9154EC}.Release|Win32.ActiveCfg = Release|Win32
+		{EF72373B-C32C-4AC7-83A4-C61BDC9154EC}.Release|Win32.Build.0 = Release|Win32
+		{86B234FE-250D-4BA6-899A-987034D1FE11}.Debug|Win32.ActiveCfg = Debug|Win32
+		{86B234FE-250D-4BA6-899A-987034D1FE11}.Debug|Win32.Build.0 = Debug|Win32
+		{86B234FE-250D-4BA6-899A-987034D1FE11}.Release|Win32.ActiveCfg = Release|Win32
+		{86B234FE-250D-4BA6-899A-987034D1FE11}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
