@@ -78,6 +78,8 @@ public:
 
     MyApplication * m_app;
     
+    sqlite3pp::database * db(){ return &m_db; }
+    
     // DB helper:
     template <typename T> T db_get_one(string sql, T def);
     

@@ -52,49 +52,38 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
                     string artist, string album, string track, int tracknum)
 {
     int fileid = 0;
-    sqlite3pp::transaction xct(m_db);
-    {
-        remove_file(path);
-        sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
-        cmd.bind(1, path.c_str(), true);
-        cmd.bind(2, size);
-        cmd.bind(3, mtime);
-        cmd.bind(4, md5.c_str(), true);
-        cmd.bind(5, mimetype.c_str(), true);
-        cmd.bind(6, duration);
-        cmd.bind(7, bitrate);
-        if(cmd.execute() != SQLITE_OK){
-            cerr<<"Error inserting into file table"<<endl;
-            xct.rollback();
-            return 0;
-        }
-        fileid = m_db.last_insert_rowid();
-        int artid = get_artist_id(artist);
-        if(artid<1){
-            xct.rollback();
-            return 0;
-        }
-        int trkid = get_track_id(artid, track);
-        if(trkid<1){
-            xct.rollback();
-            return 0;
-        }
-        int albid = get_album_id(artid, album);
-        // Now add the association
-        sqlite3pp::command cmd2(m_db, "INSERT INTO file_join(file, artist ,album, track) VALUES (?,?,?,?)");
-        cmd2.bind(1, fileid);
-        cmd2.bind(2, artid);
-        cmd2.bind(3, albid);
-        cmd2.bind(4, trkid);
-        if(cmd2.execute() != SQLITE_OK){
-            cerr<<"Error inserting into file_join table"<<endl;
-            xct.rollback();
-            return 0;
-        }
-        //cout << "Art,alb,trk id: " << artid << "," << albid << "," << trkid << " fileid: " << fileid << " filename: " << path << endl;
+
+    remove_file(path);
+    sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    cmd.bind(1, path.c_str(), true);
+    cmd.bind(2, size);
+    cmd.bind(3, mtime);
+    cmd.bind(4, md5.c_str(), true);
+    cmd.bind(5, mimetype.c_str(), true);
+    cmd.bind(6, duration);
+    cmd.bind(7, bitrate);
+    if(cmd.execute() != SQLITE_OK){
+        cerr<<"Error inserting into file table"<<endl;
+        return 0;
     }
-    if(SQLITE_OK!=xct.commit()){
-        cerr << "Failed to add new file :(" << endl;
+    fileid = m_db.last_insert_rowid();
+    int artid = get_artist_id(artist);
+    if(artid<1){
+        return 0;
+    }
+    int trkid = get_track_id(artid, track);
+    if(trkid<1){
+        return 0;
+    }
+    int albid = get_album_id(artid, album);
+    // Now add the association
+    sqlite3pp::command cmd2(m_db, "INSERT INTO file_join(file, artist ,album, track) VALUES (?,?,?,?)");
+    cmd2.bind(1, fileid);
+    cmd2.bind(2, artid);
+    cmd2.bind(3, albid);
+    cmd2.bind(4, trkid);
+    if(cmd2.execute() != SQLITE_OK){
+        cerr<<"Error inserting into file_join table"<<endl;
         return 0;
     }
     return fileid; 
@@ -192,7 +181,7 @@ Library::get_album_id(int artistid, string name_orig)
         return 0;
     }
     id = m_db.last_insert_rowid();
-    cout << "New insert: " << sortname << " == " << id << endl;
+    //cout << "New insert: " << sortname << " == " << id << endl;
     m_albumcache[artistid][sortname]=id;
     return id;
 }
@@ -318,45 +307,49 @@ bool
 Library::build_index(string table)
 {
     if(table != "artist" && table != "track" && table != "album") return false;
-    cout << "Building index for " << table << endl;
-
-    string searchtable = table + "_search_index";
-    m_db.execute(string("DELETE FROM "+searchtable).c_str());
-    sqlite3pp::query qry(m_db, string("SELECT id, sortname FROM "+table).c_str());
-    int num_names = 0;
-    int num_ngrams = 0;
-    int id;
-    char const * name;
-    sqlite3pp::command cmd_i(m_db, string(  "INSERT INTO "+searchtable+
-                                            "(ngram, id, num) VALUES (?,?,?)").c_str() );
-
-    sqlite3pp::command cmd_u(m_db, string(  "UPDATE "+searchtable+" SET num=num+? "+
-                                            "WHERE ngram=? AND id=?").c_str());
-
-    for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-        id   = (*i).get<int>(0);
-        name = (*i).get<char const*>(1);
-        num_names++;
-        cmd_i.bind(2, id); // set id
-        cmd_u.bind(3, id); // set id
-        map<string,int> ngrammap = ngrams(name);
-        for(map<string,int>::const_iterator it = ngrammap.begin(); it != ngrammap.end(); ++it)
-        {
-            num_ngrams++;
-            cmd_u.bind(1, it->second);
-            cmd_u.bind(2, it->first.c_str());
-            cmd_u.execute();
-            cmd_u.reset();
-            if(m_db.changes()==0) { // update failed, do insert
-                cmd_i.bind(1, it->first.c_str());
-                cmd_i.bind(3, it->second);
-                cmd_i.execute();
-                cmd_i.reset();
-            }            
+    
+        cout << "Building index for " << table << endl;
+        string searchtable = table + "_search_index";
+            m_db.execute(string("DELETE FROM "+searchtable).c_str());
+        sqlite3pp::query qry(m_db, string("SELECT id, sortname FROM "+table).c_str());
+        int num_names = 0;
+        int num_ngrams = 0;
+        int id;
+        char const * name;
+        
+        sqlite3pp::command cmd_i(m_db, string(  "INSERT INTO "+searchtable+
+                                                "(ngram, id, num) VALUES (?,?,?)").c_str() );
+    
+        sqlite3pp::command cmd_u(m_db, string(  "UPDATE "+searchtable+" SET num=num+? "+
+                                                "WHERE ngram=? AND id=?").c_str());
+    
+        for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+            id   = (*i).get<int>(0);
+            name = (*i).get<char const*>(1);
+            num_names++;
+            cmd_i.bind(2, id); // set id
+            cmd_u.bind(3, id); // set id
+            map<string,int> ngrammap = ngrams(name);
+            for(map<string,int>::const_iterator it = ngrammap.begin(); it != ngrammap.end(); ++it)
+            {
+                num_ngrams++;
+                cmd_u.bind(1, it->second);
+                cmd_u.bind(2, it->first.c_str());
+                cmd_u.execute();
+                cmd_u.reset();
+                if(m_db.changes()==0) { // update failed, do insert
+                    cmd_i.bind(1, it->first.c_str());
+                    cmd_i.bind(3, it->second);
+                    cmd_i.execute();
+                    cmd_i.reset();
+                }            
+            }
         }
-    }
-    cout << "Finished indexing " << table << " - " << num_names <<" names, " << num_ngrams << " ngrams." << endl;
-    return true;
+        cout << "Finished indexing " << table << " - " << num_names <<" names, " << num_ngrams << " ngrams." << endl;
+        return true;
+
+    cout << "Failed, rolled back index update." << endl;
+    return false;
 }
 
 // horribly inefficient:

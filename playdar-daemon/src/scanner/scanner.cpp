@@ -32,7 +32,6 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
         for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr){
             if ( bfs::is_directory(itr->status()) ){
                 cout << "DIR: " << itr->path() << endl;
-                add_dir(itr->path());
                 scan(itr->path(), mtimes);
             } else {
                 // is this file an audio file we understand?
@@ -54,7 +53,7 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
         }
     }
     catch(std::exception const& e) { cerr << e.what() << endl;}
-    catch(...) { cout << "Fail at " << p.string() << endl; }
+    //catch(...) { cout << "Fail at " << p.string() << endl; }
 
     return true;
 }
@@ -127,15 +126,43 @@ int main(int argc, char *argv[])
     cout << mtimes.size() << " files+dir mtimes loaded" << endl;
     cout << "Scanning for changes..." << endl;
     bfs::path dir(argv[2]);
-    scan(dir, mtimes);
-    cout << "Building search indexes..." << endl;
-    gLibrary->build_index("artist");
-    gLibrary->build_index("album");
-    gLibrary->build_index("track");
-    cout << "Finished,   scanned: " << scanned 
-                    << " skipped: " << skipped 
-                    << " ignored: " << ignored 
-                    << endl;
+    sqlite3pp::transaction xct(*(gLibrary->db()));
+    {
+        try
+        {
+            scan(dir, mtimes);
+            cout << "Scan complete ok." << endl;
+        }
+        catch(...)
+        {
+            cout << "Scan failed." << endl;
+            xct.rollback();
+            return 1;
+        }
+        xct.commit();
+    }
+    
+    sqlite3pp::transaction xct2(*(gLibrary->db()));
+    {
+        try
+        {
+            cout << endl << "Building search indexes..." << endl;
+            gLibrary->build_index("artist");
+            gLibrary->build_index("album");
+            gLibrary->build_index("track");
+            xct2.commit();
+            cout << "Finished,   scanned: " << scanned 
+                << " skipped: " << skipped 
+                << " ignored: " << ignored 
+                << endl;
+        }
+        catch(...)
+        {
+            cout << "Index update failed, delete your database, fix the bug, and retry" << endl;
+            xct2.rollback();
+            return 1;
+        }
+    }
     delete(gLibrary); 
     return 0;
 }

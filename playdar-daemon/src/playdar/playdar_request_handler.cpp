@@ -309,10 +309,11 @@ void
 playdar_request_handler::serve_static_file(const moost::http::request& req, moost::http::reply& rep)
 {
     moost::http::filesystem_request_handler frh;
-    frh.doc_root("/home/rj/src/playdar/www");
+    frh.doc_root("/home/rj/src/playdar/playdar-daemon/www");
     frh.handle_request(req, rep);
 }
 
+// Serves the music file based on a SID (from a playableitem resulting from a query)
 void
 playdar_request_handler::serve_sid(const moost::http::request& req, moost::http::reply& rep, source_uid sid)
 {
@@ -325,6 +326,7 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
     rep.status = moost::http::reply::ok;
     char buf[16384];
     int len, total=0;
+    cout << "INFO Serving track from '"<< pip->source() <<"'" << endl;
     cout << "Reading...." << endl;
     while ((len = ss->read_bytes((char*)&buf, sizeof(buf)))>0)
     {
