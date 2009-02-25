@@ -18,7 +18,7 @@ class UDPSender
     {
         try
         {
-            cout << "Sending UDP ("<<message.length()<<"bytes): " << endl << message << endl;
+            //cout << "Sending UDP ("<<message.length()<<"bytes): " << endl << message << endl;
             boost::asio::io_service io_service;
             UDPSender s(io_service, addr, port, message);
             io_service.run(); 
