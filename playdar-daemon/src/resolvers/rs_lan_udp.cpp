@@ -11,11 +11,23 @@
 RS_lan_udp::RS_lan_udp(MyApplication * a)
     :ResolverService(a)
 {
+    string hello = "OHAI ";
+    hello += app()->name();
+    boost::thread thr( &UDPSender::send,
+                    app()->multicast_ip(), 
+                    app()->multicast_port(), 
+                    hello );
     boost::thread m_responder_thread(&RS_lan_udp::init, this);
 }
 
 RS_lan_udp::~RS_lan_udp()
 {
+    string hello = "KTHXBYE ";
+    hello += app()->name();
+    boost::thread thr( &UDPSender::send,
+                    app()->multicast_ip(), 
+                    app()->multicast_port(), 
+                    hello );
     delete(socket_);
 }
 
@@ -104,6 +116,13 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                     << sender_address.to_string() << ":" << sender_port << "):" << endl; 
                     //<< endl << msg << endl << endl;
     
+            // special (hacked in) join leave msg, for fun debugging on lan
+            if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
+            {
+                cout << "PRESENCE_LAN " << msg << endl;
+                break;
+            }
+     
             using namespace json_spirit;
             // try and parse it as json:
             Value mv;
