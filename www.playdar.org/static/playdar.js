@@ -13,6 +13,32 @@ Playdar.generate_uuid = function () {
     return "playdar_js_uuid_gen_" + Math.random(); // TODO improve.
 };
 
+Playdar.toQueryString = function (params) {
+    function toQueryPair(key, value) {
+        if (typeof value === 'undefined') {
+            return key;
+        }
+        return key + '=' + encodeURIComponent(value);
+    }
+    
+    var results = [];
+    for (key in params) {
+        key = encodeURIComponent(key);
+        var values = params[key];
+        
+        if (values && typeof values === 'object') {
+            if (Object.prototype.toString.call(values) == '[object Array]') {
+                for (i = 0; i < values.length; i++) {
+                    results.push(toQueryPair(key, values));
+                }
+            } else {
+                results.push(toQueryPair(key, values));
+            }
+        }
+    }
+    return results.join('&');
+};
+
 // format secs -> mm:ss helper.
 Playdar.mmss = function (secs) {
     var s = secs % 60;
@@ -34,11 +60,8 @@ Playdar.prototype = {
     server_port: "8888",
     stat_timeout: 2000,
     
-    register_handler: function (handler_name, callback) {
-        this.handlers[handler_name] = callback;
-    },
+    // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
     
-    // CALLBACKS YOU SHOULD OVERRIDE:
     handlers: {
         detected: function (v) {
             alert('Playdar detected, version: ' + v);
@@ -50,11 +73,17 @@ Playdar.prototype = {
             alert('Results final answer: ' + final_answer + ' (JSON object): ' + r);
         }
     },
-    // END CALLBACKS
     
+    register_handler: function (handler_name, callback) {
+        this.handlers[handler_name] = callback;
+    },
+    
+    // initialisation
     init: function () {
         this.stat();
     },
+    
+    // UTILITY FUNCTIONS
     
     get_base_url: function (path) {
         var url = "http://" + this.server_root + ":" + this.server_port;
@@ -64,18 +93,24 @@ Playdar.prototype = {
         return url;
     },
     
-    // api base url for playdar requests
-    get_url: function (u) {
-        return this.get_base_url("/api/?" + u);
-    },
-    
-    jsonp: function (callback) {
-        return "&jsonp=Playdar.instances['" + this.uuid + "']." + callback;
+    // build an api url for playdar requests
+    get_url: function (method, jsonp, options) {
+        if (!options) {
+            options = {};
+        }
+        options.method = method;
+        options.jsonp = this.jsonp(jsonp);
+        return this.get_base_url("/api/?" + Playdar.toQueryString(options));
     },
     
     // turn a source id into a stream url
     get_stream_url: function (sid) {
         return this.get_base_url("/sid/" + sid);
+    },
+    
+    // build the jsonp callback string
+    jsonp: function (callback) {
+        return "&jsonp=Playdar.instances['" + this.uuid + "']." + callback;
     },
     
     
@@ -106,9 +141,7 @@ Playdar.prototype = {
         setTimeout(function () {
             that.stat_timeout();
         }, this.stat_timeout);
-        var url = "method=stat"
-                + this.jsonp("stat_handler");
-        Playdar.loadjs(this.get_url(url));
+        Playdar.loadjs(this.get_url("stat", "stat_handler"));
     },
     
     
@@ -165,11 +198,9 @@ Playdar.prototype = {
     
     // poll results for a query id
     poll_results: function (qid) {
-        var url = "method=get_results"
-                + "&qid=qid"
-                + this.jsonp("handle_results");
-        var checkurl = this.get_url(url);
-        Playdar.loadjs(checkurl);
+        Playdar.loadjs(this.get_url("get_results", "handle_results", {
+            qid: qid
+        }));
     },
     
     
@@ -183,14 +214,14 @@ Playdar.prototype = {
     
     // narrow, find an exact match, hopefully
     resolve: function (art, alb, trk, qid) {
-        var url = "method=resolve";
-                + "&artist=" + art;
-                + "&album=" + alb;
-                + "&track=" + trk;
-                + this.jsonp("handle_resolution");
-        if (typeof(qid) != 'undefined') {
-            url += "&qid=" + qid;
+        params = {
+            artist: art,
+            album: alb,
+            track: trk
+        };
+        if (typeof qid !== 'undefined') {
+            params.qid = qid;
         }
-        Playdar.loadjs(this.get_url(url));
+        Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     }
 };
