@@ -20,6 +20,12 @@ Resolver::Resolver(MyApplication * app)
     m_id_counter = 0;
     cout << "Resolver started." << endl;
     
+    m_rs_local = 0;
+    m_rs_lan = 0;
+    m_rs_http_playdar = 0;
+    m_rs_http_gateway_script = 0;
+    m_rs_darknet = 0;
+    
     m_rs_local  = new RS_local_library(app);
 
     //TODO dynamic loading at runtime using PDL or Boost.extension
@@ -74,7 +80,7 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
         // these calls shouldn't block, plugins do their own threading etc.
         if(m_rs_http_playdar)           m_rs_http_playdar->start_resolving(rq);
         if(m_rs_lan)                    m_rs_lan->start_resolving(rq);
-        if(m_rs_darknet)                m_rs_lan->start_resolving(rq);
+        if(m_rs_darknet)                m_rs_darknet->start_resolving(rq);
         if(m_rs_http_gateway_script)    m_rs_http_gateway_script->start_resolving(rq);
     }
     return rq->id();
