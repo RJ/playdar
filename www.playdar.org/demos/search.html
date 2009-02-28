@@ -4,25 +4,27 @@
 // returns true if console.log available (firebug etc)
 function clog(){ return typeof(window.console) != "undefined" ; }
 
-var playdar = new Playdar();
-window.onload = function(){ playdar.init(); };
-
-// a couple of misc formatting functions:
-var rnd = function(a,dp){ return Math.round(a*Math.pow(10,dp))/Math.pow(10,dp); }
-
-// set playdar callbacks:
-playdar.cb_detected = function(v) {
-    $('playdar_stat').innerHTML="<b style='color:green;'>PLAYDAR DETECTED: v"+v+"</b>";    
+var playdar = new Playdar({
+    detected: function (v) {
+        $('playdar_stat').innerHTML="<b style='color:green;'>PLAYDAR DETECTED: v"+v+"</b>";
+    },
+    not_detected: function () {
+        $('playdar_stat').innerHTML="<b style='color:red;'>PLAYDAR NOT DETECTED</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+    }
+});
+window.onload = function() {
+    playdar.init();
 };
 
-playdar.cb_not_detected = function() {
-    $('playdar_stat').innerHTML="<b style='color:red;'>PLAYDAR NOT DETECTED</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+// a couple of misc formatting functions:
+var rnd = function (a, dp) {
+    return Math.round(a*Math.pow(10,dp))/Math.pow(10,dp);
 };
   
 // Insert results into the table in order of score:
-playdar.cb_results_available = function(r, finalanswer) {
+playdar.register_handler('results', function(r, finalanswer) {
     // make <TR> element
-    var mkrow = function(pi){
+    var mkrow = function(pi) {
         nicescore = rnd(pi.score,3);
         nicepref  = rnd(pi.preference,3);
         var td;
@@ -33,7 +35,7 @@ playdar.cb_results_available = function(r, finalanswer) {
             tr.appendChild(td);
         td = document.createElement('td');
             // what's the point of using 'proper' dom methods anyway? innerHTML ftw
-            td.innerHTML = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.sid2url(pi.sid) + "\" height=\"17\" width=\"17\"></embed></object>";
+            td.innerHTML = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(pi.sid) + "\" height=\"17\" width=\"17\"></embed></object>";
             tr.appendChild(td);
         td = document.createElement('td');
             td.appendChild( document.createTextNode( pi.artist ) );
@@ -48,10 +50,10 @@ playdar.cb_results_available = function(r, finalanswer) {
             td.appendChild( document.createTextNode( pi.source ) );
             tr.appendChild(td);
         td = document.createElement('td');
-            td.innerHTML = "<a href=\""+playdar.sid2url(pi.sid)+"\">dl</a> <small>("+playdar.mmss(pi.duration)+", "/*+pi.mimetype+", "*/+rnd(pi.size/1000000,1) +"MB, "+pi.bitrate+"Kbps)</small>";
+            td.innerHTML = "<a href=\""+playdar.get_stream_url(pi.sid)+"\">dl</a> <small>("+Playdar.mmss(pi.duration)+", "/*+pi.mimetype+", "*/+rnd(pi.size/1000000,1) +"MB, "+pi.bitrate+"Kbps)</small>";
             tr.appendChild(td);
         return tr;
-    }
+    };
     var qsolved = r.query.solved ? "solved" : "unsolved";
     var qstatus = finalanswer ? "finished" : "pending";
     $('numresultsspan').innerHTML = "Found: "+r.results.length + " Status: " + qstatus + " Result: " + qsolved;
@@ -77,7 +79,7 @@ playdar.cb_results_available = function(r, finalanswer) {
             $('resultstbl').appendChild( mkrow(pi) );
         }
     }
-};
+});
 
 function clearresults(){
     $('numresultsspan').innerHTML='0';
@@ -89,16 +91,19 @@ function clearresults(){
 }
 
 //check results of last query again
-function recheckresults(){
-    if(playdar.last_qid) playdar.check_qid(playdar.last_qid);
+function recheckresults () {
+    if (playdar.last_qid) {
+        playdar.poll_results(playdar.last_qid);
+    }
 }
 
 function resolve(art,alb,trk){
     clearresults();
-    if($('spamcheck').checked)
+    if ($('spamcheck').checked) {
         playdar.dosearch($('artist').value, $('album').value,$('track').value);
-    else
-        playdar.doresolve($('artist').value, $('album').value,$('track').value);
+    } else {
+        playdar.resolve($('artist').value, $('album').value,$('track').value);
+    }
 }
 </script>
 <h2>Search Demo</h2>
