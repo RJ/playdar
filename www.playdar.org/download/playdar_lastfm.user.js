@@ -105,7 +105,7 @@ function do_markup (playdar, a, artist, track) {
             }
             // update status element:
             unsafeWindow.document.getElementById(response.qid).setAttribute('style', 'border:0; margin:0; background-color: lightgreen;  width:12px; height:10px; font-size:9px;margin-right:5px;');
-            //var swfstr = "<object height=\"10\" width=\"10\"><embed src=\"http://www.playdar.org/static/player.swf?&song_url=" + playdar.sid2url(response.results[0].sid) + "\" height=\"10\" width=\"10\"></embed></object>";
+            //var swfstr = "<object height=\"10\" width=\"10\"><embed src=\"http://www.playdar.org/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"10\" width=\"10\"></embed></object>";
             // Just link to the source, too much flash spam:
             unsafeWindow.document.getElementById(response.qid).innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(response.results[0].sid) + "\" title=\"" + tt + "\">" + response.results.length + "</a>&nbsp;";
         } else if (finalanswer) {
@@ -113,7 +113,7 @@ function do_markup (playdar, a, artist, track) {
             unsafeWindow.document.getElementById(response.qid).innerHTML = '&nbsp;X&nbsp;';
         }
     };
-    playdar.register_results_handler(uuid, handler);
+    playdar.register_results_handler(handler, uuid);
     // dispatch query, specifying qid so our custom handler will be used:
     playdar.resolve(artist, "", track, uuid);
 }

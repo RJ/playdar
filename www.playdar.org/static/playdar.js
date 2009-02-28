@@ -54,12 +54,13 @@ Playdar.mmss = function (secs) {
     
 Playdar.loadjs = function (url) {
    var e = document.createElement("script");
+   // console.info('loadjs:', url);
    e.src = url;
    document.getElementsByTagName("head")[0].appendChild(e);
 };
 
 Playdar.prototype = {
-    lib_version: "0.2",
+    lib_version: "0.2.1",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
@@ -67,14 +68,20 @@ Playdar.prototype = {
     // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
     
     handlers: {
-        detected: function (v) {
-            alert('Playdar detected, version: ' + v);
+        detected: function (version) {
+            alert('Playdar detected, version: ' + version);
         },
         not_detected: function () {
             alert('Playdar not detected');
         },
-        results: function (r, final_answer) {
-            alert('Results final answer: ' + final_answer + ' (JSON object): ' + r.results.length + ' items');
+        results: function (response, final_answer) {
+            if (final_answer) {
+                if (response.results.length) {
+                    alert('Found results: ' + response.results.length);
+                } else {
+                    alert('No results');
+                }
+            }
         }
     },
     
@@ -125,13 +132,14 @@ Playdar.prototype = {
         return this.stat_response && this.stat_response.name == "playdar";
     },
     
-    stat_timeout: function () {
+    check_stat_timeout: function () {
         if (!this.check_stat()) {
             this.handlers.not_detected();
         }
     },
     
-    stat_handler: function (response) {
+    handle_stat: function (response) {
+        // console.dir(response);
         this.stat_response = response;
         if (!this.check_stat()) {
             this.stat_response = false;
@@ -143,9 +151,9 @@ Playdar.prototype = {
     stat: function () {
         var that = this;
         setTimeout(function () {
-            that.stat_timeout();
+            that.check_stat_timeout();
         }, this.stat_timeout);
-        Playdar.loadjs(this.get_url("stat", "stat_handler"));
+        Playdar.loadjs(this.get_url("stat", "handle_stat"));
     },
     
     
@@ -153,8 +161,12 @@ Playdar.prototype = {
     
     // set search result handlers for a query id
     results_handlers: {},
-    register_results_handler: function (qid, handler) {
-        this.results_handlers[qid] = handler;
+    register_results_handler: function (handler, qid) {
+        if (qid) {
+            this.results_handlers[qid] = handler;
+        } else {
+            this.register_handler('results', handler);
+        }
     },
     
     poll_counts: {},
@@ -182,12 +194,13 @@ Playdar.prototype = {
     },
     
     handle_results: function (response) {
+        // console.dir(response);
         // figure out if we should re-poll, or if the query is solved/failed:
         var final_answer = this.should_stop_polling(response);
         if (!final_answer) {
             var that = this;
             setTimeout(function () {
-                that.poll_results(response.qid);
+                that.get_results(response.qid);
             }, response.refresh_interval);
         }
         // now call the results handler
@@ -201,7 +214,7 @@ Playdar.prototype = {
     },
     
     // poll results for a query id
-    poll_results: function (qid) {
+    get_results: function (qid) {
         Playdar.loadjs(this.get_url("get_results", "handle_results", {
             qid: qid
         }));
@@ -210,10 +223,13 @@ Playdar.prototype = {
     
     // CONTENT RESOLUTION
     
+    resolve_qids: [],
     last_qid: "",
     handle_resolution: function (response) {
+        // console.dir(response);
         this.last_qid = response.qid;
-        this.poll_results(response.qid);
+        this.resolve_qids.push(this.last_qid);
+        this.get_results(response.qid);
     },
     
     // narrow, find an exact match, hopefully

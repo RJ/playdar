@@ -1,0 +1,85 @@
+<!--#set var="title" value="Playdar - Music Content Resolver" --><!--#include virtual="/inc/header.html" -->
+<h2>Playdar Javascript Library</h2>
+<p>
+    <code>playdar.js</code> is a Javascript library for interacting with the Playdar HTTP API.
+</p>
+<p>
+    Here's how you use it:
+</p>
+<pre><code>var handlers = {
+    detected: function (version) {
+        alert('Playdar detected, version: ' + version);
+    },
+    not_detected: function () {
+        alert('Playdar not detected');
+    }
+};
+
+var playdar = new Playdar(handlers);
+
+playdar.init();
+</code></pre>
+<p>
+    This will setup a <code>Playdar</code> instance with a set of status handlers (in this case, the handlers are identical to the defaults if you don't pass any <code>handlers</code> into the constructor.
+</p>
+<p>
+    The <code>init()</code> method checks for a running Playdar service and calls the relevant status handler.
+</p>
+
+<h3>Resolving content</h3>
+<p>
+    Searching an available Playdar service for streamable music is a two step process.
+</p>
+<ol>
+    <li>Register a <code>results</code> callback handler.</li>
+    <li>Call the <code>resolve()</code> method with artist, album and track names.</li>
+</ol>
+<pre><code>var results_handler = function (response, final_answer) {
+    if (final_answer) {
+        if (response.results.length) {
+            alert('Found results: ' + response.results.length);
+        } else {
+            alert('No results');
+        }
+    }
+};
+
+playdar.register_results_handler(results_handler);
+
+playdar.resolve("Weezer", "Pinkerton", "Getchoo");
+</code></pre>
+<p>
+    Note: You can alternatively register the results handler in the <code>new Playdar()</code> constructor, just include it in the <code>handlers</code> object as <code>results</code> along with the status handlers.
+</p>
+<p>
+    The <code>results</code> handler takes two arguments:
+</p>
+<ul>
+    <li><code>response</code> <i>(JSON)</i> from the <code>get_results</code> API method.</li>
+    <li><code>final_answer</code> <i>(bool)</i> indicating whether polling has ended.</li>
+</ul>
+<p>
+    The <code>register_results_handler()</code> and <code>resolve()</code> methods also take an optional final argument, <code>qid</code> which lets you define your own query id, and define custom handlers for content resolution.
+</p>
+
+<h3>Query history</h3>
+<p>
+    Each <code>resolve()</code> query id is stored in <code>playdar.resolve_qids</code> (with the last one in <code>playdar.last_qid</code> for convenience). So you can easily refetch results by calling <code>get_results()</code> yourself:
+</p>
+<pre><code>// Refetch the last query
+playdar.get_results(playdar.last_qid);
+
+// Refetch the first query
+playdar.get_results(playdar.resolve_qids[0]);
+</code></pre>
+
+<h3>Streaming</h3>
+<p>
+    Once you've got a good result, you can build a streaming url wth <code>get_stream_url()</code>.
+</p>
+<pre><code>var result = response.results[0];
+alert("Stream URL: " + playdar.get_stream_url(result.sid));
+</code></pre>
+
+</body>
+</html>

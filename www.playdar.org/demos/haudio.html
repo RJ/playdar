@@ -111,6 +111,27 @@ function go_microformats() {
         d.innerHTML="&nbsp; &nbsp;";
         return d;
     };
+    // create a custom playdar callback that will handle results for this query:
+    var results_handler = function (response, finalanswer) {
+        if (clog()) console.log("result_callback: " + response.qid + " finalanswer: " + finalanswer + " num results = " + response.results.length);
+        if (response.results.length) {
+            // generate tooltip with details:
+            var tt = "Sources: ";
+            for (var k = 0; k < response.results.length; ++k) {
+                var r = response.results[k];
+                tt += r.source + "/" + r.bitrate + "kbps/" + Playdar.mmss(r.duration) + " ";
+            }
+            // update status element:
+            $(response.qid).className = 'playdar_found';
+            var swfstr = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"17\" width=\"17\"></embed></object>";
+            $(response.qid).innerHTML = swfstr + " <a href=\"#\" title=\""+tt+"\">" + response.results.length + "</a>";
+        } else if (finalanswer) {
+            $(response.qid).className = 'playdar_notfound';
+            $(response.qid).innerHTML = ':(';
+        }
+    };
+    playdar.register_results_handler(results_handler);
+    
     var divs = $$('div.haudio');
     for (var i = 0; i < divs.length; ++i) {
         var artist  = divs[i].select('span.contributor')[0].innerHTML.replace(/^\s+|\s+$/g, '');
@@ -118,28 +139,7 @@ function go_microformats() {
         var uuid = Playdar.generate_uuid();
         // add a "searching..." status :
         divs[i].appendChild(mkstatuselem(uuid)); 
-        // create a custom playdar callback that will handle results for this query:
-        var cb = function (response, finalanswer) {
-            if (clog()) console.log("result_callback: " + response.qid + " finalanswer: " + finalanswer + " num results = " + response.results.length);
-            if (response.results.length) {
-                // generate tooltip with details:
-                var tt = "Sources: ";
-                for (var k = 0; k < response.results.length; ++k) {
-                    var r = response.results[k];
-                    tt += r.source + "/" + r.bitrate + "kbps/" + Playdar.mmss(r.duration) + " ";
-                }
-                // update status element:
-                $(response.qid).className = 'playdar_found';
-                var swfstr = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"17\" width=\"17\"></embed></object>";
-                $(response.qid).innerHTML = swfstr + " <a href=\"#\" title=\""+tt+"\">" + response.results.length + "</a>";
-            } else if (finalanswer) {
-                $(response.qid).className = 'playdar_notfound';
-                $(response.qid).innerHTML = ':(';
-            }
-        };
-        playdar.register_results_handler(uuid, cb);
-        // dispatch query, specifying qid so our custom cb will be used:
-        playdar.resolve(artist, "", track, uuid);
+        playdar.resolve(artist, "", track);
         if (clog()) console.log("dispatched " + uuid + " " + artist + " - " + track);
     }
 }

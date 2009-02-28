@@ -18,11 +18,11 @@ window.onload = function() {
 
 // a couple of misc formatting functions:
 var rnd = function (a, dp) {
-    return Math.round(a*Math.pow(10,dp))/Math.pow(10,dp);
+    return Math.round(a * Math.pow(10,dp)) / Math.pow(10,dp);
 };
   
 // Insert results into the table in order of score:
-playdar.register_handler('results', function(r, finalanswer) {
+var results_handler = function(response, final_answer) {
     // make <TR> element
     var mkrow = function(pi) {
         nicescore = rnd(pi.score,3);
@@ -50,54 +50,58 @@ playdar.register_handler('results', function(r, finalanswer) {
             td.appendChild( document.createTextNode( pi.source ) );
             tr.appendChild(td);
         td = document.createElement('td');
-            td.innerHTML = "<a href=\""+playdar.get_stream_url(pi.sid)+"\">dl</a> <small>("+Playdar.mmss(pi.duration)+", "/*+pi.mimetype+", "*/+rnd(pi.size/1000000,1) +"MB, "+pi.bitrate+"Kbps)</small>";
+            td.innerHTML = "<a href=\"" + playdar.get_stream_url(pi.sid) + "\">dl</a> <small>(" + Playdar.mmss(pi.duration) + ", "/*+pi.mimetype+", "*/ + rnd(pi.size/1000000,1) + "MB, " + pi.bitrate + "Kbps)</small>";
             tr.appendChild(td);
         return tr;
     };
-    var qsolved = r.query.solved ? "solved" : "unsolved";
-    var qstatus = finalanswer ? "finished" : "pending";
-    $('numresultsspan').innerHTML = "Found: "+r.results.length + " Status: " + qstatus + " Result: " + qsolved;
-    for(var i =0 ; i < r.results.length ;++i){
-        pi = r.results[i];
-        if($(pi.sid)) continue; 
+    var qsolved = response.query.solved ? "solved" : "unsolved";
+    var qstatus = final_answer ? "finished" : "pending";
+    $('numresultsspan').innerHTML = "Found: " + response.results.length + " Status: " + qstatus + " Result: " + qsolved;
+    for (var i = 0; i < response.results.length; ++i) {
+        pi = response.results[i];
+        if ($(pi.sid)) {
+            continue; 
+        }
         var rows = $('resultstbl').childNodes;
-        if(rows.length == 1){ // header only, no results yet
-            $('resultstbl').appendChild( mkrow(pi) );
+        if (rows.length == 1) { // header only, no results yet
+            $('resultstbl').appendChild(mkrow(pi));
             return;
         }
         // walk rows and insert in score-order
         var k;
-        for(k = 1; k<rows.length; k++){
+        for (k = 1; k < rows.length; k++) {
             var rowscore = parseFloat(rows[k].childNodes[0].innerHTML); //first <td> contains score
-            if( rowscore < pi.score ){
-                $('resultstbl').insertBefore( mkrow(pi), rows[k] );
+            if (rowscore < pi.score) {
+                $('resultstbl').insertBefore(mkrow(pi), rows[k]);
                 break;
             }
         }
         // put at the end, lowest so far:
-        if(k == rows.length){
+        if (k == rows.length) {
             $('resultstbl').appendChild( mkrow(pi) );
         }
     }
-});
+};
+playdar.register_results_handler(results_handler);
 
-function clearresults(){
+function clearresults() {
     $('numresultsspan').innerHTML='0';
     // clear table of all but first(header) row
     var trs = $('resultstbl').childNodes;
     var len = trs.length;
-    for(var i = len-1; i > 0; i--) 
+    for (var i = len-1; i > 0; i--) {
         $('resultstbl').removeChild($('resultstbl').childNodes[i]);
+    }
 }
 
 //check results of last query again
 function recheckresults () {
     if (playdar.last_qid) {
-        playdar.poll_results(playdar.last_qid);
+        playdar.get_results(playdar.last_qid);
     }
 }
 
-function resolve(art,alb,trk){
+function resolve(art, alb, trk) {
     clearresults();
     playdar.resolve($('artist').value, $('album').value,$('track').value);
 }
