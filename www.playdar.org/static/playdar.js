@@ -5,13 +5,15 @@ Playdar = function (handlers) {
         }
     }
     this.uuid = Playdar.generate_uuid();
-    Playdar.instances[this.uuid] = this;
+    Playdar.last = this;
+    Playdar.instances[this.uuid] = Playdar.last;
 };
 
 Playdar.create = function (handlers) {
     return new Playdar(handlers);
 };
 
+Playdar.last = null;
 Playdar.instances = {};
 Playdar.generate_uuid = function () {
     return "playdar_js_uuid_gen_" + Math.random(); // TODO improve.
@@ -72,7 +74,7 @@ Playdar.prototype = {
             alert('Playdar not detected');
         },
         results: function (r, final_answer) {
-            alert('Results final answer: ' + final_answer + ' (JSON object): ' + r);
+            alert('Results final answer: ' + final_answer + ' (JSON object): ' + r.results.length + ' items');
         }
     },
     
