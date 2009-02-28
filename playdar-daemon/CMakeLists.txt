@@ -80,11 +80,17 @@ ADD_EXECUTABLE( playdar
                 deps/moost_http/src/http/request_parser.cpp
               )
 
+IF(APPLE)
+    SET(uuid_lib "uuid")
+ELSE(APPLE)
+    SET(uuid_lib "ossp-uuid")
+ENDIF(APPLE)
+
 TARGET_LINK_LIBRARIES(  playdar 
                         sqlite3             # public domain
                         tag                 # taglib is LGPL / MPL
                         uriparser           # BSD
-                        ossp-uuid           # BSD
+                        ${uuid_lib}
                         # boost libs:       # BOOST LICENSE
                         boost_filesystem
                         boost_system
@@ -92,7 +98,6 @@ TARGET_LINK_LIBRARIES(  playdar
                         boost_regex
                         boost_program_options
                      )
-
 #cui18n icuuc icudata icuio #TODO ;)
 
 
