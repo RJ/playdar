@@ -15,7 +15,7 @@ Playdar.generate_uuid = function () {
 
 Playdar.toQueryString = function (params) {
     function toQueryPair(key, value) {
-        if (typeof value === 'undefined') {
+        if (value === null) {
             return key;
         }
         return key + '=' + encodeURIComponent(value);
@@ -23,17 +23,15 @@ Playdar.toQueryString = function (params) {
     
     var results = [];
     for (key in params) {
-        key = encodeURIComponent(key);
         var values = params[key];
+        key = encodeURIComponent(key);
         
-        if (values && typeof values === 'object') {
-            if (Object.prototype.toString.call(values) == '[object Array]') {
-                for (i = 0; i < values.length; i++) {
-                    results.push(toQueryPair(key, values));
-                }
-            } else {
-                results.push(toQueryPair(key, values));
+        if (Object.prototype.toString.call(values) == '[object Array]') {
+            for (i = 0; i < values.length; i++) {
+                results.push(toQueryPair(key, values[i]));
             }
+        } else {
+            results.push(toQueryPair(key, values));
         }
     }
     return results.join('&');
