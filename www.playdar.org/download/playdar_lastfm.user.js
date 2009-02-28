@@ -43,7 +43,7 @@ function setup_playdar() {
     var playdar = Playdar.create({
         detected: function (v) {
             //alert('detected, v' + v);
-            do_parsing(playdar);
+            insert_play_buttons(playdar);
         },
         not_detected: function () {
             //alert('Playdar not detected, script disabled');
@@ -52,70 +52,71 @@ function setup_playdar() {
     playdar.init();
 }
 
-function do_parsing (playdar) {
+function insert_play_buttons (playdar) {
+    // set up a handler for resolved content
+    function results_handler (response, finalanswer) {
+        if (finalanswer) {
+            var element = unsafeWindow.document.getElementById(response.qid);
+            if (response.results.length){
+                // generate tooltip with details:
+                var tt = "Sources: ";
+                for (var i = 0; i < response.results.length; i++) {
+                    var result = response.results[i];
+                    tt += result.source + "/" + result.bitrate + "kbps/" + Playdar.mmss(result.duration) + " ";
+                }
+                // update status element:
+                element.setAttribute('style', 'border:0; margin:0; background-color: lightgreen;  width:12px; height:10px; font-size:9px;margin-right:5px;');
+                //var swfstr = "<object height=\"10\" width=\"10\"><embed src=\"http://www.playdar.org/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"10\" width=\"10\"></embed></object>";
+                // Just link to the source, too much flash spam:
+                element.innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(response.results[0].sid) + "\" title=\"" + tt + "\">" + response.results.length + "</a>&nbsp;";
+            } else {
+                element.setAttribute('style', 'border:0; margin:0; background-color: red; width:12px; height:10px; font-size:9px;margin-right:5px;');
+                element.innerHTML = '&nbsp;X&nbsp;';
+            }
+        }
+    }
+    resolve_links(playdar, results_handler);
+}
+
+function resolve_links (playdar, results_handler) {
     var links = unsafeWindow.$$('a');
-    //alert('About to parse ' + links.length + ' links');
-    for (var i = 0; i < links.length; i++){
+    for (var i = 0; i < links.length; i++) {
+        // Only match links in the /music path
         var url = parseUri(links[i].href);
         if (url.directoryPath.substr(0, 7) != "/music/") {
             continue;
         }
-        // alert('url.directoryPath = ' + url.directoryPath + ' url.fileName = ' + url.fileName );
-        // try and match to track url structure:
-        var urlparts = new RegExp("^/music/(.+)/_/(.+)/").exec(url.directoryPath);
+        // Only match track links
+        var urlparts = new RegExp(/^\/music\/(.+)\/_\/(.+)/).exec(url.path);
         if (!urlparts) {
             continue;
         }
-        var artist = urlparts[1].replace(/\+/g, " "); 
-        var track  = urlparts[2].replace(/\+/g, " ");
-        // only process virgin links, no menus or non-useful track links:
+        // Only match links without a class name (aka virgin links)
         if (links[i].getAttribute('class') != null) {
             continue;
         }
-        do_markup(playdar, links[i], artist, track);
+        // Replace + with space
+        var artist = urlparts[1].replace(/\+/g, " ");
+        var track  = urlparts[2].replace(/\+/g, " ");
+        resolve(playdar, links[i], artist, track, results_handler);
     }
-    //alert('parsing done');
 }
 
-function do_markup (playdar, a, artist, track) {
-    //alert('do_markup: artst: ' + artist + ' track: '+track);
-    
-    var mkstatuselem = function (id) {
-        var d = unsafeWindow.document.createElement('span');
-        d.id = id;
-        d.setAttribute('style', 'border:0; margin:0; background-repeat: no-repeat; background-image: url("http://www.playdar.org/static/spinner_10px.gif"); width:12px; height:10px; margin-right:5px;');
-        d.innerHTML = "&nbsp; &nbsp;";
-        return d;
-    };
-    var uuid = Playdar.generate_uuid();
+function throb (qid, link) {
+    var throbber = unsafeWindow.document.createElement('span');
+    throbber.id = qid;
+    throbber.setAttribute('style', 'border:0; margin:0; background-repeat: no-repeat; background-image: url("http://www.playdar.org/static/spinner_10px.gif"); width:12px; height:10px; margin-right:5px;');
+    throbber.innerHTML = "&nbsp; &nbsp;";
+    link.parentNode.insertBefore(throbber, link);
+}
+
+function resolve (playdar, link, artist, track, results_handler) {
+    var qid = Playdar.generate_uuid();
     // add a "searching..." status :
-    // a.appendChild(mkstatuselem(uuid)); // this inserts after, but before is neater.
-    var toinsert = mkstatuselem(uuid);
-    var parent = a.parentNode;
-    parent.insertBefore(toinsert, a);
-    
-    // create a custom playdar callback that will handle results for this query:
-    var handler = function (response, finalanswer) {
-        if (response.results.length){
-            // generate tooltip with details:
-            var tt = "Sources: ";
-            for (var k = 0; k < response.results.length; ++k) {
-                var r = response.results[k];
-                tt += r.source + "/" + r.bitrate + "kbps/" + Playdar.mmss(r.duration) + " ";
-            }
-            // update status element:
-            unsafeWindow.document.getElementById(response.qid).setAttribute('style', 'border:0; margin:0; background-color: lightgreen;  width:12px; height:10px; font-size:9px;margin-right:5px;');
-            //var swfstr = "<object height=\"10\" width=\"10\"><embed src=\"http://www.playdar.org/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"10\" width=\"10\"></embed></object>";
-            // Just link to the source, too much flash spam:
-            unsafeWindow.document.getElementById(response.qid).innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(response.results[0].sid) + "\" title=\"" + tt + "\">" + response.results.length + "</a>&nbsp;";
-        } else if (finalanswer) {
-            unsafeWindow.document.getElementById(response.qid).setAttribute('style', 'border:0; margin:0; background-color: red; width:12px; height:10px; font-size:9px;margin-right:5px;');
-            unsafeWindow.document.getElementById(response.qid).innerHTML = '&nbsp;X&nbsp;';
-        }
-    };
-    playdar.register_results_handler(handler, uuid);
-    // dispatch query, specifying qid so our custom handler will be used:
-    playdar.resolve(artist, "", track, uuid);
+    throb(qid, link);
+    // register results handler and resolve for this qid
+    playdar.register_results_handler(results_handler, qid);
+    playdar.resolve(artist, "", track, qid);
 }
 
 /* parseUri JS v0.1, by Steven Levithan (http://badassery.blogspot.com)
