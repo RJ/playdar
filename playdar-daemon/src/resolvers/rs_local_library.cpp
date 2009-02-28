@@ -173,7 +173,14 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
             final_results.push_back( pip );
         }
     }
-    report_results(qid, final_results);
+    if(final_results.size())
+    {
+        report_results(qid, final_results);
+    }
+    else
+    {
+        cout << "No matches to report." << endl;
+    }
 }
 
 

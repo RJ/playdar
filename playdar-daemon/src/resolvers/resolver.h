@@ -54,8 +54,9 @@ private:
 
     ResolverService * m_rs_local;
     ResolverService * m_rs_lan;
-    ResolverService * m_http_playdar;
-    ResolverService * m_http_gateway_script;
+    ResolverService * m_rs_http_playdar;
+    ResolverService * m_rs_http_gateway_script;
+    ResolverService * m_rs_darknet;
     
     boost::mutex m_mut;
 };

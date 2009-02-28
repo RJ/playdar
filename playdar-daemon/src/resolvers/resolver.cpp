@@ -9,7 +9,7 @@
 #include "resolvers/rs_lan_udp.h"
 #include "resolvers/rs_http_playdar.h"
 #include "resolvers/rs_http_gateway_script.h"
-
+#include "resolvers/darknet/rs_darknet.h"
 #include "library/library.h"
 
 
@@ -30,7 +30,7 @@ Resolver::Resolver(MyApplication * app)
             string rip = app->option<string>("resolver.remote_http.ip");
             unsigned short rport = (unsigned short) (app->option<int>("resolver.remote_http.port")); 
             boost::asio::ip::address_v4 bip = boost::asio::ip::address_v4::from_string(rip);
-            m_http_playdar    = new RS_http_playdar(app, bip, rport);
+            m_rs_http_playdar    = new RS_http_playdar(app, bip, rport);
         }catch(exception e)
         {
             cerr << "Failed to load remote_http resolver: " << e.what() << endl;
@@ -41,10 +41,13 @@ Resolver::Resolver(MyApplication * app)
     {
         m_rs_lan    = new RS_lan_udp(app);
     }
-
+    if(app->option<string>("resolver.darknet.enabled")=="yes")
+    {
+        m_rs_darknet    = new RS_darknet(app);
+    }
     /*if(app->option<string>("resolver.gateway_http.enabled")=="yes")
     {
-        m_http_gateway_script = new RS_http_gateway_script(app);
+        m_rs_http_gateway_script = new RS_http_gateway_script(app);
     }*/
     
 }
@@ -69,9 +72,10 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     if(!local_only && !rq->solved())
     {
         // these calls shouldn't block, plugins do their own threading etc.
-        if(m_http_playdar)          m_http_playdar->start_resolving(rq);
-        if(m_rs_lan)                m_rs_lan->start_resolving(rq);
-        if(m_http_gateway_script)   m_http_gateway_script->start_resolving(rq);
+        if(m_rs_http_playdar)           m_rs_http_playdar->start_resolving(rq);
+        if(m_rs_lan)                    m_rs_lan->start_resolving(rq);
+        if(m_rs_darknet)                m_rs_lan->start_resolving(rq);
+        if(m_rs_http_gateway_script)    m_rs_http_gateway_script->start_resolving(rq);
     }
     return rq->id();
 }
@@ -82,11 +86,14 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
 bool
 Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > results, ResolverService * rs)
 {
+    if(results.size()==0)
+    {
+        return true;
+    }
     boost::mutex::scoped_lock lock(m_mut);
     if(!query_exists(qid)) return false; // query was deleted
     cout << "RESOLVER add_results("<<qid<<", '"<< rs->name() 
          <<"')  "<< results.size()<<" results" << endl;
-
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {

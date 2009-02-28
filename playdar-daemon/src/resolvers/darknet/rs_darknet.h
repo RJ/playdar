@@ -1,24 +1,34 @@
-#ifndef _PLAYDAR_DARKNET_PROTOCOL_HPP_
-#define _PLAYDAR_DARKNET_PROTOCOL_HPP_
+#ifndef __RS_DARKNET_H__
+#define __RS_DARKNET_H__
+#include "resolvers/resolver_service.h"
+#include <iostream>
+#include <string>
+#include <boost/asio.hpp>
+#include "boost/bind.hpp"
+#include "application/types.h"
 
-#include "msgs.h"
-#include "servent.h"
+#include "resolvers/darknet/msgs.h"
+#include "resolvers/darknet/servent.h"
 
-using namespace std;
+using namespace playdar::darknet;
+namespace playdar { namespace darknet { class Servent; } } //fwd decl
 
-namespace playdar {
-namespace darknet {
-
-class Servent;
-
-class Protocol
+class RS_darknet : public ResolverService
 {
 public:
-
-    Protocol(string u, boost::asio::io_service & io);
-    ~Protocol();
+    RS_darknet(MyApplication * a);
+    //~RS_darknet();
+    void init();
+    void start_resolving(boost::shared_ptr<ResolverQuery> rq);
+    std::string name() { return "Darknet"; }
     
-    void init(Servent *sv);
+    void start_io(boost::shared_ptr<boost::asio::io_service> io_service)
+    {
+        io_service->run();
+        cout << "io_service exiting!" << endl;   // never happens..
+    }
+    
+    /// ---------------------
     
     /// Handle completion of a read operation.
     /// Typically a new message just arrived.
@@ -46,18 +56,20 @@ public:
     void register_connection(string username, connection_ptr conn);
     void unregister_connection(string username);
     
+    
+    
 private:
-    boost::asio::io_service::work m_work;
-    /// servent:
-    Servent * m_servent;
-    string m_username;
+    boost::shared_ptr<boost::asio::io_service> m_io_service;
+    boost::shared_ptr<boost::asio::io_service> m_io_service_p;
+    
+    boost::shared_ptr<Servent> m_servent;
+    
+    boost::shared_ptr<boost::asio::io_service::work> m_work;
+    
     /// Keep track of username -> connection
     /// this tells us how many connections are established, and to whom.
     map<string,connection_ptr> m_connections;
-
-}; // class
-
-}} // namespaces
+    
+};
 
 #endif
-

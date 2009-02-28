@@ -1,7 +1,7 @@
 #include "application/application.h"
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
-
+#include <boost/asio.hpp>
 #include "json_spirit/json_spirit.h"
 
 #include "resolvers/rs_lan_udp.h"

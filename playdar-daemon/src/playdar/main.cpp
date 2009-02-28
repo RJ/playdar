@@ -76,6 +76,15 @@ int main(int ac, char *av[])
                   "Multicast IP")
             ("resolver.lan_udp.port",   po::value<int>(&opt)->default_value(8888),
                   "UDP port to bind to")
+            
+            ("resolver.darknet.enabled",   po::value<string>()->default_value("no"),
+                  "Enable this resolver yes/no")
+            ("resolver.darknet.port",   po::value<int>(&opt)->default_value(9999),
+                  "TCP port for darknet resolver")
+            ("resolver.darknet.remote_ip",   po::value<string>()->default_value("127.0.0.1"),
+                  "Remote peer IP address")
+            ("resolver.darknet.remote_port",   po::value<int>(&opt)->default_value(9999),
+                  "Remote peer port number")
             ;
             
         po::options_description cmdline_options;

@@ -8,18 +8,18 @@
 #include <vector>
 
 #include "msgs.h"
-#include "protocol.h"
 #include "servent.h"
 #include "connection.hpp"
 
+#include "resolvers/darknet/rs_darknet.h"
 using namespace std;
+
+class RS_darknet;
 
 namespace playdar {
 namespace darknet {
 
 const boost::uint32_t SERVER_VERSION = 1;
-
-class Protocol;
 
 class Servent
 {
@@ -28,7 +28,7 @@ public:
     /// Connection.
     Servent(boost::asio::io_service& io_service, 
             unsigned short port, 
-            boost::shared_ptr<Protocol> p);
+            RS_darknet * p);
     
     /// Handle completion of a accept operation.
     void handle_accept(const boost::system::error_code& e, connection_ptr conn);
@@ -62,7 +62,7 @@ private:
     /// The acceptor object used to accept incoming socket connections.
     boost::asio::ip::tcp::acceptor m_acceptor;
     /// protocol state machine
-    boost::shared_ptr<Protocol> m_protocol;
+    boost::shared_ptr<RS_darknet> m_protocol;
 };
 
 } // namespace darknet

@@ -1,4 +1,5 @@
 #include "servent.h"
+
 using namespace std;
 
 namespace playdar {
@@ -6,13 +7,13 @@ namespace darknet {
 
 Servent::Servent(boost::asio::io_service& io_service, 
         unsigned short port, 
-        boost::shared_ptr<Protocol> p)
+        RS_darknet * p ) //boost::shared_ptr<RS_darknet> p)
     :   m_protocol(p),
         m_acceptor(io_service,
                    boost::asio::ip::tcp::endpoint
                         (boost::asio::ip::tcp::v4(), port))
 {
-    p->init(this); // configure protocol.
+    //p->init(this); // configure protocol.
     
     // Start an accept operation for a new connection.
     connection_ptr new_conn(new Connection(m_acceptor.io_service()));

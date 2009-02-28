@@ -19,9 +19,10 @@ src/playdar
 src/playdar/main.cpp
 src/playdar/playdar_request_handler.cpp
 src/playdar/playdar_request_handler.h
-src/playlist
-src/playlist/playlist.h
 src/resolvers
+src/resolvers/darknet
+src/resolvers/darknet/rs_darknet.cpp
+src/resolvers/darknet/rs_darknet.h
 src/resolvers/playable_item.h
 src/resolvers/resolver.cpp
 src/resolvers/resolver.h
@@ -37,5 +38,7 @@ src/resolvers/ss_localfile.h
 src/resolvers/udp_sender.h
 src/scanner
 src/scanner/scanner.cpp
-src/tools
-src/tools/search.cpp
+win32-playdar
+win32-playdar/resource.h
+win32-scanner
+win32-scanner/resource.h

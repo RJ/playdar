@@ -64,6 +64,8 @@ ADD_EXECUTABLE( playdar
                 src/resolvers/rs_local_library.cpp
                 src/resolvers/rs_lan_udp.cpp
                 src/resolvers/rs_http_gateway_script.cpp
+                src/resolvers/darknet/rs_darknet.cpp
+                src/resolvers/darknet/servent.cpp
                 src/library/library.cpp
                 src/playdar/playdar_request_handler.cpp
                 deps/sqlite3pp-read-only/sqlite3pp.cpp
