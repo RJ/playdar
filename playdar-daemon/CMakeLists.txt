@@ -2,7 +2,7 @@ PROJECT(playdar)
 CMAKE_MINIMUM_REQUIRED( VERSION 2.6 FATAL_ERROR )
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
-FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem regex)
+FIND_PACKAGE( Boost 1.35 COMPONENTS filesystem system regex thread program_options)
 INCLUDE(InstallRequiredSystemLibraries)
 
 # binaries get installed here
