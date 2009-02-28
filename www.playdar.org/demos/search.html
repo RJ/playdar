@@ -99,11 +99,7 @@ function recheckresults () {
 
 function resolve(art,alb,trk){
     clearresults();
-    if ($('spamcheck').checked) {
-        playdar.dosearch($('artist').value, $('album').value,$('track').value);
-    } else {
-        playdar.resolve($('artist').value, $('album').value,$('track').value);
-    }
+    playdar.resolve($('artist').value, $('album').value,$('track').value);
 }
 </script>
 <h2>Search Demo</h2>
@@ -120,7 +116,6 @@ track:
 <input type="text" id="track"  name="track" value=""/>
 <input type="button" onclick="resolve($('artist').value, $('album').value, $('track').value); return false;" value="Resolve!"/>
 &nbsp; &nbsp;
-<input type="checkbox" name="mode" id="spamcheck" value="spamme"/> 'worse is more' (experimental)
 </fieldset>
 </form>
 </p>

@@ -97,7 +97,7 @@ Playdar.prototype = {
             options = {};
         }
         options.method = method;
-        options.jsonp = this.jsonp(jsonp);
+        options.jsonp = this.jsonp_callback(jsonp);
         return this.get_base_url("/api/?" + Playdar.toQueryString(options));
     },
     
@@ -107,8 +107,8 @@ Playdar.prototype = {
     },
     
     // build the jsonp callback string
-    jsonp: function (callback) {
-        return "&jsonp=Playdar.instances['" + this.uuid + "']." + callback;
+    jsonp_callback: function (callback) {
+        return "Playdar.instances['" + this.uuid + "']." + callback;
     },
     
     
