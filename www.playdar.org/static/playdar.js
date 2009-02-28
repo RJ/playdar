@@ -8,6 +8,10 @@ Playdar = function (handlers) {
     Playdar.instances[this.uuid] = this;
 };
 
+Playdar.create = function (handlers) {
+    return new Playdar(handlers);
+};
+
 Playdar.instances = {};
 Playdar.generate_uuid = function () {
     return "playdar_js_uuid_gen_" + Math.random(); // TODO improve.

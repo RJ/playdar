@@ -31,21 +31,22 @@ document.getElementsByTagName("head")[0].appendChild(e);
 
 function GM_wait() {
     if (typeof unsafeWindow.Playdar == 'undefined') {
-      window.setTimeout(GM_wait,100); 
+        window.setTimeout(GM_wait,100); 
     } else { 
-      setup_playdar();
+        setup_playdar();
     }
 }
 GM_wait(); // wait for playdar.js to load.
 
 function setup_playdar() {
-    var playdar = new unsafeWindow.Playdar({
-        not_detected: function () {
-            //alert('Playdar not detected, script disabled');
-        },
+    Playdar = unsafeWindow.Playdar;
+    var playdar = Playdar.create({
         detected: function (v) {
             //alert('detected, v' + v);
             do_parsing(playdar);
+        },
+        not_detected: function () {
+            //alert('Playdar not detected, script disabled');
         }
     });
     playdar.init();
