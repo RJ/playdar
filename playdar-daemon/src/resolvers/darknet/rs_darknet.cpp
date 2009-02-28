@@ -13,6 +13,8 @@
 #include "resolvers/darknet/msgs.h"
 #include "resolvers/darknet/servent.h"
 
+#include "resolvers/darknet/ss_darknet.h"
+
 using namespace playdar::darknet;
 
 RS_darknet::RS_darknet(MyApplication * a)
@@ -30,16 +32,19 @@ RS_darknet::init()
     //m_io_service_p  = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
     m_servent = boost::shared_ptr< Servent >(new Servent(*m_io_service, port, this));
     // start io_services:
+    cout << "Darknet servent coming online on port " <<  port <<endl;
     boost::thread thr(boost::bind(&RS_darknet::start_io, this, m_io_service));
-    //boost::thread thrp(boost::bind(&RS_darknet::start_io, this, m_io_service_p));
-    cout << "Darknet resolver coming online.."<<endl;
+ 
     // get peers:
-    string remote_ip = app()->popt()["resolver.darknet.remote_ip"].as<string>();
-    unsigned short remote_port = app()->popt()["resolver.darknet.remote_port"].as<int>();
-    cout << "Attempting peer connect: " << remote_ip << ":" << remote_port << endl;
-    boost::asio::ip::address_v4 ipaddr = boost::asio::ip::address_v4::from_string(remote_ip);
-    boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
-    m_servent->connect_to_remote(ep);
+    if(app()->popt()["resolver.darknet.remote_ip"].as<string>().length())
+    {
+        string remote_ip = app()->popt()["resolver.darknet.remote_ip"].as<string>();
+        unsigned short remote_port = app()->popt()["resolver.darknet.remote_port"].as<int>();
+        cout << "Attempting peer connect: " << remote_ip << ":" << remote_port << endl;
+        boost::asio::ip::address_v4 ipaddr = boost::asio::ip::address_v4::from_string(remote_ip);
+        boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
+        m_servent->connect_to_remote(ep);
+    }
 }
 
 void
@@ -165,13 +170,51 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
 bool
 RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
 {
-    if(
-        !(app()->name()=="userA" && msg->payload()=="searchA") &&
-        !(app()->name()=="userB" && msg->payload()=="searchB") &&
-        !(app()->name()=="userC" && msg->payload()=="searchC") 
-       )
+    using namespace json_spirit;
+    boost::shared_ptr<ResolverQuery> rq;
+    try
     {
-        cout << "No matches, will fwd it after delay.." << endl;
+        Value mv;
+        if(!read(msg->payload(), mv)) 
+        {
+            cout << "Darknet: invalid JSON in this message, discarding." << endl;
+            return false; // invalid json = disconnect them.
+        }
+        Object qo = mv.get_obj();
+        rq = ResolverQuery::from_json(qo);
+    } 
+    catch (...) 
+    {
+        cout << "Darknet: invalid search json, discarding" << endl;
+        return true; //TODO maybe false - cut off the connection?
+    }
+    
+    if(app()->resolver()->query_exists(rq->id()))
+    {
+        cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+        return true;
+    }
+    
+    query_uid qid = app()->resolver()->dispatch(rq, true);
+    vector< boost::shared_ptr<PlayableItem> > pis = app()->resolver()->get_results(qid);
+
+    if(pis.size()>0)
+    {
+        BOOST_FOREACH(boost::shared_ptr<PlayableItem> & pip, pis)
+        {
+            Object response;
+            response.push_back( Pair("qid", qid) );
+            response.push_back( Pair("result", pip->get_json()) );
+            ostringstream ss;
+            write_formatted( response, ss );
+            msg_ptr resp(new LameMsg(ss.str(), SEARCHRESULT));
+            send_msg(conn, resp);
+        }
+    }
+    // if we didn't just solve it, fwd to our peers, after delay.
+    if(!rq->solved())
+    {
+        cout << "Darknet: Query not solved, will fwd it after delay.." << endl;
         boost::shared_ptr<boost::asio::deadline_timer> 
             t(new boost::asio::deadline_timer( m_work->get_io_service() ));
         t->expires_from_now(boost::posix_time::seconds(5));
@@ -179,14 +222,8 @@ RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
         t->async_wait(boost::bind(&RS_darknet::fwd_search, this,
                                  boost::asio::placeholders::error, 
                                  conn, msg, t));
-        return true;
     }
-    // search result!
-    //cout << "searchquery: " << msg->toString() << endl;
-    string r = "result for: ";
-    r+=msg->toString();
-    msg_ptr resp(new LameMsg(r, SEARCHRESULT));
-    send_msg(conn, resp);
+    
     return true;
 }
 
@@ -219,6 +256,40 @@ bool
 RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
     cout << "Got search result: " << msg->toString() << endl;
+    using namespace json_spirit;
+    // try and parse it as json:
+    Value v;
+    if(!read(msg->payload(), v)) 
+    {
+        cout << "Darknet: invalid JSON in this message, discarding." << endl;
+        return false; // invalid json = disconnect.
+    }
+    Object o = v.get_obj();
+    map<string,Value> r;
+    obj_to_map(o,r);
+    if(r.find("qid")==r.end() || r.find("result")==r.end())
+    {
+        cout << "Darknet, malformed search response, discarding." << endl;
+        return false; // malformed = disconnect.
+    }
+    query_uid qid = r["qid"].get_str();
+    Object resobj = r["result"].get_obj();
+    boost::shared_ptr<PlayableItem> pip;
+    try
+    {
+        pip = PlayableItem::from_json(resobj);
+    }
+    catch (...)
+    {
+        cout << "Darknet: Missing fields in response json, discarding" << endl;
+        return true; // could just be incompatible version, not too bad. don't disconnect.
+    }
+    boost::shared_ptr<StreamingStrategy> s(new DarknetStreamingStrategy( conn, pip->id() ));
+    pip->set_streaming_strategy(s);
+    //pip->set_preference((float)0.6); 
+    vector< boost::shared_ptr<PlayableItem> > vr;
+    vr.push_back(pip);
+    report_results(qid, vr);
     return true;
 }
 

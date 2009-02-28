@@ -37,7 +37,8 @@ Resolver::Resolver(MyApplication * app)
             unsigned short rport = (unsigned short) (app->option<int>("resolver.remote_http.port")); 
             boost::asio::ip::address_v4 bip = boost::asio::ip::address_v4::from_string(rip);
             m_rs_http_playdar    = new RS_http_playdar(app, bip, rport);
-        }catch(exception e)
+        }
+        catch(exception e)
         {
             cerr << "Failed to load remote_http resolver: " << e.what() << endl;
         }

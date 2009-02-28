@@ -26,6 +26,7 @@ ostream& operator<<(ostream& os, const vector<T>& v)
 
 void start_http_server(string ip, int port, int conc, MyApplication *app)
 {
+    cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
     moost::http::server<playdar_request_handler> s(ip, port, 1);
     s.request_handler().init(app);
     s.run();
@@ -81,7 +82,7 @@ int main(int ac, char *av[])
                   "Enable this resolver yes/no")
             ("resolver.darknet.port",   po::value<int>(&opt)->default_value(9999),
                   "TCP port for darknet resolver")
-            ("resolver.darknet.remote_ip",   po::value<string>()->default_value("127.0.0.1"),
+            ("resolver.darknet.remote_ip",   po::value<string>()->default_value(""),
                   "Remote peer IP address")
             ("resolver.darknet.remote_port",   po::value<int>(&opt)->default_value(9999),
                   "Remote peer port number")
@@ -170,7 +171,7 @@ int main(int ac, char *av[])
 
         // start http server:
         string ip = "0.0.0.0"; //app->private_ip().to_string();
-        cout << "HTTP server starting on: http://" << ip << ":" << app->http_port() << "/" << endl;
+        
         boost::thread http_thread(&start_http_server, ip, app->http_port(), 1, app);
         
         cout    << endl

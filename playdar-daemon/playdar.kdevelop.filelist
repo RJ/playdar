@@ -23,6 +23,7 @@ src/resolvers
 src/resolvers/darknet
 src/resolvers/darknet/rs_darknet.cpp
 src/resolvers/darknet/rs_darknet.h
+src/resolvers/darknet/ss_darknet.h
 src/resolvers/playable_item.h
 src/resolvers/resolver.cpp
 src/resolvers/resolver.h

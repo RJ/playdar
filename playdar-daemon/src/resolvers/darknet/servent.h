@@ -12,6 +12,7 @@
 #include "connection.hpp"
 
 #include "resolvers/darknet/rs_darknet.h"
+
 using namespace std;
 
 class RS_darknet;
