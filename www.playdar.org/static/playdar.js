@@ -107,6 +107,7 @@ Playdar.prototype = {
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
+    web_host: "http://www.playdar.org",
     
     show_status: function (text, bg) {
         if (!bg) {
@@ -138,7 +139,7 @@ Playdar.prototype = {
     
     handlers: {
         detected: function (version) {
-            this.show_status('<a href="http://www.playdar.org/"><img src="/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + version);
+            this.show_status('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + version);
         },
         not_detected: function () {
             this.show_status("Playdar not detected.", 'F0D3C3');
