@@ -12,6 +12,7 @@
 #include "library/library.h"
 
 using namespace std;
+using namespace boost;
 namespace bfs = boost::filesystem; 
 
 bool add_file(const bfs::path &, int mtime);
@@ -35,7 +36,8 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
                 scan(itr->path(), mtimes);
             } else {
                 // is this file an audio file we understand?
-                if(bfs::extension(itr->path()) == ".mp3"){
+                string ext(bfs::extension(itr->path()));
+                if( to_lower_copy(ext) == ".mp3" ){
                     int mtime = bfs::last_write_time(itr->path());
                     mtimeit = mtimes.find(itr->string());
                     if(    mtimeit == mtimes.end() // not scanned previously
