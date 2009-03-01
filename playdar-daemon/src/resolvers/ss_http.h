@@ -123,6 +123,7 @@ private:
             { 
                 ep = *resolve_iter++;
             }
+            ep.port(m_port);
         }
         m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>(new tcp::socket(m_io_service));
 
