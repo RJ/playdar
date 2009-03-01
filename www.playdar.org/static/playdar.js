@@ -9,12 +9,12 @@ Playdar = function (handlers) {
     Playdar.instances[this.uuid] = Playdar.last;
 };
 
+Playdar.last = null;
+Playdar.instances = {};
 Playdar.create = function (handlers) {
     return new Playdar(handlers);
 };
 
-Playdar.last = null;
-Playdar.instances = {};
 /*
 Based on: Math.uuid.js
 Version: 1.3
@@ -22,7 +22,7 @@ Latest version:   http://www.broofa.com/Tools/Math.uuid.js
 Information:      http://www.broofa.com/blog/?p=151
 Contact:          robert@broofa.com
 ----
-    Copyright (c) 2008, Robert Kieffer
+Copyright (c) 2008, Robert Kieffer
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -97,6 +97,25 @@ Playdar.loadjs = function (url) {
    document.getElementsByTagName("head")[0].appendChild(e);
 };
 
+Playdar.show_status = function (text, bg) {
+    if (!bg) {
+        var bg = "cbdab1";
+    }
+    var status_bar = document.createElement("div");
+    status_bar.style.position = 'fixed';
+    status_bar.style.bottom = 0;
+    status_bar.style.left = 0;
+    status_bar.style.width = '100%';
+    status_bar.style.padding = '10px';
+    status_bar.style.borderTop = '1px solid #bbb';
+    status_bar.style.background = '#' + bg;
+    status_bar.style.color = '#000';
+    status_bar.style.font = 'normal 12px "Verdana", sans-serif';
+    status_bar.innerHTML = text;
+    
+    document.body.appendChild(status_bar);
+};
+
 Playdar.prototype = {
     lib_version: "0.2.1",
     server_root: "localhost",
@@ -107,10 +126,13 @@ Playdar.prototype = {
     
     handlers: {
         detected: function (version) {
-            alert('Playdar detected, version: ' + version);
+            Playdar.show_status("Playdar detected. Version: " + version);
         },
         not_detected: function () {
-            alert('Playdar not detected');
+            Playdar.show_status("Playdar not detected.", 'F0D3C3');
+        },
+        stat_complete: function (detected) {
+            return detected;
         },
         results: function (response, final_answer) {
             if (final_answer) {
@@ -124,6 +146,9 @@ Playdar.prototype = {
     },
     
     register_handler: function (handler_name, callback) {
+        if (!callback) {
+            var callback = function () {};
+        }
         this.handlers[handler_name] = callback;
     },
     
@@ -173,6 +198,7 @@ Playdar.prototype = {
     check_stat_timeout: function () {
         if (!this.check_stat()) {
             this.handlers.not_detected();
+            this.handlers.stat_complete(false);
         }
     },
     
@@ -184,6 +210,7 @@ Playdar.prototype = {
             return false;
         }
         this.handlers.detected(this.stat_response.version);
+        this.handlers.stat_complete(true);
     },
     
     stat: function () {

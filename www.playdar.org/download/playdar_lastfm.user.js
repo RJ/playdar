@@ -3,13 +3,13 @@
 // @namespace     http://www.playdar.org/
 // @description	  Add Playdar links to Last.fm sites
 // @include       http://www.last.fm/*
-// @include       http://www.lastfm.jp/*                                                    
-// @include       http://www.lastfm.de/*                                                    
-// @include       http://www.lastfm.pt/*                                                    
-// @include       http://www.lastfm.pl/*                                                    
-// @include       http://www.lastfm.co.kr/*                                                 
-// @include       http://www.lastfm.es/*                                                    
-// @include       http://www.lastfm.fr/*                                                    
+// @include       http://www.lastfm.jp/*
+// @include       http://www.lastfm.de/*
+// @include       http://www.lastfm.pt/*
+// @include       http://www.lastfm.pl/*
+// @include       http://www.lastfm.co.kr/*
+// @include       http://www.lastfm.es/*
+// @include       http://www.lastfm.fr/*
 // @include       http://www.lastfm.it/*
 // @include       http://www.lastfm.ru/*
 // @include       http://www.lastfm.no/*
@@ -41,12 +41,11 @@ GM_wait(); // wait for playdar.js to load.
 function setup_playdar() {
     Playdar = unsafeWindow.Playdar;
     var playdar = Playdar.create({
-        detected: function (v) {
-            //alert('detected, v' + v);
-            insert_play_buttons(playdar);
-        },
-        not_detected: function () {
-            //alert('Playdar not detected, script disabled');
+        not_detected: null,
+        stat_complete: function (detected) {
+            if (detected) {
+                insert_play_buttons(playdar);
+            }
         }
     });
     playdar.init();
