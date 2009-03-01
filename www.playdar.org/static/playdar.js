@@ -341,28 +341,24 @@ Playdar.prototype = {
     
     soundmanager: null,
     register_soundmanager: function (soundmanager) {
-        soundManager.url = this.web_host + '/static/soundmanager2_flash9.swf';
-        soundManager.flashVersion = 9;
+        soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
+        soundmanager.flashVersion = 9;
         var playdar = this;
         soundmanager.onload = function() {
             playdar.soundmanager = soundmanager;
         };
     },
     
-    streams: {},
     register_stream: function (sid) {
         if (!this.soundmanager) {
             return false;
         }
-        this.streams[sid] = this.soundmanager.createSound({
-            id: sid,
-            url: this.get_stream_url(sid)
-        });
+        this.soundmanager.createSound(sid, this.get_stream_url(sid));
     },
     play_stream: function (sid) {
         if (!this.soundmanager) {
             return false;
         }
-        this.streams[sid].togglePause(sid);
+        this.soundmanager.togglePause(sid);
     }
 };
