@@ -125,11 +125,11 @@ Playdar.prototype = {
             Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
-        Playdar.status_bar.innerHTML = '<p style="padding: 10px; margin: 0;">' + text + '</p>';
+        Playdar.status_bar.innerHTML = '<p style="padding: 7px; margin: 0;">' + text + '</p>';
         
         this.query_count = document.createElement("span");
         this.query_count.style.cssFloat = "right";
-        this.query_count.style.margin = "10px";
+        this.query_count.style.margin = "7px";
         Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
         
         document.body.appendChild(Playdar.status_bar);
