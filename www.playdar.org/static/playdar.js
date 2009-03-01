@@ -1,4 +1,7 @@
 Playdar = function (handlers) {
+    for (handler in this.handlers) {
+        this.register_handler(handler, this.handlers[handler]);
+    }
     if (handlers) {
         for (handler in handlers) {
             this.register_handler(handler, handlers[handler]);
@@ -97,24 +100,7 @@ Playdar.loadjs = function (url) {
    document.getElementsByTagName("head")[0].appendChild(e);
 };
 
-Playdar.show_status = function (text, bg) {
-    if (!bg) {
-        var bg = "cbdab1";
-    }
-    var status_bar = document.createElement("div");
-    status_bar.style.position = 'fixed';
-    status_bar.style.bottom = 0;
-    status_bar.style.left = 0;
-    status_bar.style.width = '100%';
-    status_bar.style.padding = '10px';
-    status_bar.style.borderTop = '1px solid #bbb';
-    status_bar.style.background = '#' + bg;
-    status_bar.style.color = '#000';
-    status_bar.style.font = 'normal 12px "Verdana", sans-serif';
-    status_bar.innerHTML = text;
-    
-    document.body.appendChild(status_bar);
-};
+Playdar.status_bar = null;
 
 Playdar.prototype = {
     lib_version: "0.2.1",
@@ -122,14 +108,40 @@ Playdar.prototype = {
     server_port: "8888",
     stat_timeout: 2000,
     
+    show_status: function (text, bg) {
+        if (!bg) {
+            var bg = "cbdab1";
+        }
+        if (!Playdar.status_bar) {
+            Playdar.status_bar = document.createElement("div");
+            Playdar.status_bar.style.position = 'fixed';
+            Playdar.status_bar.style.bottom = 0;
+            Playdar.status_bar.style.left = 0;
+            Playdar.status_bar.style.width = '100%';
+            Playdar.status_bar.style.textIndent = '1px';
+            Playdar.status_bar.style.borderTop = '1px solid #bbb';
+            Playdar.status_bar.style.color = '#000';
+            Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
+        }
+        Playdar.status_bar.style.background = '#' + bg;
+        Playdar.status_bar.innerHTML = '<p style="padding: 10px; margin: 0;">' + text + '</p>';
+        
+        this.query_count = document.createElement("span");
+        this.query_count.style.cssFloat = "right";
+        this.query_count.style.margin = "10px";
+        Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
+        
+        document.body.appendChild(Playdar.status_bar);
+    },
+    
     // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
     
     handlers: {
         detected: function (version) {
-            Playdar.show_status("Playdar detected. Version: " + version);
+            this.show_status('<a href="http://www.playdar.org/"><img src="/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + version);
         },
         not_detected: function () {
-            Playdar.show_status("Playdar not detected.", 'F0D3C3');
+            this.show_status("Playdar not detected.", 'F0D3C3');
         },
         stat_complete: function (detected) {
             return detected;
@@ -149,7 +161,8 @@ Playdar.prototype = {
         if (!callback) {
             var callback = function () {};
         }
-        this.handlers[handler_name] = callback;
+        var that = this;
+        this.handlers[handler_name] = function () { return callback.apply(that, arguments); };
     },
     
     // initialisation
@@ -245,7 +258,7 @@ Playdar.prototype = {
             return true;
         }
         // Stop if we've got a perfect match
-        if (response.length > 0 && response.results[0].score == 1.0) {
+        if (response.results.length && response.results[0].score == 1.0) {
             return true;
         }
         // Stop if we've exceeded 4 polls
@@ -258,6 +271,7 @@ Playdar.prototype = {
         return false;
     },
     
+    success_count: 0,
     handle_results: function (response) {
         // console.dir(response);
         // figure out if we should re-poll, or if the query is solved/failed:
@@ -275,6 +289,12 @@ Playdar.prototype = {
         } else {
             // fall back to standard handler
             this.handlers.results(response, final_answer);
+        }
+        if (final_answer && response.results.length) {
+            this.success_count++;
+        }
+        if (this.query_count) {
+            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.resolve_qids.length;
         }
     },
     
