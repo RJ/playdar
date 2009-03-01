@@ -1,5 +1,6 @@
 <!--#set var="title" value="Playdar - search demo" --><!--#include virtual="../inc/header.html" -->
 
+<script type="text/javascript" src="/static/soundmanager2-nodebug-jsmin.js"></script>
 <script type="text/javascript">
 // returns true if console.log available (firebug etc)
 function clog(){ return typeof(window.console) != "undefined" ; }
@@ -15,6 +16,7 @@ var playdar = new Playdar({
         $('playdar_stat').update(text);
     }
 });
+playdar.register_soundmanager(soundManager);
 window.onload = function() {
     playdar.init();
 };
@@ -33,12 +35,13 @@ var results_handler = function(response, final_answer) {
         var td;
         var tr = document.createElement('tr');
         tr.id = pi.sid;
+        playdar.register_stream(pi.sid);
         td = document.createElement('td');
             td.appendChild( document.createTextNode( nicescore ) );
             tr.appendChild(td);
         td = document.createElement('td');
-            // what's the point of using 'proper' dom methods anyway? innerHTML ftw
-            td.innerHTML = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(pi.sid) + "\" height=\"17\" width=\"17\"></embed></object>";
+            td.style.width = "50px";
+            td.innerHTML = '<a href="' + playdar.get_stream_url(pi.sid) + '" onclick="playdar.play_stream(\'' + pi.sid + '\'); if (this.innerHTML == \'Play\') { this.innerHTML = \'Pause\'; } else { this.innerHTML = \'Play\'; } return false;">Play</a>';
             tr.appendChild(td);
         td = document.createElement('td');
             td.appendChild( document.createTextNode( pi.artist ) );

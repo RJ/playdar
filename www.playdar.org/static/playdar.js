@@ -162,8 +162,8 @@ Playdar.prototype = {
         if (!callback) {
             var callback = function () {};
         }
-        var that = this;
-        this.handlers[handler_name] = function () { return callback.apply(that, arguments); };
+        var playdar = this;
+        this.handlers[handler_name] = function () { return callback.apply(playdar, arguments); };
     },
     
     // initialisation
@@ -234,9 +234,9 @@ Playdar.prototype = {
     },
     
     stat: function () {
-        var that = this;
+        var playdar = this;
         setTimeout(function () {
-            that.check_stat_timeout();
+            playdar.check_stat_timeout();
         }, this.stat_timeout);
         Playdar.loadjs(this.get_url("stat", "handle_stat"));
     },
@@ -284,9 +284,9 @@ Playdar.prototype = {
         // figure out if we should re-poll, or if the query is solved/failed:
         var final_answer = this.should_stop_polling(response);
         if (!final_answer) {
-            var that = this;
+            var playdar = this;
             setTimeout(function () {
-                that.get_results(response.qid);
+                playdar.get_results(response.qid);
             }, response.refresh_interval);
         }
         // now call the results handler
@@ -335,5 +335,34 @@ Playdar.prototype = {
             params.qid = qid;
         }
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
+    },
+    
+    // STREAMING WITH SOUNDMANAGER
+    
+    soundmanager: null,
+    register_soundmanager: function (soundmanager) {
+        soundManager.url = this.web_host + '/static/soundmanager2_flash9.swf';
+        soundManager.flashVersion = 9;
+        var playdar = this;
+        soundmanager.onload = function() {
+            playdar.soundmanager = soundmanager;
+        };
+    },
+    
+    streams: {},
+    register_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        this.streams[sid] = this.soundmanager.createSound({
+            id: sid,
+            url: this.get_stream_url(sid)
+        });
+    },
+    play_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        this.streams[sid].togglePause(sid);
     }
 };
