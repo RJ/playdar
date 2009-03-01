@@ -300,9 +300,8 @@ Playdar.prototype = {
         if (final_answer && response.results.length) {
             this.success_count++;
         }
-        if (this.query_count) {
-            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.resolve_qids.length;
-        }
+        
+        this.show_resolution_status();
     },
     
     // poll results for a query id
@@ -317,6 +316,13 @@ Playdar.prototype = {
     
     resolve_qids: [],
     last_qid: "",
+    
+    show_resolution_status: function () {
+        if (this.query_count) {
+            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.resolve_qids.length;
+        }
+    },
+    
     handle_resolution: function (response) {
         // console.dir(response);
         this.last_qid = response.qid;
@@ -334,6 +340,7 @@ Playdar.prototype = {
         if (typeof qid !== 'undefined') {
             params.qid = qid;
         }
+        this.show_resolution_status();
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     },
     
