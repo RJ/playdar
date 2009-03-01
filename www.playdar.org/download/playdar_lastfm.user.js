@@ -96,7 +96,12 @@ function resolve_links (playdar, results_handler) {
             continue;
         }
         // Don't match image links
-        if (links[i].firstChild.nodeName.toUpperCase() == "IMG") {
+        var first_child = links[i].firstChild;
+        if (first_child.nodeName == "IMG") {
+            continue;
+        }
+        var next_sibling = first_child.nextSibling;
+        if (first_child.nodeName == "#text" && next_sibling && next_sibling.nodeName == "IMG") {
             continue;
         }
         // Replace + with space
