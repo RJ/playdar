@@ -201,6 +201,12 @@ Playdar.prototype = {
         return "Playdar.instances['" + this.uuid + "']." + callback;
     },
     
+    list_results: function (response) {
+        for (var i = 0; i < response.results.length; i++) {
+            console.log(response.results[i].name);
+        }
+    },
+    
     
     // STAT PLAYDAR INSTALLATION
     
