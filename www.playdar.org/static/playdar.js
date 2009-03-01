@@ -319,7 +319,7 @@ Playdar.prototype = {
     
     show_resolution_status: function () {
         if (this.query_count) {
-            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.resolve_qids.length;
+            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.request_count;
         }
     },
     
@@ -330,7 +330,7 @@ Playdar.prototype = {
         this.get_results(response.qid);
     },
     
-    // narrow, find an exact match, hopefully
+    request_count: 0,
     resolve: function (art, alb, trk, qid) {
         params = {
             artist: art,
@@ -340,6 +340,7 @@ Playdar.prototype = {
         if (typeof qid !== 'undefined') {
             params.qid = qid;
         }
+        this.request_count++;
         this.show_resolution_status();
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     },
