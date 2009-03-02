@@ -336,7 +336,7 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
         // you have to prepare it all up-front for now.
         rep.content.append(buf, len);
     }
-    cout << "Sending...." << endl;
+    cout << "Sending " << total << " bytes...." << endl;
     rep.headers.resize(2);
     // headers added by moost anyway ?
     rep.headers[0].name = "Content-Length";
