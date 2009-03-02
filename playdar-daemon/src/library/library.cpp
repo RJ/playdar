@@ -499,8 +499,9 @@ Library::sortname(string name)
 artist_ptr
 Library::load_artist(string n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name FROM artist WHERE name = ?");
-    qry.bind(1, n.c_str(), true);
+    string sortname = Library::sortname(n);
+    sqlite3pp::query qry(m_db, "SELECT id,name FROM artist WHERE sortname = ?");
+    qry.bind(1, sortname.c_str(), true);
     artist_ptr ptr;
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         ptr = artist_ptr(new Artist((*i).get<int>(0), (*i).get<string>(1)));
@@ -525,9 +526,10 @@ Library::load_artist(int n)
 track_ptr
 Library::load_track(artist_ptr artp, string n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name FROM track WHERE artist = ? AND name = ?");
+    string sortname = Library::sortname(n);
+    sqlite3pp::query qry(m_db, "SELECT id,name FROM track WHERE artist = ? AND sortname = ?");
     qry.bind(1, artp->id());
-    qry.bind(2, n.c_str(), true);
+    qry.bind(2, sortname.c_str(), true);
     track_ptr ptr;
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         ptr = track_ptr(new Track((*i).get<int>(0), (*i).get<string>(1), artp));
@@ -552,9 +554,10 @@ Library::load_track(int n)
 album_ptr
 Library::load_album(artist_ptr artp, string n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name FROM album WHERE artist = ? AND name = ?");
+    string sortname = Library::sortname(n);
+    sqlite3pp::query qry(m_db, "SELECT id,name FROM album WHERE artist = ? AND sortname = ?");
     qry.bind(1, artp->id());
-    qry.bind(2, n.c_str(), true);
+    qry.bind(2, sortname.c_str(), true);
     album_ptr ptr;
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         ptr = album_ptr(new Album((*i).get<int>(0), (*i).get<string>(1), artp));

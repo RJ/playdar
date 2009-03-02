@@ -1,4 +1,7 @@
 Playdar = function (handlers) {
+    for (handler in this.handlers) {
+        this.register_handler(handler, this.handlers[handler]);
+    }
     if (handlers) {
         for (handler in handlers) {
             this.register_handler(handler, handlers[handler]);
@@ -9,14 +12,52 @@ Playdar = function (handlers) {
     Playdar.instances[this.uuid] = Playdar.last;
 };
 
+Playdar.last = null;
+Playdar.instances = {};
 Playdar.create = function (handlers) {
     return new Playdar(handlers);
 };
 
-Playdar.last = null;
-Playdar.instances = {};
+/*
+Based on: Math.uuid.js
+Version: 1.3
+Latest version:   http://www.broofa.com/Tools/Math.uuid.js
+Information:      http://www.broofa.com/blog/?p=151
+Contact:          robert@broofa.com
+----
+Copyright (c) 2008, Robert Kieffer
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    * Neither the name of Robert Kieffer nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
 Playdar.generate_uuid = function () {
-    return "playdar_js_uuid_gen_" + Math.random(); // TODO improve.
+    // Private array of chars to use
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+    var uuid = [];
+    var rnd = Math.random;
+    
+    // rfc4122, version 4 form
+    var r;
+    
+    // rfc4122 requires these characters
+    uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+    uuid[14] = '4';
+    
+    // Fill in random data.  At i==19 set the high bits of clock sequence as
+    // per rfc4122, sec. 4.1.5
+    for (var i = 0; i < 36; i++) {
+        if (!uuid[i]) {
+            r = 0 | rnd()*16;
+            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r & 0xf];
+        }
+    }
+    return uuid.join('');
 };
 
 Playdar.toQueryString = function (params) {
@@ -59,20 +100,52 @@ Playdar.loadjs = function (url) {
    document.getElementsByTagName("head")[0].appendChild(e);
 };
 
+Playdar.status_bar = null;
+
 Playdar.prototype = {
     lib_version: "0.2.1",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
+    web_host: "http://www.playdar.org",
+    
+    show_status: function (text, bg) {
+        if (!bg) {
+            var bg = "cbdab1";
+        }
+        if (!Playdar.status_bar) {
+            Playdar.status_bar = document.createElement("div");
+            Playdar.status_bar.style.position = 'fixed';
+            Playdar.status_bar.style.bottom = 0;
+            Playdar.status_bar.style.left = 0;
+            Playdar.status_bar.style.width = '100%';
+            Playdar.status_bar.style.textIndent = '1px';
+            Playdar.status_bar.style.borderTop = '1px solid #bbb';
+            Playdar.status_bar.style.color = '#000';
+            Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
+        }
+        Playdar.status_bar.style.background = '#' + bg;
+        Playdar.status_bar.innerHTML = '<p style="padding: 7px; margin: 0;">' + text + '</p>';
+        
+        this.query_count = document.createElement("span");
+        this.query_count.style.cssFloat = "right";
+        this.query_count.style.margin = "7px";
+        Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
+        
+        document.body.appendChild(Playdar.status_bar);
+    },
     
     // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
     
     handlers: {
         detected: function (version) {
-            alert('Playdar detected, version: ' + version);
+            this.show_status('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + version);
         },
         not_detected: function () {
-            alert('Playdar not detected');
+            this.show_status("Playdar not detected.", 'F0D3C3');
+        },
+        stat_complete: function (detected) {
+            return detected;
         },
         results: function (response, final_answer) {
             if (final_answer) {
@@ -86,7 +159,11 @@ Playdar.prototype = {
     },
     
     register_handler: function (handler_name, callback) {
-        this.handlers[handler_name] = callback;
+        if (!callback) {
+            var callback = function () {};
+        }
+        var playdar = this;
+        this.handlers[handler_name] = function () { return callback.apply(playdar, arguments); };
     },
     
     // initialisation
@@ -124,6 +201,12 @@ Playdar.prototype = {
         return "Playdar.instances['" + this.uuid + "']." + callback;
     },
     
+    list_results: function (response) {
+        for (var i = 0; i < response.results.length; i++) {
+            console.log(response.results[i].name);
+        }
+    },
+    
     
     // STAT PLAYDAR INSTALLATION
     
@@ -135,6 +218,7 @@ Playdar.prototype = {
     check_stat_timeout: function () {
         if (!this.check_stat()) {
             this.handlers.not_detected();
+            this.handlers.stat_complete(false);
         }
     },
     
@@ -146,12 +230,13 @@ Playdar.prototype = {
             return false;
         }
         this.handlers.detected(this.stat_response.version);
+        this.handlers.stat_complete(true);
     },
     
     stat: function () {
-        var that = this;
+        var playdar = this;
         setTimeout(function () {
-            that.check_stat_timeout();
+            playdar.check_stat_timeout();
         }, this.stat_timeout);
         Playdar.loadjs(this.get_url("stat", "handle_stat"));
     },
@@ -180,7 +265,7 @@ Playdar.prototype = {
             return true;
         }
         // Stop if we've got a perfect match
-        if (response.length > 0 && response.results[0].score == 1.0) {
+        if (response.results.length && response.results[0].score == 1.0) {
             return true;
         }
         // Stop if we've exceeded 4 polls
@@ -193,14 +278,15 @@ Playdar.prototype = {
         return false;
     },
     
+    success_count: 0,
     handle_results: function (response) {
         // console.dir(response);
         // figure out if we should re-poll, or if the query is solved/failed:
         var final_answer = this.should_stop_polling(response);
         if (!final_answer) {
-            var that = this;
+            var playdar = this;
             setTimeout(function () {
-                that.get_results(response.qid);
+                playdar.get_results(response.qid);
             }, response.refresh_interval);
         }
         // now call the results handler
@@ -210,6 +296,12 @@ Playdar.prototype = {
         } else {
             // fall back to standard handler
             this.handlers.results(response, final_answer);
+        }
+        if (final_answer && response.results.length) {
+            this.success_count++;
+        }
+        if (this.query_count) {
+            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.resolve_qids.length;
         }
     },
     
@@ -243,5 +335,34 @@ Playdar.prototype = {
             params.qid = qid;
         }
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
+    },
+    
+    // STREAMING WITH SOUNDMANAGER
+    
+    soundmanager: null,
+    register_soundmanager: function (soundmanager) {
+        soundManager.url = this.web_host + '/static/soundmanager2_flash9.swf';
+        soundManager.flashVersion = 9;
+        var playdar = this;
+        soundmanager.onload = function() {
+            playdar.soundmanager = soundmanager;
+        };
+    },
+    
+    streams: {},
+    register_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        this.streams[sid] = this.soundmanager.createSound({
+            id: sid,
+            url: this.get_stream_url(sid)
+        });
+    },
+    play_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        this.streams[sid].togglePause(sid);
     }
 };

@@ -14,14 +14,17 @@ public:
     HTTPStreamingStrategy(string url)
         : m_connected(false)
     {
-        
-        boost::regex re("http://([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+):([0-9]+)(.*)");
+        //mega crude
+        boost::regex re("http://(.[^/^:]*)\\:?([0-9]*)/(.*)");
         boost::cmatch matches;
         if(boost::regex_match(url.c_str(), matches, re))
         {
             m_host = matches[1];
-            m_port = boost::lexical_cast<int>(matches[2]);
-            m_url  = matches[3];
+            m_port = matches[2]==""
+                ? 80 // default when port not specified
+                : boost::lexical_cast<int>(matches[2]);
+            m_url = "/" + matches[3];
+            cout << m_host << "," << m_port << "," << m_url << endl;
         }
         else
         {
@@ -100,11 +103,28 @@ private:
     void do_connect()
     {
         //cout << debug() << endl; //"HTTPStreamingStrategy: http://" << m_host << ":" << m_port << m_url << endl;
-        boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(m_host);
 
         tcp::resolver resolver(m_io_service);
-        tcp::endpoint ep(ip, m_port);
-
+        tcp::endpoint ep;
+        
+        boost::regex re("[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*");
+        boost::cmatch matches;
+        if(boost::regex_match(m_host.c_str(), matches, re))
+        {
+            boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(m_host);
+            ep = tcp::endpoint(ip, m_port);
+        }
+        else
+        {
+            tcp::resolver::query query(m_host, "http");
+            tcp::resolver::iterator resolve_iter = resolver.resolve(query);
+            tcp::resolver::iterator end_marker;
+            while (resolve_iter != end_marker)
+            { 
+                ep = *resolve_iter++;
+            }
+            ep.port(m_port);
+        }
         m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>(new tcp::socket(m_io_service));
 
         boost::system::error_code error = boost::asio::error::host_not_found;

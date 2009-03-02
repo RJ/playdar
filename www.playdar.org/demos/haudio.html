@@ -5,11 +5,14 @@
 function clog(){ return typeof(window.console) != "undefined" ; }
 
 var playdar = new Playdar({
-    detected: function (v) {
-        $('playdar_stat').innerHTML="<b style='color:green;'>PLAYDAR DETECTED: v"+v+"</b>";    
-    },
-    not_detected: function () {
-        $('playdar_stat').innerHTML="<b style='color:red;'>PLAYDAR NOT DETECTED</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+    stat_complete: function (detected) {
+        var text;
+        if (detected) {
+            text = "<b style='color:green;'>Playdar ready</b>";
+        } else {
+            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+        }
+        $('playdar_stat').update(text);
     }
 });
 window.onload = function() {

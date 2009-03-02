@@ -7,11 +7,12 @@
     Here's how you use it:
 </p>
 <pre><code>var handlers = {
-    detected: function (version) {
-        alert('Playdar detected, version: ' + version);
-    },
-    not_detected: function () {
-        alert('Playdar not detected');
+    stat_complete: function (detected) {
+        if (detected) {
+            alert('Playdar detected');
+        } else {
+            alert('Playdar unavailable');
+        }
     }
 };
 
@@ -20,11 +21,24 @@ var playdar = new Playdar(handlers);
 playdar.init();
 </code></pre>
 <p>
-    This will setup a <code>Playdar</code> instance with a set of status handlers (in this case, the handlers are identical to the defaults if you don't pass any <code>handlers</code> into the constructor.
+    This will setup a <code>Playdar</code> instance with a status handler.
 </p>
 <p>
-    The <code>init()</code> method checks for a running Playdar service and calls the relevant status handler.
+    The <code>init()</code> method checks for a running Playdar service and calls the status handler accordingly.
 </p>
+<p>
+    There are also two default handlers that fire for the <code>detected</code> and <code>not_detected</code> events. These display a Playdar status message at the foot of the viewport by default, but you can provide your own or override them by setting them to <code>null</code>:
+</p>
+<pre><code>var playdar = new Playdar({
+    detected: function (version) {
+        alert("Playdar available at version: " + version);
+    },
+    not_detected: null
+});
+
+// Another way of setting these handlers
+playdar.register_handler('not_detected', null);
+</code></pre>
 
 <h3>Resolving content</h3>
 <p>
