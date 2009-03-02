@@ -4,6 +4,9 @@
 <script type="text/javascript">
 // returns true if console.log available (firebug etc)
 function clog(){ return typeof(window.console) != "undefined" ; }
+function $(element) {
+    return document.getElementById(element);
+}
 
 var playdar = new Playdar({
     stat_complete: function (detected) {

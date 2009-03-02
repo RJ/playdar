@@ -297,8 +297,11 @@ Playdar.prototype = {
             // fall back to standard handler
             this.handlers.results(response, final_answer);
         }
-        if (final_answer && response.results.length) {
-            this.success_count++;
+        if (final_answer) {
+            this.pending_count--;
+            if (response.results.length) {
+                this.success_count++;
+            }
         }
         
         this.show_resolution_status();
@@ -319,7 +322,12 @@ Playdar.prototype = {
     
     show_resolution_status: function () {
         if (this.query_count) {
-            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.request_count;
+            var status = "";
+            if (this.pending_count) {
+                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10"/> ';
+            }
+            status += "Resolved: " + this.success_count + "/" + this.request_count;
+            this.query_count.innerHTML = status;
         }
     },
     
@@ -331,6 +339,7 @@ Playdar.prototype = {
     },
     
     request_count: 0,
+    pending_count: 0,
     resolve: function (art, alb, trk, qid) {
         params = {
             artist: art,
@@ -341,6 +350,7 @@ Playdar.prototype = {
             params.qid = qid;
         }
         this.request_count++;
+        this.pending_count++;
         this.show_resolution_status();
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     },
@@ -358,15 +368,9 @@ Playdar.prototype = {
     },
     
     register_stream: function (sid) {
-        if (!this.soundmanager) {
-            return false;
-        }
         this.soundmanager.createSound(sid, this.get_stream_url(sid));
     },
     play_stream: function (sid) {
-        if (!this.soundmanager) {
-            return false;
-        }
         this.soundmanager.togglePause(sid);
     }
 };
