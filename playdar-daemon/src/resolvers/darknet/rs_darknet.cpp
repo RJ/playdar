@@ -323,8 +323,7 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
     cout << "-> source: '"<< pip->source() <<"'" << endl;
     // We send SIDDATA msgs, where the payload is a sid_header followed
     // by the audio data.
-    //char buf[8194];
-    char buf[1024]; // this is the lamemsg payload.
+    char buf[8194]; // this is the lamemsg payload.
     int len, total=0;
     sid_header sheader;
     memcpy((char*)&sheader.sid, sid.c_str(), 36);

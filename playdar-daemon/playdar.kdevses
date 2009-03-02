@@ -1,19 +1,82 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version = '1.0' encoding = 'UTF-8'?>
 <!DOCTYPE KDevPrjSession>
 <KDevPrjSession>
- <DocsAndViews NumberOfDocuments="4" >
-  <Doc0 NumberOfViews="1" URL="file:///home/rj/src/playdar-git/playdar-daemon/src/tools/search.cpp" >
-   <View0 Encoding="" line="0" Type="Source" />
+ <DocsAndViews NumberOfDocuments="25" >
+  <Doc0 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/connection.hpp" >
+   <View0 Encoding="" line="173" Type="Source" />
   </Doc0>
-  <Doc1 NumberOfViews="1" URL="file:///home/rj/src/playdar-git/playdar-daemon/src/scanner/build.sh" >
-   <View0 Encoding="" line="0" Type="Source" />
+  <Doc1 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/msgs.h" >
+   <View0 Encoding="" line="22" Type="Source" />
   </Doc1>
-  <Doc2 NumberOfViews="1" URL="file:///home/rj/src/playdar-git/playdar-daemon/src/resolvers/send.php" >
-   <View0 Encoding="" line="0" Type="Source" />
+  <Doc2 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/servent.cpp" >
+   <View0 Encoding="" line="58" Type="Source" />
   </Doc2>
-  <Doc3 NumberOfViews="1" URL="file:///home/rj/src/playdar-git/playdar-daemon/src/playdar/main.cpp" >
-   <View0 Encoding="" line="180" Type="Source" />
+  <Doc3 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/servent.h" >
+   <View0 Encoding="" line="17" Type="Source" />
   </Doc3>
+  <Doc4 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/rs_lan_udp.h" >
+   <View0 Encoding="" Type="Source" />
+  </Doc4>
+  <Doc5 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/rs_darknet.h" >
+   <View0 Encoding="" Type="Source" />
+  </Doc5>
+  <Doc6 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/rs_darknet.cpp" >
+   <View0 Encoding="" line="19" Type="Source" />
+  </Doc6>
+  <Doc7 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/rs_lan_udp.cpp" >
+   <View0 Encoding="" Type="Source" />
+  </Doc7>
+  <Doc8 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/resolver_query.h" >
+   <View0 Encoding="" line="30" Type="Source" />
+  </Doc8>
+  <Doc9 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/application/application.cpp" >
+   <View0 Encoding="" Type="Source" />
+  </Doc9>
+  <Doc10 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/application/application.h" >
+   <View0 Encoding="" Type="Source" />
+  </Doc10>
+  <Doc11 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/playdar/main.cpp" >
+   <View0 Encoding="" line="28" Type="Source" />
+  </Doc11>
+  <Doc12 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/resolver.cpp" >
+   <View0 Encoding="" line="68" Type="Source" />
+  </Doc12>
+  <Doc13 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/resolver.h" >
+   <View0 Encoding="" Type="Source" />
+  </Doc13>
+  <Doc14 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/playdar/playdar_request_handler.cpp" >
+   <View0 Encoding="" line="204" Type="Source" />
+  </Doc14>
+  <Doc15 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/rs_local_library.cpp" >
+   <View0 Encoding="" Type="Source" />
+  </Doc15>
+  <Doc16 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/rs_local_library.h" >
+   <View0 Encoding="" line="12" Type="Source" />
+  </Doc16>
+  <Doc17 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/playable_item.h" >
+   <View0 Encoding="" line="0" Type="Source" />
+  </Doc17>
+  <Doc18 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/ss_http.h" >
+   <View0 Encoding="" line="22" Type="Source" />
+  </Doc18>
+  <Doc19 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/ss_localfile.h" >
+   <View0 Encoding="" line="28" Type="Source" />
+  </Doc19>
+  <Doc20 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/ss_darknet.h" >
+   <View0 Encoding="" line="50" Type="Source" />
+  </Doc20>
+  <Doc21 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/resolver_service.cpp" >
+   <View0 Encoding="" Type="Source" />
+  </Doc21>
+  <Doc22 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/resolvers/resolver_service.h" >
+   <View0 Encoding="" line="27" Type="Source" />
+  </Doc22>
+  <Doc23 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/scanner/scanner.cpp" >
+   <View0 Encoding="" line="45" Type="Source" />
+  </Doc23>
+  <Doc24 NumberOfViews="1" URL="file:///home/rj/src/playdar/playdar-daemon/src/library/library.cpp" >
+   <View0 Encoding="" line="78" Type="Source" />
+  </Doc24>
  </DocsAndViews>
  <pluginList>
   <kdevdebugger>
@@ -25,7 +88,11 @@
    <AStyle IndentPreprocessors="0" FillCount="4" PadParenthesesOut="1" IndentNamespaces="1" IndentLabels="1" Fill="Tabs" MaxStatement="40" Brackets="Break" MinConditional="-1" IndentBrackets="0" PadParenthesesUn="1" BlockBreak="0" KeepStatements="1" KeepBlocks="1" BlockIfElse="0" IndentSwitches="1" PadOperators="0" FStyle="UserDefined" IndentCases="0" FillEmptyLines="0" BracketsCloseHeaders="0" BlockBreakAll="0" PadParenthesesIn="1" IndentClasses="1" IndentBlocks="0" FillForce="0" />
   </kdevastyle>
   <kdevbookmarks>
-   <bookmarks/>
+   <bookmarks>
+    <bookmark url="/home/rj/src/playdar/playdar-daemon/src/resolvers/darknet/rs_darknet.cpp" >
+     <mark line="35" />
+    </bookmark>
+   </bookmarks>
   </kdevbookmarks>
   <kdevvalgrind>
    <executable path="" params="" />

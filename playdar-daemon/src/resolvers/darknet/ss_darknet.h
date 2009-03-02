@@ -36,7 +36,18 @@ public:
             cout << "Waiting for SIDDATA message..." << endl;
             m_cond.wait(lk);
         }
-        if(m_finished)
+        //cout << "Got data to send, max available: "<< m_data.size() << endl;
+        if(!m_data.empty())
+        {
+            int sent = 0;
+            for(; !m_data.empty() && (sent < size); sent++)
+            {
+                *(buf+sent) = m_data.front();
+                m_data.pop_front();
+            }
+            if(sent) return sent;
+        }
+        else if(m_finished)
         {
             cout << "End of stream marker reached. "
                  << m_numrcvd << " bytes rcvd total" << endl;
@@ -44,15 +55,11 @@ public:
             assert(m_data.size()==0);
             return 0;
         }
-        //cout << "Got data to send, max available: "<< m_data.size() << endl;
-        int sent = 0;
-        for(; !m_data.empty() && sent < size; sent++)
+        else
         {
-            *(buf+sent) = m_data.front();
-            m_data.pop_front();
+            assert(0); // wtf.
+            return 0;
         }
-        //cout << "read_bytes provided " << sent << " bytes" << endl;
-        return sent;
     }
     
     string debug()
