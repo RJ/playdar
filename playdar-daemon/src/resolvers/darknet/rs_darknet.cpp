@@ -7,6 +7,7 @@
 #include <boost/foreach.hpp>
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <cassert>
 
 #include "resolvers/darknet/rs_darknet.h"
 
@@ -15,6 +16,14 @@
 
 #include "resolvers/darknet/ss_darknet.h"
 
+/*
+testing with 2 instances, one alternative collection.db
+
+./bin/playdar -c etc/playdar.ini --app.name silverstone --app.private_ip 192.168.1.72 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip ""
+
+./bin/playdar -c etc/playdar.ini --app.db ./collection-small.db --app.name silverstone2 --app.private_ip 127.0.0.1 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip 127.0.0.1 --resolver.darknet.remote_port 9999 --resolver.darknet.port 9998 --app.http_port 8899
+
+*/
 using namespace playdar::darknet;
 
 RS_darknet::RS_darknet(MyApplication * a)
@@ -87,7 +96,7 @@ void
 RS_darknet::write_completed(connection_ptr conn, msg_ptr msg)
 {
     // Nothing to do really.
-    std::cout << "write_completed("<< msg->toString() <<")" << endl;
+    std::cout << "write_completed("<< msg->toString(true) <<")" << endl;
 }
 
 void
@@ -117,7 +126,7 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
     if(msg->msgtype() == CONNECTTO)
     {
         boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 1235);
-        m_servent->connect_to_remote(ep);
+        servent()->connect_to_remote(ep);
         return true;
     }
     
@@ -153,7 +162,7 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
         }
     }
     
-    cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
+    //cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
     /// NORMAL STATE MACHINE OPS HERE:
     switch(msg->msgtype())
     {
@@ -161,6 +170,10 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
             return handle_searchquery(conn,msg);
         case SEARCHRESULT:
             return handle_searchresult(conn, msg);
+        case SIDREQUEST:
+            return handle_sidrequest(conn, msg);
+        case SIDDATA:
+            return handle_siddata(conn, msg);
         default:
             cout << "UNKNOWN MSG! " << msg->toString() << endl;
             return true;
@@ -278,13 +291,15 @@ RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     try
     {
         pip = PlayableItem::from_json(resobj);
+        
     }
     catch (...)
     {
         cout << "Darknet: Missing fields in response json, discarding" << endl;
         return true; // could just be incompatible version, not too bad. don't disconnect.
     }
-    boost::shared_ptr<StreamingStrategy> s(new DarknetStreamingStrategy( conn, pip->id() ));
+    boost::shared_ptr<StreamingStrategy> s(
+                            new DarknetStreamingStrategy( this, conn, pip->id(), pip->size() ));
     pip->set_streaming_strategy(s);
     //pip->set_preference((float)0.6); 
     vector< boost::shared_ptr<PlayableItem> > vr;
@@ -292,6 +307,84 @@ RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     report_results(qid, vr);
     return true;
 }
+
+// asks remote host to start streaming us data for this sid
+void
+RS_darknet::start_sidrequest(connection_ptr conn, source_uid sid, 
+                             boost::function<bool (msg_ptr)> handler)
+{
+    m_sidhandlers[sid] = handler;
+    msg_ptr msg(new LameMsg(sid, SIDREQUEST));
+    send_msg(conn, msg);
+}
+
+// a peer has asked us to start streaming something:
+bool
+RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
+{
+    source_uid sid = msg->payload();
+    cout << "Darknet request for sid: " << sid << endl;
+    boost::shared_ptr<PlayableItem> pip = app()->resolver()->get_pi(sid);
+    cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
+    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
+    cout << "-> " << ss->debug() << endl;
+    cout << "-> source: '"<< pip->source() <<"'" << endl;
+    // We send SIDDATA msgs, where the payload is a sid_header followed
+    // by the audio data. 
+    //char buf[8194];
+    char buf[1024]; // this is the lamemsg payload.
+    int len, total=0;
+    sid_header sheader;
+    memcpy((char*)&sheader.sid, sid.c_str(), 36);
+    
+    cout << "Sending siddata packets: header.sid: " << sheader.sid << endl;
+    // put sheader at the start of our buffer:
+    memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
+    // this will be the offset where we write audio data,
+    // to leave the sid_header intact at the start:
+    char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
+    // read audio data into buffer at the data offset:
+    while ((len = ss->read_bytes( buf_datapos,
+                                  sizeof(buf)-sizeof(sid_header))  )>0)
+    {
+        total+=len; 
+        string payload((const char*)&buf, sizeof(sid_header)+len);
+        msg_ptr msgp(new LameMsg(payload, SIDDATA));
+        if(strstr(payload.c_str()+1, sid.c_str()))
+        {
+            // WTF?
+            assert(0);
+        }
+        send_msg(conn, msgp);
+    }
+    // send empty siddata to signify end of stream
+    cout << "Sending end part. Transferred " << total << " bytes" << endl;
+    string eostream((char*)&buf, sizeof(sid_header));
+    msg_ptr msge(new LameMsg(eostream, SIDDATA));
+    send_msg(conn, msge);
+    cout << "Darknet: done streaming sid" << endl; 
+    return true;
+}
+
+bool
+RS_darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
+{
+    // first part of payload is sid_header:
+    sid_header sheader;
+    memcpy(&sheader, msg->payload().c_str(), sizeof(sid_header));
+    source_uid sid = string((char *)&sheader.sid, 36);
+    cout << "Rcvd part for " << sid << endl; 
+    if(m_sidhandlers.find(sid) == m_sidhandlers.end())
+    {
+        cout << "Invalid sid, discarding" << endl;
+        // TODO send cancel message
+        return true;
+    } 
+    // pass msg to appropriate handler
+    m_sidhandlers[sid](msg);    
+    return true;
+}
+
 
 /// sends search query to all connections.
 void
@@ -325,6 +418,7 @@ RS_darknet::unregister_connection(string username)
 void 
 RS_darknet::send_msg(connection_ptr conn, msg_ptr msg)
 {
+    // msg is passed thru to the callback, so it stays referenced and isn't GCed until sent.
     conn->async_write(msg,
                       boost::bind(&Servent::handle_write, m_servent,
                       boost::asio::placeholders::error, conn, msg));

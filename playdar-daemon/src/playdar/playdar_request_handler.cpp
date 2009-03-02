@@ -331,6 +331,7 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
     while ((len = ss->read_bytes((char*)&buf, sizeof(buf)))>0)
     {
         total+=len;
+        cout << "Appending " << len << " bytes.. " << endl;
         // TODO moost::http doesnt support streaming response to user
         // you have to prepare it all up-front for now.
         rep.content.append(buf, len);

@@ -19,7 +19,8 @@ const boost::uint32_t    SEARCHQUERY     = 3;
 const boost::uint32_t    SEARCHRESULT    = 4;
 const boost::uint32_t    SEARCHCANCEL    = 5;
 const boost::uint32_t    CONNECTTO       = 6;
-const boost::uint32_t    SIDDATA         = 7;
+const boost::uint32_t    SIDREQUEST      = 7;
+const boost::uint32_t    SIDDATA         = 8;
 
 
 // generic "empty" uuid. no special significance.
@@ -29,13 +30,18 @@ const char empty_msg_id[36] = {0};
 struct msg_header {
     boost::uint32_t msgtype;
     boost::uint32_t length;
-    char id[36];
+    
 };
 
 // serialized msg on the wire to this:
 struct wire_message {
     msg_header header;
     string payload;
+};
+
+// msgs of type SIDDATA have this header at the start of the payload:
+struct sid_header {
+    char sid[36];
 };
 
 class Connection;
@@ -47,7 +53,7 @@ typedef boost::shared_ptr<LameMsg> msg_ptr;
 // all messages for the wire must be of this type:
 class LameMsg {
     public:
-            //LameMsg(){}
+            LameMsg(){}
             LameMsg(string s) 
                 : m_payload(s) 
             {m_msgtype=GENERIC;}
@@ -63,25 +69,30 @@ class LameMsg {
             boost::uint32_t msgtype() const { return m_msgtype; }
             string payload() const { return m_payload; }
             
-            bool serialize(std::string *s) const
+            void set_payload(string s) { m_payload = s; }
+            
+            const std::string & serialize() const
             { 
-                *s = string(m_payload); 
-                return true; 
+                return m_payload; 
             }
-            static msg_ptr unserialize(msg_header header, string payload)
-            {
-                msg_ptr m(new LameMsg(payload, header.msgtype));
-                return m;
-            }
-            string toString() const
+
+            string toString(bool shorten=false) const
             {
                 ostringstream s;
-                s   << "[msg/" << msgtype() << "/" << m_payload << "]";
+                s   << "[msg/" << msgtype() << "/" << m_payload.length() << "/" 
+                    << ((msgtype()==999/*SIDDATA*/)?"BINARYDATA": (shorten?m_payload.substr(0,50):m_payload)) << "]";
                 return s.str();
             }
+            
+            // buffer used when we marshal this msg and change byteorder:
+            msg_header m_outbound_header;
+            msg_header m_inbound_header;
+            char m_inbound_data[16384]; // 16k buffer max!
+            string m_payload;
+            boost::uint32_t m_msgtype;
      private:
-        boost::uint32_t m_msgtype;
-        string m_payload;
+        
+        
 };
 
 

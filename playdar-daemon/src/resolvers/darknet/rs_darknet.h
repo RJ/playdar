@@ -60,7 +60,11 @@ public:
     void register_connection(string username, connection_ptr conn);
     void unregister_connection(string username);
     
-    
+    void start_sidrequest(connection_ptr conn, source_uid sid, boost::function<bool (msg_ptr)> handler);
+    bool handle_sidrequest(connection_ptr conn, msg_ptr msg);
+    bool handle_siddata(connection_ptr conn, msg_ptr msg);
+
+    boost::shared_ptr<Servent> servent() { return m_servent; }
     
 private:
     boost::shared_ptr<boost::asio::io_service> m_io_service;
@@ -70,6 +74,7 @@ private:
     
     boost::shared_ptr<boost::asio::io_service::work> m_work;
     
+    map< source_uid,  boost::function<bool (msg_ptr)> > m_sidhandlers;
     /// Keep track of username -> connection
     /// this tells us how many connections are established, and to whom.
     map<string,connection_ptr> m_connections;

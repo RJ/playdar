@@ -56,39 +56,35 @@ public:
     template <typename FuncTemplate>
     void async_write(msg_ptr payload, FuncTemplate handler)
     {
-        if(payload->serialize(&m_outbound_data))
-        {
-            std::vector<boost::asio::const_buffer> buffers;
-            m_outbound_header.msgtype = htonl( payload->msgtype() );
-            m_outbound_header.length  = htonl( m_outbound_data.length() );
-            buffers.push_back(boost::asio::buffer(&m_outbound_header, sizeof(msg_header)));
-            buffers.push_back(boost::asio::buffer(m_outbound_data));
-            cout << "writing: "<< payload->toString() << endl;
-            boost::asio::async_write(m_socket, buffers, handler);
-        }
-        else
-        {
-            cerr << "Failed to serialize" << endl;
-        }
+        std::vector<boost::asio::const_buffer> buffers;
+        string data = payload->serialize();
+        payload->m_outbound_header.msgtype = htonl( payload->msgtype() );
+        payload->m_outbound_header.length  = htonl( data.length() );
+        buffers.push_back(boost::asio::buffer(&(payload->m_outbound_header), sizeof(msg_header)));
+        buffers.push_back(boost::asio::buffer(data));
+        cout << "writing: "<< payload->toString() << endl;
+        boost::asio::async_write(m_socket, buffers, handler);
     }
     
     /// Asynchronously read a data structure from the socket.
     template <typename FuncTemplate>
     void async_read(FuncTemplate handler)
     {
+        // create a new lamemsg, this will hold incoming data:
+        msg_ptr msg(new LameMsg());
         // Issue a read operation to read exactly the number of bytes in a header.
         void (Connection::*f)(  const boost::system::error_code&, 
-                                boost::tuple<FuncTemplate> )
+                                boost::tuple<FuncTemplate>,
+                                msg_ptr)
             = &Connection::handle_read_header<FuncTemplate>;
         
         boost::asio::async_read(m_socket, 
-                                boost::asio::buffer((char*)&m_inbound_header,
-                                sizeof(msg_header)),
-                                //boost::asio::transfer_all(),
+                                boost::asio::buffer((char*)&(msg->m_inbound_header), sizeof(msg_header)),
                                 boost::bind(f,
                                             shared_from_this(), 
                                             boost::asio::placeholders::error, 
-                                            boost::make_tuple(handler)));
+                                            boost::make_tuple(handler),
+                                            msg));
     }
     
     /// Handle a completed read of a message header. The handler is passed using
@@ -96,9 +92,10 @@ public:
     /// created using boost::bind as a parameter.
     template <typename FuncTemplate>
     void handle_read_header(const boost::system::error_code& e,       
-                            boost::tuple<FuncTemplate> handler)
+                            boost::tuple<FuncTemplate> handler,
+                            msg_ptr msg)
     {
-
+        cout << "handle_read_header" << endl;
         if (e)
         {
             cerr << "err" << endl;
@@ -108,18 +105,16 @@ public:
         else
         {
             // convert from nbo to host bo
-            m_inbound_header.length  = ntohl( m_inbound_header.length );
-            m_inbound_header.msgtype = ntohl( m_inbound_header.msgtype );
-        // Determine the length of the serialized data.
-            cout << "handle_read_header(msgtype="
-                << m_inbound_header.msgtype 
-                <<", length="<<m_inbound_header.length
-                <<")" << endl;
+            msg->m_inbound_header.length  = ntohl( msg->m_inbound_header.length );
+            msg->m_inbound_header.msgtype = ntohl( msg->m_inbound_header.msgtype );
                 
-        if (m_inbound_header.length == 0 || m_inbound_header.length > 16384)
+        // zero length payloads are allowed.
+        // 16K is max payload size.
+        if (msg->m_inbound_header.length > 16384)
         {
             // Header doesn't seem to be valid. Inform the caller.
-            cerr << "Invalid header" << endl;
+            cerr << "Invalid header!" << endl; 
+            cout << "msgtype:" << msg->m_inbound_header.msgtype << " length:" << msg->m_inbound_header.length << endl;
             boost::system::error_code error(boost::asio::error::invalid_argument);
             msg_ptr null_msg;
             boost::get<0>(handler)(error,null_msg);
@@ -129,49 +124,53 @@ public:
         // Start an asynchronous call to receive the data.
         void (Connection::*f)(
             const boost::system::error_code&,
-            boost::tuple<FuncTemplate>)
+            boost::tuple<FuncTemplate>,
+            msg_ptr)
             = &Connection::handle_read_data<FuncTemplate>;
     
-        //cout << "read_All for " << m_inbound_header.length << "bytes" << endl;
+        cout    << "header, msgtype = " << msg->m_inbound_header.msgtype
+                << " length = " << msg->m_inbound_header.length 
+                << " read.. " << msg->m_inbound_header.length << " bytes" << endl;
         boost::asio::async_read(m_socket, 
-                                boost::asio::buffer((void*)&m_inbound_data,
-                                          (size_t)m_inbound_header.length),
+                                boost::asio::buffer((char*)&msg->m_inbound_data,
+                                                    (size_t)msg->m_inbound_header.length),
                                 boost::bind(f,  
                                             shared_from_this(),
                                             boost::asio::placeholders::error, 
-                                            handler));
+                                            handler,
+                                            msg));
         }
     }
     
     /// Handle a completed read of message data.
     template <typename FuncTemplate>
     void handle_read_data(const boost::system::error_code& e,
-                          boost::tuple<FuncTemplate> handler)
+                          boost::tuple<FuncTemplate> handler,
+                          msg_ptr msg)
     {
         cout << "handle_read_data" << endl;
         if (e)
         {
             cerr << "errrrrrr" << endl;
-            msg_ptr null_msg;
-            boost::get<0>(handler)(e,null_msg);
+            boost::get<0>(handler)(e,msg);
         }
         else
         {
             // Extract the data structure from the data just received.
-            msg_ptr msg;
             try
             {
-                string payload = string(m_inbound_data, m_inbound_header.length);
-                cout << "handle_read_data("<< payload <<")" << endl;
-                msg = LameMsg::unserialize(m_inbound_header, payload);
-                cout << "msg.tostring: " << msg->toString() << endl;
+                msg->m_payload = string((char*)&msg->m_inbound_data, msg->m_inbound_header.length);
+                msg->m_msgtype = msg->m_inbound_header.msgtype;
+                
+                cout << "handle_read_data("<< msg->toString() <<")" << endl;
+                
             }
             catch (std::exception& e)
             {
                 // Unable to decode data.
                 boost::system::error_code error(boost::asio::error::invalid_argument);
-                msg_ptr null_msg;
-                boost::get<0>(handler)(error, null_msg);
+                //msg_ptr null_msg;
+                boost::get<0>(handler)(error, msg);
                 return;
             }
             // Inform caller that data has been received ok.
@@ -187,12 +186,6 @@ public:
 private:
     /// The underlying socket.
     boost::asio::ip::tcp::socket m_socket;
-    
-    msg_header m_outbound_header;
-    std::string m_outbound_data;
-    
-    msg_header m_inbound_header;
-    char m_inbound_data[16384]; // 16k buffer max!
     
     /// Statefull stuff the protocol handler/servent will set:
     string m_username; // username of user at end of Connection
