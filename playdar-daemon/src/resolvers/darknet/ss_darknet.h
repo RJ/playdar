@@ -23,7 +23,10 @@ public:
         reset();
     }
     
-    ~DarknetStreamingStrategy() {}
+    ~DarknetStreamingStrategy() 
+    {
+        cout << "DTOR " << debug() << endl;
+    }
     
     
     int read_bytes(char * buf, int size)
@@ -33,7 +36,7 @@ public:
         // Wait until data available:
         while( (m_data.empty() || m_data.size()==0) && !m_finished )
         {
-            cout << "Waiting for SIDDATA message..." << endl;
+            //cout << "Waiting for SIDDATA message..." << endl;
             m_cond.wait(lk);
         }
         //cout << "Got data to send, max available: "<< m_data.size() << endl;
@@ -55,6 +58,7 @@ public:
                  << m_numrcvd << " bytes rcvd total" << endl;
             cout << "Current size of output buffer: " << m_data.size() << endl;
             assert(m_data.size()==0);
+            reset();
             return 0;
         }
         else

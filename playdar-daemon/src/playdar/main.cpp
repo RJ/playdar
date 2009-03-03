@@ -1,4 +1,5 @@
 #include "application/application.h"
+#include "resolvers/darknet/rs_darknet.h"
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
@@ -9,7 +10,7 @@
 #include <boost/foreach.hpp>
 #include "playdar_request_handler.h"
 
-
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 namespace po = boost::program_options;
@@ -178,7 +179,32 @@ int main(int ac, char *av[])
                 << "Now check http://"<< app->private_ip().to_string() << ":" 
                 << app->http_port() <<"/" << endl
                 << "Or see a live demo on http://www.playdar.org/" << endl << endl;
-        http_thread.join();
+        // Lame interactive mode for debugging:
+        RS_darknet * dnet = static_cast<RS_darknet *>( app->resolver()->get_darknet());
+        if(dnet)
+        {
+            cout << "** Darknet resolver active, entering lame interactive mode **" << endl;
+            std::string line;
+            while(1)
+            {
+                std::getline(std::cin, line);
+                std::vector<std::string> toks;
+                boost::split(toks, line, boost::is_any_of(" "));
+                // establish new connection:
+                if(toks[0]=="connect")
+                {
+                    boost::asio::ip::address_v4 ip =
+                        boost::asio::ip::address_v4::from_string(toks[1]);
+                    unsigned short port = boost::lexical_cast<unsigned short>(toks[2]);
+                    boost::asio::ip::tcp::endpoint ep(ip, port);
+                    dnet->servent()->connect_to_remote(ep);
+                }
+                
+            }
+        }else{     
+            // this will stop us exiting:
+            http_thread.join();
+        }
         cout << "All threads finished, exiting cleanly" << endl;
         delete(app); 
         return 0;

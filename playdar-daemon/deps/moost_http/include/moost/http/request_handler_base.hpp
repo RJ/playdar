@@ -6,10 +6,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/thread/condition.hpp>
-
 #include "moost/http/reply.hpp"
 #include "moost/http/request.hpp"
 

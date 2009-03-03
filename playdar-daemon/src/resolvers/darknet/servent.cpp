@@ -68,7 +68,7 @@ Servent::handle_read(   const boost::system::error_code& e,
 {
     if(!m_protocol->handle_read(e, msg, conn)) return;
     
-    cout << "..." << endl;
+    //cout << "..." << endl;
     conn->async_read(   
         boost::bind( &Servent::handle_read, this, _1, _2, conn )
     );

@@ -91,6 +91,8 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     return rq->id();
 }
 
+
+
 // a resolver will report results here
 // false means give up on this query, it's over
 // true means carry on as normal

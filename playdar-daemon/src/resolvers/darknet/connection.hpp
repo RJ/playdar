@@ -216,7 +216,11 @@ public:
             {
                 msg->set_payload(string((const char *)payload_buf, msg->m_expected_len), msg->m_expected_len);
                 free(payload_buf);
-                cout << "handle_read_data("<< msg->toString() <<")" << endl;
+                if(msg->msgtype()!=SIDDATA)
+                {
+                    cout << "handle_read_data("
+                         << msg->toString() <<")" << endl;
+                }
             }
             catch (std::exception& e)
             {

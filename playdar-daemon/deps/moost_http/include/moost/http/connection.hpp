@@ -26,11 +26,6 @@ public:
   explicit connection(boost::asio::io_service& io_service,
       request_handler_base<RequestHandler>& handler);
 
-    ~connection()
-    {
-        cout << "DTOR connection" << endl;
-    }
-    
   /// Get the socket associated with the connection.
   boost::asio::ip::tcp::socket& socket();
 

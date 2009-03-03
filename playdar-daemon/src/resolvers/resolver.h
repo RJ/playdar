@@ -41,7 +41,10 @@ public:
 
     boost::shared_ptr<ResolverQuery> rq(query_uid qid);
     boost::shared_ptr<PlayableItem> get_pi(source_uid sid);
-
+    
+    // hack-o-matic: for interactive mode in main.cpp.
+    ResolverService * get_darknet() { return m_rs_darknet; }
+    
 private:
     query_uid generate_qid();
     source_uid generate_sid();
