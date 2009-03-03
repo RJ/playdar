@@ -89,7 +89,9 @@ const char crlf[] = { '\r', '\n' };
 
 } // misc_strings
 
-std::vector<boost::asio::const_buffer> reply::to_buffers()
+/// if inc_body is false, only headers are returned.
+/// (used when streaming responses is enabled)
+std::vector<boost::asio::const_buffer> reply::to_buffers(bool inc_body /*=true*/)
 {
   std::vector<boost::asio::const_buffer> buffers;
   buffers.push_back(status_strings::to_buffer(status));
@@ -102,7 +104,10 @@ std::vector<boost::asio::const_buffer> reply::to_buffers()
     buffers.push_back(boost::asio::buffer(misc_strings::crlf));
   }
   buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-  buffers.push_back(boost::asio::buffer(content));
+  if(inc_body)
+  {
+    buffers.push_back(boost::asio::buffer(content));
+  }
   return buffers;
 }
 

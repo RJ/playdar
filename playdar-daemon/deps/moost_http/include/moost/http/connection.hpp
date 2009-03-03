@@ -26,6 +26,11 @@ public:
   explicit connection(boost::asio::io_service& io_service,
       request_handler_base<RequestHandler>& handler);
 
+    ~connection()
+    {
+        cout << "DTOR connection" << endl;
+    }
+    
   /// Get the socket associated with the connection.
   boost::asio::ip::tcp::socket& socket();
 
@@ -39,7 +44,8 @@ private:
 
   /// Handle completion of a write operation.
   void handle_write(const boost::system::error_code& e);
-
+  /// Handle completion of headers-sent, then wait on body.
+  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<StreamingStrategy> ss, char * scratch);
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
 
@@ -81,6 +87,7 @@ void connection<RequestHandler>::start()
           boost::asio::placeholders::bytes_transferred)));
 }
 
+      
 template<class RequestHandler>
 void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
     std::size_t bytes_transferred)
@@ -94,10 +101,24 @@ void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
     if (result)
     {
       request_handler_.handle_request_base(request_, reply_);
-      boost::asio::async_write(socket_, reply_.to_buffers(),
-          strand_.wrap(
-            boost::bind(&connection<RequestHandler>::handle_write, connection<RequestHandler>::shared_from_this(),
-              boost::asio::placeholders::error)));
+      if(!reply_.streaming()) // normal request
+      {
+        // send all data, then call the shutdown handler
+        boost::asio::async_write(socket_, reply_.to_buffers(),
+            strand_.wrap(
+                boost::bind(&connection<RequestHandler>::handle_write, connection<RequestHandler>::shared_from_this(),
+                boost::asio::placeholders::error)));
+      }
+      else // streaming enabled, use the streamingstrategy.
+      {
+        boost::shared_ptr<StreamingStrategy> ss = reply_.get_ss();
+        cout << "sending headers.." << endl;
+        boost::asio::async_write(socket_, reply_.to_buffers(false),
+            strand_.wrap(
+            boost::bind(&connection<RequestHandler>::handle_write_stream,             connection<RequestHandler>::shared_from_this(),
+                        boost::asio::placeholders::error, ss, (char*)0)));
+      }
+      
     }
     else if (!result)
     {
@@ -144,6 +165,58 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
   // destroyed automatically after this handler returns. The connection class's
   // destructor closes the socket.
 }
+
+/// Used when handler sends headers first, then streams body.
+template<class RequestHandler>
+void connection<RequestHandler>::handle_write_stream 
+    (const boost::system::error_code& e, 
+     boost::shared_ptr<StreamingStrategy> ss,
+     char * scratch)
+{
+    //cout << "handle_write_stream" << endl;
+    if(scratch)
+    {
+        // free previous buffer
+        free(scratch);
+    }
+    else
+    {
+        // scratch is 0 the first time.
+        cout << "Initiating ss delivery.." << endl;
+    }
+    
+    if (!e)
+    {
+        const size_t maxbuf = 4096 * 2;
+        char * buf = (char*)malloc(maxbuf);
+        int len, total=0;
+        //cout << "Reading SS...." << endl;
+        //cout << "-> " << ss->debug() << endl;
+        len = ss->read_bytes(buf, maxbuf);
+        if(len > 0)
+        {
+            total += len;
+            //cout << "Sending " << len << " bytes.. " << endl;
+            boost::asio::async_write(socket_, boost::asio::buffer(buf, len),
+                strand_.wrap(
+                boost::bind(&connection<RequestHandler>::handle_write_stream, connection<RequestHandler>::shared_from_this(),
+                boost::asio::placeholders::error, ss, buf)));
+            return;
+        }
+        // end of stream..
+        cout << "EOS(" << ss->debug() << ") Served: " 
+             << total << " bytes" << endl;
+        // Initiate graceful connection closure.
+        boost::system::error_code ignored_ec;
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+    }
+    else
+    {
+        cout << "handle_write_stream error for " << ss->debug() 
+             << endl;
+    }
+}
+
 
 }} // moost::http
 

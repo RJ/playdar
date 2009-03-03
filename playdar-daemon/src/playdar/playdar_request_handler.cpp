@@ -11,6 +11,7 @@
 #include <moost/http/filesystem_request_handler.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "playdar_request_handler.h"
 #include "library/library.h"
@@ -72,6 +73,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     else if(parts[1]=="static") 
     {
         serve_static_file(req, rep);
+    }
+    else if(parts[1]=="streaming") 
+    {
+        boost::shared_ptr<StreamingStrategy> ss(new LocalFileStreamingStrategy("/home/rj/fakemp3/01-Train Train-Jag.mp3"));
+        rep.set_streaming(ss, 1234);
+        return;        
     }
     else if(parts[1]=="api" && querystring.count("method")==1)
     {
@@ -319,7 +326,8 @@ playdar_request_handler::serve_static_file(const moost::http::request& req, moos
     frh.handle_request(req, rep);
 }
 
-// Serves the music file based on a SID (from a playableitem resulting from a query)
+// Serves the music file based on a SID 
+// (from a playableitem resulting from a query)
 void
 playdar_request_handler::serve_sid(const moost::http::request& req, moost::http::reply& rep, source_uid sid)
 {
@@ -328,29 +336,16 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
     cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
     boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
     cout << "-> " << ss->debug() << endl;
-    
-    rep.status = moost::http::reply::ok;
-    char buf[16384];
-    int len, total=0;
-    cout << "INFO Serving track from '"<< pip->source() <<"'" << endl;
-    cout << "Reading...." << endl;
-    while ((len = ss->read_bytes((char*)&buf, sizeof(buf)))>0)
-    {
-        total+=len;
-        cout << "Appending " << len << " bytes.. " << endl;
-        // TODO moost::http doesnt support streaming response to user
-        // you have to prepare it all up-front for now.
-        rep.content.append(buf, len);
-    }
-    cout << "Sending " << total << " bytes...." << endl;
-    rep.headers.resize(2);
-    // headers added by moost anyway ?
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = total;//pip->size();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = pip->mimetype();
+    // hand off the streaming strategy for the http server to do:
+    rep.set_streaming(ss, pip->size());
+    return;  
 }
 
+/*
+    Serves a file based on fid from library.
+    Might be useful if browsing your local library and you want
+    to play tracks without searching and generating SIDs etc.
+*/
 void
 playdar_request_handler::serve_track(const moost::http::request& req, moost::http::reply& rep, int tid)
 {

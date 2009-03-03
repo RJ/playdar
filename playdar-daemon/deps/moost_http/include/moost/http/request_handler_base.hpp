@@ -2,8 +2,13 @@
 #define __MOOST_HTTP_REQUEST_HANDLER_BASE_HPP__
 
 #include <string>
+#include <deque>
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
+
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #include "moost/http/reply.hpp"
 #include "moost/http/request.hpp"
@@ -26,13 +31,20 @@ struct request_handler_base
 
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
 
-    rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
+    size_t clen = rep.content.size();
+    if(rep.streaming())
+    {
+        clen = rep.streaming_length();
+    }
+    rep.headers[0].value = boost::lexical_cast<std::string>(clen);
   }
 
   void handle_request(const request& req, reply& rep)
   {
     // default base implementation does nothing
   }
+  
+
 };
 
 }} // moost::http

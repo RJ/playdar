@@ -4,8 +4,12 @@
 #include <string>
 #include <vector>
 #include <boost/asio.hpp>
+#include <boost/shared_ptr.hpp>
 
 #include "moost/http/header.hpp"
+
+#include "application/application.h"
+#include "resolvers/streaming_strategy.h"
 
 namespace moost { namespace http {
 
@@ -42,10 +46,35 @@ struct reply
   /// Convert the reply into a vector of buffers. The buffers do not own the
   /// underlying memory blocks, therefore the reply object must remain valid and
   /// not be changed until the write operation has completed.
-  std::vector<boost::asio::const_buffer> to_buffers();
+  std::vector<boost::asio::const_buffer> to_buffers(bool inc_body = true);
 
   /// Get a stock reply.
   static reply stock_reply(status_type status);
+  
+  // only needed if we stream response:
+  
+  /// true if handler will stream body after headers sent
+  /// false means entire body prepared up-front.
+  bool m_streaming;
+  size_t m_streaming_len;
+  boost::shared_ptr<StreamingStrategy> m_ss;
+  
+  void set_streaming(boost::shared_ptr<StreamingStrategy> ss, 
+                     size_t len)
+  { 
+    m_streaming=true; 
+    m_streaming_len = len;
+    m_ss = ss;
+  }
+  // get streaming strategy, for streaming response
+  boost::shared_ptr<StreamingStrategy> get_ss()
+  {
+    return m_ss;
+  }
+  
+  size_t streaming_length() { return m_streaming_len; }
+  bool streaming() { return m_streaming; }
+  
 };
 
 }} // moost::http
