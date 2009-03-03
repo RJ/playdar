@@ -97,7 +97,7 @@ public:
         buffers.push_back(boost::asio::buffer(data, data_len));
         // add to write queue:
         m_sending = true;
-        cout << "dispatching write. write queue size is: " << m_writeq.size() << endl;
+        //cout << "dispatching write. write queue size is: " << m_writeq.size() << endl;
         boost::asio::async_write(m_socket, buffers, 
                                  boost::bind(&Connection::do_async_write, this,
                                       boost::asio::placeholders::error, 
@@ -167,9 +167,13 @@ public:
             char *)
             = &Connection::handle_read_data<FuncTemplate>;
     
-        cout    << "header, msgtype = " << inbound_header->msgtype
-                << " length = " << inbound_header->length 
-                << " read.. " << inbound_header->length << " bytes" << endl;
+        if(msg->msgtype() != SIDDATA)
+        {
+            cout    << "header, msgtype = " << inbound_header->msgtype
+                    << " length = " << inbound_header->length 
+                    << " read.. " << inbound_header->length 
+                    << " bytes" << endl;
+        }
         // 16K is max payload size.
         assert( msg->m_expected_len <= 16384 );
         

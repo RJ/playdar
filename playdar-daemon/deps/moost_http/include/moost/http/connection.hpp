@@ -204,8 +204,7 @@ void connection<RequestHandler>::handle_write_stream
             return;
         }
         // end of stream..
-        cout << "EOS(" << ss->debug() << ") Served: " 
-             << total << " bytes" << endl;
+        cout << "EOS(" << ss->debug() << ")" << endl;
         // Initiate graceful connection closure.
         boost::system::error_code ignored_ec;
         socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);

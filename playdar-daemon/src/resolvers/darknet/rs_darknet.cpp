@@ -96,7 +96,7 @@ void
 RS_darknet::write_completed(connection_ptr conn, msg_ptr msg)
 {
     // Nothing to do really.
-    std::cout << "write_completed("<< msg->toString() <<")" << endl;
+    //std::cout << "write_completed("<< msg->toString() <<")" << endl;
 }
 
 void
@@ -359,10 +359,10 @@ RS_darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
     sid_header sheader;
     memcpy(&sheader, msg->payload().c_str(), sizeof(sid_header));
     source_uid sid = string((char *)&sheader.sid, 36);
-    cout << "Rcvd part for " << sid << endl; 
+    //cout << "Rcvd part for " << sid << endl; 
     if(m_sidhandlers.find(sid) == m_sidhandlers.end())
     {
-        cout << "Invalid sid, discarding" << endl;
+        cout << "Invalid sid("<<sid<<"), discarding" << endl;
         // TODO send cancel message
         return true;
     } 
