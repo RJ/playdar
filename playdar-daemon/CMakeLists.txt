@@ -32,11 +32,11 @@ INCLUDE_DIRECTORIES(
                         deps/json_spirit_v3.00      # json parser, using boost spirit
                         deps/boost.process          # x-platform spawn processes and manage stdin/out
 
-            			/usr/local/include 
+                        /usr/local/include 
                         /usr/local/include/taglib 
                         /usr/include 
                         /usr/include/taglib
-            			/opt/local/include 
+                        /opt/local/include 
                         /opt/local/include/taglib 
                     )
 
@@ -47,13 +47,25 @@ ADD_EXECUTABLE( scanner # EXCLUDE_FROM_ALL
                 deps/sqlite3pp-read-only/sqlite3pp.cpp
               )
 
-TARGET_LINK_LIBRARIES(  scanner 
-                        sqlite3 
-                        tag 
-                        boost_filesystem
-                        boost_system
-                        boost_thread
-                        boost_regex)
+IF(APPLE)
+    SET(uuid_lib "uuid")
+    SET(boost boost_filesystem-mt
+              boost_system-mt
+              boost_thread-mt
+              boost_regex-mt)
+ELSE(APPLE)
+    SET(uuid_lib "ossp-uuid")
+    SET(boost boost_filesystem
+              boost_system
+              boost_thread
+              boost_regex)
+ENDIF(APPLE)
+
+TARGET_LINK_LIBRARIES( scanner 
+                       sqlite3 
+                       tag
+                       ${boost}
+                     )
 
 
 ADD_EXECUTABLE( playdar
@@ -82,22 +94,28 @@ ADD_EXECUTABLE( playdar
 
 IF(APPLE)
     SET(uuid_lib "uuid")
+    SET(boost boost_filesystem-mt
+              boost_system-mt
+              boost_thread-mt
+              boost_regex-mt
+              boost_program_options-mt)
 ELSE(APPLE)
     SET(uuid_lib "ossp-uuid")
+    SET(boost boost_filesystem
+              boost_system
+              boost_thread
+              boost_regex
+              boost_program_options)
 ENDIF(APPLE)
 
-TARGET_LINK_LIBRARIES(  playdar 
-                        sqlite3             # public domain
-                        tag                 # taglib is LGPL / MPL
-                        uriparser           # BSD
-                        ${uuid_lib}
-                        # boost libs:       # BOOST LICENSE
-                        boost_filesystem
-                        boost_system
-                        boost_thread
-                        boost_regex
-                        boost_program_options
+TARGET_LINK_LIBRARIES( playdar 
+                       sqlite3             # public domain
+                       tag                 # LGPL/MPL
+                       uriparser           # BSD
+                       ${uuid_lib}         # BSD-like
+                       ${boost}            # Boost license
                      )
+
 #cui18n icuuc icudata icuio #TODO ;)
 
 

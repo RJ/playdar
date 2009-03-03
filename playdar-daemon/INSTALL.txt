@@ -45,10 +45,6 @@ Using Leopard MacPorts:
     sudo port upgrade installed
     sudo port install cmake boost ossp-uuid uriparser taglib
 
-You need to edit CMakeLists.txt. The link targets bits. Change ossp-uuid to 
-uuid. Add -mt to the end of all boost linkages. Maybe you don't have to do 
-this if you built boost non multithreaded? I dunno --mxcl
-
 
 Windows Dependenceies
 ---------------------

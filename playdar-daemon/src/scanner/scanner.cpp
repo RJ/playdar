@@ -1,11 +1,11 @@
-#include <application/application.h>
+#include "application/application.h"
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 
-#include "boost/filesystem.hpp"
+#include <boost/filesystem.hpp>
 #include <boost/exception.hpp>
 
 #include <sqlite3.h>
@@ -117,7 +117,7 @@ bool add_file(const bfs::path &p, int mtime)
 
 int main(int argc, char *argv[])
 {
-    if(argc<3){
+    if(argc<3 || argc==1){
         cerr<<"Usage: "<<argv[0] << " <collection.db> <scan_dir>"<<endl;
         return 1;
     }
