@@ -314,11 +314,24 @@ Playdar.prototype = {
         }));
     },
     
+    get_last_results: function () {
+        if (this.last_qid) {
+            this.increment_requests();
+            this.get_results(this.last_qid);
+        }
+    },
     
     // CONTENT RESOLUTION
     
     resolve_qids: [],
     last_qid: "",
+    
+    
+    increment_requests: function () {
+        this.request_count++;
+        this.pending_count++;
+        this.show_resolution_status();
+    },
     
     show_resolution_status: function () {
         if (this.query_count) {
@@ -349,16 +362,14 @@ Playdar.prototype = {
         if (typeof qid !== 'undefined') {
             params.qid = qid;
         }
-        this.request_count++;
-        this.pending_count++;
-        this.show_resolution_status();
+        this.increment_requests();
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     },
     
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
-    register_soundmanager: function (soundmanager) {
+    register_soundmanager: function (soundmanager, options) {
         soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
         soundmanager.flashVersion = 9;
         var playdar = this;
@@ -367,10 +378,17 @@ Playdar.prototype = {
         };
     },
     
-    register_stream: function (sid) {
-        this.soundmanager.createSound(sid, this.get_stream_url(sid));
+    register_stream: function (sid, options) {
+        if (!options) {
+            var options = {};
+        }
+        options.id = sid;
+        options.url = this.get_stream_url(sid);
+        return this.soundmanager.createSound(options);
     },
     play_stream: function (sid) {
-        this.soundmanager.togglePause(sid);
+        var sound = this.soundmanager.sounds[sid];
+        sound.togglePause();
+        return sound;
     }
 };
