@@ -20,6 +20,8 @@ playdar.register_soundmanager(soundManager);
 document.observe('dom:loaded', function() {
     playdar.init();
     
+    parseHash();
+    
     $('resultstbl').observe('click', function (event) {
         var target = event.element();
         if (target.match('a.play')) {
@@ -30,6 +32,22 @@ document.observe('dom:loaded', function() {
         }
     });
 });
+
+// see if there's a query string in the # part of the url so that 
+// we can permalink to a specific search
+var parseHash = function() {
+    var hash = location.hash;
+    if (hash == "" || hash == "#") {
+        return;
+    }
+    var params = hash.substr(1).toQueryParams();
+    if (params.artist && params.track) {
+        $('artist').value = params.artist;
+        $('track').value = params.track;
+        $('album').value = params.album ? params.album : "";
+        resolve($('artist').value, $('album').value, $('track').value);
+    }
+};
 
 // a couple of misc formatting functions:
 var rnd = function (a, dp) {
@@ -135,7 +153,13 @@ function clearresults() {
 function resolve(art, alb, trk) {
     clearresults();
     playdar.resolve(art, alb, trk);
+    window.location.hash = Object.toQueryString({
+        artist: alb,
+        album: art,
+        track: trk
+    });
 }
+
 </script>
 <h2>Search Demo</h2>
 <!--#include virtual="demolist.html" -->
