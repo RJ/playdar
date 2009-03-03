@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle"  xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>playdar.prefPane Changelog</title>
+    <link>http://playdar.org/download/sparkle/appcast.rss</link>
+    <description>Most recent changes with links to updates.</description>
+    <language>en</language>
+    <item>
+      <title>Version 0.2 (now with added wheare)</title>
+      <sparkle:releaseNotesLink>http://playdar.org/download/sparkle/0.2.html</sparkle:releaseNotesLink>
+      <pubDate>Wed, 09 Jan 2010 19:20:11 +0000</pubDate>
+      <enclosure url="http://playdar.org/download/playdar.prefPane-0.2.zip"
+        sparkle:version="0.2"
+        length=""
+        type="application/octet-stream"
+        sparkle:dsaSignature="" />
+    </item>
+  </channel>
+</rss>
