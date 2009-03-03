@@ -1,6 +1,4 @@
-//
-// Prefix header for all source files of the 'playdar-prefpane' target in the 'playdar-prefpane' project.
-//
+// Precompiled Header
 
 #ifdef __OBJC__
     #import <Foundation/Foundation.h>

@@ -35,8 +35,7 @@
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(int)exec:(NSString*)command
-   withArgs:(NSArray*)args;
+-(int)exec:(NSString*)command withArgs:(NSArray*)args;
 
 -(IBAction)select:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;

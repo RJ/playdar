@@ -33,6 +33,7 @@
 #include <Sparkle/SUUpdater.h>
 
 
+/** returns the pid of the running playdard instance, or 0 if not found */
 static pid_t playdard_pid()
 {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
@@ -56,7 +57,6 @@ end:
     return pid;
 }
 
-
 static inline NSString* iniPath()
 {
     return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.ini"];
@@ -79,7 +79,7 @@ static inline NSString* fullname()
 
 -(void)mainViewDidLoad
 {
-    [SUUpdater updaterForBundle:[self bundle]];
+    [[SUUpdater updaterForBundle:[self bundle]] resetUpdateCycle];
     
     NSString* ini = iniPath();
     if ([[NSFileManager defaultManager] fileExistsAtPath:ini] == false)
@@ -105,33 +105,29 @@ static inline NSString* fullname()
 
 -(void)onStart:(id)sender
 {
-    if(pid) 
-    {
+    if(pid) {
         if(kill( pid, SIGKILL ) != 0) return;
-        pid = 0;
         [start setTitle:@"Start Playdar"];
-    }
-    else
-    {
+        pid = 0;
+    } else {
         NSArray* args = [NSArray arrayWithObjects:@"-c", iniPath(), nil];
         pid = [self exec:@"../MacOS/playdard" withArgs:args];
-        if (pid) [start setTitle:@"Stop Playdar"];
+        if(pid) [start setTitle:@"Stop Playdar"];
     }
 }
 
 ////// Directory selector
 -(void)select:(id)sender
 {
-    if ([popup indexOfSelectedItem] != [popup numberOfItems]-1) return;
+    if([popup indexOfSelectedItem] != [popup numberOfItems]-1) return;
     
     NSOpenPanel* panel = [NSOpenPanel openPanel];
     [panel setCanChooseFiles:NO];
     [panel setCanChooseDirectories:YES];
-    
     [panel beginSheetForDirectory:nil 
                              file:nil 
                    modalForWindow:[[self mainView] window]
-                    modalDelegate:self 
+                    modalDelegate:self
                    didEndSelector:@selector(openPanelDidEnd:returnCode:contextInfo:)
                       contextInfo:nil];
 }
@@ -140,20 +136,16 @@ static inline NSString* fullname()
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo 
 {
-    if (returnCode == NSOKButton) {
+    if(returnCode == NSOKButton) {
         int const index = [[popup menu] numberOfItems]-2;
-        [popup insertItemWithTitle:[panel filename] 
-                           atIndex:index];
-        [popup selectItemAtIndex: index];
-    }
-    else
+        [popup insertItemWithTitle:[panel filename] atIndex:index];
+        [popup selectItemAtIndex:index];
+    } else
         [popup selectItemAtIndex:0];
 }
-////// Directory selectors
+////// Directory selector
 
-
--(int)exec:(NSString*)command
-   withArgs:(NSArray*)args
+-(int)exec:(NSString*)command withArgs:(NSArray*)args
 {
     @try {
         NSString* resources = [[self bundle] resourcePath];
