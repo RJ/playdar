@@ -23,6 +23,8 @@
 		6383883C0F5B7065000C8EAF /* libtag.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388340F5B6FEF000C8EAF /* libtag.1.dylib */; };
 		6383883D0F5B7065000C8EAF /* libz.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6383883A0F5B704D000C8EAF /* libz.1.dylib */; };
 		63BE46E60F5B6C0C00BFA9E0 /* playdard in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63BE46E40F5B6C0600BFA9E0 /* playdard */; };
+		63DFABE70F5CAAA1001855D4 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
+		63DFABEE0F5CAAFA001855D4 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
 		8D202CEB0486D31800D8A456 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = F506C03C013D9D7901CA16C8 /* main.h */; };
 		8D202CED0486D31800D8A456 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 089C167DFE841241C02AAC07 /* InfoPlist.strings */; };
 		8D202CEF0486D31800D8A456 /* main.xib in Resources */ = {isa = PBXBuildFile; fileRef = F506C042013D9D8C01CA16C8 /* main.xib */; };
@@ -63,6 +65,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		63DFABED0F5CAAF6001855D4 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				63DFABEE0F5CAAFA001855D4 /* Sparkle.framework in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -87,6 +99,7 @@
 		638388400F5B708F000C8EAF /* liburiparser.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = liburiparser.1.dylib; path = /opt/local/lib/liburiparser.1.dylib; sourceTree = "<absolute>"; };
 		638388410F5B708F000C8EAF /* libuuid.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libuuid.16.dylib; path = /opt/local/lib/libuuid.16.dylib; sourceTree = "<absolute>"; };
 		63BE46E40F5B6C0600BFA9E0 /* playdard */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = playdard; path = build/playdard; sourceTree = "<group>"; };
+		63DFABE60F5CAAA1001855D4 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		8D202CF70486D31800D8A456 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D202CF80486D31800D8A456 /* playdar.prefPane */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = playdar.prefPane; sourceTree = BUILT_PRODUCTS_DIR; };
 		F506C035013D953901CA16C8 /* PreferencePanes.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = PreferencePanes.framework; path = /System/Library/Frameworks/PreferencePanes.framework; sourceTree = "<absolute>"; };
@@ -102,6 +115,7 @@
 			files = (
 				8D202CF30486D31800D8A456 /* Cocoa.framework in Frameworks */,
 				8D202CF40486D31800D8A456 /* PreferencePanes.framework in Frameworks */,
+				63DFABE70F5CAAA1001855D4 /* Sparkle.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -155,6 +169,7 @@
 		1058C7ACFEA557BF11CA2CBB /* Linked Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				63DFABE60F5CAAA1001855D4 /* Sparkle.framework */,
 				1058C7ADFEA557BF11CA2CBB /* Cocoa.framework */,
 				F506C035013D953901CA16C8 /* PreferencePanes.framework */,
 			);
@@ -230,6 +245,7 @@
 				8D202CF00486D31800D8A456 /* Sources */,
 				8D202CF20486D31800D8A456 /* Frameworks */,
 				8D202CF50486D31800D8A456 /* Rez */,
+				63DFABED0F5CAAF6001855D4 /* CopyFiles */,
 				6381AA960F5AC1D8003D1B3F /* CopyFiles */,
 				6381AB6A0F5B5CA1003D1B3F /* CopyFiles */,
 				632DF4CE0F5B76940078F66A /* ShellScript */,
@@ -351,6 +367,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COPY_PHASE_STRIP = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)\"",
+				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_FIX_AND_CONTINUE = YES;
 				GCC_MODEL_TUNING = G5;
@@ -373,6 +393,10 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"$(SRCROOT)\"",
+				);
 				GCC_MODEL_TUNING = G5;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = pc.h;
