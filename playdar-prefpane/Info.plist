@@ -28,5 +28,13 @@
 	<string>Playdar</string>
 	<key>NSPrincipalClass</key>
 	<string>OrgPlaydarPreferencePane</string>
+	<key>SUAllowsAutomaticUpdates</key>
+	<string>1</string>
+	<key>SUCheckAtStartup</key>
+	<string>1</string>
+	<key>SUFeedURL</key>
+	<string>http://www.playdar.org/appcast/playdar.prefPane.xml</string>
+	<key>SUScheduledCheckInterval</key>
+	<string>47000</string>
 </dict>
 </plist>

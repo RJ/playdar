@@ -17,31 +17,35 @@
 */
 
 
+//TODO watch exit code of playdard (if early exits), and watch process while pref pane is open
+// ^^ important in case playdard exits immediately due to crash or somesuch
+
 //TODO remember path that we scanned with defaults controller
 //TODO memory leaks
-//TODO watch exit code of playdard (if early exits), and watch process while pref pane is open
 //TODO log that stupid exception
 //TODO sparkle updates
+// ^^ ensure if prefpane is updated, it restarts playdard
 //TODO start at login checkbox
 
 
 #import "main.h"
 #include <sys/sysctl.h>
+#include <Sparkle/SUUpdater.h>
 
 
 static pid_t playdard_pid()
 {
-	int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
-	struct kinfo_proc *info;
-	size_t N;
+    int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
+    struct kinfo_proc *info;
+    size_t N;
     pid_t pid = 0;
-	
-	if(sysctl(mib, 3, NULL, &N, NULL, 0) < 0)
-		return 0; //wrong but unlikely
-	if(!(info = NSZoneMalloc(NULL, N)))
-		return 0; //wrong but unlikely
-	if(sysctl(mib, 3, info, &N, NULL, 0) < 0)
-		goto end;
+    
+    if(sysctl(mib, 3, NULL, &N, NULL, 0) < 0)
+        return 0; //wrong but unlikely
+    if(!(info = NSZoneMalloc(NULL, N)))
+        return 0; //wrong but unlikely
+    if(sysctl(mib, 3, info, &N, NULL, 0) < 0)
+        goto end;
 
     N = N / sizeof(struct kinfo_proc);
     for(size_t i = 0; i < N; i++)
@@ -75,6 +79,8 @@ static inline NSString* fullname()
 
 -(void)mainViewDidLoad
 {
+    [SUUpdater updaterForBundle:[self bundle]];
+    
     NSString* ini = iniPath();
     if ([[NSFileManager defaultManager] fileExistsAtPath:ini] == false)
     {
