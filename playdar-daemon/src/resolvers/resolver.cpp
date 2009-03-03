@@ -64,10 +64,14 @@ Resolver::Resolver(MyApplication * app)
 query_uid 
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = false */) 
 {
+    if(!rq->valid())
+    {
+        throw;
+    }
     if(!add_new_query(rq))
     {
         cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
-        return rq->id();;
+        return rq->id();
     }
     cout << "RESOLVER: dispatch("<< rq->id() <<"): " << rq->str() 
          << "  [mode:"<< rq->mode() <<"]" << endl;

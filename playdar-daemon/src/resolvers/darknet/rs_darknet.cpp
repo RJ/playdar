@@ -8,6 +8,7 @@
 #include <boost/thread.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cassert>
+#include <boost/lexical_cast.hpp>
 
 #include "resolvers/darknet/rs_darknet.h"
 
@@ -38,7 +39,6 @@ RS_darknet::init()
     unsigned short port = app()->popt()["resolver.darknet.port"].as<int>();
     m_io_service    = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
     m_work = boost::shared_ptr<boost::asio::io_service::work>(new boost::asio::io_service::work(*m_io_service));
-    //m_io_service_p  = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
     m_servent = boost::shared_ptr< Servent >(new Servent(*m_io_service, port, this));
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
@@ -96,7 +96,7 @@ void
 RS_darknet::write_completed(connection_ptr conn, msg_ptr msg)
 {
     // Nothing to do really.
-    std::cout << "write_completed("<< msg->toString(true) <<")" << endl;
+    std::cout << "write_completed("<< msg->toString() <<")" << endl;
 }
 
 void
@@ -118,16 +118,8 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
 {
     if(e)
     {
-	connection_terminated(conn);
-	return false;
-    }
-    
-
-    if(msg->msgtype() == CONNECTTO)
-    {
-        boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address::from_string("127.0.0.1"), 1235);
-        servent()->connect_to_remote(ep);
-        return true;
+	    connection_terminated(conn);
+	    return false;
     }
     
     //cout << "handle_read("<< msg->toString() <<")" << endl;
@@ -142,11 +134,11 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
     
     if(msg->msgtype() == IDENTIFY)
     {
-        string username = msg->toString();
+        string username = msg->payload();
         register_connection(username, conn);
         return true;
     }
-    else if(msg->msgtype()!=WELCOME)
+    else if(!conn->authed()) //msg->msgtype()!=WELCOME)
     {
         /// if not authed, kick em
         if(!conn->authed())
@@ -299,7 +291,7 @@ RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
         return true; // could just be incompatible version, not too bad. don't disconnect.
     }
     boost::shared_ptr<StreamingStrategy> s(
-                            new DarknetStreamingStrategy( this, conn, pip->id(), pip->size() ));
+                            new DarknetStreamingStrategy( this, conn, pip->id() ));
     pip->set_streaming_strategy(s);
     //pip->set_preference((float)0.6); 
     vector< boost::shared_ptr<PlayableItem> > vr;
@@ -330,9 +322,8 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
     cout << "-> " << ss->debug() << endl;
     cout << "-> source: '"<< pip->source() <<"'" << endl;
     // We send SIDDATA msgs, where the payload is a sid_header followed
-    // by the audio data. 
-    //char buf[8194];
-    char buf[1024]; // this is the lamemsg payload.
+    // by the audio data.
+    char buf[8194]; // this is the lamemsg payload.
     int len, total=0;
     sid_header sheader;
     memcpy((char*)&sheader.sid, sid.c_str(), 36);
@@ -345,16 +336,11 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
     char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
     // read audio data into buffer at the data offset:
     while ((len = ss->read_bytes( buf_datapos,
-                                  sizeof(buf)-sizeof(sid_header))  )>0)
+                                  sizeof(buf)-sizeof(sid_header)) )>0)
     {
-        total+=len; 
+        total+=len;
         string payload((const char*)&buf, sizeof(sid_header)+len);
         msg_ptr msgp(new LameMsg(payload, SIDDATA));
-        if(strstr(payload.c_str()+1, sid.c_str()))
-        {
-            // WTF?
-            assert(0);
-        }
         send_msg(conn, msgp);
     }
     // send empty siddata to signify end of stream
@@ -419,10 +405,8 @@ void
 RS_darknet::send_msg(connection_ptr conn, msg_ptr msg)
 {
     // msg is passed thru to the callback, so it stays referenced and isn't GCed until sent.
-    conn->async_write(msg,
+    conn->async_write(msg);/*,
                       boost::bind(&Servent::handle_write, m_servent,
-                      boost::asio::placeholders::error, conn, msg));
+                      boost::asio::placeholders::error, conn, msg));*/
 }
 
-
-        

@@ -6,6 +6,7 @@
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "json_spirit/json_spirit.h"
 
@@ -19,6 +20,15 @@ public:
     ResolverQuery(string art, string alb, string trk)
         : m_artist(art), m_album(alb), m_track(trk), m_mode("normal"), m_solved(false)
     {
+        boost::trim(m_artist);
+        boost::trim(m_album);
+        boost::trim(m_track);
+    }
+    
+    // is this a valid / well formed query?
+    bool valid() const
+    {
+        return m_artist.length()>0 && m_track.length()>0;
     }
 
     ResolverQuery(){}

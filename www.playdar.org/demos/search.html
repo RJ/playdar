@@ -13,110 +13,161 @@ var playdar = new Playdar({
         } else {
             text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
         }
-        $('playdar_stat').update(text);
+        $('playdar_stat').innerHTML = text;
+    },
+    soundmanager_ready: function () {
+        parseHash();
     }
 });
 playdar.register_soundmanager(soundManager);
-window.onload = function() {
+
+document.observe('dom:loaded', function() {
     playdar.init();
+    
+    $('resultstbl').observe('click', function (event) {
+        var target = event.element();
+        if (target.match('a.play')) {
+            event.stop();
+            var sid = target.hash.substr(1);
+            var sound = playdar.play_stream(sid);
+            target.update((target.innerHTML == 'Play') ? 'Pause' : 'Play');
+        }
+    });
+});
+
+// see if there's a query string in the # part of the url so that 
+// we can permalink to a specific search
+var parseHash = function() {
+    var hash = location.hash;
+    if (hash == "" || hash == "#") {
+        return;
+    }
+    var params = hash.substr(1).toQueryParams();
+    if (params.artist && params.track) {
+        $('artist').value = params.artist;
+        $('track').value = params.track;
+        $('album').value = params.album ? params.album : "";
+        resolve($('artist').value, $('album').value, $('track').value);
+    }
 };
 
 // a couple of misc formatting functions:
 var rnd = function (a, dp) {
     return Math.round(a * Math.pow(10,dp)) / Math.pow(10,dp);
 };
-  
-// Insert results into the table in order of score:
-var results_handler = function(response, final_answer) {
-    // make <TR> element
-    var mkrow = function(pi) {
-        nicescore = rnd(pi.score,3);
-        nicepref  = rnd(pi.preference,3);
-        var td;
-        var tr = document.createElement('tr');
-        tr.id = pi.sid;
-        playdar.register_stream(pi.sid);
-        td = document.createElement('td');
-            td.appendChild( document.createTextNode( nicescore ) );
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.style.width = "50px";
-            td.innerHTML = '<a href="' + playdar.get_stream_url(pi.sid) + '" onclick="playdar.play_stream(\'' + pi.sid + '\'); if (this.innerHTML == \'Play\') { this.innerHTML = \'Pause\'; } else { this.innerHTML = \'Play\'; } return false;">Play</a>';
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.appendChild( document.createTextNode( pi.artist ) );
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.appendChild( document.createTextNode( pi.album ) );
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.appendChild( document.createTextNode( pi.track ) );
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.appendChild( document.createTextNode( pi.source ) );
-            tr.appendChild(td);
-        td = document.createElement('td');
-            td.innerHTML = "<a href=\"" + playdar.get_stream_url(pi.sid) + "\">dl</a> <small>(" + Playdar.mmss(pi.duration) + ", "/*+pi.mimetype+", "*/ + rnd(pi.size/1000000,1) + "MB, " + pi.bitrate + "Kbps)</small>";
-            tr.appendChild(td);
-        return tr;
-    };
-    var qsolved = response.query.solved ? "solved" : "unsolved";
-    var qstatus = final_answer ? "finished" : "pending";
-    $('numresultsspan').innerHTML = "Found: " + response.results.length + " Status: " + qstatus + " Result: " + qsolved;
-    for (var i = 0; i < response.results.length; ++i) {
-        pi = response.results[i];
-        if ($(pi.sid)) {
-            continue; 
+
+// make <TR> element
+var mkrow = function(result) {
+    nicescore = rnd(result.score,3);
+    nicepref  = rnd(result.preference,3);
+    var td;
+    var tr = document.createElement('tr');
+    tr.id = result.sid;
+    var play_text = "Play";
+    var sound = playdar.register_stream(result.sid, {
+        onfinish: function () {
+            $('play' + this.sID).update(play_text);
         }
-        var rows = $('resultstbl').childNodes;
-        if (rows.length == 1) { // header only, no results yet
-            $('resultstbl').appendChild(mkrow(pi));
+    });
+    
+    td = new Element('td').update(nicescore);
+    tr.insert(td);
+    
+    td = new Element('td').setStyle({width: "50px"}).update(
+        '<a href="#' + result.sid + '" id="play' + result.sid + '" class="play">'
+         + play_text
+         + '</a>'
+     );
+    tr.insert(td);
+    
+    td = new Element('td').update(result.artist);
+    tr.insert(td);
+    
+    td = new Element('td').update(result.album);
+    tr.insert(td);
+    
+    td = new Element('td').update(result.track);
+    tr.insert(td);
+    
+    td = new Element('td').update(result.source);
+    tr.insert(td);
+    
+    td = new Element('td').update(
+        '<a href="' + playdar.get_stream_url(result.sid) + '">dl</a> '
+        + '<small>('
+        + Playdar.mmss(result.duration) + ', '
+        + result.mimetype + ', '
+        + rnd(result.size/1000000,1) + 'MB, '
+        + result.bitrate + 'Kbps)</small>'
+    );
+    tr.insert(td);
+    return tr;
+};
+
+// Insert results into the table in order of score:
+var results_handler = function (response, final_answer) {
+    var qsolved = '';
+    if (final_answer) {
+        qsolved = response.query.solved ? "solved" : "unsolved";
+        qsolved = " (" + qsolved + ")";
+        $('resolveProgress').hide();
+    } else {
+        $('resolveProgress').show();
+    }
+    $('numresultsspan').update("Found: " + response.results.length + qsolved);
+    response.results.each(function (result) {
+        if ($(result.sid)) {
+            return;
+        }
+        var rows = $$('#resultstbl tr');
+        // First result
+        if (rows.length == 1) {
+            $('resultstbl').down('tbody').insert(mkrow(result));
             return;
         }
         // walk rows and insert in score-order
-        var k;
         for (k = 1; k < rows.length; k++) {
-            var rowscore = parseFloat(rows[k].childNodes[0].innerHTML); //first <td> contains score
-            if (rowscore < pi.score) {
-                $('resultstbl').insertBefore(mkrow(pi), rows[k]);
+            var row = rows[k];
+            var rowscore = parseFloat(row.down('td').innerHTML);
+            if (rowscore < result.score) {
+                row.insert({before: mkrow(result)});
                 break;
             }
         }
         // put at the end, lowest so far:
         if (k == rows.length) {
-            $('resultstbl').appendChild( mkrow(pi) );
+            $('resultstbl').down('tbody').insert(mkrow(result));
         }
-    }
+    });
 };
 playdar.register_results_handler(results_handler);
 
 function clearresults() {
     $('numresultsspan').innerHTML='0';
     // clear table of all but first(header) row
-    var trs = $('resultstbl').childNodes;
+    var trs = $$('#resultstbl tr');
     var len = trs.length;
     for (var i = len-1; i > 0; i--) {
-        $('resultstbl').removeChild($('resultstbl').childNodes[i]);
-    }
-}
-
-//check results of last query again
-function recheckresults () {
-    if (playdar.last_qid) {
-        playdar.get_results(playdar.last_qid);
+        $$('#resultstbl tr')[i].remove();
     }
 }
 
 function resolve(art, alb, trk) {
     clearresults();
-    playdar.resolve($('artist').value, $('album').value,$('track').value);
+    playdar.resolve(art, alb, trk);
+    window.location.hash = Object.toQueryString({
+        artist: art,
+        album: alb,
+        track: trk
+    });
 }
+
 </script>
 <h2>Search Demo</h2>
 <!--#include virtual="demolist.html" -->
 <div class="box" id="playdar_stat">Checking for local Playdar service...</div>
 
-<form action="">
+<form action="" onsubmit="resolve($('artist').value, $('album').value, $('track').value); return false;">
 <fieldset>
 <legend>Track Resolver - Specify artist and track name to (hopefully) find an exact match</legend>
 artist:
@@ -124,15 +175,16 @@ artist:
 <input type="hidden" id="album"  name="album" value=""/>
 track:
 <input type="text" id="track"  name="track" value=""/>
-<input type="submit" onclick="resolve($('artist').value, $('album').value, $('track').value); return false;" value="Resolve!"/>
+<input type="submit" value="Resolve!" id="resolveSubmit"/>
+<img src="/static/spinner.gif" id="resolveProgress" style="display: none; vertical-align: middle; margin-left: 5px;" />
 &nbsp; &nbsp;
 </fieldset>
 </form>
 
-<h3>Search Results <span style="background-color:lightyellow" id="numresultsspan">0</span></h3>
+<h3>Search Results <span style="background-color:lightyellow; padding: 3px;" id="numresultsspan">0</span></h3>
 <div id="resultsdiv">
     <span style="float:right; font-size:9px;">
-        <a href="#" onclick="recheckresults(); return false;">re-check</a>
+        <a href="#" onclick="playdar.get_last_results(); return false;">re-check</a>
         <a href="#" onclick="clearresults(); return false;">clear</a>
     </span>
     <table style="width:100%; font-size:85%;" id="resultstbl"><tr style="font-weight: bold;">

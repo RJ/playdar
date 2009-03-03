@@ -170,6 +170,12 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
                 // new qid assigned automatically if we don't provide one.
             }
         }
+        if(!rq->valid()) // usually caused by empty track name or something.
+        {
+            cout << "Tried to dispatch an invalid query, failing." << endl;
+            rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
+            return;
+        }
         query_uid qid = app()->resolver()->dispatch(rq);
         Object r;
         r.push_back( Pair("qid", qid) );
@@ -336,7 +342,7 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
         // you have to prepare it all up-front for now.
         rep.content.append(buf, len);
     }
-    cout << "Sending...." << endl;
+    cout << "Sending " << total << " bytes...." << endl;
     rep.headers.resize(2);
     // headers added by moost anyway ?
     rep.headers[0].name = "Content-Length";

@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/exception.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
 #include "library/library.h"
@@ -17,6 +18,7 @@ namespace bfs = boost::filesystem;
 
 bool add_file(const bfs::path &, int mtime);
 bool add_dir(const bfs::path &);
+string ext2mime(string ext);
 
 Library *gLibrary;
 
@@ -36,8 +38,13 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
                 scan(itr->path(), mtimes);
             } else {
                 // is this file an audio file we understand?
-                string ext(bfs::extension(itr->path()));
-                if( to_lower_copy(ext) == ".mp3" ){
+                string extu(bfs::extension(itr->path()));
+                string ext = to_lower_copy(extu);
+                if( ext == ".mp3" ||
+                    ext == ".m4a" || 
+                    ext == ".mp4" ||  
+                    ext == ".aac" )
+                {
                     int mtime = bfs::last_write_time(itr->path());
                     mtimeit = mtimes.find(itr->string());
                     if(    mtimeit == mtimes.end() // not scanned previously
@@ -86,17 +93,29 @@ bool add_file(const bfs::path &p, int mtime)
             duration = properties->length();
             bitrate = properties->bitrate();
         }
-
+        string artist = tag->artist().to8Bit(true);
+        string album  = tag->album().to8Bit(true);
+        string track  = tag->title().to8Bit(true);
+        boost::trim(artist);
+        boost::trim(album);
+        boost::trim(track);
+        if(artist.length()==0 || track.length()==0) 
+        {
+            ignored++;
+            return false;
+        }
+        string ext(bfs::extension(p));
+        string mimetype = ext2mime(to_lower_copy(ext));
         gLibrary->add_file( p.string(), 
                             mtime, 
                             filesize, 
                             string("md5here"), 
-                            "audio/mpeg",
+                            mimetype,
                             duration,
                             bitrate,
-                            tag->artist().to8Bit(true), 
-                            tag->album().to8Bit(true), 
-                            tag->title().to8Bit(true), 
+                            artist, 
+                            album, 
+                            track, 
                             tag->track());
 
        /* cout << "-- TAG --" << endl;
@@ -115,6 +134,18 @@ bool add_file(const bfs::path &p, int mtime)
     }
 }
 
+string ext2mime(string ext)
+{
+    
+    if(ext==".mp3") return "audio/mpeg";
+    if(ext==".aac") return "audio/mp4";
+    if(ext==".mp4") return "audio/mp4";
+    if(ext==".m4a") return "audio/mp4"; 
+    cerr << "Warning, unhandled file extension. Don't know mimetype for " << ext << endl;
+    // generic:
+    return "application/octet-stream";
+}
+
 int main(int argc, char *argv[])
 {
     if(argc<3 || argc==1){
@@ -130,6 +161,7 @@ int main(int argc, char *argv[])
     bfs::path dir(argv[2]);
     sqlite3pp::transaction xct(*(gLibrary->db()));
     {
+        // first scan for mp3/aac/etc files:
         try
         {
             scan(dir, mtimes);
@@ -141,18 +173,14 @@ int main(int argc, char *argv[])
             xct.rollback();
             return 1;
         }
-        xct.commit();
-    }
-    
-    sqlite3pp::transaction xct2(*(gLibrary->db()));
-    {
+        // now create fuzzy text index:
         try
         {
             cout << endl << "Building search indexes..." << endl;
             gLibrary->build_index("artist");
             gLibrary->build_index("album");
             gLibrary->build_index("track");
-            xct2.commit();
+            xct.commit();
             cout << "Finished,   scanned: " << scanned 
                 << " skipped: " << skipped 
                 << " ignored: " << ignored 
@@ -161,7 +189,7 @@ int main(int argc, char *argv[])
         catch(...)
         {
             cout << "Index update failed, delete your database, fix the bug, and retry" << endl;
-            xct2.rollback();
+            xct.rollback();
             return 1;
         }
     }

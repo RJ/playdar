@@ -159,8 +159,8 @@
       <includestyle>3</includestyle>
       <root></root>
       <designerintegration>EmbeddedKDevDesigner</designerintegration>
-      <qmake>/usr/local/Trolltech/Qt-4.4.3/bin/qmake</qmake>
-      <designer>/usr/local/Trolltech/Qt-4.4.3/bin/designer</designer>
+      <qmake>/usr/bin/qmake</qmake>
+      <designer>/usr/bin/designer</designer>
       <designerpluginpaths/>
     </qt>
     <codecompletion>
@@ -199,11 +199,7 @@
       <synchronize>true</synchronize>
       <orientation>Vertical</orientation>
     </splitheadersource>
-    <references>
-      <pcs>cpp%20stuff,%20stl</pcs>
-      <pcs>boost</pcs>
-      <pcs>moost</pcs>
-    </references>
+    <references/>
   </kdevcppsupport>
   <cppsupportpart>
     <filetemplates>

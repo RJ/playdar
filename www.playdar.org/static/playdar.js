@@ -125,7 +125,12 @@ Playdar.prototype = {
             Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
-        Playdar.status_bar.innerHTML = '<p style="padding: 7px; margin: 0;">' + text + '</p>';
+        
+        this.status_message = document.createElement("p");
+        this.status_message.style.padding = "7px";
+        this.status_message.style.margin = "0";
+        this.status_message.innerHTML = text;
+        Playdar.status_bar.appendChild(this.status_message);
         
         this.query_count = document.createElement("span");
         this.query_count.style.cssFloat = "right";
@@ -155,6 +160,9 @@ Playdar.prototype = {
                     alert('No results');
                 }
             }
+        },
+        soundmanager_ready: function () {
+            return true;
         }
     },
     
@@ -297,8 +305,11 @@ Playdar.prototype = {
             // fall back to standard handler
             this.handlers.results(response, final_answer);
         }
-        if (final_answer && response.results.length) {
-            this.success_count++;
+        if (final_answer) {
+            this.pending_count--;
+            if (response.results.length) {
+                this.success_count++;
+            }
         }
         
         this.show_resolution_status();
@@ -311,15 +322,33 @@ Playdar.prototype = {
         }));
     },
     
+    get_last_results: function () {
+        if (this.last_qid) {
+            this.increment_requests();
+            this.get_results(this.last_qid);
+        }
+    },
     
     // CONTENT RESOLUTION
     
     resolve_qids: [],
     last_qid: "",
     
+    
+    increment_requests: function () {
+        this.request_count++;
+        this.pending_count++;
+        this.show_resolution_status();
+    },
+    
     show_resolution_status: function () {
         if (this.query_count) {
-            this.query_count.innerHTML = "Resolved: " + this.success_count + "/" + this.request_count;
+            var status = "";
+            if (this.pending_count) {
+                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10"/> ';
+            }
+            status += "Resolved: " + this.success_count + "/" + this.request_count;
+            this.query_count.innerHTML = status;
         }
     },
     
@@ -331,6 +360,7 @@ Playdar.prototype = {
     },
     
     request_count: 0,
+    pending_count: 0,
     resolve: function (art, alb, trk, qid) {
         params = {
             artist: art,
@@ -340,33 +370,41 @@ Playdar.prototype = {
         if (typeof qid !== 'undefined') {
             params.qid = qid;
         }
-        this.request_count++;
-        this.show_resolution_status();
+        this.increment_requests();
         Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
     },
     
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
-    register_soundmanager: function (soundmanager) {
+    sm_loaded: function () {
+        if (this.status_message) {
+            this.status_message.innerHTML += ' | <a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')';
+        }
+        this.handlers.sm_loaded();
+    },
+    register_soundmanager: function (soundmanager, options) {
         soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
         soundmanager.flashVersion = 9;
-        var playdar = this;
         soundmanager.onload = function() {
             playdar.soundmanager = soundmanager;
+            playdar.sm_loaded();
         };
     },
     
-    register_stream: function (sid) {
-        if (!this.soundmanager) {
-            return false;
+    register_stream: function (sid, options) {
+        if (!options) {
+            var options = {};
         }
-        this.soundmanager.createSound(sid, this.get_stream_url(sid));
+        options.id = sid;
+        options.url = this.get_stream_url(sid);
+        if (this.soundmanager) {
+            return this.soundmanager.createSound(options);
+        }
     },
     play_stream: function (sid) {
-        if (!this.soundmanager) {
-            return false;
-        }
-        this.soundmanager.togglePause(sid);
+        var sound = this.soundmanager.sounds[sid];
+        sound.togglePause();
+        return sound;
     }
 };
