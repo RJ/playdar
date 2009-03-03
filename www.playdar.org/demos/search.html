@@ -14,13 +14,15 @@ var playdar = new Playdar({
             text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
         }
         $('playdar_stat').innerHTML = text;
+    },
+    soundmanager_ready: function () {
+        parseHash();
     }
 });
 playdar.register_soundmanager(soundManager);
+
 document.observe('dom:loaded', function() {
     playdar.init();
-    
-    parseHash();
     
     $('resultstbl').observe('click', function (event) {
         var target = event.element();
@@ -154,8 +156,8 @@ function resolve(art, alb, trk) {
     clearresults();
     playdar.resolve(art, alb, trk);
     window.location.hash = Object.toQueryString({
-        artist: alb,
-        album: art,
+        artist: art,
+        album: alb,
         track: trk
     });
 }

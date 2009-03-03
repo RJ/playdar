@@ -125,7 +125,12 @@ Playdar.prototype = {
             Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
-        Playdar.status_bar.innerHTML = '<p style="padding: 7px; margin: 0;">' + text + '</p>';
+        
+        this.status_message = document.createElement("p");
+        this.status_message.style.padding = "7px";
+        this.status_message.style.margin = "0";
+        this.status_message.innerHTML = text;
+        Playdar.status_bar.appendChild(this.status_message);
         
         this.query_count = document.createElement("span");
         this.query_count.style.cssFloat = "right";
@@ -155,6 +160,9 @@ Playdar.prototype = {
                     alert('No results');
                 }
             }
+        },
+        soundmanager_ready: function () {
+            return true;
         }
     },
     
@@ -369,12 +377,18 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
+    sm_loaded: function () {
+        if (this.status_message) {
+            this.status_message.innerHTML += ' | <a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')';
+        }
+        this.handlers.sm_loaded();
+    },
     register_soundmanager: function (soundmanager, options) {
         soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
         soundmanager.flashVersion = 9;
-        var playdar = this;
         soundmanager.onload = function() {
             playdar.soundmanager = soundmanager;
+            playdar.sm_loaded();
         };
     },
     
@@ -384,7 +398,9 @@ Playdar.prototype = {
         }
         options.id = sid;
         options.url = this.get_stream_url(sid);
-        return this.soundmanager.createSound(options);
+        if (this.soundmanager) {
+            return this.soundmanager.createSound(options);
+        }
     },
     play_stream: function (sid) {
         var sound = this.soundmanager.sounds[sid];
