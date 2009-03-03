@@ -8,10 +8,10 @@ namespace darknet {
 Servent::Servent(boost::asio::io_service& io_service, 
         unsigned short port, 
         RS_darknet * p ) //boost::shared_ptr<RS_darknet> p)
-    :   m_protocol(p),
-        m_acceptor(io_service,
+    :   m_acceptor(io_service,
                    boost::asio::ip::tcp::endpoint
-                        (boost::asio::ip::tcp::v4(), port))
+                        (boost::asio::ip::tcp::v4(), port)),
+        m_protocol(p)
 {
     //p->init(this); // configure protocol.
     
@@ -50,7 +50,7 @@ Servent::handle_accept(const boost::system::error_code& e, connection_ptr conn)
         std::cerr << e.message() << std::endl;
     }
 }
-
+/*
 /// Handle completion of a write operation.
 void 
 Servent::handle_write(  const boost::system::error_code& e, 
@@ -59,7 +59,7 @@ Servent::handle_write(  const boost::system::error_code& e,
 {
     m_protocol->write_completed(conn, msg);
 }
-
+*/
 /// Handle completion of a read operation.
 void 
 Servent::handle_read(   const boost::system::error_code& e, 

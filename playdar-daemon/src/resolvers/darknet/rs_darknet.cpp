@@ -96,7 +96,7 @@ void
 RS_darknet::write_completed(connection_ptr conn, msg_ptr msg)
 {
     // Nothing to do really.
-    std::cout << "write_completed("<< msg->toString(true) <<")" << endl;
+    std::cout << "write_completed("<< msg->toString() <<")" << endl;
 }
 
 void
@@ -341,11 +341,6 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
         total+=len;
         string payload((const char*)&buf, sizeof(sid_header)+len);
         msg_ptr msgp(new LameMsg(payload, SIDDATA));
-        if(strstr(payload.c_str()+1, sid.c_str()))
-        {
-            // WTF?
-            assert(0);
-        }
         send_msg(conn, msgp);
     }
     // send empty siddata to signify end of stream
@@ -410,8 +405,8 @@ void
 RS_darknet::send_msg(connection_ptr conn, msg_ptr msg)
 {
     // msg is passed thru to the callback, so it stays referenced and isn't GCed until sent.
-    conn->sync_write(msg,
+    conn->async_write(msg);/*,
                       boost::bind(&Servent::handle_write, m_servent,
-                      boost::asio::placeholders::error, conn, msg));
+                      boost::asio::placeholders::error, conn, msg));*/
 }
 

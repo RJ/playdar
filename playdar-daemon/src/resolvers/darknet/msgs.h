@@ -56,22 +56,38 @@ typedef boost::shared_ptr<LameMsg> msg_ptr;
 class LameMsg {
     public:
             LameMsg() : m_payload_len(0)
-            {m_msgtype=GENERIC;}
+            {m_msgtype=GENERIC; m_membuf=0;}
             
             LameMsg(string s): m_payload(s), m_payload_len(s.length())
-            {m_msgtype=GENERIC;}
+            {m_msgtype=GENERIC; m_membuf=0;}
             
             LameMsg(string s, const boost::uint32_t t)
                 : m_payload(s), m_payload_len(s.length())
-            {m_msgtype = t;}
+            {m_msgtype = t; m_membuf=0;}
             
             LameMsg(const boost::uint32_t t) 
                 : m_payload(""), m_payload_len(0) 
-            {m_msgtype = t;}
+            {m_msgtype = t; m_membuf=0;}
             
             ~LameMsg()
             {
-                cout << "** DTOR:" << toString() << endl;
+                //cout << "** DTOR:" << toString() << endl;
+                free_membuf();
+            }
+            
+            // anything set here will be free()ed by our destructor:
+            void set_membuf(char * k)
+            {
+                m_membuf = k;
+            }
+            char * membuf() const{ return m_membuf; }
+            
+            void free_membuf()
+            {
+                if(m_membuf)
+                {
+                    free(m_membuf);
+                }
             }
             
             boost::uint32_t msgtype() const { return m_msgtype; }
@@ -90,6 +106,7 @@ class LameMsg {
                 return m_payload; 
             }
 
+            // used for debugging-by-print-statement, yay
             string toString(bool shorten=false) const
             {
                 if(msgtype()==SIDDATA) shorten=true;
@@ -101,7 +118,7 @@ class LameMsg {
                 }else{
                     s   << "[msg/" << msgtype() << "/" << m_payload.length() 
                         << "/" ;
-                    s.write(payload().c_str(), payload_len());
+                    s.write(payload().data(), payload_len());
                     s << "]" << endl;
                 }
                 return s.str();
@@ -109,10 +126,10 @@ class LameMsg {
             
             // buffer used when we marshal this msg and change byteorder:
 
-
             boost::uint32_t m_msgtype;
             boost::uint32_t m_expected_len;
      private:
+            char * m_membuf;
             string m_payload;
             boost::uint32_t m_payload_len;
         

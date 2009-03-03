@@ -46,6 +46,8 @@ public:
                 m_data.pop_front();
             }
             if(sent) return sent;
+            assert(0);
+            return 0;
         }
         else if(m_finished)
         {

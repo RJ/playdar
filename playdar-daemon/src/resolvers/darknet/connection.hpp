@@ -6,7 +6,9 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
 #include <boost/tuple/tuple.hpp>
-
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -29,7 +31,7 @@ class Connection
 public:
 
     Connection(boost::asio::io_service& io_service)
-        : m_socket(io_service), m_authed(false)
+        : m_socket(io_service), m_sending(false), m_authed(false)
     {
     }
     
@@ -51,37 +53,60 @@ public:
     }
     
     /// Asynchronously write a data structure to the socket.
-    /// should call ->serialize() on payload and write it.
-    /// Must have made a copy of any data from payload before returning
-    template <typename FuncTemplate>
-    void async_write(msg_ptr payload, FuncTemplate handler)
+    /// Seems like asio doesnt make any promises if you stack up multiple
+    /// async_write calls - so we queue them and call it sequentially.
+    void async_write(msg_ptr msg)//, FuncTemplate handler)
     {
-        std::vector<boost::asio::const_buffer> buffers;
-        string data = payload->serialize();
-        m_outbound_header.msgtype = htonl( payload->msgtype() );
-        m_outbound_header.length  = htonl( data.length() );
-        buffers.push_back(boost::asio::buffer((char*)&m_outbound_header,
-                                              sizeof(msg_header)));
-        buffers.push_back(boost::asio::buffer(data));
-        cout << "writing: "<< payload->toString() << endl;
-        boost::asio::async_write(m_socket, buffers, handler);
-    }
-    template <typename FuncTemplate>
-    void sync_write(msg_ptr payload, FuncTemplate handler)
-    {
-        std::vector<boost::asio::const_buffer> buffers;
-        string data = payload->serialize();
-        m_outbound_header.msgtype = htonl( payload->msgtype() );
-        m_outbound_header.length  = htonl( data.length() );
-        buffers.push_back(boost::asio::buffer((char*)&m_outbound_header,
-                                              sizeof(msg_header)));
-        buffers.push_back(boost::asio::buffer(data));
-        cout << "writing: "<< payload->toString() << endl;
-        boost::asio::write(m_socket, buffers);
-        //handler(this, payload);
+        {
+            boost::mutex::scoped_lock lk(m_mutex);
+            m_writeq.push_back(msg);
+        }
+        msg_ptr noop(new LameMsg(GENERIC));
+        boost::system::error_code e;
+        do_async_write(e, noop);
     }
     
-    /// Asynchronously read a data structure from the socket.
+    /// Calls to do_async_write are chained - it will call itself when a write
+    /// completes, to send the next msg in the queue. Bails when none left.
+    void do_async_write(const boost::system::error_code& e, msg_ptr finished_msg)
+    {
+        boost::mutex::scoped_lock lk(m_mutex);
+        // if this is a GENERIC (ie, null) msg, it's actually a dispatch call:
+        if(m_sending && finished_msg->msgtype()==GENERIC)
+        {
+            //cout << "bailing from do_async_write - already sending (sending=true)" << endl;
+            return;
+        }
+        if(m_writeq.empty())
+        {
+            //cout << "bailing from do_async_write, q empty (sending=false)" << endl;
+            m_sending = false;
+            return;
+        }
+        msg_ptr msg = m_writeq.front();
+        m_writeq.pop_front();
+        msg_header outbound_header;
+        outbound_header.msgtype = htonl( msg->msgtype() );
+        outbound_header.length  = htonl( msg->payload_len() );
+        size_t data_len = sizeof(msg_header) + msg->payload_len();
+        char * data = (char*) malloc(data_len);
+        memcpy(data, (char*)&outbound_header, sizeof(msg_header));
+        memcpy(data+sizeof(msg_header), msg->serialize().data(), msg->payload_len()); 
+        msg->set_membuf(data); // msg will free() data on destruction.
+        std::vector<boost::asio::const_buffer> buffers;
+        buffers.push_back(boost::asio::buffer(data, data_len));
+        // add to write queue:
+        m_sending = true;
+        cout << "dispatching write. write queue size is: " << m_writeq.size() << endl;
+        boost::asio::async_write(m_socket, buffers, 
+                                 boost::bind(&Connection::do_async_write, this,
+                                      boost::asio::placeholders::error, 
+                                      msg)); 
+    }
+
+    
+    
+    /// Setup a call to read the next msg_header
     template <typename FuncTemplate>
     void async_read(FuncTemplate handler)
     {
@@ -114,7 +139,7 @@ public:
                             msg_ptr msg,
                             char * header_buf)
     {
-        cout << "handle_read_header" << endl;
+        //cout << "handle_read_header" << endl;
         
         if (e)
         {
@@ -132,8 +157,7 @@ public:
         msg->m_msgtype = inbound_header->msgtype;
         msg->m_expected_len = inbound_header->length;
         
-        // 16K is max payload size.
-        assert( msg->m_expected_len <= 16384 );
+
         
         // Start an asynchronous call to receive the data.
         void (Connection::*f)(
@@ -146,6 +170,8 @@ public:
         cout    << "header, msgtype = " << inbound_header->msgtype
                 << " length = " << inbound_header->length 
                 << " read.. " << inbound_header->length << " bytes" << endl;
+        // 16K is max payload size.
+        assert( msg->m_expected_len <= 16384 );
         
         size_t payloadsize = inbound_header->length * sizeof(char);
         char * payload_buf = (char*) malloc(payloadsize);
@@ -172,7 +198,7 @@ public:
                           msg_ptr msg,
                           char * payload_buf)
     {
-        cout << "handle_read_data" << endl;
+        //cout << "handle_read_data" << endl;
         if (e)
         {
             free(payload_buf);
@@ -209,13 +235,14 @@ private:
     /// The underlying socket.
     boost::asio::ip::tcp::socket m_socket;
     
-    /// Statefull stuff the protocol handler/servent will set:
+    boost::mutex m_mutex;
+    bool m_sending; // are we currently awaiting an async_write to finish
+    deque< msg_ptr > m_writeq; // queue of outgoing messages
+    
+    /// Stateful stuff the protocol handler/servent will set:
     string m_username; // username of user at end of Connection
     bool m_authed;
     
-    msg_header m_outbound_header;
-    msg_header m_inbound_header;
-
 };
 
 
