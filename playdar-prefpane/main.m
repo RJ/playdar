@@ -26,6 +26,31 @@
 
 
 #import "main.h"
+#include <sys/sysctl.h>
+
+
+static pid_t playdard_pid()
+{
+	int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
+	struct kinfo_proc *info;
+	size_t N;
+    pid_t pid = 0;
+	
+	if(sysctl(mib, 3, NULL, &N, NULL, 0) < 0)
+		return 0; //wrong but unlikely
+	if(!(info = NSZoneMalloc(NULL, N)))
+		return 0; //wrong but unlikely
+	if(sysctl(mib, 3, info, &N, NULL, 0) < 0)
+		goto end;
+
+    N = N / sizeof(struct kinfo_proc);
+    for(size_t i = 0; i < N; i++)
+        if(strcmp(info[i].kp_proc.p_comm, "playdard") == 0)
+            { pid = info[i].kp_proc.p_pid; break; }
+end:
+    NSZoneFree(NULL, info);
+    return pid;
+}
 
 
 static inline NSString* iniPath()
@@ -62,6 +87,8 @@ static inline NSString* fullname()
     [popup addItemWithTitle: home];
     [[popup menu] addItem:[NSMenuItem separatorItem]];
     [[[popup menu] addItemWithTitle:@"Select..." action:@selector(select:) keyEquivalent:@""] setTarget:self];
+    
+    if (pid = playdard_pid()) [start setTitle:@"Stop Playdar"];
 }
  
 -(void)onScan:(id)sender
@@ -72,8 +99,18 @@ static inline NSString* fullname()
 
 -(void)onStart:(id)sender
 {
-    NSArray* args = [NSArray arrayWithObjects:@"-c", iniPath(), nil];
-    [self exec:@"../MacOS/playdard" withArgs:args];
+    if(pid) 
+    {
+        if(kill( pid, SIGKILL ) != 0) return;
+        pid = 0;
+        [start setTitle:@"Start Playdar"];
+    }
+    else
+    {
+        NSArray* args = [NSArray arrayWithObjects:@"-c", iniPath(), nil];
+        pid = [self exec:@"../MacOS/playdard" withArgs:args];
+        if (pid) [start setTitle:@"Stop Playdar"];
+    }
 }
 
 ////// Directory selector
@@ -109,7 +146,7 @@ static inline NSString* fullname()
 ////// Directory selectors
 
 
--(void)exec:(NSString*)command
+-(int)exec:(NSString*)command
    withArgs:(NSArray*)args
 {
     @try {
@@ -121,10 +158,12 @@ static inline NSString* fullname()
         [task setLaunchPath:path];
         [task setArguments:args];
         [task launch];
+        return [task processIdentifier];
     }
     @catch (NSException* e)
     {
         //TODO log - couldn't figure out easy way to do this
+        return 0;
     }
 }
 

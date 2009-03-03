@@ -26,6 +26,7 @@
     IBOutlet NSPopUpButton* popup;
     IBOutlet NSButton* scan;
     IBOutlet NSButton* start;
+    pid_t pid;
 }
 
 -(void)mainViewDidLoad;
@@ -34,7 +35,7 @@
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(void)exec:(NSString*)command
+-(int)exec:(NSString*)command
    withArgs:(NSArray*)args;
 
 -(IBAction)select:(id)sender; //TODO doesn't need to be IBAction
