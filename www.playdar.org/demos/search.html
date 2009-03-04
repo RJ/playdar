@@ -2,42 +2,9 @@
 
 <script type="text/javascript" src="/static/soundmanager2-nodebug-jsmin.js"></script>
 <script type="text/javascript">
-// returns true if console.log available (firebug etc)
-function clog(){ return typeof(window.console) != "undefined" ; }
-
-var playdar = new Playdar({
-    stat_complete: function (detected) {
-        var text;
-        if (detected) {
-            text = "<b style='color:green;'>Playdar ready</b>";
-        } else {
-            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
-        }
-        $('playdar_stat').innerHTML = text;
-    },
-    soundmanager_ready: function () {
-        parseHash();
-    }
-});
-playdar.register_soundmanager(soundManager);
-
-document.observe('dom:loaded', function() {
-    playdar.init();
-    
-    $('resultstbl').observe('click', function (event) {
-        var target = event.element();
-        if (target.match('a.play')) {
-            event.stop();
-            var sid = target.hash.substr(1);
-            var sound = playdar.play_stream(sid);
-            target.update((target.innerHTML == 'Play') ? 'Pause' : 'Play');
-        }
-    });
-});
-
 // see if there's a query string in the # part of the url so that 
 // we can permalink to a specific search
-var parseHash = function() {
+var parseHash = function () {
     var hash = location.hash;
     if (hash == "" || hash == "#") {
         return;
@@ -51,18 +18,44 @@ var parseHash = function() {
     }
 };
 
-// a couple of misc formatting functions:
-var rnd = function (a, dp) {
-    return Math.round(a * Math.pow(10,dp)) / Math.pow(10,dp);
+var playdar = new Playdar({
+    stat_complete: function (detected) {
+        var text;
+        if (detected) {
+            text = "<b style='color:green;'>Playdar ready</b>";
+            setup_page();
+        } else {
+            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+        }
+        $('playdar_stat').innerHTML = text;
+    }
+});
+
+soundManager.url = '/static/soundmanager2_flash9.swf';
+soundManager.flashVersion = 9;
+playdar.register_soundmanager(soundManager, parseHash);
+playdar.init();
+
+var setup_page = function () {
+    $('resultstbl').observe('click', function (event) {
+        var target = event.element();
+        if (target.match('a.play')) {
+            event.stop();
+            var sid = target.hash.substr(1);
+            var sound = playdar.play_stream(sid);
+            target.update((target.innerHTML == 'Play') ? 'Pause' : 'Play');
+        }
+    });
 };
 
 // make <TR> element
-var mkrow = function(result) {
-    nicescore = rnd(result.score,3);
-    nicepref  = rnd(result.preference,3);
+var build_result_row = function(result) {
+    nicescore = result.score.toFixed(3);
+    nicepref  = result.preference.toFixed(3);
     var td;
     var tr = document.createElement('tr');
     tr.id = result.sid;
+    
     var play_text = "Play";
     var sound = playdar.register_stream(result.sid, {
         onfinish: function () {
@@ -97,7 +90,7 @@ var mkrow = function(result) {
         + '<small>('
         + Playdar.mmss(result.duration) + ', '
         + result.mimetype + ', '
-        + rnd(result.size/1000000,1) + 'MB, '
+        + (result.size/1000000).toFixed(1) + 'MB, '
         + result.bitrate + 'Kbps)</small>'
     );
     tr.insert(td);
@@ -122,7 +115,7 @@ var results_handler = function (response, final_answer) {
         var rows = $$('#resultstbl tr');
         // First result
         if (rows.length == 1) {
-            $('resultstbl').down('tbody').insert(mkrow(result));
+            $('resultstbl').down('tbody').insert(build_result_row(result));
             return;
         }
         // walk rows and insert in score-order
@@ -130,20 +123,20 @@ var results_handler = function (response, final_answer) {
             var row = rows[k];
             var rowscore = parseFloat(row.down('td').innerHTML);
             if (rowscore < result.score) {
-                row.insert({before: mkrow(result)});
+                row.insert({before: build_result_row(result)});
                 break;
             }
         }
         // put at the end, lowest so far:
         if (k == rows.length) {
-            $('resultstbl').down('tbody').insert(mkrow(result));
+            $('resultstbl').down('tbody').insert(build_result_row(result));
         }
     });
 };
 playdar.register_results_handler(results_handler);
 
-function clearresults() {
-    $('numresultsspan').innerHTML='0';
+function clear_results() {
+    $('numresultsspan').innerHTML = '0';
     // clear table of all but first(header) row
     var trs = $$('#resultstbl tr');
     var len = trs.length;
@@ -153,13 +146,14 @@ function clearresults() {
 }
 
 function resolve(art, alb, trk) {
-    clearresults();
-    playdar.resolve(art, alb, trk);
     window.location.hash = Object.toQueryString({
         artist: art,
         album: alb,
         track: trk
     });
+    
+    clear_results();
+    playdar.resolve(art, alb, trk);
 }
 
 </script>
@@ -185,15 +179,15 @@ track:
 <div id="resultsdiv">
     <span style="float:right; font-size:9px;">
         <a href="#" onclick="playdar.get_last_results(); return false;">re-check</a>
-        <a href="#" onclick="clearresults(); return false;">clear</a>
+        <a href="#" onclick="clear_results(); return false;">clear</a>
     </span>
     <table style="width:100%; font-size:85%;" id="resultstbl"><tr style="font-weight: bold;">
         <td>Score</td> 
-        <td style="width:25px;"> </td> 
-        <td>Artist</td> 
-        <td>Album</td> 
-        <td>Track</td> 
-        <td>Source</td> 
+        <td style="width:25px;"> </td>
+        <td>Artist</td>
+        <td>Album</td>
+        <td>Track</td>
+        <td>Source</td>
         <td>Link</td>
     </tr></table>
     <br/>

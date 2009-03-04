@@ -103,7 +103,7 @@ Playdar.loadjs = function (url) {
 Playdar.status_bar = null;
 
 Playdar.prototype = {
-    lib_version: "0.2.1",
+    lib_version: "0.3",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
@@ -126,16 +126,20 @@ Playdar.prototype = {
         }
         Playdar.status_bar.style.background = '#' + bg;
         
-        this.status_message = document.createElement("p");
-        this.status_message.style.padding = "7px";
-        this.status_message.style.margin = "0";
+        if (!this.status_message) {
+            this.status_message = document.createElement("p");
+            this.status_message.style.padding = "7px";
+            this.status_message.style.margin = "0";
+            Playdar.status_bar.appendChild(this.status_message);
+        }
         this.status_message.innerHTML = text;
-        Playdar.status_bar.appendChild(this.status_message);
         
-        this.query_count = document.createElement("span");
-        this.query_count.style.cssFloat = "right";
-        this.query_count.style.margin = "7px";
-        Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
+        if (!this.query_count) {
+            this.query_count = document.createElement("span");
+            this.query_count.style.cssFloat = "right";
+            this.query_count.style.margin = "7px";
+            Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
+        }
         
         document.body.appendChild(Playdar.status_bar);
     },
@@ -144,7 +148,8 @@ Playdar.prototype = {
     
     handlers: {
         detected: function (version) {
-            this.show_status('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + version);
+            this.detected_version = version;
+            this.show_detected_message();
         },
         not_detected: function () {
             this.show_status("Playdar not detected.", 'F0D3C3');
@@ -172,6 +177,17 @@ Playdar.prototype = {
         }
         var playdar = this;
         this.handlers[handler_name] = function () { return callback.apply(playdar, arguments); };
+    },
+    
+    show_detected_message: function () {
+        var messages = [];
+        if (this.detected_version) {
+            messages.push('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + this.detected_version);
+        }
+        if (this.soundmanager) {
+            messages.push('<a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')');
+        }
+        this.show_status(messages.join(' | '));
     },
     
     // initialisation
@@ -377,18 +393,14 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
-    sm_loaded: function () {
-        if (this.status_message) {
-            this.status_message.innerHTML += ' | <a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')';
-        }
-        this.handlers.soundmanager_ready();
-    },
-    register_soundmanager: function (soundmanager, options) {
-        soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
-        soundmanager.flashVersion = 9;
+    register_soundmanager: function (soundmanager, callback) {
+        var playdar = this;
         soundmanager.onload = function() {
             playdar.soundmanager = soundmanager;
-            playdar.sm_loaded();
+            playdar.show_detected_message();
+            if (callback) {
+                callback();
+            }
         };
     },
     
