@@ -381,7 +381,7 @@ Playdar.prototype = {
         if (this.status_message) {
             this.status_message.innerHTML += ' | <a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')';
         }
-        this.handlers.sm_loaded();
+        this.handlers.soundmanager_ready();
     },
     register_soundmanager: function (soundmanager, options) {
         soundmanager.url = this.web_host + '/static/soundmanager2_flash9.swf';
