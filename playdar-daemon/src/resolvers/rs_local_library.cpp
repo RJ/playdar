@@ -22,6 +22,7 @@ RS_local_library::RS_local_library(MyApplication * a)
 void
 RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
+    cout << "Library resolver, searching: " << rq->str() << endl;
     query_uid qid = rq->id();
     Library * library = app()->library();
     vector<scorepair> candidates; 
@@ -74,7 +75,7 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     {
         if(candidates.size()>10) candidates.resize(10);
     }
-    cout << "Library resolver found " << candidates.size() << " possible candidates" << endl;
+    //cout << "Library resolver found " << candidates.size() << " possible candidates" << endl;
     
     vector< boost::shared_ptr<PlayableItem> > final_results;
     BOOST_FOREACH(scorepair &sp, candidates)
@@ -135,8 +136,11 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         ostringstream report;
         if(rq->track()!="*")
         {
+            /*
             report << "Candidate: " << arted << "/" << trked << ":" << finalscore;
-            report << " '"<< artistname << "' - '" << trackname << "'" ; 
+            report << " '"<< artistname << "' - '" << trackname << "'"
+             ; 
+             */
         }
         if( failscore
             ||
@@ -147,18 +151,20 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         {
             if(rq->track()!="*")
             {
+                /*
                 cout << report.str() << " REJECTED: ";
                 if(failartist) cout << "artist ";
                 if(failtrack) cout << "track ";
                 if(failscore) cout << "score ";
                 cout << endl;
+                */
             }
             continue;
         }
         else
         {
             if(rq->track()!="*"){
-                cout << report.str() << " ACCEPTED" << endl;
+                //cout << report.str() << " ACCEPTED" << endl;
             }
         }
         

@@ -167,7 +167,7 @@ public:
             char *)
             = &Connection::handle_read_data<FuncTemplate>;
     
-        if(msg->msgtype() != SIDDATA)
+        if(0 && msg->msgtype() != SIDDATA)
         {
             cout    << "header, msgtype = " << inbound_header->msgtype
                     << " length = " << inbound_header->length 
@@ -218,8 +218,8 @@ public:
                 free(payload_buf);
                 if(msg->msgtype()!=SIDDATA)
                 {
-                    cout << "handle_read_data("
-                         << msg->toString() <<")" << endl;
+                    //cout << "handle_read_data("
+                    //     << msg->toString() <<")" << endl;
                 }
             }
             catch (std::exception& e)

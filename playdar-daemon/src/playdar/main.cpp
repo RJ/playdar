@@ -28,6 +28,8 @@ ostream& operator<<(ostream& os, const vector<T>& v)
 void start_http_server(string ip, int port, int conc, MyApplication *app)
 {
     cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
+    // won't work with >1 worker atm, because library db code isn't
+    // yet threadsafe, amongst other things.
     moost::http::server<playdar_request_handler> s(ip, port, 1);
     s.request_handler().init(app);
     s.run();
@@ -167,6 +169,9 @@ int main(int ac, char *av[])
         }
         
 */
+
+        std::ios::sync_with_stdio(false);
+
         MyApplication * app = new MyApplication(vm);
         
 

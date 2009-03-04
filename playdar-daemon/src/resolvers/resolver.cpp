@@ -111,6 +111,8 @@ Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > r
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {
         m_queries[qid]->add_result(pip);
+        // update map of source id -> playable item
+        m_pis[pip->id()] = pip;
     } 
     return true;
 }
@@ -123,12 +125,7 @@ Resolver::get_results(query_uid qid)
     vector< boost::shared_ptr<PlayableItem> > ret;
     boost::mutex::scoped_lock lock(m_mut);
     if(!query_exists(qid)) return ret; // query was deleted
-    BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, m_queries[qid]->results())
-    {
-        m_pis[pip->id()] = pip;
-        ret.push_back(pip);
-    }
-    return ret; //m_queries[qid]->results();
+    return m_queries[qid]->results();
 }
 
 void

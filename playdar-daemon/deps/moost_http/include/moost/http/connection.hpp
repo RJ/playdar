@@ -187,6 +187,11 @@ void connection<RequestHandler>::handle_write_stream
         int len, total=0;
         //cout << "Reading SS...." << endl;
         //cout << "-> " << ss->debug() << endl;
+        if(!ss)
+        {
+            cout << "StreamingStrat died" << endl;
+            return;
+        }
         len = ss->read_bytes(buf, maxbuf);
         if(len > 0)
         {

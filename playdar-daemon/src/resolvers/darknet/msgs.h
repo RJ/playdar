@@ -4,6 +4,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/weak_ptr.hpp>
 #include <iostream>
 #include <vector>
 using namespace std;
@@ -48,6 +49,7 @@ struct sid_header {
 
 class Connection;
 typedef boost::shared_ptr<Connection> connection_ptr;
+typedef boost::weak_ptr<Connection> connection_ptr_weak;
 class LameMsg;
 typedef boost::shared_ptr<LameMsg> msg_ptr;
 

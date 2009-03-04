@@ -6,7 +6,7 @@
 #include <boost/asio.hpp>
 #include "boost/bind.hpp"
 #include "application/types.h"
-
+#include <boost/weak_ptr.hpp>
 #include "resolvers/darknet/msgs.h"
 #include "resolvers/darknet/servent.h"
 //#include "resolvers/darknet/ss_darknet.h"
@@ -66,6 +66,32 @@ public:
 
     boost::shared_ptr<Servent> servent() { return m_servent; }
     
+    void set_query_origin(query_uid qid, connection_ptr conn)
+    {
+        assert( m_qidorigins.find(qid) == m_qidorigins.end() );
+        try
+        {
+            m_qidorigins[qid] = connection_ptr_weak(conn);
+        }
+        catch(...){}
+    }
+    
+    connection_ptr get_query_origin(query_uid qid)
+    {
+        connection_ptr conn;
+        if(m_qidorigins.find(qid) == m_qidorigins.end())
+        {
+            // not found
+            return conn;
+        }
+        try
+        {
+            connection_ptr_weak connw = m_qidorigins[qid];
+            return connection_ptr(connw);
+        }catch(...)
+        { return conn; }
+    }
+    
 private:
     boost::shared_ptr<boost::asio::io_service> m_io_service;
     boost::shared_ptr<boost::asio::io_service> m_io_service_p;
@@ -74,10 +100,13 @@ private:
     
     boost::shared_ptr<boost::asio::io_service::work> m_work;
     
+    // source of queries, so we know how to reply.
+    map< query_uid, connection_ptr_weak > m_qidorigins;
+    
     map< source_uid,  boost::function<bool (msg_ptr)> > m_sidhandlers;
     /// Keep track of username -> connection
     /// this tells us how many connections are established, and to whom.
-    map<string,connection_ptr> m_connections;
+    map<string, connection_ptr_weak> m_connections;
     
 };
 

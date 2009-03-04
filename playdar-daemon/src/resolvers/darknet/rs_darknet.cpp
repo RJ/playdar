@@ -42,7 +42,14 @@ RS_darknet::init()
     m_servent = boost::shared_ptr< Servent >(new Servent(*m_io_service, port, this));
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
-    boost::thread thr(boost::bind(&RS_darknet::start_io, this, m_io_service));
+    
+    boost::thread_group threads;
+    for (std::size_t i = 0; i < 10; ++i)
+    {
+        threads.create_thread(boost::bind(
+            &boost::asio::io_service::run, m_io_service.get()));
+    }
+    //boost::thread thr(boost::bind(&RS_darknet::start_io, this, m_io_service));
  
     // get peers:
     if(app()->popt()["resolver.darknet.remote_ip"].as<string>().length())
@@ -163,9 +170,15 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
         case SEARCHRESULT:
             return handle_searchresult(conn, msg);
         case SIDREQUEST:
-            return handle_sidrequest(conn, msg);
+            m_io_service->post( boost::bind( 
+                &RS_darknet::handle_sidrequest, this,
+                conn, msg ));
+            return true;
         case SIDDATA:
-            return handle_siddata(conn, msg);
+            //m_io_service->post( boost::bind( 
+            //    &RS_darknet::handle_siddata, this, conn, msg));
+            handle_siddata(conn,msg);
+            return true;
         default:
             cout << "UNKNOWN MSG! " << msg->toString() << endl;
             return true;
@@ -217,17 +230,22 @@ RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
         }
     }
     // if we didn't just solve it, fwd to our peers, after delay.
+    
     if(!rq->solved())
     {
+        // register source for this query, so we know where to 
+        // send any replies to.
+        set_query_origin(qid, conn);
         cout << "Darknet: Query not solved, will fwd it after delay.." << endl;
         boost::shared_ptr<boost::asio::deadline_timer> 
             t(new boost::asio::deadline_timer( m_work->get_io_service() ));
-        t->expires_from_now(boost::posix_time::seconds(5));
+        t->expires_from_now(boost::posix_time::milliseconds(100));
         // pass the timer pointer to the handler so it doesnt autodestruct:
         t->async_wait(boost::bind(&RS_darknet::fwd_search, this,
                                  boost::asio::placeholders::error, 
                                  conn, msg, t));
     }
+    
     
     return true;
 }
@@ -260,7 +278,7 @@ RS_darknet::fwd_search(const boost::system::error_code& e,
 bool
 RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
-    cout << "Got search result: " << msg->toString() << endl;
+    //cout << "Got search result: " << msg->toString() << endl;
     using namespace json_spirit;
     // try and parse it as json:
     Value v;
@@ -297,6 +315,22 @@ RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     vector< boost::shared_ptr<PlayableItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr);
+    /*
+        Fwd search result to query origin.
+        
+        NB we have already done "report_results", so when the origin
+        asks us for the SID, we know about it and can respond 
+        accordingly. In this way, search results and streaming is
+        passed back along the chain to the origin, with each node
+        on the path proxing the data and hiding the previous node.
+    */
+    connection_ptr origin_conn = get_query_origin(qid);
+    if(origin_conn)
+    {
+        cout << "Relaying search result to " 
+             << origin_conn->username() << endl;
+        send_msg(origin_conn, msg);
+    }
     return true;
 }
 
@@ -317,32 +351,46 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
     source_uid sid = msg->payload();
     cout << "Darknet request for sid: " << sid << endl;
     boost::shared_ptr<PlayableItem> pip = app()->resolver()->get_pi(sid);
-    cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
-    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
-    cout << "-> " << ss->debug() << endl;
-    cout << "-> source: '"<< pip->source() <<"'" << endl;
+    
     // We send SIDDATA msgs, where the payload is a sid_header followed
     // by the audio data.
     char buf[8194]; // this is the lamemsg payload.
     int len, total=0;
     sid_header sheader;
     memcpy((char*)&sheader.sid, sid.c_str(), 36);
-    
-    cout << "Sending siddata packets: header.sid: " << sheader.sid << endl;
     // put sheader at the start of our buffer:
     memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
-    // this will be the offset where we write audio data,
-    // to leave the sid_header intact at the start:
-    char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
-    // read audio data into buffer at the data offset:
-    while ((len = ss->read_bytes( buf_datapos,
-                                  sizeof(buf)-sizeof(sid_header)) )>0)
+    
+    if(pip) // send data:
     {
-        total+=len;
-        string payload((const char*)&buf, sizeof(sid_header)+len);
-        msg_ptr msgp(new LameMsg(payload, SIDDATA));
-        send_msg(conn, msgp);
+        cout << "-> PlayableItem: " << pip->artist() 
+             << " - " << pip->track() << endl;
+        boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
+        cout << "-> " << ss->debug() << endl;
+        cout << "-> source: '"<< pip->source() <<"'" << endl;
+        cout << "Sending siddata packets: header.sid:'" 
+            << sid << "'" << endl;
+        // this will be the offset where we write audio data,
+        // to leave the sid_header intact at the start:
+        char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
+        // read audio data into buffer at the data offset:
+        while ((len = ss->read_bytes( buf_datapos,
+                                      sizeof(buf)-sizeof(sid_header))
+               )>0)
+        {
+            total+=len;
+            string payload((const char*)&buf, sizeof(sid_header)+len);
+            msg_ptr msgp(new LameMsg(payload, SIDDATA));
+            send_msg(conn, msgp);
+        }
     }
+    else
+    {
+        cout << "No playableitem for sid '"<<sid<<"'" << endl;
+        // send empty packet anyway, to signify EOS
+        // TODO possibly send an msgtype=error msg
+    }
+    
     // send empty siddata to signify end of stream
     cout << "Sending end part. Transferred " << total << " bytes" << endl;
     string eostream((char*)&buf, sizeof(sid_header));
@@ -376,7 +424,7 @@ RS_darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
 void
 RS_darknet::start_search(msg_ptr msg)
 {
-    cout << "Searching... " << msg->toString() << endl;
+    //cout << "Searching... " << msg->toString() << endl;
     typedef std::pair<string,connection_ptr> pair_t;
     BOOST_FOREACH(pair_t item, m_connections)
     {
