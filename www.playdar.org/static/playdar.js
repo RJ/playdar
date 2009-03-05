@@ -103,7 +103,7 @@ Playdar.loadjs = function (url) {
 Playdar.status_bar = null;
 
 Playdar.prototype = {
-    lib_version: "0.3",
+    lib_version: "0.3.1",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
