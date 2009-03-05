@@ -174,14 +174,15 @@ void connection<RequestHandler>::handle_write_stream
         // free previous buffer
         free(scratch);
     }
-    else
-    {
-        // scratch is 0 the first time.
-        cout << "Initiating ss delivery.." << endl;
-    }
     
     if (!e)
     {
+        if(!scratch)
+        {
+            // scratch is 0 the first time.
+            cout << "Initiating ss delivery.." << endl;
+        }
+    
         const size_t maxbuf = 4096 * 2;
         char * buf = (char*)malloc(maxbuf);
         int len, total=0;
@@ -213,6 +214,8 @@ void connection<RequestHandler>::handle_write_stream
     {
         cout << "handle_write_stream error for " << ss->debug() 
              << endl;
+        boost::system::error_code ignored_ec;
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
     }
 }
 
