@@ -390,18 +390,11 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
-    register_soundmanager: function (soundmanager, callback) {
-        var playdar = this;
-        soundmanager.onload = function() {
-            playdar.soundmanager = soundmanager;
-            playdar.show_detected_message();
-            if (callback) {
-                callback();
-            }
-        };
-    },
     
     register_stream: function (sid, options) {
+        if (!this.soundmanager) {
+            return false;
+        }
         if (!options) {
             var options = {};
         }
@@ -412,6 +405,9 @@ Playdar.prototype = {
         }
     },
     play_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
         var sound = this.soundmanager.sounds[sid];
         sound.togglePause();
         return sound;

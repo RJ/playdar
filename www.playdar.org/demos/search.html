@@ -33,8 +33,10 @@ var playdar = new Playdar({
 
 soundManager.url = '/static/soundmanager2_flash9.swf';
 soundManager.flashVersion = 9;
-playdar.register_soundmanager(soundManager, parseHash);
-playdar.init();
+soundManager.onload = function () {
+    playdar.init();
+};
+playdar.soundmanager = soundManager;
 
 var setup_page = function () {
     $('resultstbl').observe('click', function (event) {
