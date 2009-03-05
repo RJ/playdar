@@ -7,7 +7,12 @@
 #include "boost/bind.hpp"
 
 #include "application/types.h"
-
+/*
+    Broadcast search queries on the LAN using UDP multicast
+    Works by sending JSON-serialized ResolverQuery objects.
+    
+    Responses come in via UDP, and we stream songs using HTTP.
+*/
 class RS_lan_udp : public ResolverService
 {
     public:

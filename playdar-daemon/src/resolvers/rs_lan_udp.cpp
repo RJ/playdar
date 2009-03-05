@@ -90,14 +90,14 @@ void
 RS_lan_udp::async_send(boost::asio::ip::udp::endpoint remote_endpoint,
                        string message)                       
 {
-    if(message.length()>1200)
+    if(message.length()>max_length)
     {
         cerr << "WARNING outgoing UDP message is rather large, haven't tested this, discarding." << endl;
         return;
     }
-    cout << "UDPsend[" << remote_endpoint.address() 
-         << ":" << remote_endpoint.port() << "]"
-         << "(" << message << ")" << endl;
+    //cout << "UDPsend[" << remote_endpoint.address() 
+    //     << ":" << remote_endpoint.port() << "]"
+    //     << "(" << message << ")" << endl;
     char * buf = (char*)malloc(message.length());
     memcpy(buf, message.data(), message.length());
     socket_->async_send_to(     
@@ -113,11 +113,11 @@ void RS_lan_udp::handle_send(   const boost::system::error_code& error,
                                 size_t bytes_recvd,
                                 char * scratch )
 {
+    // free the memory that was holding the message we just sent.
     if(scratch)
     {
         free(scratch);
     }
-    cout << "UDP handle_send" << endl;
 }
 
 
@@ -132,7 +132,6 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
         std::string msg = msgs.str();
 
         boost::asio::ip::address sender_address = sender_endpoint_.address();
-        unsigned short sender_port = sender_endpoint_.port();
 
         do
         {
@@ -140,14 +139,17 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
             if( sender_address.to_string() == "127.0.0.1" ||
                 sender_address == app()->private_ip() ||
                 sender_address == app()->public_ip() )
-            {
-                cout << "* Ignoring udp msg from self" << endl;
+            {   
+                // TODO detect our actual LAN IP and bail out here
+                // if it came from our IP.
+                // Will bail anyway once parsed and dupe QID noticed.
+                // cout << "* Ignoring udp msg from self" << endl;
                 break;
             }
             
-            cout    << "LAN_UDP: Received multicast message (from " 
-                    << sender_address.to_string() << ":" << sender_port << "):" << endl; 
-            cout << msg << endl;
+            //cout    << "LAN_UDP: Received multicast message (from " 
+            //        << sender_address.to_string() << ":" << //sender_port << "):" << endl; 
+            //cout << msg << endl;
     
             // join leave msg, for debugging on lan
             if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
@@ -199,12 +201,13 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                         url += "/sid/" + pip->id();
                         Object response;
                         response.push_back( Pair("qid", qid) );
-                        Object result = pip->get_json();                        
-                        result.push_back( Pair("url", url) ); // poke in the URL for now.
+                        Object result = pip->get_json();
+                        result.push_back( Pair("url", url) ); 
                         response.push_back( Pair("result", result) );
                         ostringstream ss;
                         write_formatted( response, ss );
-                        cout << "LAN_UDP: Sending response, hit of score " << pip->score() << endl;
+                        cout << "LAN_UDP: Sending response: " 
+                             << pip->score() << endl;
                         async_send(sender_endpoint_, ss.str());
                     }
                 }else{
