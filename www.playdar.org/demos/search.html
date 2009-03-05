@@ -23,6 +23,7 @@ var playdar = new Playdar({
         var text;
         if (detected) {
             text = "<b style='color:green;'>Playdar ready</b>";
+            parseHash();
             setup_page();
         } else {
             text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
@@ -33,8 +34,10 @@ var playdar = new Playdar({
 
 soundManager.url = '/static/soundmanager2_flash9.swf';
 soundManager.flashVersion = 9;
-playdar.register_soundmanager(soundManager, parseHash);
-playdar.init();
+soundManager.onload = function () {
+    playdar.init();
+};
+playdar.soundmanager = soundManager;
 
 var setup_page = function () {
     $('resultstbl').observe('click', function (event) {

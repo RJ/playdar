@@ -94,16 +94,16 @@ Playdar.mmss = function (secs) {
 };
     
 Playdar.loadjs = function (url) {
-   var e = document.createElement("script");
+   var s = document.createElement("script");
    // console.info('loadjs:', url);
-   e.src = url;
-   document.getElementsByTagName("head")[0].appendChild(e);
+   s.src = url;
+   document.getElementsByTagName("head")[0].appendChild(s);
 };
 
 Playdar.status_bar = null;
 
 Playdar.prototype = {
-    lib_version: "0.3",
+    lib_version: "0.3.1",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
@@ -165,9 +165,6 @@ Playdar.prototype = {
                     alert('No results');
                 }
             }
-        },
-        soundmanager_ready: function () {
-            return true;
         }
     },
     
@@ -393,18 +390,11 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     soundmanager: null,
-    register_soundmanager: function (soundmanager, callback) {
-        var playdar = this;
-        soundmanager.onload = function() {
-            playdar.soundmanager = soundmanager;
-            playdar.show_detected_message();
-            if (callback) {
-                callback();
-            }
-        };
-    },
     
     register_stream: function (sid, options) {
+        if (!this.soundmanager) {
+            return false;
+        }
         if (!options) {
             var options = {};
         }
@@ -415,6 +405,9 @@ Playdar.prototype = {
         }
     },
     play_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
         var sound = this.soundmanager.sounds[sid];
         sound.togglePause();
         return sound;
