@@ -14,7 +14,7 @@ var parseHash = function () {
         $('artist').value = params.artist;
         $('track').value = params.track;
         $('album').value = params.album ? params.album : "";
-        resolve($('artist').value, $('album').value, $('track').value);
+        resolve(params.artist, params.album, params.track);
     }
 };
 

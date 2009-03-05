@@ -18,88 +18,6 @@ Playdar.create = function (handlers) {
     return new Playdar(handlers);
 };
 
-/*
-Based on: Math.uuid.js
-Version: 1.3
-Latest version:   http://www.broofa.com/Tools/Math.uuid.js
-Information:      http://www.broofa.com/blog/?p=151
-Contact:          robert@broofa.com
-----
-Copyright (c) 2008, Robert Kieffer
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-    * Neither the name of Robert Kieffer nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
-Playdar.generate_uuid = function () {
-    // Private array of chars to use
-    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
-    var uuid = [];
-    var rnd = Math.random;
-    
-    // rfc4122, version 4 form
-    var r;
-    
-    // rfc4122 requires these characters
-    uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
-    uuid[14] = '4';
-    
-    // Fill in random data.  At i==19 set the high bits of clock sequence as
-    // per rfc4122, sec. 4.1.5
-    for (var i = 0; i < 36; i++) {
-        if (!uuid[i]) {
-            r = 0 | rnd()*16;
-            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r & 0xf];
-        }
-    }
-    return uuid.join('');
-};
-
-Playdar.toQueryString = function (params) {
-    function toQueryPair(key, value) {
-        if (value === null) {
-            return key;
-        }
-        return key + '=' + encodeURIComponent(value);
-    }
-    
-    var results = [];
-    for (key in params) {
-        var values = params[key];
-        key = encodeURIComponent(key);
-        
-        if (Object.prototype.toString.call(values) == '[object Array]') {
-            for (i = 0; i < values.length; i++) {
-                results.push(toQueryPair(key, values[i]));
-            }
-        } else {
-            results.push(toQueryPair(key, values));
-        }
-    }
-    return results.join('&');
-};
-
-// format secs -> mm:ss helper.
-Playdar.mmss = function (secs) {
-    var s = secs % 60;
-    if (s < 10) {
-        s = "0" + s;
-    }
-    return Math.floor(secs/60) + ":" + s;
-};
-    
-Playdar.loadjs = function (url) {
-   var s = document.createElement("script");
-   // console.info('loadjs:', url);
-   s.src = url;
-   document.getElementsByTagName("head")[0].appendChild(s);
-};
-
 Playdar.status_bar = null;
 
 Playdar.prototype = {
@@ -122,7 +40,7 @@ Playdar.prototype = {
             Playdar.status_bar.style.textIndent = '1px';
             Playdar.status_bar.style.borderTop = '1px solid #bbb';
             Playdar.status_bar.style.color = '#000';
-            Playdar.status_bar.style.font = 'normal 12px "Verdana", sans-serif';
+            Playdar.status_bar.style.font = 'normal 12px/13px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
         
@@ -130,9 +48,29 @@ Playdar.prototype = {
             this.status_message = document.createElement("p");
             this.status_message.style.padding = "7px";
             this.status_message.style.margin = "0";
+            this.status_message.style.cssFloat = "left";
             Playdar.status_bar.appendChild(this.status_message);
         }
         this.status_message.innerHTML = text;
+        
+        if (!this.play_progress) {
+            this.play_progress = document.createElement("div");
+            this.play_progress.style.width = "200px";
+            this.play_progress.style.height = "9px";
+            this.play_progress.style.margin = "10px";
+            this.play_progress.style.cssFloat = "left";
+            this.play_progress.style.border = "1px solid #517e09";
+            this.play_progress.style.background = "#e1f1c5";
+            // this.play_progress.style.display = "none";
+            
+            this.playhead = document.createElement("div");
+            this.playhead.style.width = 0;
+            this.playhead.style.height = "100%";
+            this.playhead.style.background = "#98be3d";
+            this.play_progress.appendChild(this.playhead);
+            
+            Playdar.status_bar.appendChild(this.play_progress);
+        }
         
         if (!this.query_count) {
             this.query_count = document.createElement("span");
@@ -179,10 +117,10 @@ Playdar.prototype = {
     show_detected_message: function () {
         var messages = [];
         if (this.detected_version) {
-            messages.push('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>. Version: ' + this.detected_version);
+            messages.push('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>');
         }
         if (this.soundmanager) {
-            messages.push('<a href="http://schillmania.com/projects/soundmanager2/">Soundmanager registered</a> (' + this.soundmanager.versionNumber + ')');
+            messages.push('<a href="http://schillmania.com/projects/soundmanager2/">SM2 ready</a>');
         }
         this.show_status(messages.join(' | '));
     },
@@ -400,9 +338,15 @@ Playdar.prototype = {
         }
         options.id = sid;
         options.url = this.get_stream_url(sid);
-        if (this.soundmanager) {
-            return this.soundmanager.createSound(options);
-        }
+        var playdar = this;
+        options.whileplaying = function () {
+            if (playdar.playhead) {
+                var percentage = (this.position/this.duration) * 100;
+                playdar.play_progress.style.display = "block";
+                playdar.playhead.style.width = percentage + "%";
+            }
+        };
+        var sound = this.soundmanager.createSound(options);
     },
     play_stream: function (sid) {
         if (!this.soundmanager) {
@@ -412,4 +356,86 @@ Playdar.prototype = {
         sound.togglePause();
         return sound;
     }
+};
+
+/*
+Based on: Math.uuid.js
+Version: 1.3
+Latest version:   http://www.broofa.com/Tools/Math.uuid.js
+Information:      http://www.broofa.com/blog/?p=151
+Contact:          robert@broofa.com
+----
+Copyright (c) 2008, Robert Kieffer
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+    * Neither the name of Robert Kieffer nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+Playdar.generate_uuid = function () {
+    // Private array of chars to use
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.split('');
+    var uuid = [];
+    var rnd = Math.random;
+    
+    // rfc4122, version 4 form
+    var r;
+    
+    // rfc4122 requires these characters
+    uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+    uuid[14] = '4';
+    
+    // Fill in random data.  At i==19 set the high bits of clock sequence as
+    // per rfc4122, sec. 4.1.5
+    for (var i = 0; i < 36; i++) {
+        if (!uuid[i]) {
+            r = 0 | rnd()*16;
+            uuid[i] = chars[(i == 19) ? (r & 0x3) | 0x8 : r & 0xf];
+        }
+    }
+    return uuid.join('');
+};
+
+Playdar.toQueryString = function (params) {
+    function toQueryPair(key, value) {
+        if (value === null) {
+            return key;
+        }
+        return key + '=' + encodeURIComponent(value);
+    }
+    
+    var results = [];
+    for (key in params) {
+        var values = params[key];
+        key = encodeURIComponent(key);
+        
+        if (Object.prototype.toString.call(values) == '[object Array]') {
+            for (i = 0; i < values.length; i++) {
+                results.push(toQueryPair(key, values[i]));
+            }
+        } else {
+            results.push(toQueryPair(key, values));
+        }
+    }
+    return results.join('&');
+};
+
+// format secs -> mm:ss helper.
+Playdar.mmss = function (secs) {
+    var s = secs % 60;
+    if (s < 10) {
+        s = "0" + s;
+    }
+    return Math.floor(secs/60) + ":" + s;
+};
+    
+Playdar.loadjs = function (url) {
+   var s = document.createElement("script");
+   // console.info('loadjs:', url);
+   s.src = url;
+   document.getElementsByTagName("head")[0].appendChild(s);
 };
