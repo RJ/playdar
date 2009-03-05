@@ -96,6 +96,7 @@ function insert_play_buttons (playdar) {
 
 function resolve_links (playdar, results_handler) {
     var links = unsafeWindow.$$('a');
+    var link_regex = new RegExp(/^\/music\/(.+)\/(.+)\/(.+)/);
     for (var i = 0; i < links.length; i++) {
         // Only match links in the /music path
         var path = links[i].pathname;
@@ -103,7 +104,7 @@ function resolve_links (playdar, results_handler) {
             continue;
         }
         // Only match track links
-        var urlparts = new RegExp(/^\/music\/(.+)\/_\/(.+)/).exec(path);
+        var urlparts = link_regex.exec(path);
         if (!urlparts) {
             continue;
         }
@@ -122,7 +123,7 @@ function resolve_links (playdar, results_handler) {
         }
         // Replace + with space
         var artist = urlparts[1].replace(/\+/g, " ");
-        var track  = urlparts[2].replace(/\+/g, " ");
+        var track  = urlparts[3].replace(/\+/g, " ");
         resolve(playdar, links[i], artist, track, results_handler);
     }
 }
