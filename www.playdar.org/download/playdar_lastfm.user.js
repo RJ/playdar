@@ -23,23 +23,29 @@
 // @include       http://www.lastfm.com.br/*
 // ==/UserScript==
 
-// Load the playdar.js
-var e = document.createElement('script');
+function load_script (url) {
+    // Load the playdar.js
+    var s = document.createElement('script');
+    s.src = url;
+    document.getElementsByTagName("head")[0].appendChild(s);
+}
+var playdar_web_host = "www.playdar.org";
 // same js is served, this is jsut for log-grepping ease.
-e.src = 'http://www.playdar.org/static/playdar.js?greasemonkey';
-document.getElementsByTagName("head")[0].appendChild(e);
+load_script('http://' + playdar_web_host + '/static/playdar.js?greasemonkey');
+load_script('http://' + playdar_web_host + '/static/soundmanager2-nodebug-jsmin.js?greasemonkey');
 
 function GM_wait() {
-    if (typeof unsafeWindow.Playdar == 'undefined') {
-        window.setTimeout(GM_wait,100); 
+    Playdar = unsafeWindow.Playdar;
+    soundManager = unsafeWindow.soundManager;
+    if (typeof Playdar == 'undefined' || typeof soundManager == 'undefined') {
+        window.setTimeout(GM_wait, 100); 
     } else { 
         setup_playdar();
     }
 }
 GM_wait(); // wait for playdar.js to load.
 
-function setup_playdar() {
-    Playdar = unsafeWindow.Playdar;
+function setup_playdar () {
     var playdar = Playdar.create({
         not_detected: null,
         stat_complete: function (detected) {
@@ -48,14 +54,17 @@ function setup_playdar() {
             }
         }
     });
+    soundManager.url = 'http://' + playdar_web_host + '/static/soundmanager2_flash9.swf';
+    soundManager.flashVersion = 9;
+    playdar.register_soundmanager(soundManager);
     playdar.init();
-}
+};
 
 function insert_play_buttons (playdar) {
     // set up a handler for resolved content
     function results_handler (response, finalanswer) {
         if (finalanswer) {
-            var element = unsafeWindow.document.getElementById(response.qid);
+            var element = document.getElementById(response.qid);
             element.style.backgroundImage = 'none';
             if (response.results.length) {
                 // generate tooltip with details:
@@ -66,9 +75,14 @@ function insert_play_buttons (playdar) {
                 }
                 // update status element:
                 element.style.backgroundColor = "#0a0";
-                //var swfstr = "<object height=\"10\" width=\"10\"><embed src=\"http://www.playdar.org/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"10\" width=\"10\"></embed></object>";
                 // Just link to the source, too much flash spam:
-                element.innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(response.results[0].sid) + "\" title=\"" + tt + "\" style=\"color: #fff;\">" + response.results.length + "</a>&nbsp;";
+                var sid = response.results[0].sid;
+                element.innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(sid) + "\" title=\"" + tt + "\" style=\"color: #fff;\">" + response.results.length + "</a>&nbsp;";
+                playdar.register_stream(sid);
+                unsafeWindow.Event.observe(element, 'click', function (e) {
+                    e.stop();
+                    playdar.play_stream(sid);
+                });
             } else {
                 element.style.backgroundColor = "#c00";
                 element.innerHTML = '&nbsp;X&nbsp;';
@@ -112,20 +126,21 @@ function resolve_links (playdar, results_handler) {
 }
 
 function start_status (qid, link) {
-    var status = unsafeWindow.document.createElement('span');
+    var status = document.createElement('span');
     status.id = qid;
     status.style.cssFloat = "right";
     status.style.display = "block";
     status.style.border = 0;
     status.style.margin = "0 5px 0 0";
     status.style.backgroundRepeat = "no-repeat";
-    status.style.backgroundImage = 'url("http://www.playdar.org/static/spinner_10px.gif")';
+    status.style.backgroundImage = 'url("http://' + playdar_web_host + '/static/spinner_10px.gif")';
     status.style.color = "#fff";
     status.style.width = "13px";
     status.style.height = "13px";
     status.style.textAlign = "center";
     status.style.fontSize = "9px";
     status.innerHTML = "&nbsp; &nbsp;";
+    
     var parent = link.parentNode;
     parent.insertBefore(status, parent.firstChild);
 }

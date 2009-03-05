@@ -94,10 +94,10 @@ Playdar.mmss = function (secs) {
 };
     
 Playdar.loadjs = function (url) {
-   var e = document.createElement("script");
+   var s = document.createElement("script");
    // console.info('loadjs:', url);
-   e.src = url;
-   document.getElementsByTagName("head")[0].appendChild(e);
+   s.src = url;
+   document.getElementsByTagName("head")[0].appendChild(s);
 };
 
 Playdar.status_bar = null;
@@ -165,9 +165,6 @@ Playdar.prototype = {
                     alert('No results');
                 }
             }
-        },
-        soundmanager_ready: function () {
-            return true;
         }
     },
     
