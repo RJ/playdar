@@ -23,6 +23,7 @@ var playdar = new Playdar({
         var text;
         if (detected) {
             text = "<b style='color:green;'>Playdar ready</b>";
+            parseHash();
             setup_page();
         } else {
             text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
