@@ -90,7 +90,7 @@ static inline NSString* fullname()
     if([[NSFileManager defaultManager] fileExistsAtPath:ini] == false) 
     {
         NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
-        [self exec:@"playdar.ini.rb" withArgs:args];
+        [self execScript:@"playdar.ini.rb" withArgs:args];
     }
 
     NSString* home = NSHomeDirectory();
@@ -106,7 +106,7 @@ static inline NSString* fullname()
 -(void)onScan:(id)sender
 {
     NSArray* args = [NSArray arrayWithObjects:[popup titleOfSelectedItem], db_path(), nil];
-    [self exec:@"scan.sh" withArgs:args];
+    [self execScript:@"scan.sh" withArgs:args];
 }
 
 -(void)onStart:(id)sender
@@ -120,9 +120,25 @@ static inline NSString* fullname()
             pid = 0;
         }
     } else {
-        NSArray* args = [NSArray arrayWithObjects:@"-c", ini_path(), nil];
-        pid = [self exec:@"../MacOS/playdar" withArgs:args];
-        if(pid) [start setTitle:@"Stop Playdar"];
+        @try
+        {
+            NSTask *task = [[NSTask alloc] init];
+            [task setLaunchPath:PLAYDAR_BIN_PATH];
+            [task setArguments:[NSArray arrayWithObjects:@"-c", ini_path(), nil]];
+            [task launch];
+            [start setTitle:@"Stop Playdar"];
+            pid = [task processIdentifier];
+        }
+        @catch(NSException* e)
+        {
+            NSBeginAlertSheet(@"Could Not Start Playdar", 
+                              nil, nil, nil,
+                              [[self mainView] window],
+                              self,
+                              nil, nil,
+                              nil,
+                              @"There was an error attempting to run the Playdar executable." );
+        }
     }
 }
 
@@ -207,11 +223,11 @@ static inline NSString* fullname()
 }
 ////// Directory selector
 
--(int)exec:(NSString*)command withArgs:(NSArray*)args
+-(int)execScript:(NSString*)script_name withArgs:(NSArray*)args
 {
     @try {
         NSString* resources = [[self bundle] resourcePath];
-        NSString* path = [resources stringByAppendingPathComponent:command];
+        NSString* path = [resources stringByAppendingPathComponent:script_name];
         
         NSTask *task = [[NSTask alloc] init];
         [task setCurrentDirectoryPath:resources];

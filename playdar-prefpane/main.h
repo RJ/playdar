@@ -36,7 +36,7 @@
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(int)exec:(NSString*)command withArgs:(NSArray*)args;
+-(int)execScript:(NSString*)command withArgs:(NSArray*)args;
 
 -(bool)isLoginItem;
 
