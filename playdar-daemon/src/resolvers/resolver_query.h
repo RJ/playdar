@@ -35,7 +35,7 @@ public:
 
     ~ResolverQuery()
     {
-        cout << "dtor, resolver query: " << id() << endl;
+        //cout << "dtor, resolver query: " << id() << endl;
     }
     
     

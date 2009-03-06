@@ -45,6 +45,8 @@ public:
     // hack-o-matic: for interactive mode in main.cpp.
     ResolverService * get_darknet() { return m_rs_darknet; }
     
+    size_t num_seen_queries();
+
 private:
 
     query_uid generate_qid();
