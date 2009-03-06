@@ -46,6 +46,7 @@ public:
     ResolverService * get_darknet() { return m_rs_darknet; }
     
 private:
+
     query_uid generate_qid();
     source_uid generate_sid();
     

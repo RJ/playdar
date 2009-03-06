@@ -5,6 +5,7 @@
 #include "library/library.h"
 #include "resolvers/resolver.h"
 #include <boost/program_options.hpp>
+#include <boost/asio.hpp>
 //#include <cstdlib.h>
 
 using namespace std;
@@ -16,11 +17,51 @@ MyApplication::MyApplication(boost::program_options::variables_map opt)
     string db_path = option<string>("app.db");
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
+    
+    m_ios = boost::shared_ptr<boost::asio::io_service>
+                                    (new boost::asio::io_service);
+    m_work = boost::shared_ptr<boost::asio::io_service::work>
+                (new boost::asio::io_service::work(*m_ios));
+    
+    do_auto_config();
 }
 
 MyApplication::~MyApplication()
 {
     delete(m_library);
+}
+
+void
+MyApplication::do_auto_config()
+{
+    cout << "Autodetecting stuff..." << endl;
+    string hostname = boost::asio::ip::host_name();
+    cout << "Hostname: " << hostname << endl;
+    boost::asio::ip::tcp::resolver resolver(*m_ios);
+    boost::asio::ip::tcp::resolver::query 
+        query(hostname, "");
+    boost::asio::ip::tcp::resolver::iterator iter =
+        resolver.resolve(query);
+    boost::asio::ip::tcp::resolver::iterator end_marker;
+    boost::asio::ip::tcp::endpoint ep;
+    boost::asio::ip::address_v4 ipaddr;
+    while (iter != end_marker)
+    { 
+        ep = *iter++;
+        cout << "Found address: " << ep.address().to_string() << endl;
+    }
+    /*
+    ep.port(m_port);
+        }
+        m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>(new tcp::socket(m_io_service));
+
+        boost::system::error_code error = boost::asio::error::host_not_found;
+        m_socket->connect(ep, error);
+        if (error) throw boost::system::system_error(error);
+*/
+
+    
+
 }
 
 string 
@@ -113,7 +154,8 @@ MyApplication::multicast_port()
 boost::asio::ip::address_v4 
 MyApplication::private_ip()
 {
-    return boost::asio::ip::address_v4::from_string( option<string>("app.private_ip") );
+    //return boost::asio::ip::address_v4::from_string( option<string>("app.private_ip") );
+    return boost::asio::ip::address_v4::from_string("127.0.0.1");
 }
 
 boost::asio::ip::address_v4 
