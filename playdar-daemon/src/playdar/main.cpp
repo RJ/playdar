@@ -30,7 +30,7 @@ void start_http_server(string ip, int port, int conc, MyApplication *app)
     cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
     // won't work with >1 worker atm, because library db code isn't
     // yet threadsafe, amongst other things.
-    moost::http::server<playdar_request_handler> s(ip, port, 1);
+    moost::http::server<playdar_request_handler> s(ip, port, 3);
     s.request_handler().init(app);
     s.run();
     cout << "http_server thread exiting." << endl; 
@@ -61,9 +61,13 @@ int main(int ac, char *av[])
                  "Path to your database file")
             ("app.http_port",   po::value<int>(&opt)->default_value(8888),
                   "Port used for local webserver")
+            ;
+            
+            /*
             ("app.private_ip",  po::value<string>()->default_value("127.0.0.1"),
                  "For LAN resolving - set this to your 192.168.x or 10.x address")
             ;
+            */
         // options to configure various resolvers
         po::options_description resolver("Resolver Options");
         resolver.add_options()
@@ -104,7 +108,8 @@ int main(int ac, char *av[])
         p.add("input-file", -1);
 */
         po::variables_map vm;
-        po::parsed_options parsedopts_cmd = po::command_line_parser(ac, av).
+        po::parsed_options parsedopts_cmd = 
+            po::command_line_parser(ac, av).
               options(cmdline_options).allow_unregistered().run();
               
         store(parsedopts_cmd, vm);

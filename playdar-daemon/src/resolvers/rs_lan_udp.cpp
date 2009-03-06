@@ -225,7 +225,7 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                     cout << "LAN_UDP: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
-                cout << "LAN_UDP: Got udp response." <<endl;
+                //cout << "LAN_UDP: Got udp response." <<endl;
                 boost::shared_ptr<PlayableItem> pip;
                 try
                 {
