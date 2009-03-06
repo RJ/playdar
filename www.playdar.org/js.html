@@ -96,14 +96,17 @@ alert("Stream URL: " + playdar.get_stream_url(result.sid));
 </code></pre>
 
 <p>
-    <code>playdar.js</code> also has a built in wrapper for the <a href="http://www.schillmania.com/projects/soundmanager2/">SoundManager 2 audio library</a>. Simply include the <code>soundmanager2.js</code> file and register the global <code>soundManager</code> object it creates:
+    <code>playdar.js</code> also has a built in wrapper for the <a href="http://www.schillmania.com/projects/soundmanager2/">SoundManager 2 audio library</a>. Simply include the <code>soundmanager2.js</code> file, setup the global <code>soundManager</code> object it creates and register it with your playdar object:
 </p>
 <pre><code>soundManager.url = '/path/to/soundmanager2_flash9.swf';
 soundManager.flashVersion = 9;
-playdar.register_soundmanager(soundManager, callback);
+soundManager.onload = function () {
+    playdar.init();
+};
+playdar.soundmanager = soundManager;
 </code></pre>
 <p>
-    You can define a custom <code>callback</code> function to fire when it's finished registering, and you'll also should see a message in the status bar with the detected SoundManager version number.
+    To avoid a race condition where soundmanager is ready but playdar isn't or vice versa, wait until SM has loaded before calling <code>init</code> on playdar.
 </p>
 <p>
     You now have a couple of methods available for registering and playing Playdar streams:

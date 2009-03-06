@@ -6,17 +6,13 @@
 
 #include "resolvers/rs_lan_udp.h"
 #include "library/library.h"
-#include "udp_sender.h"
 
 RS_lan_udp::RS_lan_udp(MyApplication * a)
-    :ResolverService(a)
+    :   ResolverService(a), 
+        broadcast_endpoint_(app()->multicast_ip(),
+                            app()->multicast_port())
 {
-    string hello = "OHAI ";
-    hello += app()->name();
-    boost::thread thr( &UDPSender::send,
-                    app()->multicast_ip(), 
-                    app()->multicast_port(), 
-                    hello );
+
     boost::thread m_responder_thread(&RS_lan_udp::init, this);
 }
 
@@ -24,12 +20,10 @@ RS_lan_udp::~RS_lan_udp()
 {
     // currently this won't fire if you just control+C
     // need to trap exit signals etc
-    cout << "lan_udp resolver shutting down" << endl;
-    string hello = "KTHXBYE ";
-    hello += app()->name();
-    UDPSender::send(app()->multicast_ip(), 
-                    app()->multicast_port(), 
-                    hello );
+    //cout << "lan_udp resolver shutting down" << endl;
+    //string hello = "KTHXBYE ";
+    //hello += app()->name();
+    //async_send(broadcast_endpoint_, hello);
     delete(socket_);
 }
 
@@ -38,31 +32,34 @@ RS_lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
     Object jq;
-    jq.push_back( Pair("reply_ip", app()->private_ip().to_string()) );
-    jq.push_back( Pair("reply_port", app()->multicast_port()) );
     jq.push_back( Pair("from_name", app()->name()) );
     jq.push_back( Pair("query", rq->get_json()) );
-    
     ostringstream querystr;
     write_formatted( jq, querystr );
-    boost::thread thr( &UDPSender::send,
-                       app()->multicast_ip(), 
-                       app()->multicast_port(), 
-                       querystr.str() );
+    async_send(broadcast_endpoint_, querystr.str());
 }
 
 void 
 RS_lan_udp::init()
 {
-    cout << "UDP resolver started on udp://0.0.0.0:" << app()->multicast_port() << endl; 
     boost::asio::io_service io_service;
-    start_listening(io_service, boost::asio::ip::address::from_string("0.0.0.0"), 
-                    app()->multicast_ip(), app()->multicast_port());
-
+    start_listening(io_service,
+                    boost::asio::ip::address::from_string("0.0.0.0"),
+                    app()->multicast_ip(), 
+                    app()->multicast_port()); 
+    
+    cout << "UDP Resolver is online udp://" 
+         << socket_->local_endpoint().address() << ":"
+         << socket_->local_endpoint().port()
+         << endl;
+    // announce our presence to the LAN:
+    string hello = "OHAI ";
+    hello += app()->name();
+    async_send(broadcast_endpoint_, hello);
+    
     io_service.run();
+}
 
-}        
-            
 void 
 RS_lan_udp::start_listening(boost::asio::io_service& io_service,
         const boost::asio::ip::address& listen_address,
@@ -89,6 +86,40 @@ RS_lan_udp::start_listening(boost::asio::io_service& io_service,
                 
 }
 
+void 
+RS_lan_udp::async_send(boost::asio::ip::udp::endpoint remote_endpoint,
+                       string message)                       
+{
+    if(message.length()>max_length)
+    {
+        cerr << "WARNING outgoing UDP message is rather large, haven't tested this, discarding." << endl;
+        return;
+    }
+    //cout << "UDPsend[" << remote_endpoint.address() 
+    //     << ":" << remote_endpoint.port() << "]"
+    //     << "(" << message << ")" << endl;
+    char * buf = (char*)malloc(message.length());
+    memcpy(buf, message.data(), message.length());
+    socket_->async_send_to(     
+            boost::asio::buffer(buf,message.length()), 
+            remote_endpoint,
+            boost::bind(&RS_lan_udp::handle_send, this,
+                boost::asio::placeholders::error,
+                boost::asio::placeholders::bytes_transferred,
+                buf));
+}
+
+void RS_lan_udp::handle_send(   const boost::system::error_code& error,
+                                size_t bytes_recvd,
+                                char * scratch )
+{
+    // free the memory that was holding the message we just sent.
+    if(scratch)
+    {
+        free(scratch);
+    }
+}
+
 
 void 
 RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
@@ -101,9 +132,6 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
         std::string msg = msgs.str();
 
         boost::asio::ip::address sender_address = sender_endpoint_.address();
-        unsigned short sender_port = sender_endpoint_.port();
-
-        // TODO: reusing the JSON parser would be better than this crap:
 
         do
         {
@@ -111,16 +139,19 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
             if( sender_address.to_string() == "127.0.0.1" ||
                 sender_address == app()->private_ip() ||
                 sender_address == app()->public_ip() )
-            {
-                //cout << "* Ignoring udp msg from self" << endl;
+            {   
+                // TODO detect our actual LAN IP and bail out here
+                // if it came from our IP.
+                // Will bail anyway once parsed and dupe QID noticed.
+                // cout << "* Ignoring udp msg from self" << endl;
                 break;
             }
             
-            cout    << "LAN_UDP: Received multicast message (from " 
-                    << sender_address.to_string() << ":" << sender_port << "):" << endl; 
-                    //<< endl << msg << endl << endl;
+            //cout    << "LAN_UDP: Received multicast message (from " 
+            //        << sender_address.to_string() << ":" << //sender_port << "):" << endl; 
+            //cout << msg << endl;
     
-            // special (hacked in) join leave msg, for fun debugging on lan
+            // join leave msg, for debugging on lan
             if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
             {
                 cout << "INFO Online/offline msg: " << msg << endl;
@@ -155,16 +186,9 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                 
                 if(app()->resolver()->query_exists(rq->id()))
                 {
-                    cout << "LAN_UDP: discarding message, QID already exists: " << rq->id() << endl;
+                    //cout << "LAN_UDP: discarding message, QID already exists: " << rq->id() << endl;
                     break;
                 }
-                
-                string replyip = r["reply_ip"].get_str();
-                int replyport = r["reply_port"].get_int();
-                
-                boost::asio::ip::address_v4 response_addr = 
-                    boost::asio::ip::address_v4::from_string(replyip);
-                unsigned short response_port  = (unsigned short)(replyport);
 
                 query_uid qid = app()->resolver()->dispatch(rq, true);
                 vector< boost::shared_ptr<PlayableItem> > pis = app()->resolver()->get_results(qid);
@@ -177,13 +201,14 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                         url += "/sid/" + pip->id();
                         Object response;
                         response.push_back( Pair("qid", qid) );
-                        Object result = pip->get_json();                        
-                        result.push_back( Pair("url", url) ); // poke in the URL for now.
+                        Object result = pip->get_json();
+                        result.push_back( Pair("url", url) ); 
                         response.push_back( Pair("result", result) );
                         ostringstream ss;
                         write_formatted( response, ss );
-                        cout << "LAN_UDP: Sending response, hit of score " << pip->score() << endl;
-                        UDPSender::send(response_addr, response_port, ss.str());
+                        cout << "LAN_UDP: Sending response: " 
+                             << pip->score() << endl;
+                        async_send(sender_endpoint_, ss.str());
                     }
                 }else{
                     cout << "LAN_UDP: Not responding, nothing matched." << endl;

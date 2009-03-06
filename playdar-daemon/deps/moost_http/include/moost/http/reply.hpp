@@ -66,6 +66,12 @@ struct reply
     m_streaming_len = len;
     m_ss = ss;
   }
+  
+  void unset_streaming()
+  {
+    m_streaming = false;
+  }
+  
   // get streaming strategy, for streaming response
   boost::shared_ptr<StreamingStrategy> get_ss()
   {

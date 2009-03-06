@@ -29,7 +29,7 @@ void
 playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
 {
     cout << "HTTP GET " << req.uri << endl;
-
+    rep.unset_streaming();
     UriParserStateA state;
     UriQueryListA * queryList;
     UriUriA uri;

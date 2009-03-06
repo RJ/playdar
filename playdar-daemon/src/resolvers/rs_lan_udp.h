@@ -7,7 +7,12 @@
 #include "boost/bind.hpp"
 
 #include "application/types.h"
-
+/*
+    Broadcast search queries on the LAN using UDP multicast
+    Works by sending JSON-serialized ResolverQuery objects.
+    
+    Responses come in via UDP, and we stream songs using HTTP.
+*/
 class RS_lan_udp : public ResolverService
 {
     public:
@@ -22,11 +27,19 @@ class RS_lan_udp : public ResolverService
         const boost::asio::ip::address& listen_address,
         const boost::asio::ip::address& multicast_address,
         const short multicast_port);
-        
-  //  private:
+    
+private:
+
+    void handle_send(   const boost::system::error_code& error,
+                                size_t bytes_recvd,
+                                char * scratch );
+
+    void async_send(boost::asio::ip::udp::endpoint remote_endpoint,
+                    string message);
 
     boost::asio::ip::udp::socket * socket_;
     boost::asio::ip::udp::endpoint sender_endpoint_;
+    boost::asio::ip::udp::endpoint broadcast_endpoint_;
     enum { max_length = 1024 };
     char data_[max_length];
 };
