@@ -197,12 +197,12 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                 if(pis.size()>0){
                     BOOST_FOREACH(boost::shared_ptr<PlayableItem> & pip, pis)
                     {
-                        string url = app()->httpbase();
-                        url += "/sid/" + pip->id();
+                        //string url = app()->httpbase();
+                        //url += "/sid/" + pip->id();
                         Object response;
                         response.push_back( Pair("qid", qid) );
                         Object result = pip->get_json();
-                        result.push_back( Pair("url", url) ); 
+                        //result.push_back( Pair("url", url) ); 
                         response.push_back( Pair("result", result) );
                         ostringstream ss;
                         write_formatted( response, ss );
@@ -225,7 +225,7 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                     cout << "LAN_UDP: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
-                cout << "LAN_UDP: Got udp response." <<endl;
+                //cout << "LAN_UDP: Got udp response." <<endl;
                 boost::shared_ptr<PlayableItem> pip;
                 try
                 {
@@ -236,8 +236,16 @@ RS_lan_udp::handle_receive_from(const boost::system::error_code& error,
                     cout << "LAN_UDP: Missing fields in response json, discarding" << endl;
                     break;
                 }
-                string url      = resobj_map["url"].get_str();
-                boost::shared_ptr<StreamingStrategy> s(new HTTPStreamingStrategy(url));
+                ostringstream rbs;
+                rbs << "http://"
+                    << sender_endpoint_.address()
+                    << ":"
+                    << sender_endpoint_.port();
+                string url = rbs.str();
+                url += "/sid/";
+                url += pip->id();
+                boost::shared_ptr<StreamingStrategy> 
+                    s(new HTTPStreamingStrategy(url));
                 pip->set_streaming_strategy(s);
                 // anything on udp multicast must be pretty fast:
                 pip->set_preference((float)0.9); 

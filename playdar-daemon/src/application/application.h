@@ -58,6 +58,11 @@ public:
     
     
 private:
+    void do_auto_config();
+    
+    boost::shared_ptr<boost::asio::io_service::work> m_work;
+    boost::shared_ptr<boost::asio::io_service> m_ios;
+    
     Library * m_library;
     Resolver * m_resolver;
     boost::program_options::variables_map m_po;

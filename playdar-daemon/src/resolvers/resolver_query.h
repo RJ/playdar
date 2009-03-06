@@ -35,7 +35,7 @@ public:
 
     ~ResolverQuery()
     {
-        cout << "dtor, resolver query: " << id() << endl;
+        //cout << "dtor, resolver query: " << id() << endl;
     }
     
     
@@ -139,7 +139,7 @@ public:
         // for now just assume score of 1 means solved.
         if(pip->score() == 1) 
         {
-            cout << "SOLVED " << id() << endl;   
+//            cout << "SOLVED " << id() << endl;   
             m_solved = true;
         }
     }

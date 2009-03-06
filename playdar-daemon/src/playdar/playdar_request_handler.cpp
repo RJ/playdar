@@ -68,7 +68,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     
     if(parts[1] == "") // Req: /
     {
-        serve_body("<h1>Playdar: " + app()->name() + "</h1><a href='/stats'>Library stats</a><hr/>For quick and dirty resolving, you can try constructing an URL like: <code>"+app()->httpbase()+"/quickplay/ARTIST/ALBUM/TRACK</code><br/><br/>For the real demo that uses the JSON API, check <a href=\"http://www.playdar.org/\">Playdar.org</a>.", req, rep);
+        serve_body("<h1>Playdar: " + app()->name() + "</h1><a href='/stats'>Stats</a><hr/>For quick and dirty resolving, you can try constructing an URL like: <code>"+app()->httpbase()+"/quickplay/ARTIST/ALBUM/TRACK</code><br/><br/>For the real demo that uses the JSON API, check <a href=\"http://www.playdar.org/\">Playdar.org</a>.", req, rep);
     }
     else if(parts[1]=="static") 
     {
@@ -307,12 +307,19 @@ void
 playdar_request_handler::serve_stats(const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream reply;
-    reply   << "<h1>Library Stats: " << app()->name() << "</h1>"
+    reply   << "<h1>Stats: " << app()->name() << "</h1>"
+            << "<h2>Local Library</h2>"
             << "<table>"
             << "<tr><td>Num Files</td><td>" << app()->library()->num_files() << "</td></tr>\n"
             << "<tr><td>Artists</td><td>" << app()->library()->num_artists() << "</td></tr>\n"
             << "<tr><td>Albums</td><td>" << app()->library()->num_albums() << "</td></tr>\n"
             << "<tr><td>Tracks</td><td>" << app()->library()->num_tracks() << "</td></tr>\n"
+            << "</table>"
+            << "<h2>Resolver Stats</h2>"
+            << "<table>"
+            << "<tr><td>Num queries seen</td><td>" 
+            << app()->resolver()->num_seen_queries() 
+            << "</td></tr>\n"
             << "</table>"
             ;
     serve_body(reply.str(), req, rep);

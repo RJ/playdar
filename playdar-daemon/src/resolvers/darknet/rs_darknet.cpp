@@ -209,7 +209,7 @@ RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     
     if(app()->resolver()->query_exists(rq->id()))
     {
-        cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
         return true;
     }
     

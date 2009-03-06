@@ -22,7 +22,7 @@ RS_local_library::RS_local_library(MyApplication * a)
 void
 RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
-    cout << "Library resolver, searching: " << rq->str() << endl;
+    //cout << "Library resolver, searching: " << rq->str() << endl;
     query_uid qid = rq->id();
     Library * library = app()->library();
     vector<scorepair> candidates; 
@@ -185,7 +185,7 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     }
     else
     {
-        cout << "No matches to report." << endl;
+        cout << "Library: No matches for: " << rq->str() << endl;
     }
 }
 

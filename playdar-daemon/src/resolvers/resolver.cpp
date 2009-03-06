@@ -175,6 +175,12 @@ Resolver::rq(query_uid qid)
     return m_queries[qid];
 }
 
+size_t
+Resolver::num_seen_queries()
+{
+    return m_queries.size();
+}
+
 boost::shared_ptr<PlayableItem> 
 Resolver::get_pi(source_uid sid)
 {
