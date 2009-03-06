@@ -58,7 +58,7 @@ Playdar.prototype = {
             this.play_progress_width = 200;
             this.play_progress.style.width = this.play_progress_width + "px";
             this.play_progress.style.height = "9px";
-            this.play_progress.style.margin = "10px";
+            this.play_progress.style.margin = "10px 10px 9px 10px";
             this.play_progress.style.cssFloat = "left";
             this.play_progress.style.border = "1px solid #517e09";
             this.play_progress.style.background = "#fff";
@@ -350,7 +350,7 @@ Playdar.prototype = {
         options.url = this.get_stream_url(sid);
         var playdar = this;
         options.whileplaying = function () {
-            if (playdar.playhead) {
+            if (playdar.play_progress) {
                 var duration;
                 var buffered = this.bytesLoaded/this.bytesTotal;
                 if (buffered == 100) {
@@ -370,9 +370,20 @@ Playdar.prototype = {
         if (!this.soundmanager) {
             return false;
         }
-        var sound = this.soundmanager.sounds[sid];
+        var sound = this.soundmanager.getSoundById(sid);
+        if (sound.playState == 0) {
+            this.stop_all();
+        }
         sound.togglePause();
         return sound;
+    },
+    stop_all: function () {
+        if (this.soundmanager) {
+            this.soundmanager.stopAll();
+        }
+        if (this.play_progress) {
+            this.play_progress.style.display = "none";
+        }
     }
 };
 

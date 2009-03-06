@@ -46,10 +46,16 @@ var setup_page = function () {
             event.stop();
             var sid = target.hash.substr(1);
             var sound = playdar.play_stream(sid);
-            target.update((target.innerHTML == 'Play') ? 'Pause' : 'Play');
         }
     });
 };
+
+function set_play_text () {
+    $('play' + this.sID).update("Play");
+}
+function set_pause_text () {
+    $('play' + this.sID).update("Pause");
+}
 
 // make <TR> element
 var build_result_row = function(result) {
@@ -59,11 +65,15 @@ var build_result_row = function(result) {
     var tr = document.createElement('tr');
     tr.id = result.sid;
     
-    var play_text = "Play";
     var sound = playdar.register_stream(result.sid, {
-        onfinish: function () {
-            $('play' + this.sID).update(play_text);
-        }
+        onplay: set_pause_text,
+        onpause: set_play_text,
+        onresume: set_pause_text,
+        onstop: function () {
+            this.setPosition(1);
+            set_play_text.apply(this);
+        },
+        onfinish: set_play_text
     });
     
     td = new Element('td').update(nicescore);
@@ -71,7 +81,7 @@ var build_result_row = function(result) {
     
     td = new Element('td').setStyle({width: "50px"}).update(
         '<a href="#' + result.sid + '" id="play' + result.sid + '" class="play">'
-         + play_text
+         + "Play"
          + '</a>'
      );
     tr.insert(td);
@@ -139,6 +149,7 @@ var results_handler = function (response, final_answer) {
 playdar.register_results_handler(results_handler);
 
 function clear_results() {
+    playdar.stop_all();
     $('numresultsspan').innerHTML = '0';
     // clear table of all but first(header) row
     var trs = $$('#resultstbl tr');
