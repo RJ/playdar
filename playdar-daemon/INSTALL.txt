@@ -14,7 +14,6 @@ Assuming debian/ubuntu. Otherwise find similarly named packages:
     sqlite3 libsqlite3-dev \
     cmake \
     libtag1-dev \
-    liburiparser1 liburiparser-dev \
     libossp-uuid-dev libossp-uuid15
 
     NB: "libossp-uuid" is different to "libuuid" in debian. 
@@ -35,6 +34,10 @@ Assuming debian/ubuntu. Otherwise find similarly named packages:
        $ cd /usr/local/lib
        $ for f in `ls libboo*-gcc43-mt.so`; do L=`echo $f \
          | sed 's/-gcc43-mt//'`; echo $L; ln -s $f $L; done
+
+
+3) You need liburiparser 0.7.0 or higher. If you're running Ubuntu Hardy, 
+   you'll have to install from source, Ibex has it in apt.
 
 
 Mac Dependencies
