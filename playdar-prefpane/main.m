@@ -16,6 +16,8 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+//TODO the daemon needs be named the same as cmake builds it, or conflicts with 
+// source users occur, xcode hates you for this though
 
 //TODO watch exit code of playdard (if early exits), and watch process while pref pane is open
 // ^^ important in case playdard exits immediately due to crash or somesuch
@@ -31,6 +33,7 @@
 #import "main.h"
 #include <sys/sysctl.h>
 #include <Sparkle/SUUpdater.h>
+#include "LoginItemsAE.h"
 
 
 /** returns the pid of the running playdard instance, or 0 if not found */
@@ -50,19 +53,19 @@ static pid_t playdard_pid()
 
     N = N / sizeof(struct kinfo_proc);
     for(size_t i = 0; i < N; i++)
-        if(strcmp(info[i].kp_proc.p_comm, "playdard") == 0)
+        if(strcmp(info[i].kp_proc.p_comm, "playdar") == 0)
             { pid = info[i].kp_proc.p_pid; break; }
 end:
     NSZoneFree(NULL, info);
     return pid;
 }
 
-static inline NSString* iniPath()
+static inline NSString* ini_path()
 {
     return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.ini"];
 }
 
-static inline NSString* collectionDbPath()
+static inline NSString* db_path()
 {
     return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Playdar/collection.db"];
 }
@@ -74,6 +77,8 @@ static inline NSString* fullname()
     return (fullname && [fullname length] > 0) ? fullname : NSUserName();
 }
 
+#define PLAYDAR_BIN_PATH [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"]
+
 
 @implementation OrgPlaydarPreferencePane
 
@@ -81,10 +86,10 @@ static inline NSString* fullname()
 {
     [[SUUpdater updaterForBundle:[self bundle]] resetUpdateCycle];
     
-    NSString* ini = iniPath();
-    if ([[NSFileManager defaultManager] fileExistsAtPath:ini] == false)
+    NSString* ini = ini_path();
+    if([[NSFileManager defaultManager] fileExistsAtPath:ini] == false) 
     {
-        NSArray* args = [NSArray arrayWithObjects: fullname(), collectionDbPath(), ini, nil];
+        NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
         [self exec:@"playdar.ini.rb" withArgs:args];
     }
 
@@ -94,26 +99,83 @@ static inline NSString* fullname()
     [[popup menu] addItem:[NSMenuItem separatorItem]];
     [[[popup menu] addItemWithTitle:@"Select..." action:@selector(select:) keyEquivalent:@""] setTarget:self];
     
-    if (pid = playdard_pid()) [start setTitle:@"Stop Playdar"];
+    if(pid = playdard_pid()) [start setTitle:@"Stop Playdar"];
+    if(![self isLoginItem]) [check setState:NSOffState];
 }
  
 -(void)onScan:(id)sender
 {
-    NSArray* args = [NSArray arrayWithObjects:[popup titleOfSelectedItem], collectionDbPath(), nil];
+    NSArray* args = [NSArray arrayWithObjects:[popup titleOfSelectedItem], db_path(), nil];
     [self exec:@"scan.sh" withArgs:args];
 }
 
 -(void)onStart:(id)sender
 {
     if(pid) {
-        if(kill( pid, SIGKILL ) != 0) return;
-        [start setTitle:@"Start Playdar"];
-        pid = 0;
+        if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
+        {
+        } else {
+            if(kill( pid, SIGKILL ) != 0) return;
+            [start setTitle:@"Start Playdar"];
+            pid = 0;
+        }
     } else {
-        NSArray* args = [NSArray arrayWithObjects:@"-c", iniPath(), nil];
-        pid = [self exec:@"../MacOS/playdard" withArgs:args];
+        NSArray* args = [NSArray arrayWithObjects:@"-c", ini_path(), nil];
+        pid = [self exec:@"../MacOS/playdar" withArgs:args];
         if(pid) [start setTitle:@"Stop Playdar"];
     }
+}
+
+-(void)onStartAtLogin:(id)sender
+{
+    bool const enabled = [check state] == NSOnState;
+    
+	CFArrayRef loginItems = NULL;
+	NSURL *url = [NSURL fileURLWithPath:PLAYDAR_BIN_PATH];
+	int existingLoginItemIndex = -1;
+    
+    NSLog( @"%@", url );
+    
+	OSStatus status = LIAECopyLoginItems(&loginItems);
+    
+	if(status == noErr) {
+		NSEnumerator *enumerator = [(NSArray *)loginItems objectEnumerator];
+		NSDictionary *loginItemDict;
+        
+		while((loginItemDict = [enumerator nextObject])) {
+			if([[loginItemDict objectForKey:(NSString *)kLIAEURL] isEqual:url]) {
+				existingLoginItemIndex = [(NSArray *)loginItems indexOfObjectIdenticalTo:loginItemDict];
+				break;
+			}
+		}
+	}
+    
+	if(enabled && (existingLoginItemIndex == -1))
+		LIAEAddURLAtEnd((CFURLRef)url, false);
+	else if(!enabled && (existingLoginItemIndex != -1))
+		LIAERemove(existingLoginItemIndex);
+    
+	if(loginItems)
+		CFRelease(loginItems);
+}
+
+-(bool)isLoginItem
+{
+    Boolean foundIt = false;
+    CFArrayRef loginItems = NULL;
+    CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)PLAYDAR_BIN_PATH, kCFURLPOSIXPathStyle, false);
+    NSLog( @"%@", url );
+    OSStatus status = LIAECopyLoginItems(&loginItems);
+    if(status == noErr) {
+        for(CFIndex i=0, N=CFArrayGetCount(loginItems); i<N; ++i) {
+            CFDictionaryRef loginItem = CFArrayGetValueAtIndex(loginItems, i);
+            foundIt = CFEqual(CFDictionaryGetValue(loginItem, kLIAEURL), url);
+            if(foundIt) break;
+        }
+        CFRelease(loginItems);
+    }
+    CFRelease(url);  
+    return foundIt;
 }
 
 ////// Directory selector
@@ -161,8 +223,8 @@ static inline NSString* fullname()
     @catch (NSException* e)
     {
         //TODO log - couldn't figure out easy way to do this
-        return 0;
     }
+    return 0;
 }
 
 @end
