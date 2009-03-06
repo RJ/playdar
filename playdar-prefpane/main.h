@@ -20,12 +20,13 @@
 
 // long class name is because we get loaded into System Preferences process, so 
 // we are required to be ultra verbose
-// http://developer.apple.com/documentation/UserExperience/Conceptual/PreferencePanes/Tasks/Conflicts.html#//apple_ref/doc/uid/20000706
+// http://developer.apple.com/documentation/UserExperience/Conceptual/PreferencePanes/Tasks/Conflicts.html
 @interface OrgPlaydarPreferencePane : NSPreferencePane 
 {
     IBOutlet NSPopUpButton* popup;
     IBOutlet NSButton* scan;
     IBOutlet NSButton* start;
+    IBOutlet NSButton* check;
     pid_t pid;
 }
 
@@ -37,8 +38,11 @@
 
 -(int)exec:(NSString*)command withArgs:(NSArray*)args;
 
+-(bool)isLoginItem;
+
 -(IBAction)select:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;
 -(IBAction)onStart:(id)sender;
+-(IBAction)onStartAtLogin:(id)sender;
 
 @end
