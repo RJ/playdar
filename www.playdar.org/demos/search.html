@@ -73,7 +73,10 @@ var build_result_row = function(result) {
             this.setPosition(1);
             set_play_text.apply(this);
         },
-        onfinish: set_play_text
+        onfinish: function () {
+            playdar.stop_all();
+            set_play_text().apply(this);
+        }
     });
     
     td = new Element('td').update(nicescore);

@@ -337,8 +337,6 @@ Playdar.prototype = {
     
     // STREAMING WITH SOUNDMANAGER
     
-    soundmanager: null,
-    
     register_stream: function (sid, options) {
         if (!this.soundmanager) {
             return false;
