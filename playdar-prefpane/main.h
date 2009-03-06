@@ -31,12 +31,13 @@
 }
 
 -(void)mainViewDidLoad;
+-(void)addFolder:(NSString*)path setSelected:(bool)select;
 
 -(void)openPanelDidEnd:(NSOpenPanel*)panel
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(int)execScript:(NSString*)command withArgs:(NSArray*)args;
+-(void)execScript:(NSString*)command withArgs:(NSArray*)args;
 
 -(bool)isLoginItem;
 
