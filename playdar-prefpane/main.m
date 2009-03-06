@@ -120,10 +120,11 @@ static inline NSString* fullname()
             pid = 0;
         }
     } else {
+        NSString* path = PLAYDAR_BIN_PATH;
         @try
         {
             NSTask *task = [[NSTask alloc] init];
-            [task setLaunchPath:PLAYDAR_BIN_PATH];
+            [task setLaunchPath:path];
             [task setArguments:[NSArray arrayWithObjects:@"-c", ini_path(), nil]];
             [task launch];
             [start setTitle:@"Stop Playdar"];
@@ -131,13 +132,17 @@ static inline NSString* fullname()
         }
         @catch(NSException* e)
         {
-            NSBeginAlertSheet(@"Could Not Start Playdar", 
+            NSString* msg = @"The file at \"";
+            msg = [msg stringByAppendingString:path];
+            msg = [msg stringByAppendingString:@"\" could not be executed."];
+            
+            NSBeginAlertSheet(@"Could not start Playdar.", 
                               nil, nil, nil,
                               [[self mainView] window],
                               self,
                               nil, nil,
                               nil,
-                              @"There was an error attempting to run the Playdar executable." );
+                              msg );
         }
     }
 }
