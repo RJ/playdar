@@ -18,6 +18,7 @@ using namespace std;
 bool
 Library::remove_file( string path )
 {
+    boost::mutex::scoped_lock lock(m_mut);
     sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE path = ?");
     qry.bind(1, path.c_str(), true);
     int fileid = 0;
@@ -38,6 +39,7 @@ Library::remove_file( string path )
 int 
 Library::add_dir(string path, int mtime)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     remove_file( path );
     sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime) VALUES (?, 0, ?)");
     cmd.bind(1, path.c_str(), true);
@@ -52,8 +54,8 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
                     string artist, string album, string track, int tracknum)
 {
     int fileid = 0;
-
     remove_file(path);
+
     sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
     cmd.bind(1, path.c_str(), true);
     cmd.bind(2, size);
@@ -82,6 +84,7 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
     cmd2.bind(2, artid);
     cmd2.bind(3, albid);
     cmd2.bind(4, trkid);
+    boost::mutex::scoped_lock lock(m_mut);
     if(cmd2.execute() != SQLITE_OK){
         cerr<<"Error inserting into file_join table"<<endl;
         return 0;
@@ -92,6 +95,7 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
 int
 Library::get_artist_id(string name_orig)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
     string sortname = Library::sortname(name_orig);
     if((id = m_artistcache[sortname])) return id;
@@ -123,6 +127,7 @@ Library::get_artist_id(string name_orig)
 int
 Library::get_track_id(int artistid, string name_orig)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
     string sortname = Library::sortname(name_orig);
     if((id = m_trackcache[artistid][sortname])) return id;
@@ -156,6 +161,7 @@ Library::get_track_id(int artistid, string name_orig)
 int
 Library::get_album_id(int artistid, string name_orig)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
     string sortname = Library::sortname(name_orig);
     if((id = m_albumcache[artistid][sortname])) return id;
@@ -189,6 +195,7 @@ Library::get_album_id(int artistid, string name_orig)
 vector<scorepair>
 Library::search_catalogue(string table, string name_orig)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     vector<scorepair> results;
     if(table != "artist" && table != "track" && table != "album") return results;
     if(name_orig.length()<3) return results;
@@ -222,6 +229,7 @@ Library::search_catalogue(string table, string name_orig)
 vector<scorepair>
 Library::search_catalogue_for_artist(int artistid, string table, string name_orig)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     vector<scorepair> results;
     if(table != "track" && table != "album") return results;
     if(name_orig.length()<3) return results;
@@ -259,6 +267,7 @@ Library::search_catalogue_for_artist(int artistid, string table, string name_ori
 vector<artist_ptr>
 Library::list_artists()
 {
+    boost::mutex::scoped_lock lock(m_mut);
     vector<artist_ptr> results;
     string sql = "SELECT id ";
     sql +=       "FROM artist ";
@@ -273,6 +282,7 @@ Library::list_artists()
 vector<track_ptr> 
 Library::list_artist_tracks(artist_ptr artist)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     vector< boost::shared_ptr<Track> > results;
     string sql = "SELECT id ";
     sql +=       "FROM track ";
@@ -294,6 +304,7 @@ Library::list_artist_tracks(artist_ptr artist)
 vector<int>
 Library::get_fids_for_tid(int tid)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     vector<int> results;
     sqlite3pp::query qry(m_db, "SELECT file.id FROM file, file_join WHERE file_join.file=file.id AND file_join.track = ? ORDER BY bitrate DESC");
     qry.bind(1, tid);
@@ -308,48 +319,47 @@ Library::build_index(string table)
 {
     if(table != "artist" && table != "track" && table != "album") return false;
     
-        cout << "Building index for " << table << endl;
-        string searchtable = table + "_search_index";
-            m_db.execute(string("DELETE FROM "+searchtable).c_str());
-        sqlite3pp::query qry(m_db, string("SELECT id, sortname FROM "+table).c_str());
-        int num_names = 0;
-        int num_ngrams = 0;
-        int id;
-        char const * name;
-        
-        sqlite3pp::command cmd_i(m_db, string(  "INSERT INTO "+searchtable+
-                                                "(ngram, id, num) VALUES (?,?,?)").c_str() );
+    boost::mutex::scoped_lock lock(m_mut);
     
-        sqlite3pp::command cmd_u(m_db, string(  "UPDATE "+searchtable+" SET num=num+? "+
-                                                "WHERE ngram=? AND id=?").c_str());
+    cout << "Building index for " << table << endl;
+    string searchtable = table + "_search_index";
+        m_db.execute(string("DELETE FROM "+searchtable).c_str());
+    sqlite3pp::query qry(m_db, string("SELECT id, sortname FROM "+table).c_str());
+    int num_names = 0;
+    int num_ngrams = 0;
+    int id;
+    char const * name;
     
-        for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-            id   = (*i).get<int>(0);
-            name = (*i).get<char const*>(1);
-            num_names++;
-            cmd_i.bind(2, id); // set id
-            cmd_u.bind(3, id); // set id
-            map<string,int> ngrammap = ngrams(name);
-            for(map<string,int>::const_iterator it = ngrammap.begin(); it != ngrammap.end(); ++it)
-            {
-                num_ngrams++;
-                cmd_u.bind(1, it->second);
-                cmd_u.bind(2, it->first.c_str());
-                cmd_u.execute();
-                cmd_u.reset();
-                if(m_db.changes()==0) { // update failed, do insert
-                    cmd_i.bind(1, it->first.c_str());
-                    cmd_i.bind(3, it->second);
-                    cmd_i.execute();
-                    cmd_i.reset();
-                }            
-            }
-        }
-        cout << "Finished indexing " << table << " - " << num_names <<" names, " << num_ngrams << " ngrams." << endl;
-        return true;
+    sqlite3pp::command cmd_i(m_db, string(  "INSERT INTO "+searchtable+
+                                            "(ngram, id, num) VALUES (?,?,?)").c_str() );
 
-    cout << "Failed, rolled back index update." << endl;
-    return false;
+    sqlite3pp::command cmd_u(m_db, string(  "UPDATE "+searchtable+" SET num=num+? "+
+                                            "WHERE ngram=? AND id=?").c_str());
+
+    for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+        id   = (*i).get<int>(0);
+        name = (*i).get<char const*>(1);
+        num_names++;
+        cmd_i.bind(2, id); // set id
+        cmd_u.bind(3, id); // set id
+        map<string,int> ngrammap = ngrams(name);
+        for(map<string,int>::const_iterator it = ngrammap.begin(); it != ngrammap.end(); ++it)
+        {
+            num_ngrams++;
+            cmd_u.bind(1, it->second);
+            cmd_u.bind(2, it->first.c_str());
+            cmd_u.execute();
+            cmd_u.reset();
+            if(m_db.changes()==0) { // update failed, do insert
+                cmd_i.bind(1, it->first.c_str());
+                cmd_i.bind(3, it->second);
+                cmd_i.execute();
+                cmd_i.reset();
+            }            
+        }
+    }
+    cout << "Finished indexing " << table << " - " << num_names <<" names, " << num_ngrams << " ngrams." << endl;
+    return true;
 }
 
 // horribly inefficient:
@@ -394,6 +404,7 @@ Library::num_tracks()
 boost::shared_ptr<PlayableItem>
 Library::playable_item_from_fid(int fid)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     boost::shared_ptr<PlayableItem> pip(new PlayableItem());
     ostringstream sql;
     sql << "SELECT file.path, file.size, file.mimetype, file.duration, file.bitrate, "
@@ -442,6 +453,7 @@ Library::playable_item_from_fid(int fid)
 map<string, int>
 Library::file_mtimes()
 {
+    boost::mutex::scoped_lock lock(m_mut);
     map<string, int> ret;
     sqlite3pp::query qry(m_db, "SELECT path, mtime FROM file");
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
@@ -454,6 +466,7 @@ Library::file_mtimes()
 template <typename T> T
 Library::db_get_one(string sql, T def)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     T val;
     sqlite3pp::query qry(m_db, sql.c_str());
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
@@ -473,6 +486,7 @@ Library::get_name(string table, int id)
 string
 Library::get_field(string table, int id, string field)
 {
+    boost::mutex::scoped_lock lock(m_mut);
     sqlite3pp::query qry(m_db, string("SELECT "+field+" FROM "+table+" WHERE id = ?").c_str() );
     qry.bind(1, id);
     string result("");

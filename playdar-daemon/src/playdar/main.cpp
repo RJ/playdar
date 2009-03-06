@@ -170,8 +170,6 @@ int main(int ac, char *av[])
         
 */
 
-        std::ios::sync_with_stdio(false);
-
         MyApplication * app = new MyApplication(vm);
         
 

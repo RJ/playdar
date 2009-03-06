@@ -85,7 +85,7 @@ public:
     
 private:
     sqlite3pp::database m_db;
-
+    boost::mutex m_mut;
     // name -> id caches
     map< string, int > m_artistcache;
     map< int, map<string, int> > m_trackcache;
