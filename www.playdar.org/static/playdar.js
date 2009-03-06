@@ -55,17 +55,27 @@ Playdar.prototype = {
         
         if (!this.play_progress) {
             this.play_progress = document.createElement("div");
-            this.play_progress.style.width = "200px";
+            this.play_progress_width = 200;
+            this.play_progress.style.width = this.play_progress_width + "px";
             this.play_progress.style.height = "9px";
             this.play_progress.style.margin = "10px";
             this.play_progress.style.cssFloat = "left";
             this.play_progress.style.border = "1px solid #517e09";
-            this.play_progress.style.background = "#e1f1c5";
-            // this.play_progress.style.display = "none";
+            this.play_progress.style.background = "#fff";
+            this.play_progress.style.position = "relative";
+            this.play_progress.style.display = "none";
+            
+            this.bufferhead = document.createElement("div");
+            this.bufferhead.style.position = "absolute";
+            this.bufferhead.style.width = 0;
+            this.bufferhead.style.height = "9px";
+            this.bufferhead.style.background = "#e1f1c5";
+            this.play_progress.appendChild(this.bufferhead);
             
             this.playhead = document.createElement("div");
+            this.playhead.style.position = "absolute";
             this.playhead.style.width = 0;
-            this.playhead.style.height = "100%";
+            this.playhead.style.height = "9px";
             this.playhead.style.background = "#98be3d";
             this.play_progress.appendChild(this.playhead);
             
@@ -341,9 +351,17 @@ Playdar.prototype = {
         var playdar = this;
         options.whileplaying = function () {
             if (playdar.playhead) {
-                var percentage = (this.position/this.duration) * 100;
+                var duration;
+                var buffered = this.bytesLoaded/this.bytesTotal;
+                if (buffered == 100) {
+                    duration = this.duration;
+                } else {
+                    duration = this.durationEstimate;
+                }
+                var played = this.position/duration;
                 playdar.play_progress.style.display = "block";
-                playdar.playhead.style.width = percentage + "%";
+                playdar.bufferhead.style.width = Math.round(buffered*playdar.play_progress_width) + "px";
+                playdar.playhead.style.width = Math.round(played*playdar.play_progress_width) + "px";
             }
         };
         var sound = this.soundmanager.createSound(options);
