@@ -93,39 +93,51 @@ static inline NSString* fullname()
         [self execScript:@"playdar.ini.rb" withArgs:args];
     }
 
-    NSString* home = NSHomeDirectory();
-    [popup addItemWithTitle: [home stringByAppendingPathComponent:@"Music"]];
-    [popup addItemWithTitle: home];
     [[popup menu] addItem:[NSMenuItem separatorItem]];
     [[[popup menu] addItemWithTitle:@"Select..." action:@selector(select:) keyEquivalent:@""] setTarget:self];
-    
+
+    NSString* home = NSHomeDirectory();
+    [self addFolder:[home stringByAppendingPathComponent:@"Music"] setSelected:true];
+    [self addFolder:home setSelected:false];
+        
     if(pid = playdard_pid()) [start setTitle:@"Stop Playdar"];
     if(![self isLoginItem]) [check setState:NSOffState];
+}
+
+-(void)addFolder:(NSString*)path setSelected:(bool)select
+{
+    int const index = [[popup menu] numberOfItems]-2;
+    NSMenuItem* item = [[popup menu] insertItemWithTitle:path action:nil keyEquivalent:@"" atIndex:index];
+    NSImage* image = [[NSWorkspace sharedWorkspace] iconForFileType:NSFileTypeForHFSTypeCode(kGenericFolderIcon)];
+    [image setSize:NSMakeSize(16, 16)];
+    [item setImage:image];
+    if(select) [popup selectItemAtIndex:index];
 }
  
 -(void)onScan:(id)sender
 {
     NSArray* args = [NSArray arrayWithObjects:[popup titleOfSelectedItem], db_path(), nil];
-    [self execScript:@"scan.sh" withArgs:args];
+    [self execScript:@"scanner.sh" withArgs:args];
 }
 
 -(void)onStart:(id)sender
 {
+    NSMutableArray* args = [NSArray arrayWithObjects:@"-c", ini_path(), nil];
+    
     if(pid) {
-        if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
-        {
-        } else {
-            if(kill( pid, SIGKILL ) != 0) return;
-            [start setTitle:@"Start Playdar"];
-            pid = 0;
-        }
-    } else {
+        if(kill( pid, SIGKILL ) != 0) return;
+        [start setTitle:@"Start Playdar"];
+        pid = 0;
+    } 
+    else if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
+        [self execScript:@"playdar.sh" withArgs:args];
+    else {
         NSString* path = PLAYDAR_BIN_PATH;
         @try
         {
             NSTask *task = [[NSTask alloc] init];
             [task setLaunchPath:path];
-            [task setArguments:[NSArray arrayWithObjects:@"-c", ini_path(), nil]];
+            [task setArguments:args];
             [task launch];
             [start setTitle:@"Stop Playdar"];
             pid = [task processIdentifier];
@@ -202,6 +214,7 @@ static inline NSString* fullname()
 ////// Directory selector
 -(void)select:(id)sender
 {
+    // return if not the Select... item
     if([popup indexOfSelectedItem] != [popup numberOfItems]-1) return;
     
     NSOpenPanel* panel = [NSOpenPanel openPanel];
@@ -220,15 +233,13 @@ static inline NSString* fullname()
            contextInfo:(void*)contextInfo 
 {
     if(returnCode == NSOKButton) {
-        int const index = [[popup menu] numberOfItems]-2;
-        [popup insertItemWithTitle:[panel filename] atIndex:index];
-        [popup selectItemAtIndex:index];
+        [self addFolder:[panel filename] setSelected:true];
     } else
         [popup selectItemAtIndex:0];
 }
 ////// Directory selector
 
--(int)execScript:(NSString*)script_name withArgs:(NSArray*)args
+-(void)execScript:(NSString*)script_name withArgs:(NSArray*)args
 {
     @try {
         NSString* resources = [[self bundle] resourcePath];
@@ -239,13 +250,11 @@ static inline NSString* fullname()
         [task setLaunchPath:path];
         [task setArguments:args];
         [task launch];
-        return [task processIdentifier];
     }
     @catch (NSException* e)
     {
         //TODO log - couldn't figure out easy way to do this
     }
-    return 0;
 }
 
 @end
