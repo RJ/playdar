@@ -38,6 +38,7 @@ Playdar.prototype = {
             Playdar.status_bar.style.bottom = 0;
             Playdar.status_bar.style.left = 0;
             Playdar.status_bar.style.width = '100%';
+            Playdar.status_bar.style.height = '31px';
             Playdar.status_bar.style.textIndent = '1px';
             Playdar.status_bar.style.borderTop = '1px solid #bbb';
             Playdar.status_bar.style.color = '#000';
@@ -109,6 +110,14 @@ Playdar.prototype = {
             Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
         }
         
+        var marginBottom = document.body.style.marginBottom;
+        if (!marginBottom) {
+            var css = document.defaultView.getComputedStyle(document.body, null);
+            if (css) {
+                marginBottom = css.marginBottom;
+            }
+        }
+        document.body.style.marginBottom = (marginBottom.replace('px', '') - 0) + 31 + 'px';
         document.body.appendChild(Playdar.status_bar);
     },
     
