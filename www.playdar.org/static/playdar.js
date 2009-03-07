@@ -360,13 +360,16 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     titles: {},
-    register_stream: function (sid, options, title) {
+    register_stream: function (result, options) {
         if (!this.soundmanager) {
             return false;
         }
-        if (title) {
-            this.titles[sid] = title;
-        }
+        
+        var title = Playdar.mmss(result.duration) + "&nbsp;&nbsp;"
+                  + result.artist + " - " + result.track
+                  + " (" + result.source + ")";
+        this.titles[sid] = title;
+        
         if (!options) {
             var options = {};
         }

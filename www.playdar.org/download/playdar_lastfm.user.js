@@ -80,7 +80,7 @@ function insert_play_buttons (playdar) {
                 // Just link to the source, too much flash spam:
                 var sid = response.results[0].sid;
                 element.innerHTML = "&nbsp;<a href=\"" + playdar.get_stream_url(sid) + "\" title=\"" + tt + "\" style=\"color: #fff;\">" + response.results.length + "</a>&nbsp;";
-                playdar.register_stream(sid);
+                playdar.register_stream(response.results[0]);
                 unsafeWindow.Event.observe(element, 'click', function (e) {
                     e.stop();
                     playdar.play_stream(sid);
