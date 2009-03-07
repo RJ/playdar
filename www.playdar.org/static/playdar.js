@@ -368,13 +368,13 @@ Playdar.prototype = {
         var title = Playdar.mmss(result.duration) + "&nbsp;&nbsp;"
                   + result.artist + " - " + result.track
                   + " (" + result.source + ")";
-        this.titles[sid] = title;
+        this.titles[result.sid] = title;
         
         if (!options) {
             var options = {};
         }
-        options.id = sid;
-        options.url = this.get_stream_url(sid);
+        options.id = result.sid;
+        options.url = this.get_stream_url(result.sid);
         var self = this;
         options.whileplaying = function () {
             if (self.play_progress) {
