@@ -65,6 +65,8 @@ var build_result_row = function(result) {
     var tr = document.createElement('tr');
     tr.id = result.sid;
     
+    var duration = Playdar.mmss(result.duration);
+    var title = duration + "&nbsp;&nbsp;" + result.artist + " - " + result.track + " (" + result.source + ")";
     var sound = playdar.register_stream(result.sid, {
         onplay: set_pause_text,
         onpause: set_play_text,
@@ -77,7 +79,7 @@ var build_result_row = function(result) {
             playdar.stop_all();
             set_play_text().apply(this);
         }
-    });
+    }, title);
     
     td = new Element('td').update(nicescore);
     tr.insert(td);
@@ -104,7 +106,7 @@ var build_result_row = function(result) {
     td = new Element('td').update(
         '<a href="' + playdar.get_stream_url(result.sid) + '">dl</a> '
         + '<small>('
-        + Playdar.mmss(result.duration) + ', '
+        + duration + ', '
         + result.mimetype + ', '
         + (result.size/1000000).toFixed(1) + 'MB, '
         + result.bitrate + 'Kbps)</small>'

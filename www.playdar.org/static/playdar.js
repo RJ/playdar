@@ -28,6 +28,7 @@ Playdar.prototype = {
     web_host: "http://www.playdar.org",
     
     show_status: function (text, bg) {
+        var self = this;
         if (!bg) {
             var bg = "cbdab1";
         }
@@ -79,7 +80,28 @@ Playdar.prototype = {
             this.playhead.style.background = "#98be3d";
             this.play_progress.appendChild(this.playhead);
             
+            this.play_progress.onclick = function () {
+                if (self.nowplayingid) {
+                    self.play_stream(self.nowplayingid);
+                }
+            };
             Playdar.status_bar.appendChild(this.play_progress);
+        }
+        
+        if (!this.nowplaying) {
+            this.nowplaying = document.createElement("p");
+            this.nowplaying.style.padding = "8px 0 7px 0";
+            this.nowplaying.style.margin = "0 0 0 -5px";
+            this.nowplaying.style.cssFloat = "left";
+            this.nowplaying.style.color = "#517e09";
+            this.nowplaying.style.fontSize = "10px";
+            this.nowplaying.style.lineHeight = "15px";
+            this.nowplaying.onclick = function () {
+                if (self.nowplayingid) {
+                    self.play_stream(self.nowplayingid);
+                }
+            };
+            Playdar.status_bar.appendChild(this.nowplaying);
         }
         
         if (!this.query_count) {
@@ -120,8 +142,8 @@ Playdar.prototype = {
         if (!callback) {
             var callback = function () {};
         }
-        var playdar = this;
-        this.handlers[handler_name] = function () { return callback.apply(playdar, arguments); };
+        var self = this;
+        this.handlers[handler_name] = function () { return callback.apply(self, arguments); };
     },
     
     show_detected_message: function () {
@@ -203,9 +225,9 @@ Playdar.prototype = {
     },
     
     stat: function () {
-        var playdar = this;
+        var self = this;
         setTimeout(function () {
-            playdar.check_stat_timeout();
+            self.check_stat_timeout();
         }, this.stat_timeout);
         Playdar.loadjs(this.get_url("stat", "handle_stat"));
     },
@@ -253,9 +275,9 @@ Playdar.prototype = {
         // figure out if we should re-poll, or if the query is solved/failed:
         var final_answer = this.should_stop_polling(response);
         if (!final_answer) {
-            var playdar = this;
+            var self = this;
             setTimeout(function () {
-                playdar.get_results(response.qid);
+                self.get_results(response.qid);
             }, response.refresh_interval);
         }
         // now call the results handler
@@ -337,18 +359,22 @@ Playdar.prototype = {
     
     // STREAMING WITH SOUNDMANAGER
     
-    register_stream: function (sid, options) {
+    titles: {},
+    register_stream: function (sid, options, title) {
         if (!this.soundmanager) {
             return false;
+        }
+        if (title) {
+            this.titles[sid] = title;
         }
         if (!options) {
             var options = {};
         }
         options.id = sid;
         options.url = this.get_stream_url(sid);
-        var playdar = this;
+        var self = this;
         options.whileplaying = function () {
-            if (playdar.play_progress) {
+            if (self.play_progress) {
                 var duration;
                 var buffered = this.bytesLoaded/this.bytesTotal;
                 if (buffered == 100) {
@@ -357,18 +383,23 @@ Playdar.prototype = {
                     duration = this.durationEstimate;
                 }
                 var played = this.position/duration;
-                playdar.play_progress.style.display = "block";
-                playdar.bufferhead.style.width = Math.round(buffered*playdar.play_progress_width) + "px";
-                playdar.playhead.style.width = Math.round(played*playdar.play_progress_width) + "px";
+                self.play_progress.style.display = "block";
+                self.bufferhead.style.width = Math.round(buffered*self.play_progress_width) + "px";
+                self.playhead.style.width = Math.round(played*self.play_progress_width) + "px";
+                
+                self.nowplaying.innerHTML = self.titles[this.sID];
             }
         };
         var sound = this.soundmanager.createSound(options);
     },
+    
+    nowplayingid: null,
     play_stream: function (sid) {
         if (!this.soundmanager) {
             return false;
         }
         var sound = this.soundmanager.getSoundById(sid);
+        this.nowplayingid = sid;
         if (sound.playState == 0) {
             this.stop_all();
         }
@@ -381,6 +412,9 @@ Playdar.prototype = {
         }
         if (this.play_progress) {
             this.play_progress.style.display = "none";
+        }
+        if (this.nowplaying) {
+            this.nowplaying.innerHTML = "";
         }
     }
 };
