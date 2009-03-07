@@ -41,7 +41,7 @@ Playdar.prototype = {
             Playdar.status_bar.style.textIndent = '1px';
             Playdar.status_bar.style.borderTop = '1px solid #bbb';
             Playdar.status_bar.style.color = '#000';
-            Playdar.status_bar.style.font = 'normal 12px/13px "Verdana", sans-serif';
+            Playdar.status_bar.style.font = 'normal 10px/16px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
         
@@ -94,8 +94,6 @@ Playdar.prototype = {
             this.nowplaying.style.margin = "0 0 0 -5px";
             this.nowplaying.style.cssFloat = "left";
             this.nowplaying.style.color = "#517e09";
-            this.nowplaying.style.fontSize = "10px";
-            this.nowplaying.style.lineHeight = "15px";
             this.nowplaying.onclick = function () {
                 if (self.nowplayingid) {
                     self.play_stream(self.nowplayingid);
