@@ -16,8 +16,6 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-//TODO the daemon needs be named the same as cmake builds it, or conflicts with 
-// source users occur, xcode hates you for this though
 
 //TODO watch exit code of playdard (if early exits), and watch process while pref pane is open
 // ^^ important in case playdard exits immediately due to crash or somesuch
@@ -26,8 +24,7 @@
 //TODO memory leaks
 //TODO log that stupid exception
 //TODO sparkle updates
-// ^^ ensure if prefpane is updated, it restarts playdard
-//TODO start at login checkbox
+// ^^ ensure if prefpane is updated by sparkle, it restarts playdar
 
 
 #import "main.h"

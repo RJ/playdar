@@ -2,21 +2,54 @@
 <h2>Downloads</h2>
 <p>
 Playdar is under heavy development, so to keep up-to-date you're advised to build from source.
-Binary packages and installers are provided periodically, see below.
+Binary packages and installers are provided periodically.
 </p>
+
+<h3>Building from source</h3>
+<pre>
+git clone <a href='http://github.com/RJ/playdar/tree/master'>git://github.com/RJ/playdar.git</a>
+cd playdar/playdar-daemon
+$EDITOR INSTALL.txt
+cmake .
+make
+</pre>
+<p>If you don't have git, or you don't have all of playdar's deps (check
+INSTALL.txt), read the following instructions as well:
+
+<h4>Linux</h4>
+eg. Ubuntu:
+<pre>
+apt-get install
+    sqlite3 libsqlite3-dev \
+    cmake \
+    libtag1-dev \
+    liburiparser1 liburiparser-dev \
+    libossp-uuid-dev libossp-uuid15
+</pre>
+
+<h4>Mac</h4>
+<p>You need <a href='http://www.macports.org/'>MacPorts</a>:</p>
+<pre>
+    port selfupdate
+    port update installed
+    port install cmake boost ossp-uuid uriparser taglib git-core
+</pre>
+
+
+<h3>Binaries</h3>
 <p>
-You can often get an updated binary package by asking what the latest is on <b>IRC</b> (freenode, #playdar). Check the /topic or ask in the channel for the latest build.
+If these seem old, visit the irc channel (Freenode, <a href='irc://irc.freenode.net/#playdar'>#playdar</a>),
+and check the /topic or ask us if there is a newer one.
 </p>
-<p>
-<h3>Mac (Intel)</h3>
-<a href="playdar.prefPane.tar.bz2">playdar.prefPane.tar.bz2</a> (playdar bundle from Max, with prefpane)<br/>
+
+<h4>Mac (Intel)</h4>
+<a href="http://www.methylblue.com/playdar/playdar.prefPane.tar.bz2">playdar.prefPane.tar.bz2</a> (all-in-one System Preferences pane by <a href='http://methylblue.com/'>mxcl</a>, <a href="http://www.methylblue.com/playdar/">old builds</a>)<br/>
+<br/>
 <s><a href="playdar-mac-20090301.zip">playdar-mac-20090301.zip</a></s><br/>
 <s><a href="playdar-mac-20090228.zip">playdar-mac-20090228.zip</a> (works, honest!)<br/></s>
 <s><a href="playdar-mac-0.1.0.zip">playdar-mac-0.1.0.zip</a></s>
-<h3>Linux</h3>
-Building from source is fairly painless, see INSTALL.txt
 
-<h3>Windows</h3>
+<h4>Windows</h4>
 <a href="PlaydarInstallWin-1.exe">Playdar Installer</a> (NSIS installer by <a href="http://laurie.denness.net">lozzd</a>)<br/>
 <p>
 NB: windows installer comes with the normal daemon, and a wrapper app:
@@ -28,6 +61,7 @@ NB: windows installer comes with the normal daemon, and a wrapper app:
 </ul>
 If you don't need to use the wrapper, the installer puts the playdar daemon in the install directory too.
 </p>
+
 
 </body>
 </html>
