@@ -14,6 +14,8 @@ MyApplication::MyApplication(boost::program_options::variables_map opt)
     
     m_po = opt;
     string db_path = option<string>("app.db");
+    m_db = sqlite3pp::database(db_path.c_str());
+    
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
 }
@@ -21,7 +23,12 @@ MyApplication::MyApplication(boost::program_options::variables_map opt)
 MyApplication::~MyApplication()
 {
     delete(m_library);
+    delete(m_resolver);
 }
+
+
+
+
 
 string 
 MyApplication::gen_uuid()

@@ -7,7 +7,7 @@
 
 #include "application/types.h"
 #include <boost/thread.hpp>
-
+#include "sqlite3pp.h"
 #include <boost/program_options.hpp>
 
 
@@ -42,6 +42,18 @@ public:
     template <typename T> T option(string o, T def);
     template <typename T> T option(string o);
 
+    template <typename T>
+    opt(string cat, string key, T def)
+    {
+        sqlite3pp::query qry(m_db, string("SELECT value FROM setting WHERE lower(category)=? AND lower(key)=?").c_str() );
+        qry.bind(1, cat);
+        qry.bind(2, key);
+        for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
+            return boost::lexical_cast<T>((*i).get<const char *>(0));
+            break; // should only be one row
+        }
+        return def;
+    }
     
     // RANDOM UTILITY FUNCTIONS TOSSED IN HERE FOR NOW:
     
@@ -58,6 +70,8 @@ public:
     
     
 private:
+    sqlite3pp::database m_db;
+    sqlite3pp::database * db(){ return &m_db; }
     Library * m_library;
     Resolver * m_resolver;
     boost::program_options::variables_map m_po;

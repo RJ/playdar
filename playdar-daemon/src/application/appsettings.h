@@ -80,7 +80,8 @@ public:
     }
     
 private:
-    map< string, string > m_settings;
+    // category -> key -> value
+    map< string, map< string, string > > m_settings;
     string m_filename;
         
     // if rewrite, will replace config with existing settings in m_settings

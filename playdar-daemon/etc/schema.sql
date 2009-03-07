@@ -77,4 +77,10 @@ CREATE TABLE IF NOT EXISTS file_join (
 
 -- 
 
-
+CREATE TABLE IF NOT EXISTS settings (
+    category TEXT NOT NULL,
+    key TEXT NOT NULL,
+    value TEXT,
+    description TEXT
+);
+CREATE PRIMARY KEY ON settings(category,key);
