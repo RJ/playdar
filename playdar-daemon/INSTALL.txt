@@ -3,7 +3,7 @@ Installation
 This covers building from source specifically on Debian Linux.
 Should be easy on other Linuxes too. 
 Playdar also builds on Windows, using visual studio express.
-Playdar also builds on Mac OS X (intel) using gcc + stuff from ports.
+Playdar also builds on Mac OS X (intel) using gcc + stuff from macports.
 
 
 Linux Dependencies
