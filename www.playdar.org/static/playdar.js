@@ -326,7 +326,7 @@ Playdar.prototype = {
         if (this.query_count) {
             var status = "";
             if (this.pending_count) {
-                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10"/> ';
+                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ';
             }
             status += "Resolved: " + this.success_count + "/" + this.request_count;
             this.query_count.innerHTML = status;
