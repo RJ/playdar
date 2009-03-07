@@ -386,16 +386,23 @@ Playdar.prototype = {
         options.whileplaying = function () {
             if (self.play_progress) {
                 var duration;
-                var buffered = this.bytesLoaded/this.bytesTotal;
-                if (buffered == 100) {
+                if (this.readyState == 3) { // loaded/success
                     duration = this.duration;
                 } else {
                     duration = this.durationEstimate;
                 }
-                var played = this.position/duration;
+                var portion_played = this.position/duration;
+                self.play_progress.style.display = "block";
+                self.playhead.style.width = Math.round(portion_played*self.play_progress_width) + "px";
+                
+                self.nowplaying.innerHTML = self.titles[this.sID];
+            }
+        };
+        options.whileloading = function () {
+            if (self.play_progress) {
+                var buffered = this.bytesLoaded/this.bytesTotal;
                 self.play_progress.style.display = "block";
                 self.bufferhead.style.width = Math.round(buffered*self.play_progress_width) + "px";
-                self.playhead.style.width = Math.round(played*self.play_progress_width) + "px";
                 
                 self.nowplaying.innerHTML = self.titles[this.sID];
             }
