@@ -1,12 +1,16 @@
-#ifndef LAME_UUIDS_PLEASE
-#include <ossp/uuid.h> // the cpp version of this isn't in mac ports
+
+#ifdef HAS_OSSP_UUID_H
+#include <ossp/uuid.h>
+#else
+// default source package for ossp-uuid doesn't namespace itself
+#include <uuid.h> 
 #endif
 #include "application/application.h"
 #include "library/library.h"
 #include "resolvers/resolver.h"
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
-//#include <cstdlib.h>
+
 
 using namespace std;
 
@@ -67,7 +71,6 @@ MyApplication::do_auto_config()
 string 
 MyApplication::gen_uuid()
 {
-#ifndef LAME_UUIDS_PLEASE
     char *uuid_str;
     uuid_rc_t rc;
     uuid_t *uuid;
@@ -97,14 +100,6 @@ MyApplication::gen_uuid()
     string retval(uuid_str);
     delete(uuid_str);
     return retval;
-#else
-    // "uuid" hack based on random numbers. not good.
-    ostringstream s;
-    s << "lame_uuid_"
-      << "_"
-      << rand();
-    return s.str();
-#endif
 }
 
 
