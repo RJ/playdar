@@ -35,4 +35,6 @@ class gateway_script : public ResolverService
         bp::postream * m_os;
 };
 
+EXPORT_DYNAMIC_CLASS( gateway_script )
+
 #endif

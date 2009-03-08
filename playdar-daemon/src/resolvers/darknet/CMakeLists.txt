@@ -30,7 +30,7 @@ INCLUDE(InstallRequiredSystemLibraries)
 ADD_DEFINITIONS(-Wall -ggdb) 
 
 ADD_LIBRARY(    darknet.resolver SHARED
-                rs_darknet.cpp
+                darknet.cpp
                 servent.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp

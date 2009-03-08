@@ -3,11 +3,11 @@
 using namespace std;
 
 namespace playdar {
-namespace darknet {
+namespace resolvers {
 
 Servent::Servent(boost::asio::io_service& io_service, 
         unsigned short port, 
-        RS_darknet * p ) //boost::shared_ptr<RS_darknet> p)
+        darknet * p ) //boost::shared_ptr<darknet> p)
     :   m_acceptor(io_service,
                    boost::asio::ip::tcp::endpoint
                         (boost::asio::ip::tcp::v4(), port)),

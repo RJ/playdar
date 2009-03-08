@@ -59,5 +59,6 @@ private:
 
 EXPORT_DYNAMIC_CLASS( lan_udp )
 
+
 }}
 #endif

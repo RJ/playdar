@@ -19,6 +19,8 @@
 #include <LoaderException.hpp>
 #include <platform.h>
 
+#include <boost/filesystem.hpp>
+
 Resolver::Resolver(MyApplication * app)
 {
     m_app = app;
@@ -26,10 +28,7 @@ Resolver::Resolver(MyApplication * app)
     cout << "Resolver started." << endl;
     
     m_rs_local = 0;
-    m_rs_lan = 0;
-    m_rs_http_playdar = 0;
-    m_rs_http_gateway_script = 0;
-    m_rs_darknet = 0;
+
     
     m_rs_local  = new RS_local_library();
     m_rs_local->init(app);
@@ -73,25 +72,38 @@ Resolver::Resolver(MyApplication * app)
 void 
 Resolver::load_resolvers()
 {
-    cout << "Loading resolvers..." << endl;
-    try
+    namespace bfs = boost::filesystem;
+    cout << "Loading resolver plugins from: ./plugins" << endl;
+    bfs::directory_iterator end_itr;
+    bfs::path p("./plugins/");
+    for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
     {
-        PDL::DynamicLoader & dynamicLoader = PDL::DynamicLoader::Instance();
-        string pluginfile = "plugin.so";
-        cout << "Trying: " << pluginfile << endl;
-        ResolverService * instance = dynamicLoader.GetClassInstance< ResolverService >
-                                        ( pluginfile.c_str(), "lan_udp_resolver" );
-        instance->init(app());
-        cout << "Resolver says: " << instance->name() << endl;
+        if ( bfs::is_directory(itr->status()) ) continue;
+        string pluginfile = itr->string();
+        string classname = bfs::basename(pluginfile);
+        cout << classname << endl;
+        if(classname.substr(classname.length()-9)!=".resolver") continue;
+        // strip .resolver
+        classname = classname.substr(0,classname.length()-9);
+        cout << classname << endl;
+        // strip lib prefix:
+        if(classname.substr(0,3)=="lib") classname = classname.substr(3);
+        try
+        {
+            PDL::DynamicLoader & dynamicLoader = PDL::DynamicLoader::Instance();
+            cout << "-> Trying: " << pluginfile << endl;
+            ResolverService * instance = dynamicLoader.GetClassInstance< ResolverService >
+                                            ( pluginfile.c_str(), classname.c_str() );
+            instance->init(app());
+            cout << "-> Loaded: " << instance->name() << endl;
+            m_resolvers.push_back(instance);
+        }
+        catch( PDL::LoaderException & ex )
+        {
+            cerr << "-> Error: " << ex.what() << endl;
+        }
     }
-    catch( PDL::LoaderException & ex )
-    {
-        cerr << "Loader exception: " << ex.what() << endl;
-    }
-    catch( ... )
-    {
-        cerr << "XXXXXXXXXX" << endl;
-    }
+    cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
 
 
 /*
@@ -147,10 +159,10 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     if(!local_only && !rq->solved())
     {
         // these calls shouldn't block, plugins do their own threading etc.
-        if(m_rs_http_playdar)           m_rs_http_playdar->start_resolving(rq);
-        if(m_rs_lan)                    m_rs_lan->start_resolving(rq);
-        if(m_rs_darknet)                m_rs_darknet->start_resolving(rq);
-        if(m_rs_http_gateway_script)    m_rs_http_gateway_script->start_resolving(rq);
+        BOOST_FOREACH(ResolverService * rs, m_resolvers)
+        {
+            if(rs) rs->start_resolving(rq);
+        }
     }
     return rq->id();
 }

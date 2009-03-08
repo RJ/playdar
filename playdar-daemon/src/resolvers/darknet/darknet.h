@@ -17,15 +17,16 @@
 //namespace playdar {
 //namespace resolvers {
 
-namespace playdar { namespace darknet { class Servent; } } //fwd decl
+namespace playdar { 
+namespace resolvers { 
 
-using namespace playdar::darknet;
+class Servent; //fwd decl
 
-class RS_darknet : public ResolverService
+class darknet : public ResolverService
 {
 
 public:
-    RS_darknet(){};
+    darknet(){};
     void init(MyApplication * a);
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return "Darknet"; }
@@ -97,7 +98,7 @@ public:
     }
 
 protected:
-    ~RS_darknet() throw() {}
+    ~darknet() throw() {}
     
 private:
     boost::shared_ptr<boost::asio::io_service> m_io_service;
@@ -117,5 +118,7 @@ private:
     
 };
 
-//}}
+
+}}
+
 #endif
