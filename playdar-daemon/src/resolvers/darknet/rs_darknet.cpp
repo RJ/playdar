@@ -10,32 +10,23 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 
-#include "resolvers/darknet/rs_darknet.h"
 
-#include "resolvers/darknet/msgs.h"
-#include "resolvers/darknet/servent.h"
+#include "rs_darknet.h"
+#include "msgs.h"
+#include "servent.h"
+#include "ss_darknet.h"
 
-#include "resolvers/darknet/ss_darknet.h"
 
-/*
-testing with 2 instances, one alternative collection.db
 
-./bin/playdar -c etc/playdar.ini --app.name silverstone --app.private_ip 192.168.1.72 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip ""
+//namespace playdar {
+//namespace resolvers {
 
-./bin/playdar -c etc/playdar.ini --app.db ./collection-small.db --app.name silverstone2 --app.private_ip 127.0.0.1 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip 127.0.0.1 --resolver.darknet.remote_port 9999 --resolver.darknet.port 9998 --app.http_port 8899
-
-*/
 using namespace playdar::darknet;
 
-RS_darknet::RS_darknet(MyApplication * a)
-    : ResolverService(a)
-{
-    init();
-}
-
 void
-RS_darknet::init()
+RS_darknet::init(MyApplication * a)
 {
+    m_app = a;
     unsigned short port = app()->popt()["resolver.darknet.port"].as<int>();
     m_io_service    = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
     m_work = boost::shared_ptr<boost::asio::io_service::work>(new boost::asio::io_service::work(*m_io_service));

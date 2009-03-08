@@ -8,7 +8,6 @@ src
 src/application
 src/application/application.cpp
 src/application/application.h
-src/application/appsettings.h
 src/application/types.h
 src/library
 src/library/album.h

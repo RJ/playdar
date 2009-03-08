@@ -188,6 +188,7 @@ int main(int ac, char *av[])
                 << app->http_port() <<"/" << endl
                 << "Or see a live demo on http://www.playdar.org/" << endl << endl;
         // Lame interactive mode for debugging:
+        /*
         RS_darknet * dnet = static_cast<RS_darknet *>( app->resolver()->get_darknet());
         if(dnet)
         {
@@ -212,7 +213,8 @@ int main(int ac, char *av[])
         }else{     
             // this will stop us exiting:
             http_thread.join();
-        }
+        }*/
+        http_thread.join();
         cout << "All threads finished, exiting cleanly" << endl;
         delete(app); 
         return 0;

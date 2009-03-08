@@ -4,14 +4,22 @@
 #include "resolvers/resolver.h"
 #include "application/application.h"
 
-class ResolverService
+#include <DynamicClass.hpp>
+
+
+class ResolverService : public PDL::DynamicClass, std::exception
+
+
 {
 public:
-    ResolverService(MyApplication * a)
+    ResolverService(){}
+    
+    
+    virtual void init(MyApplication * a)
     {
         m_app = a;
     }
-    virtual ~ResolverService(){}
+    
 
     virtual std::string name() = 0;
 
@@ -21,7 +29,11 @@ public:
     
 //protected:
     MyApplication * app() { return m_app; }
-private:
+    
+    DECLARE_DYNAMIC_CLASS( ResolverService )
+    
+protected:
+    virtual ~ResolverService() throw() {  }
     MyApplication * m_app;
 };
 #endif

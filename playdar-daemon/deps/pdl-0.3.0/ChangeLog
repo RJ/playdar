@@ -1,0 +1,13 @@
+Thu Aug 16 11:27:00 2007  Igor Semenov <igor@progz.ru>
+
+	* PDL: initial release:
+	  Developed and tested on Windows XP, FreeBSD 6.2 and Debian 2.6
+
+Thu Aug 21 15:40:00 2007  Igor Semenov <igor@progz.ru>
+	* Added Doxygen documentation
+
+Fri Sep 15 00:46:00 2007  Igor Semenov <igor@progz.ru>
+	* Added Readme.html and Introduction.html
+
+Fri Nov 16 14:10:00 2007  Igor Semenov <igor@progz.ru>
+	* Several small changes. Release 0.2.

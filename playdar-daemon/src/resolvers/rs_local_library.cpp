@@ -9,16 +9,18 @@
     in moost here. This is a bit hacky, but gets the job done 99% for now.
 */
 
-RS_local_library::RS_local_library(MyApplication * a) 
-    : ResolverService(a)
+    
+void
+RS_local_library::init(MyApplication * a)
 {
+    m_app = a;
     cout << "Local library resolver: " << app()->library()->num_files() << " files indexed." << endl;
     if(app()->library()->num_files() == 0)
     {
         cout << endl << "WARNING! You don't have any files in your database! Run the scanner, then restart Playdar." << endl << endl;
     }
 }
-    
+
 void
 RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {

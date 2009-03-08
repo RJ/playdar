@@ -30,13 +30,14 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ".")
 #add definitions, compiler switches, etc.
 ADD_DEFINITIONS(-Wall -ggdb) 
 
-ADD_LIBRARY(    lan_udp.resolver SHARED
-                lan_udp.cpp
+ADD_LIBRARY(    darknet.resolver SHARED
+                rs_darknet.cpp
+                servent.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
             )
 
-TARGET_LINK_LIBRARIES( lan_udp.resolver
+TARGET_LINK_LIBRARIES( darknet.resolver
                        ${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_REGEX_LIBRARY} # Boost license
                        ${Boost_SYSTEM_LIBRARY}
@@ -45,4 +46,4 @@ TARGET_LINK_LIBRARIES( lan_udp.resolver
                        ${Boost_PROGRAM_OPTIONS_LIBRARY}
                      )
 
-INSTALL(TARGETS lan_udp.resolver LIBRARY DESTINATION .)
+INSTALL(TARGETS darknet.resolver LIBRARY DESTINATION .)

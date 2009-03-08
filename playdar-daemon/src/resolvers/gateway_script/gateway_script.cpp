@@ -1,19 +1,22 @@
 #include "application/application.h"
-#include "resolvers/rs_http_gateway_script.h"
+#include "gateway_script.h"
 #include "library/library.h"
 #include <boost/foreach.hpp>
 
+namespace playdar {
+namespace resolvers {
 
-RS_http_gateway_script::RS_http_gateway_script(MyApplication * a) 
-    : ResolverService(a)
+void
+gateway_script::init(MyApplication * a) 
 {
+    m_app = a;
     m_scriptpath = "./etc/demo-resolver.php";
     cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
     init_worker();
 }
 
 void
-RS_http_gateway_script::init_worker()
+gateway_script::init_worker()
 {
         std::vector<std::string> args;
         args.push_back("--playdar-mode");
@@ -25,13 +28,13 @@ RS_http_gateway_script::init_worker()
         bp::child c = bp::launch(m_scriptpath, args, ctx);
         m_c = new bp::child(c);
         m_os = & c.get_stdin();
-        m_t = boost::thread(&RS_http_gateway_script::process_output, this);
+        m_t = boost::thread(&gateway_script::process_output, this);
 }
     
 
 // runs forever processing output
 void 
-RS_http_gateway_script::process_output()
+gateway_script::process_output()
 {
     using namespace json_spirit;
     bp::pistream &is = m_c->get_stdout();
@@ -78,7 +81,7 @@ RS_http_gateway_script::process_output()
 }
 
 void 
-RS_http_gateway_script::send_input(string s)
+gateway_script::send_input(string s)
 {
         cout << "Sending to script: '"<<s<<"'" <<endl;
         *m_os << s << endl;
@@ -86,7 +89,7 @@ RS_http_gateway_script::send_input(string s)
 
 
 void
-RS_http_gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     ostringstream o;
     using namespace json_spirit;
@@ -96,3 +99,5 @@ RS_http_gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
     send_input(s);
 }
+
+}}

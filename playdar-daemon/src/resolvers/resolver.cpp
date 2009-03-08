@@ -6,13 +6,18 @@
 #include "resolvers/resolver.h"
 
 #include "resolvers/rs_local_library.h"
-#include "resolvers/rs_lan_udp.h"
-#include "resolvers/rs_http_playdar.h"
-#include "resolvers/rs_http_gateway_script.h"
-#include "resolvers/darknet/rs_darknet.h"
+//#include "resolvers/rs_lan_udp.h"
+//#include "resolvers/rs_http_playdar.h"
+//#include "resolvers/rs_http_gateway_script.h"
+//#include "resolvers/darknet/rs_darknet.h"
 #include "library/library.h"
 
-
+#include <DynamicLoader.hpp>
+#include <DynamicClass.hpp>
+#include <DynamicLibrary.hpp>
+#include <DynamicLibraryManager.hpp>
+#include <LoaderException.hpp>
+#include <platform.h>
 
 Resolver::Resolver(MyApplication * app)
 {
@@ -26,8 +31,12 @@ Resolver::Resolver(MyApplication * app)
     m_rs_http_gateway_script = 0;
     m_rs_darknet = 0;
     
-    m_rs_local  = new RS_local_library(app);
-
+    m_rs_local  = new RS_local_library();
+    m_rs_local->init(app);
+    
+    load_resolvers();
+    
+/*
     //TODO dynamic loading at runtime using PDL or Boost.extension
     if(app->option<string>("resolver.remote_http.enabled")=="yes")
     {
@@ -52,11 +61,66 @@ Resolver::Resolver(MyApplication * app)
     {
         m_rs_darknet    = new RS_darknet(app);
     }
+    */
     /*if(app->option<string>("resolver.gateway_http.enabled")=="yes")
     {
         m_rs_http_gateway_script = new RS_http_gateway_script(app);
     }*/
     
+}
+
+// dynamically load resolver plugins:
+void 
+Resolver::load_resolvers()
+{
+    cout << "Loading resolvers..." << endl;
+    try
+    {
+        PDL::DynamicLoader & dynamicLoader = PDL::DynamicLoader::Instance();
+        string pluginfile = "plugin.so";
+        cout << "Trying: " << pluginfile << endl;
+        ResolverService * instance = dynamicLoader.GetClassInstance< ResolverService >
+                                        ( pluginfile.c_str(), "lan_udp_resolver" );
+        instance->init(app());
+        cout << "Resolver says: " << instance->name() << endl;
+    }
+    catch( PDL::LoaderException & ex )
+    {
+        cerr << "Loader exception: " << ex.what() << endl;
+    }
+    catch( ... )
+    {
+        cerr << "XXXXXXXXXX" << endl;
+    }
+
+
+/*
+    using namespace boost::extensions;
+    string library_path = "./plugin.so";
+    shared_library lib(library_path);
+    // Attempt to open the shared library.
+    if (!lib.open()) {
+        std::cerr << "Library failed to open: " << library_path << std::endl;
+        return;
+    }
+    type_map types;
+    if (!lib.call(types)) {
+        std::cerr << "Function not found!" << std::endl;
+        return;
+    }
+    std::map<std::string, factory<ResolverService, MyApplication *> >& factories(types.get());
+    if (factories.empty()) {
+        std::cerr << "No resolvers found found!" << std::endl;
+        return;
+    }    
+    for (std::map<std::string, factory<ResolverService, MyApplication *> >::iterator it
+         = factories.begin();
+       it != factories.end(); ++it) 
+    {
+        std::cout << "Loading: " << it->first << std::endl;
+        boost::scoped_ptr<ResolverService> current_resolver(it->second.create(m_app));
+        std::cout << "Created: " << current_resolver->name() << endl;
+    }*/
 }
 
 // start resolving! (non-blocking)

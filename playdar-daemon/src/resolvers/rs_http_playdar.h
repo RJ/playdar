@@ -23,7 +23,7 @@ class RS_http_playdar  : public ResolverService
         
         cout << "Playdar/HTTP resolver online -> " << remote_httpbase() << endl;
     }
-    ~RS_http_playdar(){}
+    
     
     string remote_httpbase()
     {
@@ -170,6 +170,9 @@ class RS_http_playdar  : public ResolverService
         }
     }
     
+    protected: 
+        ~RS_http_playdar() throw() {}
+
     private:
         boost::asio::ip::address_v4 m_ip;
         unsigned short m_port;

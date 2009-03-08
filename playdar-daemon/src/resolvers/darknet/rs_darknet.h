@@ -5,23 +5,28 @@
 #include <string>
 #include <boost/asio.hpp>
 #include "boost/bind.hpp"
-#include "application/types.h"
 #include <boost/weak_ptr.hpp>
-#include "resolvers/darknet/msgs.h"
-#include "resolvers/darknet/servent.h"
-//#include "resolvers/darknet/ss_darknet.h"
 
-using namespace playdar::darknet;
+#include "application/types.h"
+
+#include "msgs.h"
+#include "servent.h"
+
+
+
+//namespace playdar {
+//namespace resolvers {
+
 namespace playdar { namespace darknet { class Servent; } } //fwd decl
 
-
+using namespace playdar::darknet;
 
 class RS_darknet : public ResolverService
 {
 
 public:
-    RS_darknet(MyApplication * a);
-    void init();
+    RS_darknet(){};
+    void init(MyApplication * a);
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return "Darknet"; }
     
@@ -112,4 +117,5 @@ private:
     
 };
 
+//}}
 #endif

@@ -12,14 +12,18 @@
 #include "resolvers/resolver_service.h"
 namespace bp = ::boost::process;
 
-class RS_http_gateway_script : public ResolverService
+class gateway_script : public ResolverService
 {
     public:
-    RS_http_gateway_script(MyApplication * a);
+    gateway_script(){}
+    
+    void init(MyApplication * a);
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    std::string name() { return string("HTTP Gateway script: ")+m_scriptpath; }
+    std::string name() { return string("Gateway script: ")+m_scriptpath; }
     
+    protected:
+        ~gateway_script() throw() {}
     private:
         void init_worker();
         void process_output();
