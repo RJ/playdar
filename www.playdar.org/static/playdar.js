@@ -454,16 +454,16 @@ Playdar.prototype = {
         var sound = this.soundmanager.getSoundById(sid);
         if (this.nowplayingid != sid && sound.playState == 0) {
             this.stop_all();
+            // Initialise the track progress
+            this.track_progress.innerHTML = Playdar.mmss(0);
+            // Update the track title
+            this.nowplaying.innerHTML = this.titles[sid];
+            // Update the track duration
+            this.track_length.innerHTML = this.durations[sid];
+            this.playstate.style.visibility = "visible";
+            
+            this.nowplayingid = sid;
         }
-        this.nowplayingid = sid;
-        
-        this.playstate.style.visibility = "visible";
-        // Update the track title
-        this.nowplaying.innerHTML = this.titles[sid];
-        // Update the track duration
-        this.track_length.innerHTML = this.durations[sid];
-        // Update the track progress
-        this.track_progress.innerHTML = Playdar.mmss(0);
         
         sound.togglePause();
         return sound;

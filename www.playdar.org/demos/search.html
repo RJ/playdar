@@ -22,17 +22,17 @@ var playdar = new Playdar({
     stat_complete: function (detected) {
         var text;
         if (detected) {
-            text = "<b style='color:green;'>Playdar ready</b>";
+            text = "<b style='color:green;'>Playdar ready<\/b>";
             parseHash();
             setup_page();
         } else {
-            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+            text = "<b style='color:red;'>Playdar unavailable<\/b><br\/>You need Playdar, the music content resolver, installed and running. See <a href=\"http:\/\/www.playdar.org\/\">www.playdar.org<\/a>.";
         }
         $('playdar_stat').innerHTML = text;
     }
 });
 
-soundManager.url = '/static/soundmanager2_flash9.swf';
+soundManager.url = '\/static\/soundmanager2_flash9.swf';
 soundManager.flashVersion = 9;
 soundManager.onload = function () {
     playdar.init();
@@ -85,7 +85,7 @@ var build_result_row = function(result) {
     td = new Element('td').setStyle({width: "50px"}).update(
         '<a href="#' + result.sid + '" id="play' + result.sid + '" class="play">'
          + "Play"
-         + '</a>'
+         + '<\/a>'
      );
     tr.insert(td);
     
@@ -102,12 +102,12 @@ var build_result_row = function(result) {
     tr.insert(td);
     
     td = new Element('td').update(
-        '<a href="' + playdar.get_stream_url(result.sid) + '">dl</a> '
+        '<a href="' + playdar.get_stream_url(result.sid) + '">dl<\/a> '
         + '<small>('
         + Playdar.mmss(result.duration) + ', '
         + result.mimetype + ', '
         + (result.size/1000000).toFixed(1) + 'MB, '
-        + result.bitrate + 'Kbps)</small>'
+        + result.bitrate + 'Kbps)<\/small>'
     );
     tr.insert(td);
     return tr;
