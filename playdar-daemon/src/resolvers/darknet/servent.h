@@ -63,7 +63,7 @@ private:
     /// The acceptor object used to accept incoming socket connections.
     boost::asio::ip::tcp::acceptor m_acceptor;
     /// protocol state machine
-    boost::shared_ptr<RS_darknet> m_protocol;
+    RS_darknet * m_protocol;
 };
 
 } // namespace darknet

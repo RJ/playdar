@@ -21,7 +21,6 @@ class RS_darknet : public ResolverService
 
 public:
     RS_darknet(MyApplication * a);
-    //~RS_darknet();
     void init();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return "Darknet"; }
@@ -91,6 +90,9 @@ public:
         }catch(...)
         { return conn; }
     }
+
+protected:
+    ~RS_darknet() throw() {}
     
 private:
     boost::shared_ptr<boost::asio::io_service> m_io_service;
