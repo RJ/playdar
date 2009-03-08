@@ -29,6 +29,7 @@
 #include <DynamicLibrary.hpp>
 #include <LoaderException.hpp>
 #include <string>
+#include <cstring> //memcpy
 
 #if PLATFORM_WIN32
 #include <windows.h>

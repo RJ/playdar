@@ -2,6 +2,7 @@ PROJECT(playdar)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 
 SET(PLAYDAR_PATH "../../..")
+SET(CMAKE_INSTALL_PREFIX "${PLAYDAR_PATH}/plugins")
 
 SET(CMAKE_MODULE_PATH "${PLAYDAR_PATH}/CMakeModules")
 
@@ -19,13 +20,8 @@ INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/src
                    )
 
-#LINK_DIRECTORIES(/usr/local/lib) # for uriparser
-
-
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
-
-SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY ".")
 
 #add definitions, compiler switches, etc.
 ADD_DEFINITIONS(-Wall -ggdb) 
