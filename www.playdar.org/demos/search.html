@@ -65,7 +65,7 @@ var build_result_row = function(result) {
     var tr = document.createElement('tr');
     tr.id = result.sid;
     
-    var sound = playdar.register_stream(result.sid, {
+    var sound = playdar.register_stream(result, {
         onplay: set_pause_text,
         onpause: set_play_text,
         onresume: set_pause_text,

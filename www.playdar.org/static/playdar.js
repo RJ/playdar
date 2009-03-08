@@ -28,6 +28,7 @@ Playdar.prototype = {
     web_host: "http://www.playdar.org",
     
     show_status: function (text, bg) {
+        var self = this;
         if (!bg) {
             var bg = "cbdab1";
         }
@@ -37,10 +38,11 @@ Playdar.prototype = {
             Playdar.status_bar.style.bottom = 0;
             Playdar.status_bar.style.left = 0;
             Playdar.status_bar.style.width = '100%';
+            Playdar.status_bar.style.height = '31px';
             Playdar.status_bar.style.textIndent = '1px';
             Playdar.status_bar.style.borderTop = '1px solid #bbb';
             Playdar.status_bar.style.color = '#000';
-            Playdar.status_bar.style.font = 'normal 12px/13px "Verdana", sans-serif';
+            Playdar.status_bar.style.font = 'normal 10px/16px "Verdana", sans-serif';
         }
         Playdar.status_bar.style.background = '#' + bg;
         
@@ -79,7 +81,26 @@ Playdar.prototype = {
             this.playhead.style.background = "#98be3d";
             this.play_progress.appendChild(this.playhead);
             
+            this.play_progress.onclick = function () {
+                if (self.nowplayingid) {
+                    self.play_stream(self.nowplayingid);
+                }
+            };
             Playdar.status_bar.appendChild(this.play_progress);
+        }
+        
+        if (!this.nowplaying) {
+            this.nowplaying = document.createElement("p");
+            this.nowplaying.style.padding = "8px 0 7px 0";
+            this.nowplaying.style.margin = "0 0 0 -5px";
+            this.nowplaying.style.cssFloat = "left";
+            this.nowplaying.style.color = "#517e09";
+            this.nowplaying.onclick = function () {
+                if (self.nowplayingid) {
+                    self.play_stream(self.nowplayingid);
+                }
+            };
+            Playdar.status_bar.appendChild(this.nowplaying);
         }
         
         if (!this.query_count) {
@@ -89,6 +110,14 @@ Playdar.prototype = {
             Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
         }
         
+        var marginBottom = document.body.style.marginBottom;
+        if (!marginBottom) {
+            var css = document.defaultView.getComputedStyle(document.body, null);
+            if (css) {
+                marginBottom = css.marginBottom;
+            }
+        }
+        document.body.style.marginBottom = (marginBottom.replace('px', '') - 0) + 31 + 'px';
         document.body.appendChild(Playdar.status_bar);
     },
     
@@ -120,8 +149,8 @@ Playdar.prototype = {
         if (!callback) {
             var callback = function () {};
         }
-        var playdar = this;
-        this.handlers[handler_name] = function () { return callback.apply(playdar, arguments); };
+        var self = this;
+        this.handlers[handler_name] = function () { return callback.apply(self, arguments); };
     },
     
     show_detected_message: function () {
@@ -203,9 +232,9 @@ Playdar.prototype = {
     },
     
     stat: function () {
-        var playdar = this;
+        var self = this;
         setTimeout(function () {
-            playdar.check_stat_timeout();
+            self.check_stat_timeout();
         }, this.stat_timeout);
         Playdar.loadjs(this.get_url("stat", "handle_stat"));
     },
@@ -253,9 +282,9 @@ Playdar.prototype = {
         // figure out if we should re-poll, or if the query is solved/failed:
         var final_answer = this.should_stop_polling(response);
         if (!final_answer) {
-            var playdar = this;
+            var self = this;
             setTimeout(function () {
-                playdar.get_results(response.qid);
+                self.get_results(response.qid);
             }, response.refresh_interval);
         }
         // now call the results handler
@@ -306,7 +335,7 @@ Playdar.prototype = {
         if (this.query_count) {
             var status = "";
             if (this.pending_count) {
-                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10"/> ';
+                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ';
             }
             status += "Resolved: " + this.success_count + "/" + this.request_count;
             this.query_count.innerHTML = status;
@@ -337,38 +366,57 @@ Playdar.prototype = {
     
     // STREAMING WITH SOUNDMANAGER
     
-    register_stream: function (sid, options) {
+    titles: {},
+    register_stream: function (result, options) {
         if (!this.soundmanager) {
             return false;
         }
+        
+        var title = Playdar.mmss(result.duration) + "&nbsp;&nbsp;"
+                  + result.artist + " - " + result.track
+                  + " (" + result.source + ")";
+        this.titles[result.sid] = title;
+        
         if (!options) {
             var options = {};
         }
-        options.id = sid;
-        options.url = this.get_stream_url(sid);
-        var playdar = this;
+        options.id = result.sid;
+        options.url = this.get_stream_url(result.sid);
+        var self = this;
         options.whileplaying = function () {
-            if (playdar.play_progress) {
+            if (self.play_progress) {
                 var duration;
-                var buffered = this.bytesLoaded/this.bytesTotal;
-                if (buffered == 100) {
+                if (this.readyState == 3) { // loaded/success
                     duration = this.duration;
                 } else {
                     duration = this.durationEstimate;
                 }
-                var played = this.position/duration;
-                playdar.play_progress.style.display = "block";
-                playdar.bufferhead.style.width = Math.round(buffered*playdar.play_progress_width) + "px";
-                playdar.playhead.style.width = Math.round(played*playdar.play_progress_width) + "px";
+                var portion_played = this.position/duration;
+                self.play_progress.style.display = "block";
+                self.playhead.style.width = Math.round(portion_played*self.play_progress_width) + "px";
+                
+                self.nowplaying.innerHTML = self.titles[this.sID];
+            }
+        };
+        options.whileloading = function () {
+            if (self.play_progress) {
+                var buffered = this.bytesLoaded/this.bytesTotal;
+                self.play_progress.style.display = "block";
+                self.bufferhead.style.width = Math.round(buffered*self.play_progress_width) + "px";
+                
+                self.nowplaying.innerHTML = self.titles[this.sID];
             }
         };
         var sound = this.soundmanager.createSound(options);
     },
+    
+    nowplayingid: null,
     play_stream: function (sid) {
         if (!this.soundmanager) {
             return false;
         }
         var sound = this.soundmanager.getSoundById(sid);
+        this.nowplayingid = sid;
         if (sound.playState == 0) {
             this.stop_all();
         }
@@ -381,6 +429,9 @@ Playdar.prototype = {
         }
         if (this.play_progress) {
             this.play_progress.style.display = "none";
+        }
+        if (this.nowplaying) {
+            this.nowplaying.innerHTML = "";
         }
     }
 };
