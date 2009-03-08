@@ -423,12 +423,8 @@ Playdar.prototype = {
         var self = this;
         options.whileplaying = function () {
             if (self.playstate) {
-                // Update the track duration
-                self.track_length.innerHTML = self.durations[this.sID];
-                
                 // Update the track progress
                 self.track_progress.innerHTML = Playdar.mmss(Math.round(this.position/1000));
-                
                 // Update the playback progress bar
                 var duration;
                 if (this.readyState == 3) { // loaded/success
@@ -437,18 +433,13 @@ Playdar.prototype = {
                     duration = this.durationEstimate;
                 }
                 var portion_played = this.position/duration;
-                self.playstate.style.visibility = "visible";
                 self.playhead.style.width = Math.round(portion_played*self.progress_bar_width) + "px";
-                
-                // Update the track title
-                self.nowplaying.innerHTML = self.titles[this.sID];
             }
         };
         options.whileloading = function () {
             if (self.playstate) {
                 // Update the loading progress bar
                 var buffered = this.bytesLoaded/this.bytesTotal;
-                self.playstate.style.visibility = "visible";
                 self.bufferhead.style.width = Math.round(buffered*self.progress_bar_width) + "px";
             }
         };
@@ -461,10 +452,19 @@ Playdar.prototype = {
             return false;
         }
         var sound = this.soundmanager.getSoundById(sid);
-        this.nowplayingid = sid;
-        if (sound.playState == 0) {
+        if (this.nowplayingid != sid && sound.playState == 0) {
             this.stop_all();
         }
+        this.nowplayingid = sid;
+        
+        this.playstate.style.visibility = "visible";
+        // Update the track title
+        this.nowplaying.innerHTML = this.titles[sid];
+        // Update the track duration
+        this.track_length.innerHTML = this.durations[sid];
+        // Update the track progress
+        this.track_progress.innerHTML = Playdar.mmss(0);
+        
         sound.togglePause();
         return sound;
     },
