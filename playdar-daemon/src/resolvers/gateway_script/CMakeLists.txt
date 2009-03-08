@@ -3,10 +3,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 
 SET(PLAYDAR_PATH "../../..")
 SET(CMAKE_INSTALL_PREFIX "${PLAYDAR_PATH}/plugins")
-
 SET(CMAKE_MODULE_PATH "${PLAYDAR_PATH}/CMakeModules")
 
-FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options)
+FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread)
 FIND_PACKAGE(OsspUuid)
 
 INCLUDE_DIRECTORIES(
@@ -30,19 +29,26 @@ INCLUDE(InstallRequiredSystemLibraries)
 #add definitions, compiler switches, etc.
 ADD_DEFINITIONS(-Wall -ggdb) 
 
-ADD_LIBRARY(    gateway_script.resolver SHARED
+ADD_LIBRARY(    gateway_script SHARED
                 gateway_script.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
             )
+#
+# Ensure the shared library file is called <CLASS NAME>.resolver
+# Playdar looks for a class with the same name as the file, minus suffix
+#
+SET_TARGET_PROPERTIES(  gateway_script PROPERTIES
+                        PREFIX ""
+                        SUFFIX ".resolver")
 
-TARGET_LINK_LIBRARIES( gateway_script.resolver
+
+TARGET_LINK_LIBRARIES( gateway_script
                        ${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_REGEX_LIBRARY} # Boost license
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY} 
                        ${Boost_THREAD_LIBRARY}
-                       ${Boost_PROGRAM_OPTIONS_LIBRARY}
                      )
 
-INSTALL(TARGETS gateway_script.resolver LIBRARY DESTINATION .)
+INSTALL(TARGETS gateway_script LIBRARY DESTINATION .)

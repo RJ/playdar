@@ -3,10 +3,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 
 SET(PLAYDAR_PATH "../../..")
 SET(CMAKE_INSTALL_PREFIX "${PLAYDAR_PATH}/plugins")
-
 SET(CMAKE_MODULE_PATH "${PLAYDAR_PATH}/CMakeModules")
 
-FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options)
+FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS system thread)
 FIND_PACKAGE(OsspUuid)
 
 INCLUDE_DIRECTORIES(
@@ -23,22 +22,26 @@ INCLUDE_DIRECTORIES(
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
-#add definitions, compiler switches, etc.
 ADD_DEFINITIONS(-Wall -ggdb) 
 
-ADD_LIBRARY(    lan_udp.resolver SHARED
+ADD_LIBRARY(    lan_udp SHARED
                 lan_udp.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
             )
 
-TARGET_LINK_LIBRARIES( lan_udp.resolver
+#
+# Ensure the shared library file is called <CLASS NAME>.resolver
+# Playdar looks for a class with the same name as the file, minus suffix
+#
+SET_TARGET_PROPERTIES(  lan_udp PROPERTIES 
+                        PREFIX "" 
+                        SUFFIX ".resolver")
+
+TARGET_LINK_LIBRARIES( lan_udp
                        ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_REGEX_LIBRARY} # Boost license
                        ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_FILESYSTEM_LIBRARY} 
                        ${Boost_THREAD_LIBRARY}
-                       ${Boost_PROGRAM_OPTIONS_LIBRARY}
                      )
 
-INSTALL(TARGETS lan_udp.resolver LIBRARY DESTINATION .)
+INSTALL(TARGETS lan_udp LIBRARY DESTINATION .)

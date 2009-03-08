@@ -10,6 +10,10 @@
 #include <boost/shared_ptr.hpp>
 
 #include "resolvers/resolver_service.h"
+
+namespace playdar {
+namespace resolvers {
+
 namespace bp = ::boost::process;
 
 class gateway_script : public ResolverService
@@ -29,12 +33,14 @@ class gateway_script : public ResolverService
         void process_output();
         void send_input(string s);
         
+        bool m_dead;
         string m_scriptpath;
         bp::child * m_c;
         boost::thread m_t;
         bp::postream * m_os;
 };
 
-EXPORT_DYNAMIC_CLASS( gateway_script )
 
+
+}}
 #endif

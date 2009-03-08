@@ -80,14 +80,8 @@ Resolver::load_resolvers()
     {
         if ( bfs::is_directory(itr->status()) ) continue;
         string pluginfile = itr->string();
+        if(bfs::extension(pluginfile)!=".resolver") continue;
         string classname = bfs::basename(pluginfile);
-        cout << classname << endl;
-        if(classname.substr(classname.length()-9)!=".resolver") continue;
-        // strip .resolver
-        classname = classname.substr(0,classname.length()-9);
-        cout << classname << endl;
-        // strip lib prefix:
-        if(classname.substr(0,3)=="lib") classname = classname.substr(3);
         try
         {
             PDL::DynamicLoader & dynamicLoader = PDL::DynamicLoader::Instance();

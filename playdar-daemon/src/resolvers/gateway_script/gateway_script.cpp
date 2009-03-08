@@ -10,6 +10,7 @@ void
 gateway_script::init(MyApplication * a) 
 {
     m_app = a;
+    m_dead = false;
     m_scriptpath = "./etc/demo-resolver.php";
     cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
     init_worker();
@@ -78,6 +79,7 @@ gateway_script::process_output()
         }
     }
     cout << "Script died, fail." << endl;
+    m_dead = true;
 }
 
 void 
@@ -91,6 +93,7 @@ gateway_script::send_input(string s)
 void
 gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
+    if(m_dead) return;
     ostringstream o;
     using namespace json_spirit;
     write_formatted( rq->get_json(), o );
@@ -99,5 +102,7 @@ gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
     send_input(s);
 }
+
+EXPORT_DYNAMIC_CLASS( gateway_script )
 
 }}
