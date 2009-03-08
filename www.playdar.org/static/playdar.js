@@ -27,10 +27,13 @@ Playdar.prototype = {
     stat_timeout: 2000,
     web_host: "http://www.playdar.org",
     
-    show_status: function (text, bg) {
+    show_status: function (text, bg, colour) {
         var self = this;
         if (!bg) {
             var bg = "cbdab1";
+        }
+        if (!colour) {
+            var colour = "517e09";
         }
         if (!Playdar.status_bar) {
             var table = document.createElement("table");
@@ -43,12 +46,12 @@ Playdar.prototype = {
             table.style.width = '100%';
             table.style.height = '31px';
             table.style.borderTop = '1px solid #bbb';
-            table.style.color = "#517e09";
             table.style.font = 'normal 10px/16px "Verdana", sans-serif';
             
             var tbody = document.createElement("tbody");
             Playdar.status_bar = document.createElement("tr");
         }
+        table.style.color = "#" + colour;
         table.style.background = '#' + bg;
         
         if (!this.status_area) {
@@ -61,7 +64,7 @@ Playdar.prototype = {
             
             Playdar.status_bar.appendChild(this.status_area);
         }
-        this.status_message.innerHTML = text + " | ";
+        this.status_message.innerHTML = text;
         
         this.query_count = document.createElement("span");
         this.status_message.appendChild(this.query_count);
@@ -162,7 +165,7 @@ Playdar.prototype = {
             this.show_detected_message();
         },
         not_detected: function () {
-            this.show_status("Playdar not detected.", 'F0D3C3');
+            this.show_status("Playdar not detected.", 'f0d3c3', 'a00100');
         },
         stat_complete: function (detected) {
             return detected;
@@ -366,7 +369,7 @@ Playdar.prototype = {
     
     show_resolution_status: function () {
         if (this.query_count) {
-            var status = "Resolved: " + this.success_count + "/" + this.request_count;
+            var status = " | Resolved: " + this.success_count + "/" + this.request_count;
             if (this.pending_count) {
                 status += ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ' + this.pending_count;
             }
