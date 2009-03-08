@@ -21,7 +21,7 @@ Playdar.create = function (handlers) {
 Playdar.status_bar = null;
 
 Playdar.prototype = {
-    lib_version: "0.3.1",
+    lib_version: "0.3.2",
     server_root: "localhost",
     server_port: "8888",
     stat_timeout: 2000,
