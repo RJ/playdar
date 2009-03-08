@@ -114,7 +114,7 @@ playdar.soundmanager = soundManager;
 <pre><code>// Register a set of result sids for streaming with SoundManager
 // register_stream passes options onto SM createSound
 for (var i = 0; i < results.length; i++) {
-    playdar.register_stream(results[i].sid, {
+    playdar.register_stream(results[i], {
         onstop: function () {
             // 'this' refers to the SM Sound object
             alert('Stopped playing sound: ' + this.sID);

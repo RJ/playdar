@@ -33,81 +33,111 @@ Playdar.prototype = {
             var bg = "cbdab1";
         }
         if (!Playdar.status_bar) {
-            Playdar.status_bar = document.createElement("div");
-            Playdar.status_bar.style.position = 'fixed';
-            Playdar.status_bar.style.bottom = 0;
-            Playdar.status_bar.style.left = 0;
-            Playdar.status_bar.style.width = '100%';
-            Playdar.status_bar.style.height = '31px';
-            Playdar.status_bar.style.textIndent = '1px';
-            Playdar.status_bar.style.borderTop = '1px solid #bbb';
-            Playdar.status_bar.style.color = '#000';
-            Playdar.status_bar.style.font = 'normal 10px/16px "Verdana", sans-serif';
+            var table = document.createElement("table");
+            table.setAttribute('cellpadding', 0);
+            table.setAttribute('cellspacing', 0);
+            table.setAttribute('border', 0);
+            table.style.position = 'fixed';
+            table.style.bottom = 0;
+            table.style.left = 0;
+            table.style.width = '100%';
+            table.style.height = '31px';
+            table.style.borderTop = '1px solid #bbb';
+            table.style.color = "#517e09";
+            table.style.font = 'normal 10px/16px "Verdana", sans-serif';
+            
+            var tbody = document.createElement("tbody");
+            Playdar.status_bar = document.createElement("tr");
         }
-        Playdar.status_bar.style.background = '#' + bg;
+        table.style.background = '#' + bg;
         
-        if (!this.status_message) {
+        if (!this.status_area) {
+            this.status_area = document.createElement("td");
+            this.status_area.style.padding = "7px";
+            
             this.status_message = document.createElement("p");
-            this.status_message.style.padding = "7px";
             this.status_message.style.margin = "0";
-            this.status_message.style.cssFloat = "left";
-            Playdar.status_bar.appendChild(this.status_message);
+            this.status_area.appendChild(this.status_message);
+            
+            Playdar.status_bar.appendChild(this.status_area);
         }
-        this.status_message.innerHTML = text;
+        this.status_message.innerHTML = text + " | ";
         
-        if (!this.play_progress) {
-            this.play_progress = document.createElement("div");
-            this.play_progress_width = 200;
-            this.play_progress.style.width = this.play_progress_width + "px";
-            this.play_progress.style.height = "9px";
-            this.play_progress.style.margin = "10px 10px 9px 10px";
-            this.play_progress.style.cssFloat = "left";
-            this.play_progress.style.border = "1px solid #517e09";
-            this.play_progress.style.background = "#fff";
-            this.play_progress.style.position = "relative";
-            this.play_progress.style.display = "none";
+        this.query_count = document.createElement("span");
+        this.status_message.appendChild(this.query_count);
+        
+        if (!this.nowplaying) {
+            this.nowplaying = document.createElement("td");
+            this.nowplaying.style.padding = "7px";
+            this.nowplaying.style.width = "400px";
+            this.nowplaying.style.textAlign = "center";
+            
+            Playdar.status_bar.appendChild(this.nowplaying);
+        }
+        
+        if (!this.playstate) {
+            this.playstate = document.createElement("td");
+            this.playstate.style.padding = "7px";
+            this.playstate.style.visibility = "hidden";
+            
+            var playback_table = document.createElement("table");
+            playback_table.setAttribute('cellpadding', 0);
+            playback_table.setAttribute('cellspacing', 0);
+            playback_table.setAttribute('border', 0);
+            playback_table.style.cssFloat = "right";
+            playback_table.style.color = "#517e09";
+            playback_table.style.font = 'normal 10px/16px "Verdana", sans-serif';
+            var playback_tbody = document.createElement("tbody");
+            var playback_row = document.createElement("tr");
+            
+            this.track_progress = document.createElement("td");
+            this.track_progress.style.verticalAlign = "middle";
+            playback_row.appendChild(this.track_progress);
+            
+            
+            var progress_cell = document.createElement("td");
+            progress_cell.style.padding = "0 5px";
+            progress_cell.style.verticalAlign = "middle";
+            
+            this.progress_bar_width = 200;
+            var progress_bar = document.createElement("div");
+            progress_bar.style.width = this.progress_bar_width + "px";
+            progress_bar.style.height = "9px";
+            progress_bar.style.border = "1px solid #517e09";
+            progress_bar.style.background = "#fff";
+            progress_bar.style.position = "relative";
             
             this.bufferhead = document.createElement("div");
             this.bufferhead.style.position = "absolute";
             this.bufferhead.style.width = 0;
             this.bufferhead.style.height = "9px";
             this.bufferhead.style.background = "#e1f1c5";
-            this.play_progress.appendChild(this.bufferhead);
+            progress_bar.appendChild(this.bufferhead);
             
             this.playhead = document.createElement("div");
             this.playhead.style.position = "absolute";
             this.playhead.style.width = 0;
             this.playhead.style.height = "9px";
             this.playhead.style.background = "#98be3d";
-            this.play_progress.appendChild(this.playhead);
+            progress_bar.appendChild(this.playhead);
             
-            this.play_progress.onclick = function () {
+            progress_bar.onclick = function () {
                 if (self.nowplayingid) {
                     self.play_stream(self.nowplayingid);
                 }
             };
-            Playdar.status_bar.appendChild(this.play_progress);
-        }
-        
-        if (!this.nowplaying) {
-            this.nowplaying = document.createElement("p");
-            this.nowplaying.style.padding = "8px 0 7px 0";
-            this.nowplaying.style.margin = "0 0 0 -5px";
-            this.nowplaying.style.cssFloat = "left";
-            this.nowplaying.style.color = "#517e09";
-            this.nowplaying.onclick = function () {
-                if (self.nowplayingid) {
-                    self.play_stream(self.nowplayingid);
-                }
-            };
-            Playdar.status_bar.appendChild(this.nowplaying);
-        }
-        
-        if (!this.query_count) {
-            this.query_count = document.createElement("span");
-            this.query_count.style.cssFloat = "right";
-            this.query_count.style.margin = "7px";
-            Playdar.status_bar.insertBefore(this.query_count, Playdar.status_bar.firstChild);
+            progress_cell.appendChild(progress_bar);
+            playback_row.appendChild(progress_cell);
+            
+            this.track_length = document.createElement("td");
+            this.track_length.style.verticalAlign = "middle";
+            playback_row.appendChild(this.track_length);
+            
+            playback_tbody.appendChild(playback_row);
+            playback_table.appendChild(playback_tbody);
+            this.playstate.appendChild(playback_table);
+            
+            Playdar.status_bar.appendChild(this.playstate);
         }
         
         var marginBottom = document.body.style.marginBottom;
@@ -118,7 +148,10 @@ Playdar.prototype = {
             }
         }
         document.body.style.marginBottom = (marginBottom.replace('px', '') - 0) + 31 + 'px';
-        document.body.appendChild(Playdar.status_bar);
+        
+        tbody.appendChild(Playdar.status_bar);
+        table.appendChild(tbody);
+        document.body.appendChild(table);
     },
     
     // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
@@ -333,11 +366,10 @@ Playdar.prototype = {
     
     show_resolution_status: function () {
         if (this.query_count) {
-            var status = "";
+            var status = "Resolved: " + this.success_count + "/" + this.request_count;
             if (this.pending_count) {
-                status += 'Searching: ' + this.pending_count + ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ';
+                status += ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ' + this.pending_count;
             }
-            status += "Resolved: " + this.success_count + "/" + this.request_count;
             this.query_count.innerHTML = status;
         }
     },
@@ -367,24 +399,34 @@ Playdar.prototype = {
     // STREAMING WITH SOUNDMANAGER
     
     titles: {},
+    durations: {},
     register_stream: function (result, options) {
         if (!this.soundmanager) {
             return false;
         }
         
-        var title = Playdar.mmss(result.duration) + "&nbsp;&nbsp;"
+        var stream_url = this.get_stream_url(result.sid);
+        var title = '<a href="' + stream_url + '" title="' + result.source + '">'
                   + result.artist + " - " + result.track
-                  + " (" + result.source + ")";
+                  + '</a>';
+        this.durations[result.sid] = Playdar.mmss(result.duration);
         this.titles[result.sid] = title;
         
         if (!options) {
             var options = {};
         }
         options.id = result.sid;
-        options.url = this.get_stream_url(result.sid);
+        options.url = stream_url;
         var self = this;
         options.whileplaying = function () {
-            if (self.play_progress) {
+            if (self.playstate) {
+                // Update the track duration
+                self.track_length.innerHTML = self.durations[this.sID];
+                
+                // Update the track progress
+                self.track_progress.innerHTML = Playdar.mmss(Math.round(this.position/1000));
+                
+                // Update the playback progress bar
                 var duration;
                 if (this.readyState == 3) { // loaded/success
                     duration = this.duration;
@@ -392,19 +434,19 @@ Playdar.prototype = {
                     duration = this.durationEstimate;
                 }
                 var portion_played = this.position/duration;
-                self.play_progress.style.display = "block";
-                self.playhead.style.width = Math.round(portion_played*self.play_progress_width) + "px";
+                self.playstate.style.visibility = "visible";
+                self.playhead.style.width = Math.round(portion_played*self.progress_bar_width) + "px";
                 
+                // Update the track title
                 self.nowplaying.innerHTML = self.titles[this.sID];
             }
         };
         options.whileloading = function () {
-            if (self.play_progress) {
+            if (self.playstate) {
+                // Update the loading progress bar
                 var buffered = this.bytesLoaded/this.bytesTotal;
-                self.play_progress.style.display = "block";
-                self.bufferhead.style.width = Math.round(buffered*self.play_progress_width) + "px";
-                
-                self.nowplaying.innerHTML = self.titles[this.sID];
+                self.playstate.style.visibility = "visible";
+                self.bufferhead.style.width = Math.round(buffered*self.progress_bar_width) + "px";
             }
         };
         var sound = this.soundmanager.createSound(options);
@@ -427,8 +469,8 @@ Playdar.prototype = {
         if (this.soundmanager) {
             this.soundmanager.stopAll();
         }
-        if (this.play_progress) {
-            this.play_progress.style.display = "none";
+        if (this.playstate) {
+            this.playstate.style.visibility = "hidden";
         }
         if (this.nowplaying) {
             this.nowplaying.innerHTML = "";
