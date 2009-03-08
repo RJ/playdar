@@ -5,7 +5,7 @@ SET(CMAKE_MODULE_PATH "CMakeModules")
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options)
 FIND_PACKAGE(OsspUuid)
-#FIND_PACKAGE(Uriparser 0.7.0)
+FIND_PACKAGE(Uriparser 0.7.0)
 FIND_PACKAGE(Sqlite3)
 
 INCLUDE_DIRECTORIES(#${URIPARSER_INCLUDE_DIR}
@@ -21,8 +21,8 @@ INCLUDE_DIRECTORIES(#${URIPARSER_INCLUDE_DIR}
                     deps/pdl-0.3.0/include      # x-platform dynamic loading of libraries
                    )
 
-LINK_DIRECTORIES(/usr/local/lib) # for uriparser
-
+# Always check local/lib first:
+LINK_DIRECTORIES(/usr/local/lib) 
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
