@@ -192,27 +192,12 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                     break;
                 }
 
-                query_uid qid = app()->resolver()->dispatch(rq, true);
-                vector< boost::shared_ptr<PlayableItem> > pis = app()->resolver()->get_results(qid);
-                // TODO end/delete query
-                // Format results as JSON and respond:
-                if(pis.size()>0){
-                    BOOST_FOREACH(boost::shared_ptr<PlayableItem> & pip, pis)
-                    {
-                        Object response;
-                        response.push_back( Pair("qid", qid) );
-                        Object result = pip->get_json();
-                        //result.push_back( Pair("url", url) ); 
-                        response.push_back( Pair("result", result) );
-                        ostringstream ss;
-                        write_formatted( response, ss );
-                        cout << "LAN_UDP: Sending response: " 
-                             << pip->score() << endl;
-                        async_send(&sender_endpoint_, ss.str());
-                    }
-                }else{
-                    cout << "LAN_UDP: Not responding, nothing matched." << endl;
-                }   
+                // dispatch query with our callback that will
+                // respond to the searcher via UDP.
+                rq_callback_t cb =
+                 boost::bind(&lan_udp::send_response, this, _1, _2,
+                             sender_endpoint_);
+                query_uid qid = app()->resolver()->dispatch(rq, cb);
             }
             else if(r.find("qid")!=r.end()) // RESPONSE 
             {
@@ -271,5 +256,26 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
         cerr << "Some error for udp" << endl;
     }
 }
+
+// fired when a new result is available for a running query:
+void
+lan_udp::send_response( query_uid qid, 
+                        boost::shared_ptr<PlayableItem> pip,
+                        boost::asio::ip::udp::endpoint sep )
+{
+    cout << "LAN_UDP responding for " << qid << " to: " 
+         << sep.address().to_string() 
+         << " score: " << pip->score()
+         << endl;
+    using namespace json_spirit;
+    Object response;
+    response.push_back( Pair("qid", qid) );
+    Object result = pip->get_json();
+    response.push_back( Pair("result", result) );
+    ostringstream ss;
+    write_formatted( response, ss );
+    async_send(&sep, ss.str());
+}
+
 
 }}

@@ -84,7 +84,8 @@ Resolver::load_resolvers()
 // start resolving! (non-blocking)
 // returns a query_uid so you can check status of this query later
 query_uid 
-Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = false */) 
+Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
+                    bool local_only/* = false */) 
 {
     if(!rq->valid())
     {
@@ -113,7 +114,47 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     return rq->id();
 }
 
+query_uid 
+Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
+                    rq_callback_t cb) 
+{
+    if(!rq->valid())
+    {
+        throw;
+    }
+    if(!add_new_query(rq))
+    {
+        return rq->id();
+    }
+    cout << "RESOLVER: dispatch-with-cb("<< rq->id() <<"): " 
+         << rq->str() << "  [mode:"<< rq->mode() <<"]" << endl;
+         
+    rq->register_callback(cb);
+    
+    // do the local library (blocking) resolver, because it's quick:
+    m_rs_local->start_resolving(rq);
+    
+    if(!rq->solved())
+    {
+        // these calls shouldn't block!
+        BOOST_FOREACH(ResolverService * rs, m_resolvers)
+        {
+            if(rs) rs->start_resolving(rq);
+        }
+    }
+    return rq->id();
+}
 
+
+
+
+void 
+Resolver::register_callback(query_uid qid, rq_callback_t cb)
+{
+    boost::mutex::scoped_lock lock(m_mut);
+    if(query_exists(qid)) return;
+    m_queries[qid]->register_callback(cb);
+}
 
 // a resolver will report results here
 // false means give up on this query, it's over

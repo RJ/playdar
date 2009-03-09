@@ -38,6 +38,10 @@ class lan_udp : public ResolverService
         const boost::asio::ip::address& multicast_address,
         const short multicast_port);
     
+    void send_response( query_uid qid, 
+                        boost::shared_ptr<PlayableItem> pip,
+                        boost::asio::ip::udp::endpoint sep );
+                        
 protected:    
     ~lan_udp() throw();
     

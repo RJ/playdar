@@ -37,7 +37,6 @@ void start_http_server(string ip, int port, int conc, MyApplication *app)
 int main(int ac, char *av[])
 {
     try {
-        int opt;
         po::options_description generic("Generic options");
         generic.add_options()
             ("config,c",    po::value<string>(),

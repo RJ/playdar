@@ -7,6 +7,7 @@
 
 #include "application/types.h"
 #include "application/config.hpp"
+#include "resolvers/playable_item.h"
 #include <boost/thread.hpp>
 
 #include <boost/program_options.hpp>
