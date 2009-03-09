@@ -9,7 +9,7 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <cassert>
 #include <boost/lexical_cast.hpp>
-
+#include <cassert>
 
 #include "darknet.h"
 #include "msgs.h"
@@ -204,54 +204,49 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
         //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
         return true;
     }
-    
-    query_uid qid = app()->resolver()->dispatch(rq, true);
-    vector< boost::shared_ptr<PlayableItem> > pis = app()->resolver()->get_results(qid);
 
-    if(pis.size()>0)
-    {
-        BOOST_FOREACH(boost::shared_ptr<PlayableItem> & pip, pis)
-        {
-            Object response;
-            response.push_back( Pair("qid", qid) );
-            response.push_back( Pair("result", pip->get_json()) );
-            ostringstream ss;
-            write_formatted( response, ss );
-            msg_ptr resp(new LameMsg(ss.str(), SEARCHRESULT));
-            send_msg(conn, resp);
-        }
-    }
-    // if we didn't just solve it, fwd to our peers, after delay.
+    // register source for this query, so we know where to 
+    // send any replies to.
+    set_query_origin(rq->id(), conn);
+
+    // dispatch search with our callback handler:
+    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2, msg);
+    query_uid qid = app()->resolver()->dispatch(rq, cb);
     
-    if(!rq->solved())
-    {
-        // register source for this query, so we know where to 
-        // send any replies to.
-        set_query_origin(qid, conn);
-        cout << "Darknet: Query not solved, will fwd it after delay.." << endl;
-        boost::shared_ptr<boost::asio::deadline_timer> 
-            t(new boost::asio::deadline_timer( m_work->get_io_service() ));
-        t->expires_from_now(boost::posix_time::milliseconds(100));
-        // pass the timer pointer to the handler so it doesnt autodestruct:
-        t->async_wait(boost::bind(&darknet::fwd_search, this,
-                                 boost::asio::placeholders::error, 
-                                 conn, msg, t));
-    }
+    assert(rq->id() == qid);
     
-    
+    /*
+        schedule search to be fwded to our peers - this will abort if
+        the query has been solved before it fires anyway.
+          
+        The 100ms delay is intentional - it means cancellation messages
+        can reach the search frontier immediately (fwded with no delay)
+    */
+    boost::shared_ptr<boost::asio::deadline_timer> 
+        t(new boost::asio::deadline_timer( m_work->get_io_service() ));
+    t->expires_from_now(boost::posix_time::milliseconds(100));
+    // pass the timer pointer to the handler so it doesnt autodestruct:
+    t->async_wait(boost::bind(&darknet::fwd_search, this,
+                                boost::asio::placeholders::error, 
+                                conn, msg, t, qid));
+
     return true;
 }
 
 void
 darknet::fwd_search(const boost::system::error_code& e,
                      connection_ptr conn, msg_ptr msg,
-                     boost::shared_ptr<boost::asio::deadline_timer> t)
+                     boost::shared_ptr<boost::asio::deadline_timer> t,
+                     query_uid qid)
 {
     if(e)
     {
         cout << "Error from timer, not fwding: "<< e.value() << " = " << e.message() << endl;
         return;
     }
+    // bail if already solved (probably from our locallibrary resolver)
+    if(app()->resolver()->rq(qid)->solved()) return;
+    
     // TODO check search is still active
     cout << "Forwarding search.." << endl;
     typedef std::pair<string,connection_ptr> pair_t;
@@ -264,6 +259,22 @@ darknet::fwd_search(const boost::system::error_code& e,
         }
         cout << "\tFwding to: " << item.first << endl;
         send_msg(item.second, msg);
+    }
+}
+
+// fired when a new result is available for a running query:
+void
+darknet::send_response( query_uid qid, 
+                        boost::shared_ptr<PlayableItem> pip,
+                        msg_ptr msg)
+{
+    connection_ptr origin_conn = get_query_origin(qid);
+    // relay result if the originating connection still active:
+    if(origin_conn)
+    {
+        cout << "Relaying search result to " 
+             << origin_conn->username() << endl;
+        send_msg(origin_conn, msg);
     }
 }
 
@@ -307,22 +318,7 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     vector< boost::shared_ptr<PlayableItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr);
-    /*
-        Fwd search result to query origin.
-        
-        NB we have already done "report_results", so when the origin
-        asks us for the SID, we know about it and can respond 
-        accordingly. In this way, search results and streaming is
-        passed back along the chain to the origin, with each node
-        on the path proxing the data and hiding the previous node.
-    */
-    connection_ptr origin_conn = get_query_origin(qid);
-    if(origin_conn)
-    {
-        cout << "Relaying search result to " 
-             << origin_conn->username() << endl;
-        send_msg(origin_conn, msg);
-    }
+    // we've already setup a callback, which will be fired when we call report_results.    
     return true;
 }
 
