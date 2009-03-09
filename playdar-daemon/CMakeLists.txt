@@ -41,9 +41,9 @@ INCLUDE(InstallRequiredSystemLibraries)
 ADD_DEFINITIONS(-Wall -ggdb) 
 
 # PDL doesn't know apple mac = posix, this tells it:
-IF(apple)
+IF(APPLE)
     ADD_DEFINITIONS(-Dunix)
-ENDIF(apple)
+ENDIF(APPLE)
 
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/scanner/scanner.cpp
