@@ -3,6 +3,7 @@ ADD_LIBRARY(    darknet SHARED
                 servent.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
+                ${PLAYDAR_PATH}/src/resolvers/resolver_service.cpp
             )
 #
 # Ensure the shared library file is called <CLASS NAME>.resolver

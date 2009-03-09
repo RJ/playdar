@@ -2,6 +2,7 @@ ADD_LIBRARY(    lan_udp SHARED
                 lan_udp.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
+                ${PLAYDAR_PATH}/src/resolvers/resolver_service.cpp
             )
 
 #

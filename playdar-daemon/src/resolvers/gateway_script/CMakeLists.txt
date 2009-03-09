@@ -4,6 +4,7 @@ ADD_LIBRARY(    gateway_script SHARED
                 gateway_script.cpp
                 ${PLAYDAR_PATH}/src/application/application.cpp
                 ${PLAYDAR_PATH}/src/resolvers/playable_item.cpp
+                ${PLAYDAR_PATH}/src/resolvers/resolver_service.cpp
             )
 #
 # Ensure the shared library file is called <CLASS NAME>.resolver
