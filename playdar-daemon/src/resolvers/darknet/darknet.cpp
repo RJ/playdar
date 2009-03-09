@@ -10,53 +10,45 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 
-#include "resolvers/darknet/rs_darknet.h"
 
-#include "resolvers/darknet/msgs.h"
-#include "resolvers/darknet/servent.h"
+#include "darknet.h"
+#include "msgs.h"
+#include "servent.h"
+#include "ss_darknet.h"
 
-#include "resolvers/darknet/ss_darknet.h"
 
-/*
-testing with 2 instances, one alternative collection.db
-
-./bin/playdar -c etc/playdar.ini --app.name silverstone --app.private_ip 192.168.1.72 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip ""
-
-./bin/playdar -c etc/playdar.ini --app.db ./collection-small.db --app.name silverstone2 --app.private_ip 127.0.0.1 --resolver.lan_udp.enabled no --resolver.darknet.enabled yes --resolver.darknet.remote_ip 127.0.0.1 --resolver.darknet.remote_port 9999 --resolver.darknet.port 9998 --app.http_port 8899
-
-*/
-using namespace playdar::darknet;
-
-RS_darknet::RS_darknet(MyApplication * a)
-    : ResolverService(a)
-{
-    init();
-}
+using namespace playdar::resolvers;
 
 void
-RS_darknet::init()
+darknet::init(playdar::Config * c, MyApplication * a)
 {
-    unsigned short port = app()->popt()["resolver.darknet.port"].as<int>();
-    m_io_service    = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
-    m_work = boost::shared_ptr<boost::asio::io_service::work>(new boost::asio::io_service::work(*m_io_service));
-    m_servent = boost::shared_ptr< Servent >(new Servent(*m_io_service, port, this));
+    m_app  = a;
+    m_conf = c;
+    unsigned short port = conf()->get<int>("plugins.darknet.port",9999);
+    m_io_service = boost::shared_ptr<boost::asio::io_service>
+                   (new boost::asio::io_service);
+    m_work = boost::shared_ptr<boost::asio::io_service::work>
+             (new boost::asio::io_service::work(*m_io_service));
+    m_servent = boost::shared_ptr< Servent >
+                (new Servent(*m_io_service, port, this));
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
     
-    boost::thread_group threads;
-    for (std::size_t i = 0; i < 10; ++i)
+    boost::thread_group threads; // TODO configurable threads?
+    for (std::size_t i = 0; i < 5; ++i)
     {
         threads.create_thread(boost::bind(
             &boost::asio::io_service::run, m_io_service.get()));
     }
-    //boost::thread thr(boost::bind(&RS_darknet::start_io, this, m_io_service));
  
-    // get peers:
-    if(app()->popt()["resolver.darknet.remote_ip"].as<string>().length())
+    // get peers: TODO support multiple/list from config
+    string remote_ip = conf()->get<string>("plugins.darknet.peerip","");
+    if(remote_ip!="")
     {
-        string remote_ip = app()->popt()["resolver.darknet.remote_ip"].as<string>();
-        unsigned short remote_port = app()->popt()["resolver.darknet.remote_port"].as<int>();
-        cout << "Attempting peer connect: " << remote_ip << ":" << remote_port << endl;
+        unsigned short remote_port = conf()->get<int>
+                                     ("plugins.darknet.peerport",9999);
+        cout << "Attempting peer connect: " 
+             << remote_ip << ":" << remote_port << endl;
         boost::asio::ip::address_v4 ipaddr = boost::asio::ip::address_v4::from_string(remote_ip);
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
@@ -64,7 +56,7 @@ RS_darknet::init()
 }
 
 void
-RS_darknet::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+darknet::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
     Object jq = rq->get_json();
@@ -77,37 +69,37 @@ RS_darknet::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 /// ---
 
 bool 
-RS_darknet::new_incoming_connection( connection_ptr conn )
+darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(app()->name(), WELCOME));
+    msg_ptr lm(new LameMsg(conf()->get<string>("name"), WELCOME));
     send_msg(conn, lm);
     return true;
 }
 
 bool 
-RS_darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::endpoint &endpoint )
+darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::endpoint &endpoint )
 {
     cout << "New connection to remote servent setup." << endl;
     return true;
 }
 
 void
-RS_darknet::send_identify(connection_ptr conn )
+darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(app()->name(), IDENTIFY));
+    msg_ptr lm(new LameMsg(conf()->get<string>("name"), IDENTIFY));
     send_msg(conn, lm);
 }
 
 void 
-RS_darknet::write_completed(connection_ptr conn, msg_ptr msg)
+darknet::write_completed(connection_ptr conn, msg_ptr msg)
 {
     // Nothing to do really.
     //std::cout << "write_completed("<< msg->toString() <<")" << endl;
 }
 
 void
-RS_darknet::connection_terminated(connection_ptr conn)
+darknet::connection_terminated(connection_ptr conn)
 {
 	cout << "Connection terminated: " << conn->username() << endl;
 	unregister_connection(conn->username());
@@ -119,7 +111,7 @@ RS_darknet::connection_terminated(connection_ptr conn)
 /// Typically a new message just arrived.
 /// @return true if connection should remain open
 bool 
-RS_darknet::handle_read(   const boost::system::error_code& e, 
+darknet::handle_read(   const boost::system::error_code& e, 
                     msg_ptr msg, 
                     connection_ptr conn)
 {
@@ -171,12 +163,12 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
             return handle_searchresult(conn, msg);
         case SIDREQUEST:
             m_io_service->post( boost::bind( 
-                &RS_darknet::handle_sidrequest, this,
+                &darknet::handle_sidrequest, this,
                 conn, msg ));
             return true;
         case SIDDATA:
             //m_io_service->post( boost::bind( 
-            //    &RS_darknet::handle_siddata, this, conn, msg));
+            //    &darknet::handle_siddata, this, conn, msg));
             handle_siddata(conn,msg);
             return true;
         default:
@@ -186,7 +178,7 @@ RS_darknet::handle_read(   const boost::system::error_code& e,
 }
 
 bool
-RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
+darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
 {
     using namespace json_spirit;
     boost::shared_ptr<ResolverQuery> rq;
@@ -241,7 +233,7 @@ RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
             t(new boost::asio::deadline_timer( m_work->get_io_service() ));
         t->expires_from_now(boost::posix_time::milliseconds(100));
         // pass the timer pointer to the handler so it doesnt autodestruct:
-        t->async_wait(boost::bind(&RS_darknet::fwd_search, this,
+        t->async_wait(boost::bind(&darknet::fwd_search, this,
                                  boost::asio::placeholders::error, 
                                  conn, msg, t));
     }
@@ -251,7 +243,7 @@ RS_darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
 }
 
 void
-RS_darknet::fwd_search(const boost::system::error_code& e,
+darknet::fwd_search(const boost::system::error_code& e,
                      connection_ptr conn, msg_ptr msg,
                      boost::shared_ptr<boost::asio::deadline_timer> t)
 {
@@ -276,7 +268,7 @@ RS_darknet::fwd_search(const boost::system::error_code& e,
 }
 
 bool
-RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
+darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
     //cout << "Got search result: " << msg->toString() << endl;
     using namespace json_spirit;
@@ -336,7 +328,7 @@ RS_darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 
 // asks remote host to start streaming us data for this sid
 void
-RS_darknet::start_sidrequest(connection_ptr conn, source_uid sid, 
+darknet::start_sidrequest(connection_ptr conn, source_uid sid, 
                              boost::function<bool (msg_ptr)> handler)
 {
     m_sidhandlers[sid] = handler;
@@ -346,7 +338,7 @@ RS_darknet::start_sidrequest(connection_ptr conn, source_uid sid,
 
 // a peer has asked us to start streaming something:
 bool
-RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
+darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
     source_uid sid = msg->payload();
     cout << "Darknet request for sid: " << sid << endl;
@@ -401,7 +393,7 @@ RS_darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 }
 
 bool
-RS_darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
+darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
 {
     // first part of payload is sid_header:
     sid_header sheader;
@@ -422,7 +414,7 @@ RS_darknet::handle_siddata(connection_ptr conn, msg_ptr msg)
 
 /// sends search query to all connections.
 void
-RS_darknet::start_search(msg_ptr msg)
+darknet::start_search(msg_ptr msg)
 {
     //cout << "Searching... " << msg->toString() << endl;
     typedef std::pair<string,connection_ptr> pair_t;
@@ -435,7 +427,7 @@ RS_darknet::start_search(msg_ptr msg)
 
 /// associate username->conn
 void
-RS_darknet::register_connection(string username, connection_ptr conn)
+darknet::register_connection(string username, connection_ptr conn)
 {
     cout << "Registered connection for: " << username << endl;
     m_connections[username]=conn;
@@ -444,13 +436,13 @@ RS_darknet::register_connection(string username, connection_ptr conn)
 }
 
 void 
-RS_darknet::unregister_connection(string username)
+darknet::unregister_connection(string username)
 {
     m_connections.erase(username);
 }
 
 void 
-RS_darknet::send_msg(connection_ptr conn, msg_ptr msg)
+darknet::send_msg(connection_ptr conn, msg_ptr msg)
 {
     // msg is passed thru to the callback, so it stays referenced and isn't GCed until sent.
     conn->async_write(msg);/*,
@@ -458,3 +450,4 @@ RS_darknet::send_msg(connection_ptr conn, msg_ptr msg)
                       boost::asio::placeholders::error, conn, msg));*/
 }
 
+EXPORT_DYNAMIC_CLASS( darknet )

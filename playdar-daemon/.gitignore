@@ -7,3 +7,4 @@ bin
 cmake_install.cmake
 build
 install_manifest.txt
+*~

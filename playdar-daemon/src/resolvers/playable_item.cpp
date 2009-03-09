@@ -34,22 +34,41 @@ PlayableItem::from_json(json_spirit::Object resobj)
     map<string,Value> resobj_map;
     obj_to_map(resobj, resobj_map);
         
-    if(resobj_map.find("artist")!=resobj_map.end())     artist  = resobj_map["artist"].get_str();
-    if(resobj_map.find("album")!=resobj_map.end())      album   = resobj_map["album"].get_str();
-    if(resobj_map.find("track")!=resobj_map.end())      track   = resobj_map["track"].get_str();
-    if(resobj_map.find("sid")!=resobj_map.end())        sid     = resobj_map["sid"].get_str();
-    if(resobj_map.find("source")!=resobj_map.end())     source  = resobj_map["source"].get_str();
-    if(resobj_map.find("mimetype")!=resobj_map.end())   mimetype= resobj_map["mimetype"].get_str();
+    if(resobj_map.find("artist")!=resobj_map.end())
+        artist  = resobj_map["artist"].get_str();
+        
+    if(resobj_map.find("album")!=resobj_map.end())
+        album   = resobj_map["album"].get_str();
+        
+    if(resobj_map.find("track")!=resobj_map.end())
+        track   = resobj_map["track"].get_str();
+        
+    if(resobj_map.find("sid")!=resobj_map.end())
+        sid     = resobj_map["sid"].get_str();
+        
+    if(resobj_map.find("source")!=resobj_map.end())
+        source  = resobj_map["source"].get_str();
+        
+    if(resobj_map.find("mimetype")!=resobj_map.end())
+        mimetype= resobj_map["mimetype"].get_str();
+        
     
-    if(resobj_map.find("size")!=resobj_map.end())       size    = resobj_map["size"].get_int();
-    if(resobj_map.find("bitrate")!=resobj_map.end())    bitrate = resobj_map["bitrate"].get_int();
-    if(resobj_map.find("duration")!=resobj_map.end())   duration= resobj_map["duration"].get_int();
+    if(resobj_map.find("size")!=resobj_map.end())
+        size    = resobj_map["size"].get_int();
+        
+    if(resobj_map.find("bitrate")!=resobj_map.end())
+        bitrate = resobj_map["bitrate"].get_int();
+        
+    if(resobj_map.find("duration")!=resobj_map.end())
+        duration= resobj_map["duration"].get_int();
     
-    if(resobj_map.find("score")!=resobj_map.end())      score   = (float)resobj_map["score"].get_real();
+    if(resobj_map.find("score")!=resobj_map.end())
+        score   = (float)resobj_map["score"].get_real();
     
     if(!artist.length() && !track.length()) throw;
     
-    boost::shared_ptr<PlayableItem> pip( new PlayableItem(artist, album, track) );
+    boost::shared_ptr<PlayableItem> 
+        pip( new PlayableItem(artist, album, track) );
     
     if(sid.length())        pip->set_id(sid);
     if(source.length())     pip->set_source(source);

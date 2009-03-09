@@ -10,7 +10,7 @@
 using namespace std;
 
 namespace playdar {
-namespace darknet {
+namespace resolvers {
 
 // types of messages:
 const boost::uint32_t    GENERIC         = 0;

@@ -8,7 +8,7 @@ src
 src/application
 src/application/application.cpp
 src/application/application.h
-src/application/appsettings.h
+src/application/config.hpp
 src/application/types.h
 src/library
 src/library/album.h
@@ -32,12 +32,9 @@ src/resolvers/resolver_query.h
 src/resolvers/resolver_service.cpp
 src/resolvers/resolver_service.h
 src/resolvers/rs_http_playdar.h
-src/resolvers/rs_lan_udp.cpp
-src/resolvers/rs_lan_udp.h
 src/resolvers/rs_local_library.cpp
 src/resolvers/rs_local_library.h
 src/resolvers/ss_localfile.h
-src/resolvers/udp_sender.h
 src/scanner
 src/scanner/scanner.cpp
 win32-playdar
