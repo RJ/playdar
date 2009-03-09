@@ -6,10 +6,6 @@
 #include "resolvers/resolver.h"
 
 #include "resolvers/rs_local_library.h"
-//#include "resolvers/rs_lan_udp.h"
-//#include "resolvers/rs_http_playdar.h"
-//#include "resolvers/rs_http_gateway_script.h"
-//#include "resolvers/darknet/rs_darknet.h"
 #include "library/library.h"
 
 #include <DynamicLoader.hpp>
@@ -96,7 +92,7 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     }
     if(!add_new_query(rq))
     {
-        cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
+        //cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
         return rq->id();
     }
     cout << "RESOLVER: dispatch("<< rq->id() <<"): " << rq->str() 
