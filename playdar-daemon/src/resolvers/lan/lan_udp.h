@@ -27,7 +27,7 @@ class lan_udp : public ResolverService
     public:
     lan_udp(){}
     
-    void init(MyApplication * a);
+    void init(playdar::Config * c, MyApplication * a);
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return "LAN/UDP"; }

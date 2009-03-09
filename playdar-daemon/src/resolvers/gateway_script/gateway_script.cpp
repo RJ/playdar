@@ -7,13 +7,24 @@ namespace playdar {
 namespace resolvers {
 
 void
-gateway_script::init(MyApplication * a) 
+gateway_script::init(playdar::Config * c, MyApplication * a) 
 {
-    m_app = a;
+    m_app  = a;
+    m_conf = c;
     m_dead = false;
-    m_scriptpath = "./etc/demo-resolver.php";
-    cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
-    init_worker();
+    m_scriptpath = conf()->get<string>
+                        ("plugins.gateway_script.path","");
+    if(m_scriptpath=="")
+    {
+        cout << "No script path specified. gateway plugin failed." 
+             << endl;
+        m_dead = true;
+    }
+    else
+    {
+        cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
+        init_worker();
+    }
 }
 
 void

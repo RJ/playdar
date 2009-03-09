@@ -14,11 +14,10 @@
 
 using namespace std;
 
-MyApplication::MyApplication(boost::program_options::variables_map opt)
+MyApplication::MyApplication(playdar::Config c)
+    : m_config(c)
 {
-    
-    m_po = opt;
-    string db_path = option<string>("app.db");
+    string db_path = conf()->get<string>("db");
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
     
@@ -27,7 +26,6 @@ MyApplication::MyApplication(boost::program_options::variables_map opt)
     m_work = boost::shared_ptr<boost::asio::io_service::work>
                 (new boost::asio::io_service::work(*m_ios));
     
-    do_auto_config();
 }
 
 MyApplication::~MyApplication()
@@ -35,38 +33,7 @@ MyApplication::~MyApplication()
     delete(m_library);
 }
 
-void
-MyApplication::do_auto_config()
-{
-    cout << "Autodetecting stuff..." << endl;
-    string hostname = boost::asio::ip::host_name();
-    cout << "Hostname: " << hostname << endl;
-    boost::asio::ip::tcp::resolver resolver(*m_ios);
-    boost::asio::ip::tcp::resolver::query 
-        query(hostname, "");
-    boost::asio::ip::tcp::resolver::iterator iter =
-        resolver.resolve(query);
-    boost::asio::ip::tcp::resolver::iterator end_marker;
-    boost::asio::ip::tcp::endpoint ep;
-    boost::asio::ip::address_v4 ipaddr;
-    while (iter != end_marker)
-    { 
-        ep = *iter++;
-        cout << "Found address: " << ep.address().to_string() << endl;
-    }
-    /*
-    ep.port(m_port);
-        }
-        m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>(new tcp::socket(m_io_service));
 
-        boost::system::error_code error = boost::asio::error::host_not_found;
-        m_socket->connect(ep, error);
-        if (error) throw boost::system::system_error(error);
-*/
-
-    
-
-}
 
 string 
 MyApplication::gen_uuid()
@@ -101,78 +68,6 @@ MyApplication::gen_uuid()
     delete(uuid_str);
     return retval;
 }
-
-
-
-template <typename T> T
-MyApplication::option(string o, T def)
-{
-    if(m_po.count(o)==0)
-    {
-        cerr << "Option '"<<  o <<"' not set, using default: " << def << endl;
-        return def;
-    }
-    return m_po[o].as<T>();
-}
-
-template <typename T> T
-MyApplication::option(string o)
-{
-    if(m_po.count(o)==0)
-    {
-        cerr << "WARNING: Option '"<<  o <<"' not set! creating empty value" << endl;
-        T def;
-        return def; 
-    }
-    return m_po[o].as<T>();
-}
-
-
-std::string 
-MyApplication::name()
-{ 
-    return option<string>("app.name"); 
-}
-
-unsigned short 
-MyApplication::http_port() 
-{ 
-    return (unsigned short)(option<int>("app.http_port")); 
-}
-
-unsigned short 
-MyApplication::multicast_port() 
-{ 
-    return (unsigned short)(option<int>("resolver.lan_udp.port"));
-}
-
-boost::asio::ip::address_v4 
-MyApplication::private_ip()
-{
-    //return boost::asio::ip::address_v4::from_string( option<string>("app.private_ip") );
-    return boost::asio::ip::address_v4::from_string("127.0.0.1");
-}
-
-boost::asio::ip::address_v4 
-MyApplication::public_ip()
-{
-    return private_ip();
-}
-
-boost::asio::ip::address_v4 
-MyApplication::multicast_ip()
-{
-    return boost::asio::ip::address_v4::from_string( option<string>("resolver.lan_udp.multicast") );
-}
-
-// get base http url on private network, no trailing slash
-string 
-MyApplication::httpbase()
-{
-    ostringstream s;
-    s << "http://" << private_ip().to_string() << ":" << http_port();
-    return s.str();
-}
     
 Library * 
 MyApplication::library()
@@ -185,7 +80,6 @@ MyApplication::resolver()
 {
     return m_resolver;
 }
-
 
 int 
 MyApplication::levenshtein(const std::string & source, const std::string & target) {

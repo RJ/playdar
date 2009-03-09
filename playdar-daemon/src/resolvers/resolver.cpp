@@ -22,50 +22,16 @@
 #include <boost/filesystem.hpp>
 
 Resolver::Resolver(MyApplication * app)
+    :m_app(app)
 {
-    m_app = app;
     m_id_counter = 0;
-    cout << "Resolver started." << endl;
-    
+    cout << "Resolver starting..." << endl;
+    // Initialize built-in local library resolver:
     m_rs_local = 0;
-
-    
     m_rs_local  = new RS_local_library();
-    m_rs_local->init(app);
-    
+    m_rs_local->init(m_app->conf(), app);
+    // Load all non built-in resolvers:
     load_resolvers();
-    
-/*
-    //TODO dynamic loading at runtime using PDL or Boost.extension
-    if(app->option<string>("resolver.remote_http.enabled")=="yes")
-    {
-        try
-        {
-            string rip = app->option<string>("resolver.remote_http.ip");
-            unsigned short rport = (unsigned short) (app->option<int>("resolver.remote_http.port")); 
-            boost::asio::ip::address_v4 bip = boost::asio::ip::address_v4::from_string(rip);
-            m_rs_http_playdar    = new RS_http_playdar(app, bip, rport);
-        }
-        catch(exception e)
-        {
-            cerr << "Failed to load remote_http resolver: " << e.what() << endl;
-        }
-    }
-    
-    if(app->option<string>("resolver.lan_udp.enabled")=="yes")
-    {
-        m_rs_lan    = new RS_lan_udp(app);
-    }
-    if(app->option<string>("resolver.darknet.enabled")=="yes")
-    {
-        m_rs_darknet    = new RS_darknet(app);
-    }
-    */
-    /*if(app->option<string>("resolver.gateway_http.enabled")=="yes")
-    {
-        m_rs_http_gateway_script = new RS_http_gateway_script(app);
-    }*/
-    
 }
 
 // dynamically load resolver plugins:
@@ -73,22 +39,41 @@ void
 Resolver::load_resolvers()
 {
     namespace bfs = boost::filesystem;
-    cout << "Loading resolver plugins from: ./plugins" << endl;
     bfs::directory_iterator end_itr;
-    bfs::path p("./plugins/");
+    //bfs::path appdir = bfs::initial_path();
+    //bfs::path p(appdir.string() +"/plugins/");
+    bfs::path p("plugins");
+    cout << "Loading resolver plugins from: " 
+         << p.string() << endl;
     for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
     {
         if ( bfs::is_directory(itr->status()) ) continue;
         string pluginfile = itr->string();
-        if(bfs::extension(pluginfile)!=".resolver") continue;
+        if(bfs::extension(pluginfile)!=".resolver")
+        {
+            cerr << "Skipping '" << pluginfile 
+                 << "' from plugins directory" << endl;
+            continue;
+        }
         string classname = bfs::basename(pluginfile);
+        string confopt = "resolvers.";
+        confopt += classname;
+        confopt += ".enabled";
+        if(app()->conf()->get<string>(confopt, "yes") == "no")
+        {
+            cout << "Skipping '" << classname
+                 <<"' - disabled in config file." << endl;
+            continue;
+        }
         try
         {
-            PDL::DynamicLoader & dynamicLoader = PDL::DynamicLoader::Instance();
+            PDL::DynamicLoader & dynamicLoader =
+                PDL::DynamicLoader::Instance();
             cout << "-> Trying: " << pluginfile << endl;
-            ResolverService * instance = dynamicLoader.GetClassInstance< ResolverService >
-                                            ( pluginfile.c_str(), classname.c_str() );
-            instance->init(app());
+            ResolverService * instance = 
+                dynamicLoader.GetClassInstance< ResolverService >
+                    ( pluginfile.c_str(), classname.c_str() );
+            instance->init(app()->conf(), app());
             cout << "-> Loaded: " << instance->name() << endl;
             m_resolvers.push_back(instance);
         }
@@ -98,35 +83,6 @@ Resolver::load_resolvers()
         }
     }
     cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
-
-
-/*
-    using namespace boost::extensions;
-    string library_path = "./plugin.so";
-    shared_library lib(library_path);
-    // Attempt to open the shared library.
-    if (!lib.open()) {
-        std::cerr << "Library failed to open: " << library_path << std::endl;
-        return;
-    }
-    type_map types;
-    if (!lib.call(types)) {
-        std::cerr << "Function not found!" << std::endl;
-        return;
-    }
-    std::map<std::string, factory<ResolverService, MyApplication *> >& factories(types.get());
-    if (factories.empty()) {
-        std::cerr << "No resolvers found found!" << std::endl;
-        return;
-    }    
-    for (std::map<std::string, factory<ResolverService, MyApplication *> >::iterator it
-         = factories.begin();
-       it != factories.end(); ++it) 
-    {
-        std::cout << "Loading: " << it->first << std::endl;
-        boost::scoped_ptr<ResolverService> current_resolver(it->second.create(m_app));
-        std::cout << "Created: " << current_resolver->name() << endl;
-    }*/
 }
 
 // start resolving! (non-blocking)
@@ -224,8 +180,6 @@ Resolver::num_results(query_uid qid)
 bool 
 Resolver::query_exists(const query_uid & qid)
 {
-    //boost::mutex::scoped_lock lock(m_mut);
-    //map< query_uid, boost::shared_ptr<ResolverQuery> >::const_iterator it = m_queries.find(qid);
     return (m_queries.find(qid) != m_queries.end());
 }
 

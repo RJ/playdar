@@ -39,7 +39,7 @@ private:
 
     string sid_to_url(source_uid sid) 
     {
-        string u = app()->httpbase();
+        string u = app()->conf()->httpbase();
         u += "/sid/" + sid;
         return u;
     }

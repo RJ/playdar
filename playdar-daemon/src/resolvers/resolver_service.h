@@ -15,11 +15,16 @@ public:
     ResolverService(){}
     
     
-    virtual void init(MyApplication * a)
+    virtual void init(playdar::Config * c, MyApplication * a)
     {
         m_app = a;
+        m_conf = c;
     }
     
+    virtual const playdar::Config * conf() const
+    {
+        return m_conf;
+    }
 
     virtual std::string name() = 0;
 
@@ -34,6 +39,7 @@ public:
     
 protected:
     virtual ~ResolverService() throw() {  }
+    playdar::Config * m_conf;
     MyApplication * m_app;
 };
 #endif

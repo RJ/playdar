@@ -11,11 +11,15 @@ namespace playdar {
 namespace resolvers {
 
 void
-lan_udp::init(MyApplication * a)
+lan_udp::init(playdar::Config * c, MyApplication * a)
 {
-    m_app = a;
-    broadcast_endpoint_ = new boost::asio::ip::udp::endpoint
-                           (app()->multicast_ip(), app()->multicast_port());
+    m_app  = a;
+    m_conf = c;
+    broadcast_endpoint_ = 
+        new boost::asio::ip::udp::endpoint
+         (  boost::asio::ip::address::from_string
+            (conf()->get<string> ("plugins.lan_udp.multicast")), 
+           conf()->get<int>("plugins.lan_udp.port"));
     boost::thread m_responder_thread(&lan_udp::run, this);
 }
 
@@ -30,7 +34,7 @@ lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
     Object jq;
-    jq.push_back( Pair("from_name", app()->name()) );
+    jq.push_back( Pair("from_name", conf()->get<string>("name")) );
     jq.push_back( Pair("query", rq->get_json()) );
     ostringstream querystr;
     write_formatted( jq, querystr );
@@ -43,8 +47,9 @@ lan_udp::run()
     boost::asio::io_service io_service;
     start_listening(io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
-                    app()->multicast_ip(), 
-                    app()->multicast_port()); 
+                    boost::asio::ip::address::from_string
+                    (conf()->get<string>("plugins.lan_udp.multicast")), 
+                    conf()->get<int>("plugins.lan_udp.port")); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -52,7 +57,7 @@ lan_udp::run()
          << endl;
     // announce our presence to the LAN:
     string hello = "OHAI ";
-    hello += app()->name();
+    hello += conf()->get<string>("name");
     async_send(broadcast_endpoint_, hello);
     
     io_service.run();
@@ -134,13 +139,12 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
         do
         {
             
-            if( sender_address.to_string() == "127.0.0.1" ||
-                sender_address == app()->private_ip() ||
-                sender_address == app()->public_ip() )
+            if( sender_address.to_string() == "127.0.0.1" )
             {   
                 // TODO detect our actual LAN IP and bail out here
                 // if it came from our IP.
-                // Will bail anyway once parsed and dupe QID noticed.
+                // Will bail anyway once parsed and dupe QID noticed,
+                // but more efficient to do it here.
                 // cout << "* Ignoring udp msg from self" << endl;
                 break;
             }
@@ -195,8 +199,6 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 if(pis.size()>0){
                     BOOST_FOREACH(boost::shared_ptr<PlayableItem> & pip, pis)
                     {
-                        //string url = app()->httpbase();
-                        //url += "/sid/" + pip->id();
                         Object response;
                         response.push_back( Pair("qid", qid) );
                         Object result = pip->get_json();

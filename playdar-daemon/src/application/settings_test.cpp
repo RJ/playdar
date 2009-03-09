@@ -2,10 +2,13 @@
 #include <stdio.h>
 #include <iostream>
 #include "config.hpp"
+#include <boost/filesystem.hpp>
 
 using namespace std;
 int main (int argc, char** argv)
 {
+    cout << boost::filesystem::initial_path().string() << endl;
+
     playdar::Config c(argv[1]);
     cout << c.str() <<endl;
     cout    << c.get<string>("name","DEF")

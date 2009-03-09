@@ -27,7 +27,7 @@ class darknet : public ResolverService
 
 public:
     darknet(){};
-    void init(MyApplication * a);
+    void init(playdar::Config * c, MyApplication * a);
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return "Darknet"; }
     

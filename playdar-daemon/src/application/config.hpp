@@ -51,24 +51,31 @@ public:
     // get a value from json object
     // or value from nested *objects* by using a key of first.second.third
     template <typename T>
-    T get(string k, T def) 
+    T get(string k) const
+    {
+        T def;
+        return get<T>(k,def); 
+    }
+    
+    template <typename T>
+    T get(string k, T def) const
     {
         std::vector<std::string> toks;
         boost::split(toks, k, boost::is_any_of("."));
         Value val = m_mainval;
         map<string,Value> mp;
-        int i = 0;
-        cout << "getting: " << k << " size: " << toks.size() << endl;
+        unsigned int i = 0;
+        //cout << "getting: " << k << " size: " << toks.size() << endl;
         do
         {
             if(val.type() != obj_type) return def;
             obj_to_map(val.get_obj(), mp);
             if( mp.find(toks[i]) == mp.end() )
             {
-                cerr << "1 Can't find " << toks[i] << endl;
+                //cerr << "1 Can't find " << toks[i] << endl;
                 return def;
             }
-            cout << "Got " << toks[i] << endl;
+            //cout << "Got " << toks[i] << endl;
             val = mp[toks[i]];
         }
         while(++i < toks.size());
@@ -76,6 +83,14 @@ public:
         return val.get_value<T>();
     }
     
+    string httpbase()
+    {
+        ostringstream s;
+        s << "http://127.0.0.1"  << ":" << get<int>("http_port", 8888);
+        return s.str();
+    }
+
+    // NOT WORKING YET
     template <typename T>
     bool set(string k, T def) 
     {

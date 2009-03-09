@@ -7,13 +7,13 @@ class RS_local_library : public ResolverService
 {
     public:
     RS_local_library(){}
-    void init(MyApplication * a);
+    void init(playdar::Config * c, MyApplication * a);
     // : ResolverService(a)
     //{
    // }
 
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    std::string name() { return string("Local Library on ")+app()->name(); }
+    std::string name() { return string("Local Library on ")+conf()->get<string>("name"); }
     protected:
         ~RS_local_library() throw() {};
     private:

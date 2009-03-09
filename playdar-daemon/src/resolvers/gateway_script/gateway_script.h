@@ -21,7 +21,7 @@ class gateway_script : public ResolverService
     public:
     gateway_script(){}
     
-    void init(MyApplication * a);
+    void init(playdar::Config * c, MyApplication * a);
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() { return string("Gateway script: ")+m_scriptpath; }

@@ -11,9 +11,10 @@
 
     
 void
-RS_local_library::init(MyApplication * a)
+RS_local_library::init(playdar::Config * c, MyApplication * a)
 {
-    m_app = a;
+    m_app  = a;
+    m_conf = c;
     cout << "Local library resolver: " << app()->library()->num_files() << " files indexed." << endl;
     if(app()->library()->num_files() == 0)
     {
@@ -177,7 +178,7 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         {
             boost::shared_ptr<PlayableItem> pip = app()->library()->playable_item_from_fid(fid);
             pip->set_score(finalscore);
-            pip->set_source(app()->name());
+            pip->set_source(conf()->get<string>("name"));
             final_results.push_back( pip );
         }
     }

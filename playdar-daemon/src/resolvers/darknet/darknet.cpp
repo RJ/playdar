@@ -20,30 +20,35 @@
 using namespace playdar::resolvers;
 
 void
-darknet::init(MyApplication * a)
+darknet::init(playdar::Config * c, MyApplication * a)
 {
-    m_app = a;
-    unsigned short port = app()->popt()["resolver.darknet.port"].as<int>();
-    m_io_service    = boost::shared_ptr<boost::asio::io_service>(new boost::asio::io_service);
-    m_work = boost::shared_ptr<boost::asio::io_service::work>(new boost::asio::io_service::work(*m_io_service));
-    m_servent = boost::shared_ptr< Servent >(new Servent(*m_io_service, port, this));
+    m_app  = a;
+    m_conf = c;
+    unsigned short port = conf()->get<int>("plugins.darknet.port",9999);
+    m_io_service = boost::shared_ptr<boost::asio::io_service>
+                   (new boost::asio::io_service);
+    m_work = boost::shared_ptr<boost::asio::io_service::work>
+             (new boost::asio::io_service::work(*m_io_service));
+    m_servent = boost::shared_ptr< Servent >
+                (new Servent(*m_io_service, port, this));
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
     
-    boost::thread_group threads;
-    for (std::size_t i = 0; i < 10; ++i)
+    boost::thread_group threads; // TODO configurable threads?
+    for (std::size_t i = 0; i < 5; ++i)
     {
         threads.create_thread(boost::bind(
             &boost::asio::io_service::run, m_io_service.get()));
     }
-    //boost::thread thr(boost::bind(&darknet::start_io, this, m_io_service));
  
-    // get peers:
-    if(app()->popt()["resolver.darknet.remote_ip"].as<string>().length())
+    // get peers: TODO support multiple/list from config
+    string remote_ip = conf()->get<string>("plugins.darknet.peerip","");
+    if(remote_ip!="")
     {
-        string remote_ip = app()->popt()["resolver.darknet.remote_ip"].as<string>();
-        unsigned short remote_port = app()->popt()["resolver.darknet.remote_port"].as<int>();
-        cout << "Attempting peer connect: " << remote_ip << ":" << remote_port << endl;
+        unsigned short remote_port = conf()->get<int>
+                                     ("plugins.darknet.peerport",9999);
+        cout << "Attempting peer connect: " 
+             << remote_ip << ":" << remote_port << endl;
         boost::asio::ip::address_v4 ipaddr = boost::asio::ip::address_v4::from_string(remote_ip);
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
@@ -67,7 +72,7 @@ bool
 darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(app()->name(), WELCOME));
+    msg_ptr lm(new LameMsg(conf()->get<string>("name"), WELCOME));
     send_msg(conn, lm);
     return true;
 }
@@ -82,7 +87,7 @@ darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::end
 void
 darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(app()->name(), IDENTIFY));
+    msg_ptr lm(new LameMsg(conf()->get<string>("name"), IDENTIFY));
     send_msg(conn, lm);
 }
 
