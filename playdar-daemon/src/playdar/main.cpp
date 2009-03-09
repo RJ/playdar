@@ -116,6 +116,17 @@ int main(int ac, char *av[])
         notify(vm);
 
         
+        //TODO help for resolver options too?
+        if (vm.count("help")) {
+            cout << visible << "\n";
+            return 0;
+        }
+        if (vm.count("version")) {
+            cout << "0.1\n";
+            return 0;
+        }
+
+        
         if(!vm.count("config"))
         {
             cerr << "You must use a config file." << endl;
@@ -144,14 +155,6 @@ int main(int ac, char *av[])
         
         cout << "Parsed config options."<<endl;
         
-        if (vm.count("help")) {
-            cout << visible << "\n";
-            return 0;
-        }
-        if (vm.count("version")) {
-            cout << "0.1\n";
-            return 0;
-        }
         if( !vm.count("app.name") )
         {
             cout << visible << endl;
