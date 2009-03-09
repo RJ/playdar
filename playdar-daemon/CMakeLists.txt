@@ -37,15 +37,14 @@ LINK_DIRECTORIES(/usr/local/lib)
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
-
 #add definitions, compiler switches, etc.
 ADD_DEFINITIONS(-Wall -ggdb) 
 
-#May be necessary on mac?
-#ADD_DEFINITIONS(-D_POSIX_C_SOURCE -D_DARWIN_C_SOURCE)
+# PDL doesn't know apple mac = posix, this tells it:
+IF(apple)
+    ADD_DEFINITIONS(-Dunix)
+ENDIF(apple)
 
-
-###########scanner
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/scanner/scanner.cpp
                ${SRC}/library/library.cpp
@@ -59,7 +58,6 @@ TARGET_LINK_LIBRARIES(scanner
                       ${Boost_THREAD_LIBRARY}
                       ${TAGLIB_LIBRARIES})
 
-###########playdar
 ADD_EXECUTABLE( playdar
                 ${SRC}/application/application.cpp
                 ${SRC}/resolvers/playable_item.cpp
