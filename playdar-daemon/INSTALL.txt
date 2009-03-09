@@ -90,7 +90,7 @@ Now run the scanner to index your music:
 Running Playdar
 ---------------
 Edit etc/playdar.conf and specify your name, private ip etc.
-Run playdar from the same directory you built it in: 
+Run playdar from the playdar-daemon directory: 
 
     $ ./bin/playdar -c ./etc/playdar.conf
 
