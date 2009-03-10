@@ -69,6 +69,27 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         serve_body("<h1>Playdar: " + app()->conf()->get<string>("name")
          + "</h1><a href='/stats'>Stats</a><hr/>For quick and dirty resolving, you can try constructing an URL like: <code>"+app()->conf()->httpbase()+"/quickplay/ARTIST/ALBUM/TRACK</code><br/><br/>For the real demo that uses the JSON API, check <a href=\"http://www.playdar.org/\">Playdar.org</a>.", req, rep);
     }
+    else if(parts[1]=="auth_1")
+    {
+        map<string,string> vars;
+        string filename = "/home/rj/src/playdar/playdar-daemon/www/static/auth.html";
+        string formtoken = "my_form_token_9827342";
+        string url = querystring["receiverurl"];
+        vars["<%URL%>"]=url;
+        vars["<%FORMTOKEN%>"]=formtoken;
+        serve_dynamic(req, rep, filename, vars);
+    }
+    else if(parts[1]=="auth_2")
+    {
+        map<string,string> vars;
+        string filename = "/home/rj/src/playdar/playdar-daemon/www/static/auth.html2";
+        string authtoken = "auth_token_123";
+        string url = querystring["receiverurl"];
+        url += "#";
+        url += authtoken;
+        vars["<%URL%>"]=url;
+        serve_dynamic(req, rep, filename, vars);
+    }
     else if(parts[1]=="static") 
     {
         serve_static_file(req, rep);
@@ -346,6 +367,39 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
     // hand off the streaming strategy for the http server to do:
     rep.set_streaming(ss, pip->size());
     return;  
+}
+
+
+void
+playdar_request_handler::serve_dynamic( const moost::http::request& req, moost::http::reply& rep,
+                                        string filename,
+                                        map<string,string> vars)
+{
+    ifstream ifs;
+    ifs.open(filename.c_str(), ifstream::in);
+    if(ifs.fail())
+    {
+        cerr << "FAIL" << endl;
+        return;
+    }
+    typedef std::pair<string,string> pair_t;
+    ostringstream os;
+    string line;
+    while(std::getline(ifs, line))
+    {
+        string newline = line;
+        BOOST_FOREACH(pair_t item, vars)
+        {
+            newline = boost::replace_all_copy(newline, item.first, item.second);
+        }
+        os << newline << endl;
+    }
+    rep.headers.resize(2);
+    rep.headers[0].name = "Content-Length";
+    rep.headers[0].value = os.str().length();
+    rep.headers[1].name = "Content-Type";
+    rep.headers[1].value = "text/html";
+    rep.content = os.str(); 
 }
 
 /*

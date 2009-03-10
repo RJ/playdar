@@ -52,7 +52,8 @@ private:
     void serve_static_file(const moost::http::request& req, moost::http::reply& rep);
     void serve_track(const moost::http::request& req, moost::http::reply& rep, int tid);
     void serve_sid(const moost::http::request& req, moost::http::reply& rep, source_uid sid);
-    
+    void serve_dynamic( const moost::http::request& req, moost::http::reply& rep, 
+                                        string tpl, map<string,string> vars);
     MyApplication * m_app;
     
 
