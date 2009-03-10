@@ -117,11 +117,12 @@ darknet::handle_read(   const boost::system::error_code& e,
 {
     if(e)
     {
+        cerr << "Connection terminated on handle_read" << endl;
 	    connection_terminated(conn);
 	    return false;
     }
     
-    //cout << "handle_read("<< msg->toString() <<")" << endl;
+    cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
     /// Auth stuff first:
     if(msg->msgtype() == WELCOME)
     { // an invitation to identify ourselves
@@ -210,7 +211,7 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     set_query_origin(rq->id(), conn);
 
     // dispatch search with our callback handler:
-    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2, msg);
+    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2);
     query_uid qid = app()->resolver()->dispatch(rq, cb);
     
     assert(rq->id() == qid);
@@ -245,7 +246,11 @@ darknet::fwd_search(const boost::system::error_code& e,
         return;
     }
     // bail if already solved (probably from our locallibrary resolver)
-    if(app()->resolver()->rq(qid)->solved()) return;
+    if(app()->resolver()->rq(qid)->solved())
+    {
+        cout << "Darknet: not relaying solved search: " << qid << endl;
+        return;
+    }
     
     // TODO check search is still active
     cout << "Forwarding search.." << endl;
@@ -265,8 +270,7 @@ darknet::fwd_search(const boost::system::error_code& e,
 // fired when a new result is available for a running query:
 void
 darknet::send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip,
-                        msg_ptr msg)
+                        boost::shared_ptr<PlayableItem> pip)
 {
     connection_ptr origin_conn = get_query_origin(qid);
     // relay result if the originating connection still active:
@@ -274,14 +278,20 @@ darknet::send_response( query_uid qid,
     {
         cout << "Relaying search result to " 
              << origin_conn->username() << endl;
-        send_msg(origin_conn, msg);
+        Object response;
+        response.push_back( Pair("qid", qid) );
+        response.push_back( Pair("result", pip->get_json()) );
+        ostringstream ss;
+        write_formatted( response, ss );
+        msg_ptr resp(new LameMsg(ss.str(), SEARCHRESULT));
+        send_msg(origin_conn, resp);
     }
 }
 
 bool
 darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
-    //cout << "Got search result: " << msg->toString() << endl;
+    cout << "Got search result: " << msg->toString() << endl;
     using namespace json_spirit;
     // try and parse it as json:
     Value v;

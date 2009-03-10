@@ -90,8 +90,7 @@ public:
     
     // callback fired when result available from resolver:
     void send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip,
-                        msg_ptr msg);
+                        boost::shared_ptr<PlayableItem> pip);
     
     void set_query_origin(query_uid qid, connection_ptr conn)
     {
