@@ -290,7 +290,7 @@ darknet::send_response( query_uid qid,
 bool
 darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
-    cout << "Got search result: " << msg->toString() << endl;
+    //cout << "Got search result: " << msg->toString() << endl;
     using namespace json_spirit;
     // try and parse it as json:
     Value v;
