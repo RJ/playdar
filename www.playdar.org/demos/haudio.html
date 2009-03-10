@@ -122,7 +122,7 @@ function go_microformats() {
             var tt = "Sources: ";
             for (var k = 0; k < response.results.length; ++k) {
                 var r = response.results[k];
-                tt += "<b>"+r.source + "</b><small> (" + r.bitrate + "k, " + Playdar.mmss(r.duration) + ")</small> ";
+                tt += "<b>"+r.source + "</b><small> (<a href=\""+playdar.get_stream_url(response.results[k].sid)+"\">" + r.bitrate + "k, " + Playdar.mmss(r.duration) + "</a>)</small> ";
             }
             // update status element:
             $(response.qid).className = 'playdar_found';
