@@ -117,12 +117,11 @@ darknet::handle_read(   const boost::system::error_code& e,
 {
     if(e)
     {
-        cerr << "Connection terminated on handle_read" << endl;
 	    connection_terminated(conn);
 	    return false;
     }
     
-    cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
+    ///cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
     /// Auth stuff first:
     if(msg->msgtype() == WELCOME)
     { // an invitation to identify ourselves
@@ -248,7 +247,7 @@ darknet::fwd_search(const boost::system::error_code& e,
     // bail if already solved (probably from our locallibrary resolver)
     if(app()->resolver()->rq(qid)->solved())
     {
-        cout << "Darknet: not relaying solved search: " << qid << endl;
+        //cout << "Darknet: not relaying solved search: " << qid << endl;
         return;
     }
     
