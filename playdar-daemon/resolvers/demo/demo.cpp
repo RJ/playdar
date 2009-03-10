@@ -58,7 +58,7 @@ demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
                     s(new HTTPStreamingStrategy(url));
         // Attach streamingstrat to the playable item:
         pip->set_streaming_strategy(s);
-        // Results are a list of playableitems: reported
+        // Results are a list of playableitems:
         vector< boost::shared_ptr<PlayableItem> > v;
         // .. containing just the one match we found:
         v.push_back(pip);
@@ -73,4 +73,5 @@ demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 }
 
 
-}}
+} // resolvers
+} // playdar

@@ -1,17 +1,6 @@
-#ifndef __RS_demo_DL_H__
-#define __RS_demo_DL_H__
-
-#include <iostream>
-#include <map>
-#include <string>
-#include <boost/asio.hpp>
-#include <boost/bind.hpp>
-#include <boost/regex.hpp>
-#include <boost/foreach.hpp>
-#include <boost/asio.hpp>
-
-#include "json_spirit/json_spirit.h"
-
+#ifndef __RS_DEMO_H__
+#define __RS_DEMO_H__
+// All resolver plugins should include this header:
 #include "playdar/playdar_plugin_include.h"
 
 namespace playdar {
@@ -33,7 +22,9 @@ protected:
 
 };
 
+// This makes the plugin loading possible:
 EXPORT_DYNAMIC_CLASS( demo )
 
-}}
+} // resolvers
+} // playdar
 #endif
