@@ -32,7 +32,7 @@ class lan_udp : public ResolverService
     void init(playdar::Config * c, Resolver * r);
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    std::string name() { return "LAN/UDP"; }
+    std::string name() const { return "LAN/UDP"; }
     
     void handle_receive_from(const boost::system::error_code& error, size_t bytes_recvd);
     void start_listening(boost::asio::io_service& io_service,

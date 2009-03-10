@@ -13,7 +13,11 @@ class RS_local_library : public ResolverService
         m_app = a;
     }
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    std::string name() { return string("Local Library on ")+conf()->get<string>("name"); }
+    std::string name() const
+    { 
+        return string("Local Library on ")
+               + conf()->get<string>("name"); 
+    }
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;

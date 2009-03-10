@@ -31,7 +31,7 @@ public:
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     
-    std::string name() { return "Darknet"; }
+    std::string name() const { return "Darknet"; }
     
     void start_io(boost::shared_ptr<boost::asio::io_service> io_service)
     {
