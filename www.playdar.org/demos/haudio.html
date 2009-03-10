@@ -122,12 +122,12 @@ function go_microformats() {
             var tt = "Sources: ";
             for (var k = 0; k < response.results.length; ++k) {
                 var r = response.results[k];
-                tt += r.source + "/" + r.bitrate + "kbps/" + Playdar.mmss(r.duration) + " ";
+                tt += "<b>"+r.source + "</b><small> (" + r.bitrate + "k, " + Playdar.mmss(r.duration) + ")</small> ";
             }
             // update status element:
             $(response.qid).className = 'playdar_found';
             var swfstr = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"17\" width=\"17\"></embed></object>";
-            $(response.qid).innerHTML = swfstr + " <a href=\"#\" title=\""+tt+"\">" + response.results.length + "</a>";
+            $(response.qid).innerHTML = swfstr + " <a href=\"#\" title=\"Toggle source info\" onclick=\"$('info-"+response.qid+"').toggle(); return false;\">" + response.results.length + "</a> <div id=\"info-"+response.qid+"\" style=\"display:none; border:1px solid grey;\">" + tt + "</div>" ;
         } else if (finalanswer) {
             $(response.qid).className = 'playdar_notfound';
             $(response.qid).innerHTML = ':(';
