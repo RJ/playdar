@@ -14,8 +14,8 @@
 #include <uriparser/UriDefsUnicode.h>
 #include <uriparser/UriIp4.h>
 
-#include "library/library.h"
-#include "application/application.h"
+#include "playdar/library.h"
+#include "playdar/application.h"
 
 class playdar_request_handler : public moost::http::request_handler_base<playdar_request_handler>
 {

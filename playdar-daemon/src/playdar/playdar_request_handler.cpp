@@ -1,10 +1,8 @@
-#include "application/application.h"
+#include "playdar/application.h"
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
-
-
-
 #include "json_spirit/json_spirit.h"
 
 #include <boost/foreach.hpp>
@@ -14,8 +12,8 @@
 #include <boost/shared_ptr.hpp>
 
 #include "playdar_request_handler.h"
-#include "library/library.h"
-#include "resolvers/resolver.h"
+#include "playdar/library.h"
+#include "playdar/resolver.h"
 
 void 
 playdar_request_handler::init(MyApplication * app)

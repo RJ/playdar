@@ -1,4 +1,4 @@
-#include "application/application.h"
+#include "playdar/application.h"
 #include <iostream>
 #include <cstdio>
 
@@ -10,7 +10,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
-#include "library/library.h"
+#include "playdar/library.h"
 
 using namespace std;
 using namespace boost;

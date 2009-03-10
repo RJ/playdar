@@ -8,8 +8,8 @@
 
 #include "moost/http/header.hpp"
 
-#include "application/application.h"
-#include "resolvers/streaming_strategy.h"
+#include "playdar/application.h"
+#include "playdar/streaming_strategy.h"
 
 namespace moost { namespace http {
 

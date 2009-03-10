@@ -6,7 +6,7 @@ SET(PLAYDAR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
 
 SET(SRC "${PLAYDAR_PATH}/src")
 SET(DEPS "${PLAYDAR_PATH}/deps")
-SET(RESOLVERS_DIR "${SRC}/resolvers")
+SET(RESOLVERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resolvers")
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_PATH}/bin")
 
 # Don't really do 'make install' properly yet:
@@ -18,13 +18,14 @@ FIND_PACKAGE(OsspUuid)
 FIND_PACKAGE(Uriparser 0.7.0)
 FIND_PACKAGE(Sqlite3)
 
-INCLUDE_DIRECTORIES(#${URIPARSER_INCLUDE_DIR}
+INCLUDE_DIRECTORIES(
+                    ${CMAKE_CURRENT_SOURCE_DIR}/includes  # playdar includes
+                    #${URIPARSER_INCLUDE_DIR}
                     ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
                     /usr/local/include
-                    ${SRC}
                     ${DEPS}/moost_http/include     # our httpd server, from erikf's moost
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
@@ -47,7 +48,7 @@ ENDIF(APPLE)
 
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/scanner/scanner.cpp
-               ${SRC}/library/library.cpp
+               ${SRC}/library.cpp
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 TARGET_LINK_LIBRARIES(scanner 
@@ -59,12 +60,11 @@ TARGET_LINK_LIBRARIES(scanner
                       ${TAGLIB_LIBRARIES})
 
 ADD_EXECUTABLE( playdar
-                ${SRC}/application/application.cpp
-                ${SRC}/resolvers/playable_item.cpp
-                ${SRC}/resolvers/resolver.cpp
-                ${SRC}/resolvers/resolver_service.cpp
-                ${SRC}/resolvers/rs_local_library.cpp
-                ${SRC}/library/library.cpp
+                ${SRC}/application.cpp
+                ${SRC}/resolver.cpp
+                ${SRC}/resolver_service.cpp
+                ${SRC}/rs_local_library.cpp
+                ${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar/main.cpp
 
