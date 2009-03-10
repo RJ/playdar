@@ -6,63 +6,86 @@
 #include "resolvers/resolver.h"
 
 #include "resolvers/rs_local_library.h"
-#include "resolvers/rs_lan_udp.h"
-#include "resolvers/rs_http_playdar.h"
-#include "resolvers/rs_http_gateway_script.h"
-#include "resolvers/darknet/rs_darknet.h"
 #include "library/library.h"
 
+#include <DynamicLoader.hpp>
+#include <DynamicClass.hpp>
+#include <DynamicLibrary.hpp>
+#include <DynamicLibraryManager.hpp>
+#include <LoaderException.hpp>
+#include <platform.h>
 
+#include <boost/filesystem.hpp>
 
 Resolver::Resolver(MyApplication * app)
+    :m_app(app)
 {
-    m_app = app;
     m_id_counter = 0;
-    cout << "Resolver started." << endl;
-    
+    cout << "Resolver starting..." << endl;
+    // Initialize built-in local library resolver:
     m_rs_local = 0;
-    m_rs_lan = 0;
-    m_rs_http_playdar = 0;
-    m_rs_http_gateway_script = 0;
-    m_rs_darknet = 0;
-    
-    m_rs_local  = new RS_local_library(app);
+    m_rs_local  = new RS_local_library();
+    m_rs_local->init(m_app->conf(), app);
+    // Load all non built-in resolvers:
+    load_resolvers();
+}
 
-    //TODO dynamic loading at runtime using PDL or Boost.extension
-    if(app->option<string>("resolver.remote_http.enabled")=="yes")
+// dynamically load resolver plugins:
+void 
+Resolver::load_resolvers()
+{
+    namespace bfs = boost::filesystem;
+    bfs::directory_iterator end_itr;
+    //bfs::path appdir = bfs::initial_path();
+    //bfs::path p(appdir.string() +"/plugins/");
+    bfs::path p("plugins");
+    cout << "Loading resolver plugins from: " 
+         << p.string() << endl;
+    for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
     {
+        if ( bfs::is_directory(itr->status()) ) continue;
+        string pluginfile = itr->string();
+        if(bfs::extension(pluginfile)!=".resolver")
+        {
+            cerr << "Skipping '" << pluginfile 
+                 << "' from plugins directory" << endl;
+            continue;
+        }
+        string classname = bfs::basename(pluginfile);
+        string confopt = "resolvers.";
+        confopt += classname;
+        confopt += ".enabled";
+        if(app()->conf()->get<string>(confopt, "yes") == "no")
+        {
+            cout << "Skipping '" << classname
+                 <<"' - disabled in config file." << endl;
+            continue;
+        }
         try
         {
-            string rip = app->option<string>("resolver.remote_http.ip");
-            unsigned short rport = (unsigned short) (app->option<int>("resolver.remote_http.port")); 
-            boost::asio::ip::address_v4 bip = boost::asio::ip::address_v4::from_string(rip);
-            m_rs_http_playdar    = new RS_http_playdar(app, bip, rport);
+            PDL::DynamicLoader & dynamicLoader =
+                PDL::DynamicLoader::Instance();
+            cout << "-> Trying: " << pluginfile << endl;
+            ResolverService * instance = 
+                dynamicLoader.GetClassInstance< ResolverService >
+                    ( pluginfile.c_str(), classname.c_str() );
+            instance->init(app()->conf(), app());
+            cout << "-> Loaded: " << instance->name() << endl;
+            m_resolvers.push_back(instance);
         }
-        catch(exception e)
+        catch( PDL::LoaderException & ex )
         {
-            cerr << "Failed to load remote_http resolver: " << e.what() << endl;
+            cerr << "-> Error: " << ex.what() << endl;
         }
     }
-    
-    if(app->option<string>("resolver.lan_udp.enabled")=="yes")
-    {
-        m_rs_lan    = new RS_lan_udp(app);
-    }
-    if(app->option<string>("resolver.darknet.enabled")=="yes")
-    {
-        m_rs_darknet    = new RS_darknet(app);
-    }
-    /*if(app->option<string>("resolver.gateway_http.enabled")=="yes")
-    {
-        m_rs_http_gateway_script = new RS_http_gateway_script(app);
-    }*/
-    
+    cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
 }
 
 // start resolving! (non-blocking)
 // returns a query_uid so you can check status of this query later
 query_uid 
-Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = false */) 
+Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
+                    bool local_only/* = false */) 
 {
     if(!rq->valid())
     {
@@ -70,7 +93,7 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     }
     if(!add_new_query(rq))
     {
-        cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
+        //cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
         return rq->id();
     }
     cout << "RESOLVER: dispatch("<< rq->id() <<"): " << rq->str() 
@@ -83,15 +106,55 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only/* = fals
     if(!local_only && !rq->solved())
     {
         // these calls shouldn't block, plugins do their own threading etc.
-        if(m_rs_http_playdar)           m_rs_http_playdar->start_resolving(rq);
-        if(m_rs_lan)                    m_rs_lan->start_resolving(rq);
-        if(m_rs_darknet)                m_rs_darknet->start_resolving(rq);
-        if(m_rs_http_gateway_script)    m_rs_http_gateway_script->start_resolving(rq);
+        BOOST_FOREACH(ResolverService * rs, m_resolvers)
+        {
+            if(rs) rs->start_resolving(rq);
+        }
+    }
+    return rq->id();
+}
+
+query_uid 
+Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
+                    rq_callback_t cb) 
+{
+    if(!rq->valid())
+    {
+        throw;
+    }
+    if(!add_new_query(rq))
+    {
+        return rq->id();
+    }
+    cout << "RESOLVER: dispatch-with-cb("<< rq->id() <<"): " 
+         << rq->str() << "  [mode:"<< rq->mode() <<"]" << endl;
+         
+    rq->register_callback(cb);
+    
+    // do the local library (blocking) resolver, because it's quick:
+    m_rs_local->start_resolving(rq);
+    
+    if(!rq->solved())
+    {
+        // these calls shouldn't block!
+        BOOST_FOREACH(ResolverService * rs, m_resolvers)
+        {
+            if(rs) rs->start_resolving(rq);
+        }
     }
     return rq->id();
 }
 
 
+
+
+void 
+Resolver::register_callback(query_uid qid, rq_callback_t cb)
+{
+    boost::mutex::scoped_lock lock(m_mut);
+    if(query_exists(qid)) return;
+    m_queries[qid]->register_callback(cb);
+}
 
 // a resolver will report results here
 // false means give up on this query, it's over
@@ -154,8 +217,6 @@ Resolver::num_results(query_uid qid)
 bool 
 Resolver::query_exists(const query_uid & qid)
 {
-    //boost::mutex::scoped_lock lock(m_mut);
-    //map< query_uid, boost::shared_ptr<ResolverQuery> >::const_iterator it = m_queries.find(qid);
     return (m_queries.find(qid) != m_queries.end());
 }
 

@@ -58,10 +58,22 @@ Compile it:
 -----------
 0) Look in CMakeLists.txt at the include/library paths and make changes if
    you've installed boost/something in unusual places.
+
 1) 
-    $ cmake .
+    $ mkdir build
+    $ cd build
+    $ cmake ..
 2) 
     $ make
+
+This will build the daemon with built-in local library resolver.
+To build other plugins:
+    $ make lan_udp
+    $ make gateway_script
+    $ make darknet
+
+Or to just build all additional resolver plugins:
+    $ make all
 
 
 First Run and Scanning
@@ -77,14 +89,10 @@ Now run the scanner to index your music:
 
 Running Playdar
 ---------------
-Edit etc/playdar.ini and specify your name, private ip etc.
-Run playdar from the same directory you built it in: 
+Edit etc/playdar.conf and specify your name, private ip etc.
+Run playdar from the playdar-daemon directory: 
 
-    $ ./bin/playdar -c ./etc/playdar.ini
-
-FWIW you can also override ini file options on command line like this:
-
-    $ ./bin/playdar -c ./etc/playdar.ini --resolver.udp_lan.enabled no
+    $ ./bin/playdar -c ./etc/playdar.conf
 
 Now hit up: http://localhost:8888/ to check it's running.
 Make JSON requests yourself, go to /stats, or more importantly:

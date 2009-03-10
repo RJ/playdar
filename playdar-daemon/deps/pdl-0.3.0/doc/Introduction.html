@@ -1,0 +1,191 @@
+<html>
+<head>
+	<title>Introduction to PDL</title>
+</head>
+<body>
+
+<H2 align="center">Introduction to PDL</H2>
+
+<H3>What is PDL?</H3>
+
+<P>PDL (Portable Dynamic Loader) is light, simple and portable library designed especially for creating and using dynamically loaded class objects.
+
+
+<H3>Why do we need to load classes dynamically?</H3>
+
+<P>The main purpose of dynamically loadable class technology is creating plug-ins, which extends the functionality of the main program. The main problem with dynamically loaded modules on many platforms is that they support procedure programming paradigm only. When you try to load classes, many problems appear. The PDL library solves most of these problems (but not all of them, sadly).
+
+<P>On Win32 platform PDL is very simple alternative to COM technology, without reference counting, global class registration and many other features. There are several similar libraries for Unix/Linux platforms, for example, C++ Dynamic Class Loader. The dynamic class loading support feature also presents in large cross-platform library called WxWidgets.
+
+<P>The main goal of PDL development was to create a cross-platform library, which could support single dynamic class loading mechanism for both Win32 and Unix/Linux platforms (unlike COM and C++ Dynamic Class Loader). This library should also be lightweight and independent (unlike huge WxWidgets one).
+
+
+<H3>Creating the dynamically loadable class.</H3>
+
+<P>Let's consider creation of dynamically loadable class using PDL library in detail. First of all, we need to declare an interface, which will be used to work with the instance of a loadable class instance. Indispensable condition: this interface must be inherited from PDL::DynamicClass. Let's look at the DynamicClass declaration:
+
+<PRE>class DynamicClass
+{
+public:
+	/**
+	 * @brief Get class name
+	 * return class name
+	 */
+	virtual const char * GetClassName() const throw() = 0;
+	
+	/**
+	 * @brief Destroy class instance
+	 */
+	void Destroy() throw() { delete this; }
+
+protected:
+	/**
+	 * @brief Destructor
+	 */
+	virtual ~DynamicClass() throw() { ;; }
+};</PRE>
+
+<P>The pure virtual method GetClassName() returns the name of the class. You don't have to worry about its definition, and later I'll explain why.
+
+<P>The non-virtual method Destroy() destroys the class instance. The class destructor is declared as protected, to prevent its direct call. I'll describe later, why we need such a trick. 
+
+<P>We have to inherit our interface from PDL::DynamicClass and define protected virtual destructor (according to PDL ideology).
+
+<P>We also need to insert DECLARE_DYNAMIC_CLASS macro inside of a class declaration with the class name as a parameter. If we look at the definition of this macro, we'll see, that it simply defines the virtual method GetClassName():
+
+<PRE>#define DECLARE_DYNAMIC_CLASS( className ) \
+public: \
+	virtual const char * GetClassName() const throw() { return #className; }</PRE>
+
+<P>Finally, let's add to our interface pure virtual methods, which implement useful functionality of dynamically loadable class. Let it be DoSomething() method for example.
+
+<P>As a result we have the following interface:
+
+<PRE>#include &lt;DynamicClass.hpp&gt;
+
+class MyTestInterface : public PDL::DynamicClass
+{
+public:
+	/**
+	 * @brief Test method
+	 */
+	virtual void DoSomething() throw() = 0;
+
+	/**
+	 * @brief Declare this class dynamically loadable
+	 */
+	DECLARE_DYNAMIC_CLASS( MyTestInterface )
+};</PRE>
+
+<P>We should put this declaration to a separate header file, in our case - MyTestInterface.hpp. For compatibility purpose this file must be included both for building the dynamically loadable class and its direct usage.
+
+<P>Then, we should declare a class, inherited from our abstract interface, MyTestInterface, and define methods, which implement its useful functionality. We also need to export this class using EXPORT_DYNAMIC_CLASS macro. Please note, that this macro should be placed outside of a class declaration:
+
+<PRE>#include &lt;MyTestInterface.hpp&gt;
+#include &lt;stdio.h&gt;
+
+class MyTestClass1 : public MyTestInterface
+{
+public:
+	/**
+	 * @brief Test method
+	 */
+	void DoSomething() throw()
+	{
+		fprintf( stderr, "MyTestClass1::DoSomething()\n" );
+	}
+};
+EXPORT_DYNAMIC_CLASS( MyTestClass1 )</PRE>
+
+<P>Let's look at the definition of EXPORT_DYNAMIC_CLASS macro (DynamicClass.hpp file):
+
+<PRE>#define EXPORT_DYNAMIC_CLASS( className ) \
+extern "C" PDL_DECL_EXPORT PDL::DynamicClass * Create##className() \
+{ \
+	try { return new className(); } \
+	catch( ... ) { ;; } \
+	return NULL; \
+}</PRE>
+
+<P>This macro defines and exports the function with name Create<class_name> (a builder function), which creates an instance of the class, given as a parameter. The extern "C" modifier is required to prevent function name mangling. The PDL_DECL_EXPORT macro declares this function as exportable. Its definition in platform.h is specific for different platforms.
+
+<P>There are several important issues. The builder function (Create<class_name>) catches all the exceptions, thrown by class constructor, returning NULL in case of exception. That solves all problems with handling of exceptions thrown by plug-in in the main program. In case of instance creation, our builder function returns pointer to PDL::DynamicClass, so, if you forgot to inherit your interface from this class, the compiler will remind you producing casting error.
+
+<P>Now we can build our plug-in. Single plug-in can contain several different classes, but their names should be unique at module level. Each class must be exported using EXPORT_DYNAMIC_CLASS macro.
+
+
+<H3>Using of dynamically loadable classes.</H3>
+
+<P>At this moment we have a plug-in, which contains dynamically loadable class. Let's try to use it.
+
+<P>First, we need to get an instance of dynamic class loader - PDL::DynamicLoader. This class is a singleton. To get a reference to the instance we should use static method DynamicLoader::Instance():
+
+<PRE>PDL::DynamicLoader &amp; dynamicLoader = PDL::DynamicLoader::Instance();</PRE>
+
+<P>Then, we need to load the class instance and get a pointer to it:
+
+<PRE>MyTestInterface * instance =
+	dynamicLoader.GetClassInstance&lt; MyTestInterface &gt;( myLibName, "MyTestClass1" );</PRE>
+
+<P>Here myLibName is a filename of the plug-in library, for example "MyTestClass1.dll" or "MyTestClass.so". Don't forget to include header file with interface declaration - in our case it is MyTestInterface.hpp, as described before.
+
+<P>Finally we invoke useful method of loaded class:
+
+<PRE>instance -&gt; DoSomething();</PRE>
+
+<P>As the dynamic class loader throws PDL::LoaderException in case of failure, it will be correct to catch it. Here is the full source of our example:
+
+<PRE>#include &lt;MyTestInterface.hpp&gt;
+#include &lt;stdio.h&gt;
+
+try
+{
+	PDL::DynamicLoader &amp; dynamicLoader = PDL::DynamicLoader::Instance();
+	MyTestInterface * instance =
+		dynamicLoader.GetClassInstance&lt; MyTestInterface &gt;( myLibName, "MyTestClass1" );
+	instance -&gt; DoSomething();
+}
+catch( PDL::LoaderException &amp; ex )
+{
+	fprintf( stderr, "Loader exception: %s\n", ex.what() );
+}</PRE>
+
+<P>There is an important feature: all the dynamically loaded classes are singletons. This means that repeated calls of DynamicLoader::GetInstance() with the same both library name and class name will return a pointer to the same class instance. This simplifies the control over loaded instances and prevents memory leaks. If you need to create many class instances, you may implement dynamically loadable class factory.
+
+<P>Let's examine how loaded class instances are being destroyed. This is responsibility of method DynamicClass::Destroy(). You don't need to invoke it directly - the DynamicLoader will do it in its destructor or in DynamicLoader::Reset(). Why shouldn't we use a generic destructor? This is because of the memory allocation/freeing mechanism issues, which are slightly different in different compilers. Let's imagine: we build a plug-in with compiler A, and a main program with compiler B. When we load a class by dynamic loader, its instance is created by a code produced by A compiler. But if we call a destructor, we invoke a code produced by compiler B. This may lead to unexpected problems.
+
+<P>To prevent such problems the destructor ~DynamicClass() is declared as protected, and you need to call DynamicClass::Destroy() method instead. This method guarantees that the code of destructor is compiled by the same compiler, as the code of constructor.
+
+
+<H3>Fly in the ointment.</H3>
+
+<P>There is an issue with libraries names. If the filename of the library changes, PDL considers that it is a different library. However different names may point to a single library, for example: C:\MyProg\libs\mylib.dll P8 MyLIB.DLL.
+
+<P>Pay your attention that PDL doesn't solve problems with name mangling, used by different compilers. This problem is not set at the current moment.
+
+<P>The PDL library was tested on the following platforms:
+<UL>
+<LI>FreeBSD 6.2</LI>
+<LI>Debian 4.0 Linux 2.6.18-4</LI>
+<LI>openSUSE 10.2</LI>
+<LI>Windows XP</LI>
+</UL>
+
+<P>I will be grateful for any information about usage of PDL on other platforms.
+
+
+<H3>Thanks.</H3>
+
+<P>Special thanks to Vladimir and Asya Storozhevykh, Alexander Ledenev and Valery Artukhin, who helped me to make this article better (I hope).
+
+
+<H3>Links.</H3>
+
+<P>Webpage at Sourceforge:<br>
+<A href="http://sourceforge.net/projects/pdl-cpp/">http://sourceforge.net/projects/pdl-cpp/</A>
+
+<P>Original article in Russian:<br>
+<A href="http://www.progz.ru/forum/index.php?showtopic=33359">http://www.progz.ru/forum/index.php?showtopic=33359</A>
+
+</body>
+</html>

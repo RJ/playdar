@@ -6,6 +6,8 @@
 #include <boost/asio.hpp>
 
 #include "application/types.h"
+#include "application/config.hpp"
+#include "resolvers/playable_item.h"
 #include <boost/thread.hpp>
 
 #include <boost/program_options.hpp>
@@ -25,8 +27,9 @@ class Resolver;
 class MyApplication
 {
 public:
-    MyApplication(boost::program_options::variables_map opt);
+    MyApplication(playdar::Config c);
     ~MyApplication();
+    /*
     std::string name();
     unsigned short http_port();
     unsigned short multicast_port();
@@ -34,14 +37,19 @@ public:
     boost::asio::ip::address_v4 public_ip();
     boost::asio::ip::address_v4 multicast_ip();
     string httpbase();
+    */
     Library * library();
     Resolver * resolver();
-    boost::program_options::variables_map popt(){ return m_po ; }
+    //boost::program_options::variables_map popt(){ return m_po ; }
     static string gen_uuid();
     
-    template <typename T> T option(string o, T def);
-    template <typename T> T option(string o);
-
+    //template <typename T> T option(string o, T def);
+    //template <typename T> T option(string o);
+    
+    playdar::Config * conf()
+    {
+        return &m_config;
+    }
     
     // RANDOM UTILITY FUNCTIONS TOSSED IN HERE FOR NOW:
     
@@ -58,15 +66,14 @@ public:
     
     
 private:
-    void do_auto_config();
     
     boost::shared_ptr<boost::asio::io_service::work> m_work;
     boost::shared_ptr<boost::asio::io_service> m_ios;
     
+    playdar::Config m_config;
     Library * m_library;
     Resolver * m_resolver;
-    boost::program_options::variables_map m_po;
-    
+
 };
 
 

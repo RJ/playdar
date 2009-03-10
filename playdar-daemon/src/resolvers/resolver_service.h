@@ -4,14 +4,27 @@
 #include "resolvers/resolver.h"
 #include "application/application.h"
 
-class ResolverService
+#include <DynamicClass.hpp>
+
+
+class ResolverService : public PDL::DynamicClass, std::exception
+
+
 {
 public:
-    ResolverService(MyApplication * a)
+    ResolverService(){}
+    
+    
+    virtual void init(playdar::Config * c, MyApplication * a)
     {
         m_app = a;
+        m_conf = c;
     }
-    virtual ~ResolverService(){}
+    
+    virtual const playdar::Config * conf() const
+    {
+        return m_conf;
+    }
 
     virtual std::string name() = 0;
 
@@ -21,7 +34,12 @@ public:
     
 //protected:
     MyApplication * app() { return m_app; }
-private:
+    
+    DECLARE_DYNAMIC_CLASS( ResolverService )
+    
+protected:
+    virtual ~ResolverService() throw() {  }
+    playdar::Config * m_conf;
     MyApplication * m_app;
 };
 #endif

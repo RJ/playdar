@@ -1,14 +1,18 @@
 #ifndef __RESOLVER_QUERY_H__
 #define __RESOLVER_QUERY_H__
 
+#include "application/types.h"
 #include "application/application.h"
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 #include "json_spirit/json_spirit.h"
+
+
 
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
@@ -61,16 +65,22 @@ public:
         map<string,Value> qryobj_map;
         obj_to_map(qryobj, qryobj_map);
         
-        if(qryobj_map.find("artist")!=qryobj_map.end()) artist = qryobj_map["artist"].get_str();
-        if(qryobj_map.find("track")!=qryobj_map.end()) track  = qryobj_map["track"].get_str();
-        if(qryobj_map.find("album")!=qryobj_map.end()) album  = qryobj_map["album"].get_str();
+        if(qryobj_map.find("artist")!=qryobj_map.end()) 
+            artist = qryobj_map["artist"].get_str();
+        if(qryobj_map.find("track")!=qryobj_map.end()) 
+            track = qryobj_map["track"].get_str();
+        if(qryobj_map.find("album")!=qryobj_map.end()) 
+            album = qryobj_map["album"].get_str();
         
-        if(qryobj_map.find("qid")!=qryobj_map.end()) qid    = qryobj_map["qid"].get_str();
-        if(qryobj_map.find("mode")!=qryobj_map.end()) mode   = qryobj_map["mode"].get_str();
+        if(qryobj_map.find("qid")!=qryobj_map.end()) 
+            qid = qryobj_map["qid"].get_str();
+        if(qryobj_map.find("mode")!=qryobj_map.end()) 
+            mode = qryobj_map["mode"].get_str();
         
         if(artist.length()==0 || track.length()==0) throw;
         
-        boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+        boost::shared_ptr<ResolverQuery>    
+            rq(new ResolverQuery(artist, album, track));
         if(mode.length()) rq->set_mode(mode);
         if(qid.length())  rq->set_id(qid);
         return rq;
@@ -142,7 +152,18 @@ public:
 //            cout << "SOLVED " << id() << endl;   
             m_solved = true;
         }
+        // fire callbacks:
+        BOOST_FOREACH(rq_callback_t & cb, m_callbacks)
+        {
+            cb(id(), pip);
+        }
     }
+    
+    void register_callback(rq_callback_t cb)
+    {
+        m_callbacks.push_back( cb );
+    }
+    
     bool solved()   const { return m_solved; }
     string artist() const { return m_artist; }
     string album()  const { return m_album; }
@@ -158,13 +179,12 @@ private:
     string      m_album;
     string      m_track;
     
-    string      m_mode; // can be set to "spamme" if you want crap matching but lots of results
-    
-    // mutable because created on-demand the first time it's needed, if not already set:
+    // list of functors to fire on new result:
+    vector<rq_callback_t> m_callbacks;
+    string      m_mode; // only other options here is "spamme" atm.
+    // mutable because created on-demand the first time it's needed
     mutable query_uid   m_uuid;
-    
     boost::mutex m_mut;
-
     // set to true once we get a decent result
     bool m_solved;
 

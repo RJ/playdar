@@ -18,7 +18,7 @@
 using namespace std;
 
 namespace playdar {
-namespace darknet {
+namespace resolvers {
 
 /// This class represents a Connection to one other playdar user.
 /// i.e. Use this instead of socket directly.
@@ -255,7 +255,7 @@ private:
 
 
 
-} // namespace darknet
+} // namespace 
 } // namespace playdar
 
 #endif 

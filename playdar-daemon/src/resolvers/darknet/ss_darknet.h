@@ -8,13 +8,15 @@
 #include <boost/thread/condition.hpp>
 #include <deque>
 
-using namespace playdar::darknet;
+
+namespace playdar {
+namespace resolvers {
 
 class DarknetStreamingStrategy : public StreamingStrategy
 {
 public:
 
-    DarknetStreamingStrategy(RS_darknet * darknet, 
+    DarknetStreamingStrategy(darknet * darknet, 
                              connection_ptr conn, 
                              source_uid sid)
         : m_conn(conn), m_sid(sid)
@@ -142,7 +144,7 @@ public:
     
     
 private:
-    RS_darknet * m_darknet;
+    playdar::resolvers::darknet * m_darknet;
     connection_ptr m_conn;
     source_uid m_sid;
 
@@ -155,5 +157,7 @@ private:
 
     bool m_active;
 };
+
+}}
 
 #endif

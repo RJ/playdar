@@ -9,6 +9,8 @@
 #include "resolvers/resolver_service.h"
 #include "resolvers/playable_item.h"
 
+#include <DynamicClass.hpp>
+
 #include "streaming_strategy.h"
 #include "ss_localfile.h"
 #include "ss_http.h"
@@ -29,7 +31,11 @@ class Resolver
 {
 public:
     Resolver(MyApplication * app);
+    void load_resolvers();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only = false);
+    query_uid dispatch(boost::shared_ptr<ResolverQuery> rq,
+                    rq_callback_t cb);
+                    
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  vector< boost::shared_ptr<PlayableItem> > results, ResolverService * rs);
     vector< boost::shared_ptr<PlayableItem> > get_results(query_uid qid);
@@ -42,8 +48,9 @@ public:
     boost::shared_ptr<ResolverQuery> rq(query_uid qid);
     boost::shared_ptr<PlayableItem> get_pi(source_uid sid);
     
+    void register_callback(query_uid qid, rq_callback_t cb);
     // hack-o-matic: for interactive mode in main.cpp.
-    ResolverService * get_darknet() { return m_rs_darknet; }
+    //ResolverService * get_darknet() { return m_rs_darknet; }
     
     size_t num_seen_queries();
 
@@ -59,11 +66,8 @@ private:
     
     unsigned int m_id_counter;
 
-    ResolverService * m_rs_local;
-    ResolverService * m_rs_lan;
-    ResolverService * m_rs_http_playdar;
-    ResolverService * m_rs_http_gateway_script;
-    ResolverService * m_rs_darknet;
+    ResolverService * m_rs_local; // local library resolver
+    vector<ResolverService *> m_resolvers;
     
     boost::mutex m_mut;
 };

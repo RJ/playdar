@@ -6,9 +6,9 @@
 #include <iostream>
 #include <stdio.h>
 #include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
 
 using namespace std;
-
 
 typedef string query_uid;  // identifies a resolverquery
 typedef string source_uid; // identifies a streamable source for a song
@@ -20,12 +20,9 @@ typedef boost::shared_ptr<Artist>   artist_ptr;
 typedef boost::shared_ptr<Track>    track_ptr;
 typedef boost::shared_ptr<Album>    album_ptr;
 
-#include "resolvers/playable_item.h"
-
-
-
-
-
+// Callback type for observing new RQ results:
+class PlayableItem; // fwd
+typedef boost::function< void (query_uid qid, boost::shared_ptr<PlayableItem> pip)> rq_callback_t;
 
 struct scorepair
 {
@@ -41,7 +38,6 @@ struct sortbyscore
         return lhs.score > rhs.score;
     }
 };
-
 
 #endif
 

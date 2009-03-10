@@ -1,19 +1,34 @@
 #include "application/application.h"
-#include "resolvers/rs_http_gateway_script.h"
+#include "gateway_script.h"
 #include "library/library.h"
 #include <boost/foreach.hpp>
 
+namespace playdar {
+namespace resolvers {
 
-RS_http_gateway_script::RS_http_gateway_script(MyApplication * a) 
-    : ResolverService(a)
+void
+gateway_script::init(playdar::Config * c, MyApplication * a) 
 {
-    m_scriptpath = "./etc/demo-resolver.php";
-    cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
-    init_worker();
+    m_app  = a;
+    m_conf = c;
+    m_dead = false;
+    m_scriptpath = conf()->get<string>
+                        ("plugins.gateway_script.path","");
+    if(m_scriptpath=="")
+    {
+        cout << "No script path specified. gateway plugin failed." 
+             << endl;
+        m_dead = true;
+    }
+    else
+    {
+        cout << "HTTP Gateway script starting: "<<m_scriptpath << endl;
+        init_worker();
+    }
 }
 
 void
-RS_http_gateway_script::init_worker()
+gateway_script::init_worker()
 {
         std::vector<std::string> args;
         args.push_back("--playdar-mode");
@@ -25,13 +40,13 @@ RS_http_gateway_script::init_worker()
         bp::child c = bp::launch(m_scriptpath, args, ctx);
         m_c = new bp::child(c);
         m_os = & c.get_stdin();
-        m_t = boost::thread(&RS_http_gateway_script::process_output, this);
+        m_t = boost::thread(&gateway_script::process_output, this);
 }
     
 
 // runs forever processing output
 void 
-RS_http_gateway_script::process_output()
+gateway_script::process_output()
 {
     using namespace json_spirit;
     bp::pistream &is = m_c->get_stdout();
@@ -75,10 +90,11 @@ RS_http_gateway_script::process_output()
         }
     }
     cout << "Script died, fail." << endl;
+    m_dead = true;
 }
 
 void 
-RS_http_gateway_script::send_input(string s)
+gateway_script::send_input(string s)
 {
         cout << "Sending to script: '"<<s<<"'" <<endl;
         *m_os << s << endl;
@@ -86,8 +102,9 @@ RS_http_gateway_script::send_input(string s)
 
 
 void
-RS_http_gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
+    if(m_dead) return;
     ostringstream o;
     using namespace json_spirit;
     write_formatted( rq->get_json(), o );
@@ -96,3 +113,7 @@ RS_http_gateway_script::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
     send_input(s);
 }
+
+EXPORT_DYNAMIC_CLASS( gateway_script )
+
+}}
