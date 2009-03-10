@@ -27,6 +27,350 @@ Playdar.prototype = {
     stat_timeout: 2000,
     web_host: "http://www.playdar.org",
     
+    // CUSTOM HANDLERS
+    
+    handlers: {
+        auth: function () {
+            // Playdar authorised
+        },
+        stat_complete: function (detected) {
+            if (detected) {
+                // Playdar detected
+            } else {
+                // Playdar not found
+            }
+        },
+        results: function (response, final_answer) {
+            if (final_answer) {
+                if (response.results.length) {
+                    // Found results
+                } else {
+                    // No results
+                }
+            } else {
+                // Still polling
+            }
+        }
+    },
+    register_handler: function (handler_name, callback) {
+        if (!callback) {
+            var callback = function () {};
+        }
+        var self = this;
+        this.handlers[handler_name] = function () { return callback.apply(self, arguments); };
+    },
+    // Custom search result handlers can be bound to a specific qid
+    results_handlers: {},
+    register_results_handler: function (handler, qid) {
+        if (qid) {
+            this.results_handlers[qid] = handler;
+        } else {
+            this.register_handler('results', handler);
+        }
+    },
+    
+    // INITIALISATION
+    
+    init: function () {
+        this.stat();
+        // this.auth();
+    },
+    
+    // AUTHORISATION
+    
+    auth_token: false,
+    auth: function () {
+        // TODO get token cookie
+        this.load_auth_iframe();
+    },
+    load_auth_iframe: function () {
+        if (!this.receiver_url) {
+            // console.log('no receiver_url');
+            return false;
+        }
+        this.auth_iframe = document.createElement('iframe');
+        // this.auth_iframe.src = this.get_base_url("/auth#" + encodeURIComponent(this.receiver_url));
+        this.auth_iframe.src = "http://playdar/auth.html#" + encodeURIComponent(this.receiver_url);
+        this.auth_iframe.width = "300";
+        this.auth_iframe.height = "250";
+        this.auth_iframe.style.border = "1px solid #517e09";
+        this.auth_iframe.style.background = "#fff";
+        this.auth_iframe.style.position = "absolute";
+        this.auth_iframe.style.bottom = "10px";
+        this.auth_iframe.style.right = "10px";
+        document.getElementsByTagName("body")[0].appendChild(this.auth_iframe);
+    },
+    auth_callback: function (token) {
+        this.auth_iframe.style.display = "none";
+        // TODO Set token cookie
+        this.auth_token = token;
+        this.stat();
+    },
+    
+    // STAT LOCAL PLAYDAR DAEMON
+    
+    stat_response: false,
+    stat: function () {
+        var self = this;
+        setTimeout(function () {
+            self.check_stat_timeout();
+        }, this.stat_timeout);
+        Playdar.loadjs(this.get_url("stat", "handle_stat"));
+    },
+    handle_stat: function (response) {
+        // console.dir(response);
+        this.stat_response = response;
+        this.stat_detected(this.stat_response.version);
+        this.handlers.stat_complete(true);
+    },
+    check_stat_timeout: function () {
+        if (!this.stat_response || this.stat_response.name != "playdar") {
+            this.handlers.stat_complete(false);
+        }
+    },
+    stat_detected: function (version) {
+        this.detected_version = version;
+        this.show_detected_message();
+    },
+    show_detected_message: function () {
+        var messages = [];
+        if (this.detected_version) {
+            messages.push('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>');
+        }
+        if (this.soundmanager) {
+            messages.push('<a href="http://schillmania.com/projects/soundmanager2/">SM2 ready</a>');
+        }
+        this.show_status(messages.join(' | '));
+    },
+    
+    // CONTENT RESOLUTION
+    
+    resolve_qids: [],
+    last_qid: "",
+    request_count: 0,
+    pending_count: 0,
+    success_count: 0,
+    poll_counts: {},
+    resolve: function (art, alb, trk, qid) {
+        params = {
+            artist: art,
+            album: alb,
+            track: trk
+        };
+        if (typeof qid !== 'undefined') {
+            params.qid = qid;
+        }
+        this.increment_requests();
+        Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
+    },
+    handle_resolution: function (response) {
+        // console.dir(response);
+        this.last_qid = response.qid;
+        this.resolve_qids.push(this.last_qid);
+        this.get_results(response.qid);
+    },
+    increment_requests: function () {
+        this.request_count++;
+        this.pending_count++;
+        this.show_resolution_status();
+    },
+    show_resolution_status: function () {
+        if (this.query_count) {
+            var status = " | Resolved: " + this.success_count + "/" + this.request_count;
+            if (this.pending_count) {
+                status += ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ' + this.pending_count;
+            }
+            this.query_count.innerHTML = status;
+        }
+    },
+    
+    // poll results for a query id
+    get_results: function (qid) {
+        Playdar.loadjs(this.get_url("get_results", "handle_results", {
+            qid: qid
+        }));
+    },
+    handle_results: function (response) {
+        // console.dir(response);
+        // figure out if we should re-poll, or if the query is solved/failed:
+        var self = this;
+        var final_answer = self.should_stop_polling(response);
+        if (!final_answer) {
+            setTimeout(function () {
+                self.get_results(response.qid);
+            }, response.refresh_interval);
+        }
+        
+        self.call_results_handler(response);
+        
+        if (final_answer) {
+            self.pending_count--;
+            if (response.results.length) {
+                self.success_count++;
+            }
+        }
+        
+        self.show_resolution_status();
+    },
+    should_stop_polling: function (response) {
+        // Stop if we've exceeded our refresh limit
+        if (response.refresh_interval <= 0) {
+            return true;
+        }
+        // Stop if the query is solved
+        if (response.query.solved == true) {
+            return true;
+        }
+        // Stop if we've got a perfect match
+        if (response.results.length && response.results[0].score == 1.0) {
+            return true;
+        }
+        // Stop if we've exceeded 4 poll requests
+        if (!this.poll_counts[response.qid]) {
+            this.poll_counts[response.qid] = 0;
+        }
+        if (++this.poll_counts[response.qid] >= 4) {
+            return true;
+        }
+        return false;
+    },
+    call_results_handler: function (response) {
+        if (response.qid && this.results_handlers[response.qid]) {
+            // try a custom handler registered for this query id
+            this.results_handlers[response.qid](response, final_answer);
+        } else {
+            // fall back to standard handler
+            this.handlers.results(response, final_answer);
+        }
+    },
+    get_last_results: function () {
+        if (this.last_qid) {
+            this.increment_requests();
+            this.get_results(this.last_qid);
+        }
+    },
+    
+    // SOUNDMANAGER 2 WRAPPERS
+    
+    titles: {},
+    durations: {},
+    nowplayingid: null,
+    register_stream: function (result, options) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        
+        var stream_url = this.get_stream_url(result.sid);
+        var title = '<a href="' + stream_url + '" title="' + result.source + '">'
+                  + result.artist + " - " + result.track
+                  + '</a>';
+        this.durations[result.sid] = Playdar.mmss(result.duration);
+        this.titles[result.sid] = title;
+        
+        if (!options) {
+            var options = {};
+        }
+        options.id = result.sid;
+        options.url = stream_url;
+        var self = this;
+        options.whileplaying = function () {
+            if (self.playstate) {
+                // Update the track progress
+                self.track_progress.innerHTML = Playdar.mmss(Math.round(this.position/1000));
+                // Update the playback progress bar
+                var duration;
+                if (this.readyState == 3) { // loaded/success
+                    duration = this.duration;
+                } else {
+                    duration = this.durationEstimate;
+                }
+                var portion_played = this.position/duration;
+                self.playhead.style.width = Math.round(portion_played*self.progress_bar_width) + "px";
+            }
+        };
+        options.whileloading = function () {
+            if (self.playstate) {
+                // Update the loading progress bar
+                var buffered = this.bytesLoaded/this.bytesTotal;
+                self.bufferhead.style.width = Math.round(buffered*self.progress_bar_width) + "px";
+            }
+        };
+        var sound = this.soundmanager.createSound(options);
+    },
+    play_stream: function (sid) {
+        if (!this.soundmanager) {
+            return false;
+        }
+        var sound = this.soundmanager.getSoundById(sid);
+        if (this.nowplayingid != sid && sound.playState == 0) {
+            this.stop_all();
+            // Initialise the track progress
+            this.track_progress.innerHTML = Playdar.mmss(0);
+            // Update the track title
+            this.nowplaying.innerHTML = this.titles[sid];
+            // Update the track duration
+            this.track_length.innerHTML = this.durations[sid];
+            this.playstate.style.visibility = "visible";
+            
+            this.nowplayingid = sid;
+        }
+        
+        sound.togglePause();
+        return sound;
+    },
+    stop_all: function () {
+        if (this.soundmanager) {
+            this.soundmanager.stopAll();
+        }
+        if (this.playstate) {
+            this.playstate.style.visibility = "hidden";
+        }
+        if (this.nowplaying) {
+            this.nowplaying.innerHTML = "";
+        }
+    },
+    
+    // UTILITY FUNCTIONS
+    
+    get_base_url: function (path) {
+        var url = "http://" + this.server_root + ":" + this.server_port;
+        if (path) {
+            url += path;
+        }
+        return url;
+    },
+    
+    // build an api url for playdar requests
+    get_url: function (method, jsonp, options) {
+        if (!options) {
+            options = {};
+        }
+        options.method = method;
+        options.jsonp = this.jsonp_callback(jsonp);
+        if (this.auth_token) {
+            options.auth = this.auth_token;
+        }
+        return this.get_base_url("/api/?" + Playdar.toQueryString(options));
+    },
+    
+    // turn a source id into a stream url
+    get_stream_url: function (sid) {
+        return this.get_base_url("/sid/" + sid);
+    },
+    
+    // build the jsonp callback string
+    jsonp_callback: function (callback) {
+        return "Playdar.instances['" + this.uuid + "']." + callback;
+    },
+    
+    list_results: function (response) {
+        for (var i = 0; i < response.results.length; i++) {
+            console.log(response.results[i].name);
+        }
+    },
+    
+    // STATUS BAR
+    
     show_status: function (text, bg, colour) {
         var self = this;
         if (!bg) {
@@ -155,329 +499,6 @@ Playdar.prototype = {
         tbody.appendChild(Playdar.status_bar);
         table.appendChild(tbody);
         document.body.appendChild(table);
-    },
-    
-    // CALLBACK FUNCTIONS REGISTERED AT CONSTRUCTION
-    
-    handlers: {
-        detected: function (version) {
-            this.detected_version = version;
-            this.show_detected_message();
-        },
-        not_detected: function () {
-            this.show_status("Playdar not detected.", 'f0d3c3', 'a00100');
-        },
-        stat_complete: function (detected) {
-            return detected;
-        },
-        results: function (response, final_answer) {
-            if (final_answer) {
-                if (response.results.length) {
-                    alert('Found results: ' + response.results.length);
-                } else {
-                    alert('No results');
-                }
-            }
-        }
-    },
-    
-    register_handler: function (handler_name, callback) {
-        if (!callback) {
-            var callback = function () {};
-        }
-        var self = this;
-        this.handlers[handler_name] = function () { return callback.apply(self, arguments); };
-    },
-    
-    show_detected_message: function () {
-        var messages = [];
-        if (this.detected_version) {
-            messages.push('<a href="' + this.web_host + '"><img src="' + this.web_host + '/static/playdar_logo_16x16.png" width="16" height="16" style="vertical-align: middle; float: left; margin: 0 5px 0 0; border: 0;" /> Playdar detected</a>');
-        }
-        if (this.soundmanager) {
-            messages.push('<a href="http://schillmania.com/projects/soundmanager2/">SM2 ready</a>');
-        }
-        this.show_status(messages.join(' | '));
-    },
-    
-    // initialisation
-    init: function () {
-        this.stat();
-    },
-    
-    // UTILITY FUNCTIONS
-    
-    get_base_url: function (path) {
-        var url = "http://" + this.server_root + ":" + this.server_port;
-        if (path) {
-            url += path;
-        }
-        return url;
-    },
-    
-    // build an api url for playdar requests
-    get_url: function (method, jsonp, options) {
-        if (!options) {
-            options = {};
-        }
-        options.method = method;
-        options.jsonp = this.jsonp_callback(jsonp);
-        return this.get_base_url("/api/?" + Playdar.toQueryString(options));
-    },
-    
-    // turn a source id into a stream url
-    get_stream_url: function (sid) {
-        return this.get_base_url("/sid/" + sid);
-    },
-    
-    // build the jsonp callback string
-    jsonp_callback: function (callback) {
-        return "Playdar.instances['" + this.uuid + "']." + callback;
-    },
-    
-    list_results: function (response) {
-        for (var i = 0; i < response.results.length; i++) {
-            console.log(response.results[i].name);
-        }
-    },
-    
-    
-    // STAT PLAYDAR INSTALLATION
-    
-    stat_response: false,
-    check_stat: function () {
-        return this.stat_response && this.stat_response.name == "playdar";
-    },
-    
-    check_stat_timeout: function () {
-        if (!this.check_stat()) {
-            this.handlers.not_detected();
-            this.handlers.stat_complete(false);
-        }
-    },
-    
-    handle_stat: function (response) {
-        // console.dir(response);
-        this.stat_response = response;
-        if (!this.check_stat()) {
-            this.stat_response = false;
-            return false;
-        }
-        this.handlers.detected(this.stat_response.version);
-        this.handlers.stat_complete(true);
-    },
-    
-    stat: function () {
-        var self = this;
-        setTimeout(function () {
-            self.check_stat_timeout();
-        }, this.stat_timeout);
-        Playdar.loadjs(this.get_url("stat", "handle_stat"));
-    },
-    
-    
-    // SEARCH RESULT POLLING
-    
-    // set search result handlers for a query id
-    results_handlers: {},
-    register_results_handler: function (handler, qid) {
-        if (qid) {
-            this.results_handlers[qid] = handler;
-        } else {
-            this.register_handler('results', handler);
-        }
-    },
-    
-    poll_counts: {},
-    should_stop_polling: function (response) {
-        // Stop if we've exceeded our refresh limit
-        if (response.refresh_interval <= 0) {
-            return true;
-        }
-        // Stop if the query is solved
-        if (response.query.solved == true) {
-            return true;
-        }
-        // Stop if we've got a perfect match
-        if (response.results.length && response.results[0].score == 1.0) {
-            return true;
-        }
-        // Stop if we've exceeded 4 polls
-        if (!this.poll_counts[response.qid]) {
-            this.poll_counts[response.qid] = 0;
-        }
-        if (++this.poll_counts[response.qid] >= 4) {
-            return true;
-        }
-        return false;
-    },
-    
-    success_count: 0,
-    handle_results: function (response) {
-        // console.dir(response);
-        // figure out if we should re-poll, or if the query is solved/failed:
-        var final_answer = this.should_stop_polling(response);
-        if (!final_answer) {
-            var self = this;
-            setTimeout(function () {
-                self.get_results(response.qid);
-            }, response.refresh_interval);
-        }
-        // now call the results handler
-        if (response.qid && this.results_handlers[response.qid]) {
-            // try a custom handler registered for this query id
-            this.results_handlers[response.qid](response, final_answer);
-        } else {
-            // fall back to standard handler
-            this.handlers.results(response, final_answer);
-        }
-        if (final_answer) {
-            this.pending_count--;
-            if (response.results.length) {
-                this.success_count++;
-            }
-        }
-        
-        this.show_resolution_status();
-    },
-    
-    // poll results for a query id
-    get_results: function (qid) {
-        Playdar.loadjs(this.get_url("get_results", "handle_results", {
-            qid: qid
-        }));
-    },
-    
-    get_last_results: function () {
-        if (this.last_qid) {
-            this.increment_requests();
-            this.get_results(this.last_qid);
-        }
-    },
-    
-    // CONTENT RESOLUTION
-    
-    resolve_qids: [],
-    last_qid: "",
-    
-    
-    increment_requests: function () {
-        this.request_count++;
-        this.pending_count++;
-        this.show_resolution_status();
-    },
-    
-    show_resolution_status: function () {
-        if (this.query_count) {
-            var status = " | Resolved: " + this.success_count + "/" + this.request_count;
-            if (this.pending_count) {
-                status += ' <img src="' + this.web_host + '/static/spinner_10px.gif" width="10" height="10" style="vertical-align: middle; margin: -2px 2px 0 2px"/> ' + this.pending_count;
-            }
-            this.query_count.innerHTML = status;
-        }
-    },
-    
-    handle_resolution: function (response) {
-        // console.dir(response);
-        this.last_qid = response.qid;
-        this.resolve_qids.push(this.last_qid);
-        this.get_results(response.qid);
-    },
-    
-    request_count: 0,
-    pending_count: 0,
-    resolve: function (art, alb, trk, qid) {
-        params = {
-            artist: art,
-            album: alb,
-            track: trk
-        };
-        if (typeof qid !== 'undefined') {
-            params.qid = qid;
-        }
-        this.increment_requests();
-        Playdar.loadjs(this.get_url("resolve", "handle_resolution", params));
-    },
-    
-    // STREAMING WITH SOUNDMANAGER
-    
-    titles: {},
-    durations: {},
-    register_stream: function (result, options) {
-        if (!this.soundmanager) {
-            return false;
-        }
-        
-        var stream_url = this.get_stream_url(result.sid);
-        var title = '<a href="' + stream_url + '" title="' + result.source + '">'
-                  + result.artist + " - " + result.track
-                  + '</a>';
-        this.durations[result.sid] = Playdar.mmss(result.duration);
-        this.titles[result.sid] = title;
-        
-        if (!options) {
-            var options = {};
-        }
-        options.id = result.sid;
-        options.url = stream_url;
-        var self = this;
-        options.whileplaying = function () {
-            if (self.playstate) {
-                // Update the track progress
-                self.track_progress.innerHTML = Playdar.mmss(Math.round(this.position/1000));
-                // Update the playback progress bar
-                var duration;
-                if (this.readyState == 3) { // loaded/success
-                    duration = this.duration;
-                } else {
-                    duration = this.durationEstimate;
-                }
-                var portion_played = this.position/duration;
-                self.playhead.style.width = Math.round(portion_played*self.progress_bar_width) + "px";
-            }
-        };
-        options.whileloading = function () {
-            if (self.playstate) {
-                // Update the loading progress bar
-                var buffered = this.bytesLoaded/this.bytesTotal;
-                self.bufferhead.style.width = Math.round(buffered*self.progress_bar_width) + "px";
-            }
-        };
-        var sound = this.soundmanager.createSound(options);
-    },
-    
-    nowplayingid: null,
-    play_stream: function (sid) {
-        if (!this.soundmanager) {
-            return false;
-        }
-        var sound = this.soundmanager.getSoundById(sid);
-        if (this.nowplayingid != sid && sound.playState == 0) {
-            this.stop_all();
-            // Initialise the track progress
-            this.track_progress.innerHTML = Playdar.mmss(0);
-            // Update the track title
-            this.nowplaying.innerHTML = this.titles[sid];
-            // Update the track duration
-            this.track_length.innerHTML = this.durations[sid];
-            this.playstate.style.visibility = "visible";
-            
-            this.nowplayingid = sid;
-        }
-        
-        sound.togglePause();
-        return sound;
-    },
-    stop_all: function () {
-        if (this.soundmanager) {
-            this.soundmanager.stopAll();
-        }
-        if (this.playstate) {
-            this.playstate.style.visibility = "hidden";
-        }
-        if (this.nowplaying) {
-            this.nowplaying.innerHTML = "";
-        }
     }
 };
 
@@ -558,7 +579,7 @@ Playdar.mmss = function (secs) {
     
 Playdar.loadjs = function (url) {
    var s = document.createElement("script");
-   // console.info('loadjs:', url);
    s.src = url;
    document.getElementsByTagName("head")[0].appendChild(s);
+   // console.info('loadjs:', url);
 };
