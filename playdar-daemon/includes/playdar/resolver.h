@@ -54,6 +54,8 @@ public:
     //ResolverService * get_darknet() { return m_rs_darknet; }
     
     size_t num_seen_queries();
+    
+    vector<ResolverService *> * resolvers() { return &m_resolvers; }
 
 private:
 

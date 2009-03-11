@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/foreach.hpp>
 
 #include "playdar_request_handler.h"
 #include "playdar/library.h"
@@ -31,6 +32,13 @@ playdar_request_handler::gen_formtoken()
     return f;
 }
 
+bool
+playdar_request_handler::consume_formtoken(string ft)
+{
+    if(m_formtokens.find(ft) == m_formtokens.end()) return false;
+    m_formtokens.erase(ft);
+    return true;
+}
 
 
 void 
@@ -95,17 +103,69 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     vector<std::string> parts;
     boost::split(parts, req.uri, boost::is_any_of("/"));
     
-    if(parts[1] == "") // Req: /
+    /// localhost/ - the playdar instance homepage on localhost
+    if(parts[1] == "")
     {
-        serve_body("<h1>Playdar: " + app()->conf()->get<string>("name")
-         + "</h1><a href='/stats'>Stats</a><hr/>For quick and dirty resolving, you can try constructing an URL like: <code>"+app()->conf()->httpbase()+"/quickplay/ARTIST/ALBUM/TRACK</code><br/><br/>For the real demo that uses the JSON API, check <a href=\"http://www.playdar.org/\">Playdar.org</a>.", req, rep);
+        ostringstream os;
+        os  << "<h2>" << app()->conf()->get<string>("name") << "</h2>"
+            << "<p>"
+            << "Your Playdar server is running! Websites and applications that "
+            << "support Playdar will ask your permission, and then be able to "
+            << "access music you have on your machine."
+            << "</p>"
+            
+            << "<p>"
+            << "Loaded resolver plugins:"
+            << "<ul>"
+            << "<li>Local Library (always available)</li>"
+            ;
+        BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
+        {
+            os << "<li>" << rs->name() << "</li>" << endl;
+        }
+        os  << "</ul>"
+            << "</p>"
+            
+            << "<p>"
+            << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+            << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+            << "</p>"
+            
+            << "<p>"
+            << "For the real demo that uses the JSON API, check "
+            << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+            << "</p>"
+            ;
+         serve_body(os.str(), req, rep);
+    }
+    /// Show config file (no editor yet)
+    else if(parts[1]=="settings" && parts[2]=="config")
+    {
+        ostringstream os;
+        os  << "<h2>Configuration</h2>"
+            << "<p>"
+            << "Config options are stored as a JSON object in the file: "
+            << "<code>" << app()->conf()->filename() << "</code>"
+            << "</p>"
+            << "<p>"
+            << "The contents of the file are shown below, to edit it use "
+            << "your favourite text editor."
+            << "</p>"
+            << "<pre>"
+            << app()->conf()->str()
+            << "</pre>"
+            ;
+        serve_body(os.str(), req, rep);
     }
     /// Phase 1 - this was opened in a popup from a button in the playdar 
     ///           toolbar on some site that needs to authenticate
-    else if(parts[1]=="auth_1")
+    else if(parts[1]=="auth_1" && 
+            querystring.find("receiverurl") != querystring.end() &&
+            querystring.find("website") != querystring.end() &&
+            querystring.find("name") != querystring.end() )
     {
         map<string,string> vars;
-        string filename = "/home/rj/src/playdar/playdar-daemon/www/static/auth.html";
+        string filename = "www/static/auth.html";
         
         string ftoken   = gen_formtoken();
         string url      = querystring["receiverurl"];
@@ -121,9 +181,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// Phase 2  - Provided the formtoken is valid, the user has authenticated
     ///            and we should create a new authcode and pass it on to the 
     ///            originating domain, which will probably set it in a cookie.
-    else if(parts[1]=="auth_2")
+    else if(parts[1]=="auth_2" &&
+            querystring.find("receiverurl") != querystring.end() &&
+            querystring.find("website") != querystring.end() &&
+            querystring.find("name") != querystring.end() &&
+            querystring.find("formtoken") != querystring.end() )
     {
-        if(m_formtokens.find(querystring["formtoken"]) != m_formtokens.end())
+        if(consume_formtoken(querystring["formtoken"]))
         {
             string tok = playdar::Config::gen_uuid(); 
             pauth.create_new(tok, querystring["website"], querystring["name"]);
@@ -144,26 +208,67 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             rep.content = "Not Authorized";
         }
     }
+    /// Shows a list of every authenticated site
+    /// with a "revoke" options for each.
+    else if(parts[1]=="settings" && parts[2]=="auth")
+    {
+        typedef map<string,string> auth_t;
+        if( querystring.find("revoke")!=querystring.end() &&
+            querystring.find("formtoken")!=querystring.end() &&
+            consume_formtoken(querystring["formtoken"]) )
+        {
+            pauth.deauth(querystring["revoke"]);
+        }
+        vector< auth_t > v = pauth.get_all_authed();
+        ostringstream os;
+        os  << "<h2>Authenticated Sites</h2>"
+            << "<p>"
+            << "The first time a site requests access to your Playdar, "
+            << "you'll have a chance to allow/deny it. You can see the list "
+            << "of authenticated sites here, and delete any if necessary."
+            << "</p>"
+            << "<table style=\"width:95%\">" << endl
+            <<  "<tr style=\"font-weight:bold;\">"
+            <<   "<td>Name</td>"
+            <<   "<td>Website</td>"
+            <<   "<td>Auth Code</td>"
+            <<   "<td>Options</td>"
+            <<  "</tr>"
+            << endl;
+        int i = 0;
+        string formtoken = gen_formtoken();
+        BOOST_FOREACH( auth_t &m, v )
+        {
+            os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
+                <<  "<td>" << m["name"] << "</td>"
+                <<  "<td>" << m["website"] << "</td>"
+                <<  "<td>" << m["token"] << "</td>"
+                <<  "<td><a href=\"/settings/auth/?formtoken="
+                <<  formtoken << "&revoke="  << m["token"] <<"\">Revoke</a>"
+                <<  "</td>"
+                << "</tr>";
+        }
+        os  << "</table>" << endl;
+        serve_body( os.str(), req, rep );
+    }
+    /// this is for serving static files, not sure we need it:
     else if(parts[1]=="static") 
     {
         serve_static_file(req, rep);
     }
-    else if(parts[1]=="streaming") 
-    {
-        boost::shared_ptr<StreamingStrategy> ss(new LocalFileStreamingStrategy("/home/rj/fakemp3/01-Train Train-Jag.mp3"));
-        rep.set_streaming(ss, 1234);
-        return;        
-    }
+    /// JSON API:
     else if(parts[1]=="api" && querystring.count("method")==1)
     {
         handle_rest_api(querystring, req, rep, permissions);
     }
+    /// Misc stats on your playdar instance
     else if(parts[1]=="stats") 
     {
         serve_stats(req, rep);
     }
-    // quick hack method:
-    else if(parts[1]=="quickplay" && parts.size() == 5) // Req: /resolve/artist/album/track 
+    /// quick hack method for playing a song, if it can be found:
+    ///  /quickplay/The+Beatles//Yellow+Submarine
+    else if(parts[1]=="quickplay" && parts.size() == 5)
     {
         
         string artist   = unescape(parts[2]);
@@ -194,11 +299,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             rep.content = "";
         }
     }
+    /// serves file-id from library 
     else if(parts[1]=="serve" && parts.size() == 3)
     {
         int fid = atoi(parts[2].c_str());
         if(fid) serve_track(req, rep, fid);
     }
+    /// serves file based on SID
     else if(parts[1]=="sid" && parts.size() == 3)
     {
         source_uid sid = parts[2];
@@ -379,8 +486,21 @@ void
 playdar_request_handler::serve_body(string reply, const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream r;
-    r << "<html><head><title>Playdar</title></head><body>\n";
-//    r << "<div style=\"position:absolute; height: 30px; width:100%; background-color: #f0f0f0; padding:3px;\"><a href=\"/\">Playdar Index</a></div>\n";
+    r   << "<html><head><title>Playdar</title></head><body>"
+        << "<h1>Local Playdar Server</h1>"
+        << "<a href=\"/\">Home</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/stats/\">Stats</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/settings/auth/\">Authentication</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/settings/config/\">Configuration</a>"
+        
+        << "&nbsp; || &nbsp;"
+        << "<a href=\"http://www.playdar.org/\" target=\"playdarsite\">Playdar.org</a>"
+        
+        << "<hr style=\"clear:both;\" />";
+
     r << reply;
     r << "\n</body></html>";
 
@@ -396,9 +516,7 @@ void
 playdar_request_handler::serve_stats(const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream reply;
-    reply   << "<h1>Stats: " << app()->conf()->get<string>("name") 
-            << "</h1>"
-            << "<h2>Local Library</h2>"
+    reply   << "<h2>Local Library Stats</h2>"
             << "<table>"
             << "<tr><td>Num Files</td><td>" << app()->library()->num_files() << "</td></tr>\n"
             << "<tr><td>Artists</td><td>" << app()->library()->num_artists() << "</td></tr>\n"

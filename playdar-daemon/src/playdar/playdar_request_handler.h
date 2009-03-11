@@ -28,6 +28,7 @@ private:
 
     set<string> m_formtokens;
     string gen_formtoken();
+    bool consume_formtoken(string ft);
     
     // un%encode
     string unescape(string s)
@@ -80,6 +81,31 @@ public:
             return true;
         }
         return false;
+    }
+    
+    vector< map<string,string> > get_all_authed()
+    {
+        boost::mutex::scoped_lock lock(m_mut);
+        vector< map<string,string> > ret;
+        sqlite3pp::query qry(*m_db, "SELECT token, website, name FROM playdar_auth ORDER BY mtime DESC");
+        for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
+            map<string,string> m;
+            m["token"]   = string((*i).get<const char *>(0));
+            m["website"] = string((*i).get<const char *>(1));
+            m["name"]    = string((*i).get<const char *>(2));
+            ret.push_back( m );
+        }
+        return ret;
+    }
+    
+    void
+    deauth(string token)
+    {
+        boost::mutex::scoped_lock lock(m_mut);
+        string sql = "DELETE FROM playdar_auth WHERE token = ?";
+        sqlite3pp::command cmd(*m_db, sql.c_str());
+        cmd.bind(1, token.c_str(), true);
+        cmd.execute();
     }
     
     void create_new(string token, string website, string name)
