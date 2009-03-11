@@ -19,9 +19,6 @@ Assuming debian/ubuntu. Otherwise find similarly named packages:
     NB: "libossp-uuid" is different to "libuuid" in debian. 
         make sure you install the correct uuid package.
 
-    NB: if you defined LAME_UUIDS_PLEASE you don't need the uuid library.
-        (it creates them using the cstdlib rand() function)
-
 2) Need boost, but also boost::asio, which was only added to boost "recently".
    If your distro has >= boost 1.35 then install all the 1.35 boost packages
    you can find, including -dev versions, and it will work. Deb/Lenny has it.
@@ -36,9 +33,10 @@ Assuming debian/ubuntu. Otherwise find similarly named packages:
          | sed 's/-gcc43-mt//'`; echo $L; ln -s $f $L; done
 
 
-3) You need liburiparser 0.7.0 or higher. If you're running Ubuntu Hardy, 
-   you'll have to install from source, Ibex has it in apt.
-
+3) You need liburiparser 0.7.0 or higher. 
+   The version in ubuntu Ibex is too old - build from source.
+   http://uriparser.sourceforge.net/
+   
 
 Mac Dependencies
 ----------------
@@ -52,44 +50,46 @@ Using Leopard MacPorts:
 Windows Dependenceies
 ---------------------
 Good luck! Just install everything listed and hope for the best.
+It is known to work.
 
 
 Compile it:
 -----------
-0) Look in CMakeLists.txt at the include/library paths and make changes if
-   you've installed boost/something in unusual places.
+If you've installed something in non-standard locations, look in CMakeLists.txt
+at the include/library paths and make changes if need be.
 
-1) 
-    $ mkdir build
-    $ cd build
-    $ cmake ..
-2) 
-    $ make
+ $ cd playdar-daemon
+ $ cd build
+ $ cmake ..
 
-This will build the daemon with built-in local library resolver.
-To build other plugins:
-    $ make lan_udp
-    $ make gateway_script
-    $ make darknet
+Build the daemon with built-in local library resolver:
 
-Or to just build all additional resolver plugins:
-    $ make all
+ $ make playdar
 
+Build the other plugins:
+
+ $ make lan_udp
+ $ make gateway_script  # NB: requires boost >=1.37
+ $ make darknet
+
+Or to just build everything at once:
+
+ $ make 
 
 First Run and Scanning
 ----------------------
 Make the empty database:
 
-    $ sqlite3 ./collection.db < etc/schema.sql   #>
+ $ sqlite3 ./collection.db < etc/schema.sql
 
 Now run the scanner to index your music:
 
-    $ ./scanner ./collection.db /your/mp3/dir
+ $ ./scanner ./collection.db /your/mp3/dir
 
 
 Running Playdar
 ---------------
-Edit etc/playdar.conf and specify your name, private ip etc.
+Edit etc/playdar.conf and specify your name etc.
 Run playdar from the playdar-daemon directory: 
 
     $ ./bin/playdar -c ./etc/playdar.conf

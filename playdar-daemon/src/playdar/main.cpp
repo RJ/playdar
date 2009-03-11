@@ -97,11 +97,10 @@ int main(int ac, char *av[])
 
         // start http server:
         string ip = "0.0.0.0"; 
-        boost::thread http_thread(&start_http_server, ip,
-                                  app->conf()->get<int>("http_port"),
-                                  1, 
-                                  app);
-                                  
+        boost::thread http_thread(
+            boost::bind(&start_http_server, 
+                        ip, app->conf()->get<int>("http_port"), 1, app));
+        
         // Lame interactive mode for debugging:
         /*
         RS_darknet * dnet = static_cast<RS_darknet *>( app->resolver()->get_darknet());

@@ -26,6 +26,9 @@ public:
     
 private:
 
+    set<string> m_formtokens;
+    string gen_formtoken();
+    
     // un%encode
     string unescape(string s)
     {
@@ -45,7 +48,7 @@ private:
     }
 
     void handle_json_query(string query, const moost::http::request& req, moost::http::reply& rep);
-    void handle_rest_api(map<string, string> querystring, const moost::http::request& req, moost::http::reply& rep);
+    void handle_rest_api(map<string, string> querystring, const moost::http::request& req, moost::http::reply& rep, string permissions);
 
     void serve_body(string reply, const moost::http::request& req, moost::http::reply& rep);
     void serve_stats(const moost::http::request& req, moost::http::reply& rep);
@@ -58,6 +61,48 @@ private:
     
 
 };
+
+// deals with authcodes etc
+class PlaydarAuth
+{
+public:
+    PlaydarAuth(sqlite3pp::database * d)
+        : m_db(d)
+    {}
+    
+    bool is_valid(string token, string & whom)
+    {
+        boost::mutex::scoped_lock lock(m_mut);
+        sqlite3pp::query qry(*m_db, "SELECT name FROM playdar_auth WHERE token = ?" );
+        qry.bind(1, token.c_str(), true);
+        for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
+            whom = string((*i).get<const char *>(0));
+            return true;
+        }
+        return false;
+    }
+    
+    void create_new(string token, string website, string name)
+    {
+        boost::mutex::scoped_lock lock(m_mut);
+        string sql = "INSERT INTO playdar_auth "
+                     "(token, website, name, mtime, permissions) "
+                     "VALUES(?, ?, ?, ?, ?)";
+        sqlite3pp::command cmd(*m_db, sql.c_str());
+        cmd.bind(1, token.c_str(), true);
+        cmd.bind(2, website.c_str(), true);
+        cmd.bind(3, name.c_str(), true);
+        cmd.bind(4, 0);
+        cmd.bind(5, "*", true);
+        cmd.execute();
+    }
+    
+    
+private:
+    sqlite3pp::database * m_db;
+    boost::mutex m_mut;
+};
+
 
 #endif // __PLAYDAR_REQUEST_HANDLER_H__
 
