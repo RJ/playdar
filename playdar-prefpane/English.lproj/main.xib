@@ -309,7 +309,7 @@ ARcABAAAAAEAAAACARwAAwAAAAEAAQAAAVIAAwAAAAEAAQAAAVMAAwAAAAIAAQABAAAAAA</bytes>
 			<object class="NSUserDefaultsController" id="15384280">
 				<object class="NSMutableArray" key="NSDeclaredKeys">
 					<bool key="EncodedWithXMLCoder">YES</bool>
-					<string>musicPath</string>
+					<string>byoPlaydar</string>
 					<string>byoBinaries</string>
 					<string>byoCommandParameters</string>
 				</object>
@@ -333,7 +333,7 @@ ARcABAAAAAEAAAACARwAAwAAAAEAAQAAAVIAAwAAAAEAAQAAAVMAAwAAAAIAAQABAAAAAA</bytes>
 						<object class="NSButton" id="539973332">
 							<reference key="NSNextResponder" ref="332060182"/>
 							<int key="NSvFlags">268</int>
-							<string key="NSFrame">{{18, 152}, {166, 18}}</string>
+							<string key="NSFrame">{{18, 152}, {338, 18}}</string>
 							<reference key="NSSuperview" ref="332060182"/>
 							<bool key="NSEnabled">YES</bool>
 							<object class="NSButtonCell" key="NSCell" id="271199402">
@@ -616,6 +616,38 @@ ARcABAAAAAEAAAACARwAAwAAAAEAAQAAAVIAAwAAAAEAAQAAAVMAAwAAAAIAAQABAAAAAA</bytes>
 						</object>
 					</object>
 					<int key="connectionID">217</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBBindingConnection" key="connection">
+						<string key="label">enabled: values.byoBinaries</string>
+						<reference key="source" ref="67939071"/>
+						<reference key="destination" ref="15384280"/>
+						<object class="NSNibBindingConnector" key="connector">
+							<reference key="NSSource" ref="67939071"/>
+							<reference key="NSDestination" ref="15384280"/>
+							<string key="NSLabel">enabled: values.byoBinaries</string>
+							<string key="NSBinding">enabled</string>
+							<string key="NSKeyPath">values.byoBinaries</string>
+							<int key="NSNibBindingConnectorVersion">2</int>
+						</object>
+					</object>
+					<int key="connectionID">223</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBBindingConnection" key="connection">
+						<string key="label">enabled: values.byoCommandParameters</string>
+						<reference key="source" ref="295481605"/>
+						<reference key="destination" ref="15384280"/>
+						<object class="NSNibBindingConnector" key="connector">
+							<reference key="NSSource" ref="295481605"/>
+							<reference key="NSDestination" ref="15384280"/>
+							<string key="NSLabel">enabled: values.byoCommandParameters</string>
+							<string key="NSBinding">enabled</string>
+							<string key="NSKeyPath">values.byoCommandParameters</string>
+							<int key="NSNibBindingConnectorVersion">2</int>
+						</object>
+					</object>
+					<int key="connectionID">224</int>
 				</object>
 			</object>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -1090,7 +1122,7 @@ ARcABAAAAAEAAAACARwAAwAAAAEAAQAAAVIAAwAAAAEAAQAAAVMAAwAAAAIAAQABAAAAAA</bytes>
 				</object>
 			</object>
 			<nil key="sourceID"/>
-			<int key="maxID">217</int>
+			<int key="maxID">224</int>
 		</object>
 		<object class="IBClassDescriber" key="IBDocument.Classes">
 			<object class="NSMutableArray" key="referencedPartialClassDescriptions">

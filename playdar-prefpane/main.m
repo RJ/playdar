@@ -25,6 +25,7 @@
 //TODO log that stupid exception
 //TODO sparkle updates
 // ^^ ensure if prefpane is updated by sparkle, it restarts playdar
+//TODO while open auto restart playdar binary if using byo_bin and playdar binary is modified
 
 
 #import "main.h"
