@@ -27,6 +27,10 @@
     IBOutlet NSButton* scan;
     IBOutlet NSButton* start;
     IBOutlet NSButton* check;
+    IBOutlet NSButton* advanced;
+    IBOutlet NSTextField* status;
+    IBOutlet NSTextField* details;
+    IBOutlet NSWindow* advanced_window;
     pid_t pid;
 }
 
@@ -37,13 +41,18 @@
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(void)execScript:(NSString*)command withArgs:(NSArray*)args;
+-(void)updateStatusTextFields;
+
+-(NSTask*)execScript:(NSString*)command withArgs:(NSArray*)args;
 
 -(bool)isLoginItem;
 
--(IBAction)select:(id)sender; //TODO doesn't need to be IBAction
+-(IBAction)onSelect:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;
 -(IBAction)onStart:(id)sender;
 -(IBAction)onStartAtLogin:(id)sender;
-
+-(IBAction)onHelp:(id)sender;
+-(IBAction)onAdvanced:(id)sender;
+-(IBAction)onCloseAdvanced:(id)sender;
+-(IBAction)onEditPlaydarIni:(id)sender;
 @end

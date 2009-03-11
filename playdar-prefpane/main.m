@@ -34,7 +34,7 @@
 
 
 /** returns the pid of the running playdard instance, or 0 if not found */
-static pid_t playdard_pid()
+static pid_t playdar_pid()
 {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
     struct kinfo_proc *info;
@@ -91,13 +91,13 @@ static inline NSString* fullname()
     }
 
     [[popup menu] addItem:[NSMenuItem separatorItem]];
-    [[[popup menu] addItemWithTitle:@"Select..." action:@selector(select:) keyEquivalent:@""] setTarget:self];
+    [[[popup menu] addItemWithTitle:@"Select..." action:@selector(onSelect:) keyEquivalent:@""] setTarget:self];
 
     NSString* home = NSHomeDirectory();
     [self addFolder:[home stringByAppendingPathComponent:@"Music"] setSelected:true];
     [self addFolder:home setSelected:false];
         
-    if(pid = playdard_pid()) [start setTitle:@"Stop Playdar"];
+    if(pid = playdar_pid()) [self updateStatusTextFields];
     if(![self isLoginItem]) [check setState:NSOffState];
 }
 
@@ -105,7 +105,7 @@ static inline NSString* fullname()
 {
     int const index = [[popup menu] numberOfItems]-2;
     NSMenuItem* item = [[popup menu] insertItemWithTitle:path action:nil keyEquivalent:@"" atIndex:index];
-    NSImage* image = [[NSWorkspace sharedWorkspace] iconForFileType:NSFileTypeForHFSTypeCode(kGenericFolderIcon)];
+    NSImage* image = [[NSWorkspace sharedWorkspace] iconForFile:path];
     [image setSize:NSMakeSize(16, 16)];
     [item setImage:image];
     if(select) [popup selectItemAtIndex:index];
@@ -122,12 +122,14 @@ static inline NSString* fullname()
     NSMutableArray* args = [NSArray arrayWithObjects:@"-c", ini_path(), nil];
     
     if(pid) {
-        if(kill( pid, SIGKILL ) != 0) return;
-        [start setTitle:@"Start Playdar"];
+        if(kill( pid, SIGKILL ) != 0 && playdar_pid()) return;
         pid = 0;
-    } 
+    }
     else if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
-        [self execScript:@"playdar.sh" withArgs:args];
+    {
+        [[self execScript:@"playdar.sh" withArgs:args] waitUntilExit];
+        pid = playdar_pid();
+    }
     else {
         NSString* path = PLAYDAR_BIN_PATH;
         @try
@@ -136,7 +138,6 @@ static inline NSString* fullname()
             [task setLaunchPath:path];
             [task setArguments:args];
             [task launch];
-            [start setTitle:@"Stop Playdar"];
             pid = [task processIdentifier];
         }
         @catch(NSException* e)
@@ -145,7 +146,7 @@ static inline NSString* fullname()
             msg = [msg stringByAppendingString:path];
             msg = [msg stringByAppendingString:@"\" could not be executed."];
             
-            NSBeginAlertSheet(@"Could not start Playdar.", 
+            NSBeginAlertSheet(@"Could not start Playdar", 
                               nil, nil, nil,
                               [[self mainView] window],
                               self,
@@ -154,21 +155,28 @@ static inline NSString* fullname()
                               msg );
         }
     }
+    [self updateStatusTextFields];
+}
+
+-(void)updateStatusTextFields
+{
+    if (pid) {
+        [start setTitle:@"Stop Playdar"];
+        [status setStringValue:@"Running"];
+    } else {
+        [start setTitle:@"Start Playdar"];
+        [status setStringValue:@"Not running"];
+    }
 }
 
 -(void)onStartAtLogin:(id)sender
 {
     bool const enabled = [check state] == NSOnState;
-    
 	CFArrayRef loginItems = NULL;
 	NSURL *url = [NSURL fileURLWithPath:PLAYDAR_BIN_PATH];
 	int existingLoginItemIndex = -1;
-    
-    NSLog( @"%@", url );
-    
-	OSStatus status = LIAECopyLoginItems(&loginItems);
-    
-	if(status == noErr) {
+	OSStatus err = LIAECopyLoginItems(&loginItems);
+	if(err == noErr) {
 		NSEnumerator *enumerator = [(NSArray *)loginItems objectEnumerator];
 		NSDictionary *loginItemDict;
         
@@ -195,8 +203,8 @@ static inline NSString* fullname()
     CFArrayRef loginItems = NULL;
     CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)PLAYDAR_BIN_PATH, kCFURLPOSIXPathStyle, false);
     NSLog( @"%@", url );
-    OSStatus status = LIAECopyLoginItems(&loginItems);
-    if(status == noErr) {
+    OSStatus err = LIAECopyLoginItems(&loginItems);
+    if(err == noErr) {
         for(CFIndex i=0, N=CFArrayGetCount(loginItems); i<N; ++i) {
             CFDictionaryRef loginItem = CFArrayGetValueAtIndex(loginItems, i);
             foundIt = CFEqual(CFDictionaryGetValue(loginItem, kLIAEURL), url);
@@ -209,7 +217,7 @@ static inline NSString* fullname()
 }
 
 ////// Directory selector
--(void)select:(id)sender
+-(void)onSelect:(id)sender
 {
     // return if not the Select... item
     if([popup indexOfSelectedItem] != [popup numberOfItems]-1) return;
@@ -236,13 +244,14 @@ static inline NSString* fullname()
 }
 ////// Directory selector
 
--(void)execScript:(NSString*)script_name withArgs:(NSArray*)args
+-(NSTask*)execScript:(NSString*)script_name withArgs:(NSArray*)args
 {
+    NSTask* task = 0;
     @try {
         NSString* resources = [[self bundle] resourcePath];
         NSString* path = [resources stringByAppendingPathComponent:script_name];
         
-        NSTask *task = [[NSTask alloc] init];
+        task = [[NSTask alloc] init];
         [task setCurrentDirectoryPath:resources];
         [task setLaunchPath:path];
         [task setArguments:args];
@@ -252,6 +261,32 @@ static inline NSString* fullname()
     {
         //TODO log - couldn't figure out easy way to do this
     }
+    return task;
+}
+
+-(IBAction)onHelp:(id)sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://playdar.org"]];
+}
+
+-(IBAction)onAdvanced:(id)sender
+{
+    [NSApp beginSheet:advanced_window
+       modalForWindow:[[self mainView] window]
+        modalDelegate:self
+       didEndSelector:nil
+          contextInfo:nil];
+}
+
+-(IBAction)onCloseAdvanced:(id)sender
+{
+    [advanced_window orderOut:nil];
+    [NSApp endSheet:advanced_window];
+}
+
+-(IBAction)onEditPlaydarIni:(id)sender;
+{
+    [[NSWorkspace sharedWorkspace] openFile:ini_path()];
 }
 
 @end
