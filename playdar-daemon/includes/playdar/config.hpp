@@ -162,6 +162,8 @@ public:
         delete(uuid_str);
         return retval;
     }
+    
+    string filename() { return m_filename; }
 
 private:
     string m_filename;

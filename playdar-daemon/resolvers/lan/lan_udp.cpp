@@ -13,7 +13,7 @@ lan_udp::init(playdar::Config * c, Resolver * r)
          (  boost::asio::ip::address::from_string
             (conf()->get<string> ("plugins.lan_udp.multicast")), 
            conf()->get<int>("plugins.lan_udp.port"));
-    boost::thread m_responder_thread(&lan_udp::run, this);
+    boost::thread m_responder_thread(boost::bind(&lan_udp::run, this));
 }
 
 lan_udp::~lan_udp() throw()

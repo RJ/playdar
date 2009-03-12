@@ -6,7 +6,6 @@
 #include <taglib/tag.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/exception.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>

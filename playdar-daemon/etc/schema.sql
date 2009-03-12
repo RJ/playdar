@@ -75,6 +75,14 @@ CREATE TABLE IF NOT EXISTS file_join (
     album INTEGER REFERENCES album(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
--- 
+-- HTTP Authentication 
+
+CREATE TABLE IF NOT EXISTS playdar_auth (
+    token TEXT NOT NULL PRIMARY KEY,
+    website TEXT NOT NULL,
+    name TEXT NOT NULL,
+    mtime INTEGER NOT NULL,
+    permissions TEXT NOT NULL
+);
 
 

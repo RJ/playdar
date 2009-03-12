@@ -10,6 +10,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/foreach.hpp>
 
 #include "playdar_request_handler.h"
 #include "playdar/library.h"
@@ -22,6 +23,23 @@ playdar_request_handler::init(MyApplication * app)
 
     m_app = app;
 }
+
+string
+playdar_request_handler::gen_formtoken()
+{
+    string f = playdar::Config::gen_uuid();
+    m_formtokens.insert(f);
+    return f;
+}
+
+bool
+playdar_request_handler::consume_formtoken(string ft)
+{
+    if(m_formtokens.find(ft) == m_formtokens.end()) return false;
+    m_formtokens.erase(ft);
+    return true;
+}
+
 
 void 
 playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
@@ -60,35 +78,197 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         uriFreeUriMembersA(&uri);
     }
 
+
+    PlaydarAuth pauth(app()->library()->db());
+    string permissions = "";
+    if(querystring.find("auth") != querystring.end())
+    {
+        string whom;
+        if(pauth.is_valid(querystring["auth"], whom))
+        {
+            cout << "AUTH: validated " << whom << endl;
+            permissions = "*"; // allow all.
+        }
+        else
+        {
+            cout << "AUTH: Invalid authtoken." << endl;
+        }
+    }
+    else
+    {
+        cout << "AUTH: no auth value provided." << endl;
+    }
+
     // get first /dir/ bit
     vector<std::string> parts;
     boost::split(parts, req.uri, boost::is_any_of("/"));
     
-    if(parts[1] == "") // Req: /
+    /// localhost/ - the playdar instance homepage on localhost
+    if(parts[1] == "")
     {
-        serve_body("<h1>Playdar: " + app()->conf()->get<string>("name")
-         + "</h1><a href='/stats'>Stats</a><hr/>For quick and dirty resolving, you can try constructing an URL like: <code>"+app()->conf()->httpbase()+"/quickplay/ARTIST/ALBUM/TRACK</code><br/><br/>For the real demo that uses the JSON API, check <a href=\"http://www.playdar.org/\">Playdar.org</a>.", req, rep);
+        ostringstream os;
+        os  << "<h2>" << app()->conf()->get<string>("name") << "</h2>"
+            << "<p>"
+            << "Your Playdar server is running! Websites and applications that "
+            << "support Playdar will ask your permission, and then be able to "
+            << "access music you have on your machine."
+            << "</p>"
+            
+            << "<p>"
+            << "Loaded resolver plugins:"
+            << "<ul>"
+            << "<li>Local Library (always available)</li>"
+            ;
+        BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
+        {
+            os << "<li>" << rs->name() << "</li>" << endl;
+        }
+        os  << "</ul>"
+            << "</p>"
+            
+            << "<p>"
+            << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+            << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+            << "</p>"
+            
+            << "<p>"
+            << "For the real demo that uses the JSON API, check "
+            << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+            << "</p>"
+            ;
+         serve_body(os.str(), req, rep);
     }
+    /// Show config file (no editor yet)
+    else if(parts[1]=="settings" && parts[2]=="config")
+    {
+        ostringstream os;
+        os  << "<h2>Configuration</h2>"
+            << "<p>"
+            << "Config options are stored as a JSON object in the file: "
+            << "<code>" << app()->conf()->filename() << "</code>"
+            << "</p>"
+            << "<p>"
+            << "The contents of the file are shown below, to edit it use "
+            << "your favourite text editor."
+            << "</p>"
+            << "<pre>"
+            << app()->conf()->str()
+            << "</pre>"
+            ;
+        serve_body(os.str(), req, rep);
+    }
+    /// Phase 1 - this was opened in a popup from a button in the playdar 
+    ///           toolbar on some site that needs to authenticate
+    else if(parts[1]=="auth_1" && 
+            querystring.find("receiverurl") != querystring.end() &&
+            querystring.find("website") != querystring.end() &&
+            querystring.find("name") != querystring.end() )
+    {
+        map<string,string> vars;
+        string filename = "www/static/auth.html";
+        
+        string ftoken   = gen_formtoken();
+        string url      = querystring["receiverurl"];
+        string website  = querystring["website"];
+        string name     = querystring["name"];
+        
+        vars["<%URL%>"]=url;
+        vars["<%FORMTOKEN%>"]=ftoken;
+        vars["<%WEBSITE%>"]=website;
+        vars["<%NAME%>"]=name;
+        serve_dynamic(req, rep, filename, vars);
+    }
+    /// Phase 2  - Provided the formtoken is valid, the user has authenticated
+    ///            and we should create a new authcode and pass it on to the 
+    ///            originating domain, which will probably set it in a cookie.
+    else if(parts[1]=="auth_2" &&
+            querystring.find("receiverurl") != querystring.end() &&
+            querystring.find("website") != querystring.end() &&
+            querystring.find("name") != querystring.end() &&
+            querystring.find("formtoken") != querystring.end() )
+    {
+        if(consume_formtoken(querystring["formtoken"]))
+        {
+            string tok = playdar::Config::gen_uuid(); 
+            pauth.create_new(tok, querystring["website"], querystring["name"]);
+            ostringstream os;
+            os  << querystring["receiverurl"]
+                << ( strstr(querystring["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
+                << "authtoken=" << tok
+                << "#" << tok;
+            rep = rep.stock_reply(moost::http::reply::moved_permanently); 
+            rep.headers.resize(3);
+            rep.headers[2].name = "Location";
+            rep.headers[2].value = os.str();
+        }
+        else
+        {
+            cerr << "Invalid formtoken, not authenticating" << endl;
+            rep = rep.stock_reply(moost::http::reply::unauthorized); 
+            rep.content = "Not Authorized";
+        }
+    }
+    /// Shows a list of every authenticated site
+    /// with a "revoke" options for each.
+    else if(parts[1]=="settings" && parts[2]=="auth")
+    {
+        typedef map<string,string> auth_t;
+        if( querystring.find("revoke")!=querystring.end() &&
+            querystring.find("formtoken")!=querystring.end() &&
+            consume_formtoken(querystring["formtoken"]) )
+        {
+            pauth.deauth(querystring["revoke"]);
+        }
+        vector< auth_t > v = pauth.get_all_authed();
+        ostringstream os;
+        os  << "<h2>Authenticated Sites</h2>"
+            << "<p>"
+            << "The first time a site requests access to your Playdar, "
+            << "you'll have a chance to allow/deny it. You can see the list "
+            << "of authenticated sites here, and delete any if necessary."
+            << "</p>"
+            << "<table style=\"width:95%\">" << endl
+            <<  "<tr style=\"font-weight:bold;\">"
+            <<   "<td>Name</td>"
+            <<   "<td>Website</td>"
+            <<   "<td>Auth Code</td>"
+            <<   "<td>Options</td>"
+            <<  "</tr>"
+            << endl;
+        int i = 0;
+        string formtoken = gen_formtoken();
+        BOOST_FOREACH( auth_t &m, v )
+        {
+            os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
+                <<  "<td>" << m["name"] << "</td>"
+                <<  "<td>" << m["website"] << "</td>"
+                <<  "<td>" << m["token"] << "</td>"
+                <<  "<td><a href=\"/settings/auth/?formtoken="
+                <<  formtoken << "&revoke="  << m["token"] <<"\">Revoke</a>"
+                <<  "</td>"
+                << "</tr>";
+        }
+        os  << "</table>" << endl;
+        serve_body( os.str(), req, rep );
+    }
+    /// this is for serving static files, not sure we need it:
     else if(parts[1]=="static") 
     {
         serve_static_file(req, rep);
     }
-    else if(parts[1]=="streaming") 
-    {
-        boost::shared_ptr<StreamingStrategy> ss(new LocalFileStreamingStrategy("/home/rj/fakemp3/01-Train Train-Jag.mp3"));
-        rep.set_streaming(ss, 1234);
-        return;        
-    }
+    /// JSON API:
     else if(parts[1]=="api" && querystring.count("method")==1)
     {
-        handle_rest_api(querystring, req, rep);
+        handle_rest_api(querystring, req, rep, permissions);
     }
+    /// Misc stats on your playdar instance
     else if(parts[1]=="stats") 
     {
         serve_stats(req, rep);
     }
-    // quick hack method:
-    else if(parts[1]=="quickplay" && parts.size() == 5) // Req: /resolve/artist/album/track 
+    /// quick hack method for playing a song, if it can be found:
+    ///  /quickplay/The+Beatles//Yellow+Submarine
+    else if(parts[1]=="quickplay" && parts.size() == 5)
     {
         
         string artist   = unescape(parts[2]);
@@ -119,11 +299,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             rep.content = "";
         }
     }
+    /// serves file-id from library 
     else if(parts[1]=="serve" && parts.size() == 3)
     {
         int fid = atoi(parts[2].c_str());
         if(fid) serve_track(req, rep, fid);
     }
+    /// serves file based on SID
     else if(parts[1]=="sid" && parts.size() == 3)
     {
         source_uid sid = parts[2];
@@ -144,105 +326,119 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 void 
 playdar_request_handler::handle_rest_api(   map<string,string> qs, 
                                             const moost::http::request& req,
-                                            moost::http::reply& rep)
+                                            moost::http::reply& rep,
+                                            string permissions)
 {
     using namespace json_spirit;
     
     ostringstream response; 
-    
-    if(qs["method"] == "stat") {
-        Object r;
-        r.push_back( Pair("name", "playdar") );
-        r.push_back( Pair("version", "0.1.0") );
-        r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
-        write_formatted( r, response );
-    }
-    else if(qs["method"] == "resolve")
+    do
     {
-        string artist = qs["artist"];
-        string album  = qs["album"];
-        string track  = qs["track"];
-        // create a new query and start resolving it:
-        boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
-        if(qs.count("mode")) rq->set_mode(qs["mode"]);
-        // was a QID specified? if so, use it:
-        if(qs.count("qid"))
-        {
-            if(!app()->resolver()->query_exists(qs["qid"]))
-            {
-                rq->set_id(qs["qid"]);
-            } else {
-                cout << "WARNING - resolve request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
-                // new qid assigned automatically if we don't provide one.
-            }
+        if(qs["method"] == "stat") {
+            Object r;
+            r.push_back( Pair("name", "playdar") );
+            r.push_back( Pair("version", "0.1.0") );
+            r.push_back( Pair("authenticated", permissions.length()>0 ) );
+            r.push_back( Pair("permissions", permissions) );
+            r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
+            write_formatted( r, response );
+            break;
         }
-        if(!rq->valid()) // usually caused by empty track name or something.
-        {
-            cout << "Tried to dispatch an invalid query, failing." << endl;
-            rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
-            return;
-        }
-        query_uid qid = app()->resolver()->dispatch(rq);
-        Object r;
-        r.push_back( Pair("qid", qid) );
-        write_formatted( r, response );
-    }
-    else if(qs["method"]=="get_results" && qs.count("qid")==1)
-    {
-        Object r;
-        Array qresults;
-        vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qs["qid"]);
-        BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
-        {
-            qresults.push_back( pip->get_json() );
-        }   
-        r.push_back( Pair("qid", qs["qid"]) );
-        r.push_back( Pair("refresh_interval", 1000) ); //TODO move to ResolveQuery
-        r.push_back( Pair("query", app()->resolver()->rq(qs["qid"])->get_json()) );
-        r.push_back( Pair("results", qresults) );
         
-        write_formatted( r, response );
-    }
-    else if(qs["method"] == "list_artists")
-    {
-        vector< artist_ptr > artists = app()->library()->list_artists();
-        Array qresults;
-        BOOST_FOREACH(artist_ptr artist, artists)
+        // No other calls allowed unless authenticated!
+        if(permissions.length()==0)
         {
-            Object a;
-            a.push_back( Pair("name", artist->name()) );
-            qresults.push_back(a);
+            cout << "**** Denied! (but actually allowed for now)" << endl;
+            //rep = rep.stock_reply(moost::http::reply::forbidden);
+            //return;
         }
-        // wrap that in an object, so we can add stats to it later
-        Object jq;
-        jq.push_back( Pair("results", qresults) );
-        write_formatted( jq, response );
-    }
-    else if(qs["method"] == "list_artist_tracks")
-    {
-        Array qresults;
-        artist_ptr artist = app()->library()->load_artist( qs["artistname"] );
-        if(artist)
+        
+        if(qs["method"] == "resolve")
         {
-            vector< track_ptr > tracks = app()->library()->list_artist_tracks(artist);
-            BOOST_FOREACH(track_ptr t, tracks)
+            string artist = qs["artist"];
+            string album  = qs["album"];
+            string track  = qs["track"];
+            // create a new query and start resolving it:
+            boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+            if(qs.count("mode")) rq->set_mode(qs["mode"]);
+            // was a QID specified? if so, use it:
+            if(qs.count("qid"))
+            {
+                if(!app()->resolver()->query_exists(qs["qid"]))
+                {
+                    rq->set_id(qs["qid"]);
+                } else {
+                    cout << "WARNING - resolve request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
+                    // new qid assigned automatically if we don't provide one.
+                }
+            }
+            if(!rq->valid()) // usually caused by empty track name or something.
+            {
+                cout << "Tried to dispatch an invalid query, failing." << endl;
+                rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
+                return;
+            }
+            query_uid qid = app()->resolver()->dispatch(rq);
+            Object r;
+            r.push_back( Pair("qid", qid) );
+            write_formatted( r, response );
+        }
+        else if(qs["method"]=="get_results" && qs.count("qid")==1)
+        {
+            Object r;
+            Array qresults;
+            vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qs["qid"]);
+            BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
+            {
+                qresults.push_back( pip->get_json() );
+            }   
+            r.push_back( Pair("qid", qs["qid"]) );
+            r.push_back( Pair("refresh_interval", 1000) ); //TODO move to ResolveQuery
+            r.push_back( Pair("query", app()->resolver()->rq(qs["qid"])->get_json()) );
+            r.push_back( Pair("results", qresults) );
+            
+            write_formatted( r, response );
+        }
+        else if(qs["method"] == "list_artists")
+        {
+            vector< artist_ptr > artists = app()->library()->list_artists();
+            Array qresults;
+            BOOST_FOREACH(artist_ptr artist, artists)
             {
                 Object a;
-                a.push_back( Pair("name", t->name()) );
+                a.push_back( Pair("name", artist->name()) );
                 qresults.push_back(a);
             }
+            // wrap that in an object, so we can add stats to it later
+            Object jq;
+            jq.push_back( Pair("results", qresults) );
+            write_formatted( jq, response );
         }
-        // wrap that in an object, so we can cram in stats etc later
-        Object jq;
-        jq.push_back( Pair("results", qresults) );
-        write_formatted( jq, response );
-    }
-    else
-    {
-        response << "FAIL";
-    }
-    
-    //cout << response.str() << endl;
+        else if(qs["method"] == "list_artist_tracks")
+        {
+            Array qresults;
+            artist_ptr artist = app()->library()->load_artist( qs["artistname"] );
+            if(artist)
+            {
+                vector< track_ptr > tracks = app()->library()->list_artist_tracks(artist);
+                BOOST_FOREACH(track_ptr t, tracks)
+                {
+                    Object a;
+                    a.push_back( Pair("name", t->name()) );
+                    qresults.push_back(a);
+                }
+            }
+            // wrap that in an object, so we can cram in stats etc later
+            Object jq;
+            jq.push_back( Pair("results", qresults) );
+            write_formatted( jq, response );
+        }
+        else
+        {
+            response << "FAIL";
+        }
+
+    }while(false);
     
     // wrap the JSON response in the javascript callback code:
     string retval;
@@ -258,6 +454,7 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
     {
         retval = response.str();
     }
+        
     rep.headers.resize(2);
     rep.headers[0].name = "Content-Length";
     rep.headers[0].value = retval.length();
@@ -289,8 +486,21 @@ void
 playdar_request_handler::serve_body(string reply, const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream r;
-    r << "<html><head><title>Playdar</title></head><body>\n";
-//    r << "<div style=\"position:absolute; height: 30px; width:100%; background-color: #f0f0f0; padding:3px;\"><a href=\"/\">Playdar Index</a></div>\n";
+    r   << "<html><head><title>Playdar</title></head><body>"
+        << "<h1>Local Playdar Server</h1>"
+        << "<a href=\"/\">Home</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/stats/\">Stats</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/settings/auth/\">Authentication</a>"
+        << "&nbsp; | &nbsp;"
+        << "<a href=\"/settings/config/\">Configuration</a>"
+        
+        << "&nbsp; || &nbsp;"
+        << "<a href=\"http://www.playdar.org/\" target=\"playdarsite\">Playdar.org</a>"
+        
+        << "<hr style=\"clear:both;\" />";
+
     r << reply;
     r << "\n</body></html>";
 
@@ -306,9 +516,7 @@ void
 playdar_request_handler::serve_stats(const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream reply;
-    reply   << "<h1>Stats: " << app()->conf()->get<string>("name") 
-            << "</h1>"
-            << "<h2>Local Library</h2>"
+    reply   << "<h2>Local Library Stats</h2>"
             << "<table>"
             << "<tr><td>Num Files</td><td>" << app()->library()->num_files() << "</td></tr>\n"
             << "<tr><td>Artists</td><td>" << app()->library()->num_artists() << "</td></tr>\n"
@@ -346,6 +554,39 @@ playdar_request_handler::serve_sid(const moost::http::request& req, moost::http:
     // hand off the streaming strategy for the http server to do:
     rep.set_streaming(ss, pip->size());
     return;  
+}
+
+
+// serves a .html file from docroot, but string substitutes stuff in the vars map.
+void
+playdar_request_handler::serve_dynamic( const moost::http::request& req, moost::http::reply& rep,
+                                        string filename,
+                                        map<string,string> vars)
+{
+    ifstream ifs;
+    ifs.open(filename.c_str(), ifstream::in);
+    if(ifs.fail())
+    {
+        cerr << "FAIL" << endl;
+        return;
+    }
+    typedef std::pair<string,string> pair_t;
+    ostringstream os;
+    string line;
+    while(std::getline(ifs, line))
+    {
+        BOOST_FOREACH(pair_t item, vars)
+        {
+            boost::replace_all(line, item.first, item.second);
+        }
+        os << line << endl;
+    }
+    rep.headers.resize(2);
+    rep.headers[0].name = "Content-Length";
+    rep.headers[0].value = os.str().length();
+    rep.headers[1].name = "Content-Type";
+    rep.headers[1].value = "text/html";
+    rep.content = os.str(); 
 }
 
 /*

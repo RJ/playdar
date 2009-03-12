@@ -14,9 +14,9 @@ SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options)
-FIND_PACKAGE(OsspUuid)
-FIND_PACKAGE(Uriparser 0.7.0)
-FIND_PACKAGE(Sqlite3)
+FIND_PACKAGE(OsspUuid REQUIRED)
+FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
+FIND_PACKAGE(Sqlite3 REQUIRED)
 
 INCLUDE_DIRECTORIES(
                     ${CMAKE_CURRENT_SOURCE_DIR}/includes  # playdar includes
