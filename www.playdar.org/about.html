@@ -1,0 +1,40 @@
+<!--#set var="title" value="Playdar - About" --><!--#include virtual="/inc/header.html" -->
+<h2>About Playdar</h2>
+<p>
+<strong>Playdar is designed to solve one problem:</strong> given the name of a track, find me a way to listen to it <strong>right now</strong>.
+</p>
+<p>
+It will search your local disk (iTunes library, MP3 folder etc.), it will search your home or office network (kinda like searchable iTunes shared libraries) and it will search other sources. You can write <a href="/resolvers.html">plugins for Playdar</a> to enable it to search additional sources. 
+It's fast. If a matching song is within reach, it can start playing in less than a second.
+</p>
+<p>
+This is called <strong>Content Resolution</strong>. Playdar is a "Content Resolver" - it will take metadata (artist, album, track names) and resolve them to a location of a matching music file. This might be on your disk, or over the network - regardless, sources are always presented as URLs that point to your local machine. 
+<strong>Playdar runs a lightweight webserver on your machine</strong> - this is how you talk to it, and it's how other desktop apps <strong>and web apps</strong> talk to it.
+</p>
+<p>
+Playdar has an HTTP API that returns JSON. 
+It supports JSONP, so <strong>any website that you authorize can use Javascript to talk to the Playdar server on your machine</strong>. 
+This means:
+<ul>
+<li>Websites can automatically put play buttons next to songs they reference.</li>
+<li>Streaming services and music blogs can save bandwidth by playing you your own copy of a song instead of streaming it from a central server.</li>
+<li>A lot of interesting web-app mashups are possible. Pull interesting music data from an API, and play people content they already have.</li>
+<li>You could build an iTunes-Genius-like web app using Playdar and the Last.fm API, all in-browser.</li>
+<li>You could build a playlist sharing site that shares playlists, not mp3s. Think muxtape, but it will only play songs found on your machines.</li>
+<li>If you run Playdar on your laptop and desktop on the same network it will take advantage of songs on either machine.</li>
+<li>Music on the web can be marked up so you can always take advantage of local content.</li>
+</ul>
+</p>
+<p>
+<strong>Playdar is Open Source and Free Software</strong>
+</p>
+<p>
+If you run a music-related website, or are building a desktop application that deals with music, check if your users have Playdar installed and help them take control of their music collections!
+</p>
+<p>
+<a href="/download/">Download it</a> then try the <a href="/demos/">demos</a>. If you are interested in how it works, read about the <a href="/api.html">HTTP API</a> and the <a href="/js.html">Javascript Library</a>. 
+</p>
+
+
+</body>
+</html>
