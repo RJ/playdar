@@ -1,25 +1,4 @@
 <!--#set var="title" value="Playdar - hAudio Microformat Demo" --><!--#include virtual="../inc/header.html" -->
-
-<script type="text/javascript">
-// returns true if console.log available (firebug etc)
-function clog(){ return typeof(window.console) != "undefined" ; }
-
-var playdar = new Playdar({
-    stat_complete: function (detected) {
-        var text;
-        if (detected) {
-            text = "<b style='color:green;'>Playdar ready</b>";
-        } else {
-            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
-        }
-        $('playdar_stat').update(text);
-    }
-});
-window.onload = function() {
-    playdar.init();
-};
-
-</script>
 <h2>hAudio Demo</h2>
 <!--#include virtual="demolist.html" -->
 
@@ -30,7 +9,6 @@ This demo isn't really about microformats. It uses a super-simple hAudio impleme
 to represent tracks, but you could write a custom parser to find elements on any site
 that represent artist/track names.
 </p>
-<p>
 <input type="button" value="Microformats Go!" onclick="go_microformats()" />
 <ul>
     <li>
@@ -98,15 +76,45 @@ that represent artist/track names.
     </li>
 
 </ul>
-</p>
+
 
 <script type="text/javascript">
+// create a custom playdar callback that will handle results for this query:
+var results_handler = function (response, finalanswer) {
+    if (response.results.length) {
+        // generate tooltip with details:
+        var tt = "Sources: ";
+        for (var k = 0; k < response.results.length; ++k) {
+            var r = response.results[k];
+            tt += r.source + "/" + r.bitrate + "kbps/" + Playdar.mmss(r.duration) + " ";
+        }
+        // update status element:
+        $(response.qid).className = 'playdar_found';
+        var swfstr = "<object height=\"17\" width=\"17\"><embed src=\"/static/player.swf?&song_url=" + playdar.get_stream_url(response.results[0].sid) + "\" height=\"17\" width=\"17\"></embed></object>";
+        $(response.qid).innerHTML = swfstr + " <a href=\"#\" title=\""+tt+"\">" + response.results.length + "</a>";
+    } else if (finalanswer) {
+        $(response.qid).className = 'playdar_notfound';
+        $(response.qid).innerHTML = ':(';
+    }
+};
+
+var playdar = new Playdar({
+    stat_complete: function (detected) {
+        var text;
+        if (detected) {
+            text = "<b style='color:green;'>Playdar ready</b>";
+        } else {
+            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
+        }
+        $('playdar_stat').update(text);
+    },
+    results: results_handler
+});
+window.onload = function() {
+    playdar.init();
+};
 
 function go_microformats() {
-    if (!playdar.check_stat()) {
-        alert("Playdar not detected. Start it, then refresh and try again");
-        return;
-    }
     var mkstatuselem = function (id) {
         var d = document.createElement('span');
         d.id = id;
@@ -114,6 +122,7 @@ function go_microformats() {
         d.innerHTML="&nbsp; &nbsp;";
         return d;
     };
+<<<<<<< HEAD/www.playdar.org/demos/haudio.html
     // create a custom playdar callback that will handle results for this query:
     var results_handler = function (response, finalanswer) {
         if (clog()) console.log("result_callback: " + response.qid + " finalanswer: " + finalanswer + " num results = " + response.results.length);
@@ -134,6 +143,8 @@ function go_microformats() {
         }
     };
     playdar.register_results_handler(results_handler);
+=======
+>>>>>>> ce5ad4b46f9c0d749ef45dff8f7d389c204db6f7/www.playdar.org/demos/haudio.html
     
     var divs = $$('div.haudio');
     for (var i = 0; i < divs.length; ++i) {
@@ -143,7 +154,6 @@ function go_microformats() {
         // add a "searching..." status :
         divs[i].appendChild(mkstatuselem(uuid)); 
         playdar.resolve(artist, "", track, uuid);
-        if (clog()) console.log("dispatched " + uuid + " " + artist + " - " + track);
     }
 }
 </script>
