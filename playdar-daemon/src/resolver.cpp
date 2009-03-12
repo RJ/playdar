@@ -35,7 +35,7 @@ Resolver::Resolver(MyApplication * app)
 
     
     // Load all non built-in resolvers:
-    load_resolvers();
+    //load_resolvers();
 }
 
 // dynamically load resolver plugins:

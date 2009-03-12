@@ -1,5 +1,4 @@
 #include "playdar/application.h"
-
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -40,51 +39,70 @@ playdar_request_handler::consume_formtoken(string ft)
     return true;
 }
 
-
-void 
-playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
+/// parse a querystring or form post body into a variables map
+int
+collect_params(const string & url, map<string,string> & vars)
 {
-    cout << "HTTP GET " << req.uri << endl;
-    rep.unset_streaming();
     UriParserStateA state;
     UriQueryListA * queryList;
     UriUriA uri;
     state.uri = &uri;
     int qsnum; // how many pairs in querystring
     // basic uri parsing
-    if (uriParseUriA(&state, req.uri.c_str()) != URI_SUCCESS)
+    if (uriParseUriA(&state, url.c_str()) != URI_SUCCESS)
     {
-        cerr << "FAILED TO PARSE URI" << endl;
-        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
-        return;
+        cerr << "FAILED TO PARSE QUERYSTRING" << endl;
+        return -1;
     }
     
-    // querystring parsing
-    map<string,string> querystring;
     if ( uriDissectQueryMallocA(&queryList, &qsnum, uri.query.first, 
             uri.query.afterLast) != URI_SUCCESS)
     {
-        // this just means the URL doesnt have a querystring
+        // this means valid but empty
         uriFreeUriMembersA(&uri);
-    } else
+        return 0;
+    } 
+    else
     {
         UriQueryListA * q = queryList;
         for(int j=0; j<qsnum; j++)
         {
-            querystring[q->key]=q->value;
+            vars[q->key]=q->value;
             if(q->next) q = q->next;
         }
         if(queryList) uriFreeQueryListA(queryList);
         uriFreeUriMembersA(&uri);
+        return vars.size();
+    }
+}
+
+void 
+playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
+{
+    cout << "HTTP " << req.method << " " << req.uri << endl;
+    rep.unset_streaming();
+    
+    map<string, string> getvars;
+    map<string, string> postvars;
+    
+    // Parse params from querystring:
+    if( collect_params( req.uri, getvars ) == -1 )
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
+    }
+    // Parse params from post body, for form submission
+    if( req.content.length() && collect_params( req.content, postvars ) == -1 )
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
     }
 
-
+    // Auth stuff
     PlaydarAuth pauth(app()->library()->db());
     string permissions = "";
-    if(querystring.find("auth") != querystring.end())
+    if(getvars.find("auth") != getvars.end())
     {
         string whom;
-        if(pauth.is_valid(querystring["auth"], whom))
+        if(pauth.is_valid(getvars["auth"], whom))
         {
             cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
@@ -160,17 +178,17 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// Phase 1 - this was opened in a popup from a button in the playdar 
     ///           toolbar on some site that needs to authenticate
     else if(parts[1]=="auth_1" && 
-            querystring.find("receiverurl") != querystring.end() &&
-            querystring.find("website") != querystring.end() &&
-            querystring.find("name") != querystring.end() )
+            getvars.find("receiverurl") != getvars.end() &&
+            getvars.find("website") != getvars.end() &&
+            getvars.find("name") != getvars.end() )
     {
         map<string,string> vars;
         string filename = "www/static/auth.html";
         
         string ftoken   = gen_formtoken();
-        string url      = querystring["receiverurl"];
-        string website  = querystring["website"];
-        string name     = querystring["name"];
+        string url      = getvars["receiverurl"];
+        string website  = getvars["website"];
+        string name     = getvars["name"];
         
         vars["<%URL%>"]=url;
         vars["<%FORMTOKEN%>"]=ftoken;
@@ -182,18 +200,18 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     ///            and we should create a new authcode and pass it on to the 
     ///            originating domain, which will probably set it in a cookie.
     else if(parts[1]=="auth_2" &&
-            querystring.find("receiverurl") != querystring.end() &&
-            querystring.find("website") != querystring.end() &&
-            querystring.find("name") != querystring.end() &&
-            querystring.find("formtoken") != querystring.end() )
+            postvars.find("receiverurl") != postvars.end() &&
+            postvars.find("website") != postvars.end() &&
+            postvars.find("name") != postvars.end() &&
+            postvars.find("formtoken") != postvars.end() )
     {
-        if(consume_formtoken(querystring["formtoken"]))
+        if(consume_formtoken(postvars["formtoken"]))
         {
             string tok = playdar::Config::gen_uuid(); 
-            pauth.create_new(tok, querystring["website"], querystring["name"]);
+            pauth.create_new(tok, postvars["website"], postvars["name"]);
             ostringstream os;
-            os  << querystring["receiverurl"]
-                << ( strstr(querystring["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
+            os  << postvars["receiverurl"]
+                << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
                 << "authtoken=" << tok
                 << "#" << tok;
             rep = rep.stock_reply(moost::http::reply::moved_permanently); 
@@ -213,11 +231,11 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     else if(parts[1]=="settings" && parts[2]=="auth")
     {
         typedef map<string,string> auth_t;
-        if( querystring.find("revoke")!=querystring.end() &&
-            querystring.find("formtoken")!=querystring.end() &&
-            consume_formtoken(querystring["formtoken"]) )
+        if( getvars.find("revoke")!=getvars.end() &&
+            getvars.find("formtoken")!=getvars.end() &&
+            consume_formtoken(getvars["formtoken"]) )
         {
-            pauth.deauth(querystring["revoke"]);
+            pauth.deauth(getvars["revoke"]);
         }
         vector< auth_t > v = pauth.get_all_authed();
         ostringstream os;
@@ -257,9 +275,9 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         serve_static_file(req, rep);
     }
     /// JSON API:
-    else if(parts[1]=="api" && querystring.count("method")==1)
+    else if(parts[1]=="api" && getvars.count("method")==1)
     {
-        handle_rest_api(querystring, req, rep, permissions);
+        handle_rest_api(getvars, req, rep, permissions);
     }
     /// Misc stats on your playdar instance
     else if(parts[1]=="stats") 
