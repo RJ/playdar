@@ -79,9 +79,7 @@ static inline NSString* fullname()
 @implementation OrgPlaydarPreferencePane
 
 -(void)mainViewDidLoad
-{
-    [[SUUpdater updaterForBundle:[self bundle]] resetUpdateCycle];
-    
+{   
     NSString* ini = ini_path();
     if([[NSFileManager defaultManager] fileExistsAtPath:ini] == false) 
     {
@@ -98,6 +96,8 @@ static inline NSString* fullname()
         
     if(pid = playdar_pid()) [self updateStatusTextFields];
     if(![self isLoginItem]) [check setState:NSOffState];
+
+    [[SUUpdater updaterForBundle:[self bundle]] resetUpdateCycle];
 }
 
 -(void)addFolder:(NSString*)path setSelected:(bool)select
