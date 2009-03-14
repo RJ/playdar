@@ -47,6 +47,8 @@
 
 -(bool)isLoginItem;
 
+-(NSString*)daemon;
+
 -(IBAction)onSelect:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;
 -(IBAction)onStart:(id)sender;
