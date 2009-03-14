@@ -11,7 +11,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 
-#include "playdar_request_handler.h"
+#include "playdar/playdar_request_handler.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 
@@ -89,26 +89,14 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     {
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
-    else
-    {
-        cout << "collected " << postvars.size() << " params from post data: "
-                << req.content << endl;
-    }
     
     /// parse URL parts
     string url = req.uri.substr(0, req.uri.find("?"));
     vector<std::string> parts;
     boost::split(parts, url, boost::is_any_of("/"));
     parts.erase(parts.begin()); //  "" before leading /
-    //cout << "URL: '"<<  url <<"'" << endl;
-    //BOOST_FOREACH(string & ps, parts)
-    //{
-    //    cout << "URL PART: '"<< ps <<"'" << endl;
-    //}
     
-
     /// Auth stuff
-    
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
     {
@@ -130,7 +118,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 
     
     /// localhost/ - the playdar instance homepage on localhost
-    if(parts[1] == "")
+    if(url=="/")
     {
         ostringstream os;
         os  << "<h2>" << app()->conf()->get<string>("name") << "</h2>"
@@ -147,7 +135,17 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             ;
         BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
         {
-            os << "<li>" << rs->name() << "</li>" << endl;
+            os  << "<li>" << rs->name() ;
+            vector<string> urls = rs->get_http_handlers();
+            if( urls.size() )
+            {
+                os << " &nbsp; Config URLs: " ;
+                BOOST_FOREACH(string u, urls)
+                {
+                    os << "<a href=\""<< u <<"\">" << u << "</a> &nbsp; " ;
+                }
+            }
+            os  << "</li>" << endl;
         }
         os  << "</ul>"
             << "</p>"
@@ -165,7 +163,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
          serve_body(os.str(), req, rep);
     }
     /// Show config file (no editor yet)
-    else if(parts[1]=="settings" && parts[2]=="config")
+    else if(url=="/settings/config/")
     {
         ostringstream os;
         os  << "<h2>Configuration</h2>"
@@ -185,7 +183,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     }
     /// Phase 1 - this was opened in a popup from a button in the playdar 
     ///           toolbar on some site that needs to authenticate
-    else if(parts[1]=="auth_1" && 
+    else if(url=="/auth_1/" && 
             getvars.find("receiverurl") != getvars.end() &&
             getvars.find("website") != getvars.end() &&
             getvars.find("name") != getvars.end() )
@@ -207,7 +205,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// Phase 2  - Provided the formtoken is valid, the user has authenticated
     ///            and we should create a new authcode and pass it on to the 
     ///            originating domain, which will probably set it in a cookie.
-    else if(parts[1]=="auth_2" &&
+    else if(url=="/auth_2/" &&
             postvars.find("receiverurl") != postvars.end() &&
             postvars.find("website") != postvars.end() &&
             postvars.find("name") != postvars.end() &&
@@ -236,7 +234,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     }
     /// Shows a list of every authenticated site
     /// with a "revoke" options for each.
-    else if(parts[1]=="settings" && parts[2]=="auth")
+    else if(url=="/settings/auth/")
     {
         typedef map<string,string> auth_t;
         if( getvars.find("revoke")!=getvars.end() &&
@@ -278,17 +276,17 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         serve_body( os.str(), req, rep );
     }
     /// this is for serving static files, not sure we need it:
-    else if(parts[1]=="static") 
+    else if(url=="/static/") 
     {
         serve_static_file(req, rep);
     }
     /// JSON API:
-    else if(parts[1]=="api" && getvars.count("method")==1)
+    else if(url=="/api/" && getvars.count("method")==1)
     {
         handle_rest_api(getvars, req, rep, permissions);
     }
     /// Misc stats on your playdar instance
-    else if(parts[1]=="stats") 
+    else if(url=="/stats/") 
     {
         serve_stats(req, rep);
     }

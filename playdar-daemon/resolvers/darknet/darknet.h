@@ -131,7 +131,7 @@ public:
     vector<string> get_http_handlers()
     {
         vector<string> h;
-        h.push_back ( "/darknetstuff" );
+        h.push_back ( "/darknet/config/" );
         return h;
     }
 

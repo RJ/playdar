@@ -20,8 +20,6 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 
 INCLUDE_DIRECTORIES(
                     ${CMAKE_CURRENT_SOURCE_DIR}/includes  # playdar includes
-                    ${CMAKE_CURRENT_SOURCE_DIR}/src
-                    ${CMAKE_CURRENT_SOURCE_DIR}/resolvers # only needed for some debug/bootstrap code
                     #${URIPARSER_INCLUDE_DIR}
                     ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
