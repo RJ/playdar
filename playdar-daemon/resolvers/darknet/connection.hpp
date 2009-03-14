@@ -238,6 +238,7 @@ public:
     void set_username(string u){ m_username =  u; }
     bool authed() const { return m_authed; }
     void set_authed(bool b) { m_authed = b; }
+    size_t writeq_size() const { return m_writeq.size(); }
     
 private:
     /// The underlying socket.

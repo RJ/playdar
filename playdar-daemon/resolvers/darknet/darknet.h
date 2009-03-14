@@ -101,6 +101,11 @@ public:
         catch(...){}
     }
     
+    map<string, connection_ptr_weak> connections()
+    {
+        return m_connections;
+    }
+    
     connection_ptr get_query_origin(query_uid qid)
     {
         connection_ptr conn;
@@ -115,6 +120,18 @@ public:
             return connection_ptr(connw);
         }catch(...)
         { return conn; }
+    }
+    
+    string http_handler(const string url,
+                        const vector<string> parts,
+                        const map<string,string> getvars,
+                        const map<string,string> postvars);
+                           
+    vector<string> get_http_handlers()
+    {
+        vector<string> h;
+        h.push_back ( "/darknetstuff" );
+        return h;
     }
 
 protected:

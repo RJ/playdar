@@ -30,7 +30,12 @@ typedef boost::shared_ptr<Album>    album_ptr;
 class PlayableItem; // fwd
 typedef boost::function< void (query_uid qid, boost::shared_ptr<PlayableItem> pip)> rq_callback_t;
 
-
+/// Handlers for web requests:
+typedef boost::function< void  (const string url,
+                                const vector<string> parts,
+                                const map<string,string> getvars,
+                                const map<string,string> postvars) > 
+         http_req_cb;
 
 struct scorepair
 {

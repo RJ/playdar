@@ -42,6 +42,22 @@ public:
         vector< boost::shared_ptr<PlayableItem> > results,
         string via);
     
+    // default is empty, ie no http urls handle
+    virtual vector<string> get_http_handlers()
+    {
+        vector<string> h;
+        return h;
+    }
+    
+    // handler for HTTP reqs we are registerd for:
+    virtual string http_handler(const string url,
+                                const vector<string> parts,
+                                const map<string,string> getvars,
+                                const map<string,string> postvars)
+    {
+        return "This plugin has no web interface.";
+    }
+    
 //protected:
     
     

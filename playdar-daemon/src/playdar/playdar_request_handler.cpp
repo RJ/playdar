@@ -19,8 +19,16 @@ void
 playdar_request_handler::init(MyApplication * app)
 {
     cout << "HTTP handler online." << endl;
-
     m_app = app;
+}
+
+
+string 
+playdar_request_handler::sid_to_url(source_uid sid)
+{
+    string u = app()->conf()->httpbase();
+    u += "/sid/" + sid;
+    return u;
 }
 
 string
@@ -41,7 +49,7 @@ playdar_request_handler::consume_formtoken(string ft)
 
 /// parse a querystring or form post body into a variables map
 int
-collect_params(const string & url, map<string,string> & vars)
+playdar_request_handler::collect_params(const string & url, map<string,string> & vars)
 {
     UriParserStateA state;
     UriQueryListA * queryList;
@@ -95,8 +103,20 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     {
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
+    
+    /// parse URL parts
+    string url = req.uri.substr(0, req.uri.find("?"));
+    vector<std::string> parts;
+    boost::split(parts, url, boost::is_any_of("/"));
+    parts.erase(parts.begin()); //  "" before leading /
+    //cout << "URL: '"<<  url <<"'" << endl;
+    //BOOST_FOREACH(string & ps, parts)
+    //{
+    //    cout << "URL PART: '"<< ps <<"'" << endl;
+    //}
+    
 
-    // Auth stuff
+    /// Auth stuff
     PlaydarAuth pauth(app()->library()->db());
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
@@ -117,9 +137,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         cout << "AUTH: no auth value provided." << endl;
     }
 
-    // get first /dir/ bit
-    vector<std::string> parts;
-    boost::split(parts, req.uri, boost::is_any_of("/"));
     
     /// localhost/ - the playdar instance homepage on localhost
     if(parts[1] == "")
@@ -328,14 +345,19 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     {
         source_uid sid = parts[2];
         serve_sid(req, rep, sid);
-    }    
+    }
+    else if(ResolverService * rs = app()->resolver()->get_url_handler(url)) 
+    {
+        serve_body(rs->http_handler(url, parts, getvars, postvars),
+                   req, rep );
+    }
     else // unhandled request
     {
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
         //rep.content = "make a valid request, kthxbye";
     }
+    
 }
-
 
 //
 // REST API that returns JSON

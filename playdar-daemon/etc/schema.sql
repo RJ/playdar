@@ -85,4 +85,15 @@ CREATE TABLE IF NOT EXISTS playdar_auth (
     permissions TEXT NOT NULL
 );
 
+-- Settings
+
+CREATE TABLE IF NOT EXISTS playdar_settings (
+    ns TEXT,
+    name TEXT NOT NULL,
+    value TEXT,
+    defaultvalue TEXT NOT NULL,
+    description TEXT NOT NULL
+);
+CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
+
 

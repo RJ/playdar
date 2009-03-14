@@ -1,11 +1,9 @@
-
-
 #include "playdar/application.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
-
+#include <playdar/playdar_request_handler.h>
 
 using namespace std;
 
@@ -27,7 +25,6 @@ MyApplication::~MyApplication()
 {
     delete(m_library);
 }
-
     
 Library * 
 MyApplication::library()

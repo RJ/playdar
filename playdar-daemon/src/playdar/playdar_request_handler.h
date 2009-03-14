@@ -17,6 +17,7 @@
 #include "playdar/library.h"
 #include "playdar/application.h"
 
+         
 class playdar_request_handler : public moost::http::request_handler_base<playdar_request_handler>
 {
 public:
@@ -41,13 +42,8 @@ private:
         return ret;
     }
 
-    string sid_to_url(source_uid sid) 
-    {
-        string u = app()->conf()->httpbase();
-        u += "/sid/" + sid;
-        return u;
-    }
-
+    string sid_to_url(source_uid sid); 
+    int collect_params(const string & url, map<string,string> & vars);
     void handle_json_query(string query, const moost::http::request& req, moost::http::reply& rep);
     void handle_rest_api(map<string, string> querystring, const moost::http::request& req, moost::http::reply& rep, string permissions);
 

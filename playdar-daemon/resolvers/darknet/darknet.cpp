@@ -455,4 +455,36 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
                       boost::asio::placeholders::error, conn, msg));*/
 }
 
+// web interface:
+string 
+darknet::http_handler(const string url,
+                      const vector<string> parts,
+                      const map<string,string> getvars,
+                      const map<string,string> postvars)
+{
+    cout << "http_handler called on darknet" << endl;
+    typedef pair<string, connection_ptr_weak> pair_t;
+    ostringstream os;
+    os  << "<table>"
+        << "<tr style=\"font-weigh:bold;\">"
+        << "<td>Username</td><td>Msg Queue Size</td><td>Address</td></tr>";
+        
+    BOOST_FOREACH(pair_t p, connections())
+    {
+        connection_ptr conn(p.second);
+        boost::asio::ip::tcp::endpoint remote_ep = conn->socket().remote_endpoint();
+        os  << "<tr>"
+            << "<td>" << p.first << "</td>"
+            << "<td>" << conn->writeq_size() << "</td>"
+            << "<td>" << remote_ep.address().to_string() 
+            <<           ":" << remote_ep.port() << "</td>"
+            << "</tr>";
+    }
+    os  << "</table>" 
+        << endl; 
+    //cout << os.str();
+    return os.str();
+}
+
+
 EXPORT_DYNAMIC_CLASS( darknet )

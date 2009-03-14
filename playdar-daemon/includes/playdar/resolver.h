@@ -51,14 +51,19 @@ public:
     
     void register_callback(query_uid qid, rq_callback_t cb);
     // hack-o-matic: for interactive mode in main.cpp.
-    //ResolverService * get_darknet() { return m_rs_darknet; }
+    ResolverService * get_darknet();
     
     size_t num_seen_queries();
     
     vector<ResolverService *> * resolvers() { return &m_resolvers; }
 
-private:
+    ResolverService * get_url_handler(string url);
 
+private:
+    
+    // maps URLs to plugins that handle them:
+    map<string, ResolverService *> m_http_handlers;
+    
     query_uid generate_qid();
     source_uid generate_sid();
     

@@ -1,5 +1,4 @@
 #include "playdar/application.h"
-//#include "resolvers/darknet/rs_darknet.h"
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
@@ -11,6 +10,8 @@
 #include "playdar_request_handler.h"
 
 #include <boost/algorithm/string.hpp>
+
+
 
 using namespace std;
 namespace po = boost::program_options;
@@ -101,9 +102,9 @@ int main(int ac, char *av[])
             boost::bind(&start_http_server, 
                         ip, app->conf()->get<int>("http_port"), 1, app));
         
-        // Lame interactive mode for debugging:
         /*
-        RS_darknet * dnet = static_cast<RS_darknet *>( app->resolver()->get_darknet());
+        // Lame interactive mode for debugging:
+        playdar::resolvers::darknet * dnet = static_cast<playdar::resolvers::darknet *>( app->resolver()->get_darknet());
         if(dnet)
         {
             cout << "** Darknet resolver active, entering lame interactive mode **" << endl;
@@ -122,12 +123,12 @@ int main(int ac, char *av[])
                     boost::asio::ip::tcp::endpoint ep(ip, port);
                     dnet->servent()->connect_to_remote(ep);
                 }
-                
             }
         }else{     
             // this will stop us exiting:
             http_thread.join();
-        }*/
+        }
+        */
         http_thread.join();
         cout << "All threads finished, exiting cleanly" << endl;
         delete(app); 

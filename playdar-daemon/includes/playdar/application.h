@@ -13,11 +13,15 @@
 
 #include <boost/program_options.hpp>
 
+//:::
+//#include "playdar/playdar_request_handler.h"
 
 using namespace std;
 
 class Library;
 class Resolver;
+class ResolverService;
+class playdar_request_handler;
 
 /*  
  *  Container for all application-level settings,
@@ -63,7 +67,7 @@ public:
     }
     
     static int levenshtein(const std::string & first, const std::string & second);
-    
+
     
 private:
     

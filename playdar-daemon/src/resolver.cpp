@@ -35,7 +35,24 @@ Resolver::Resolver(MyApplication * app)
 
     
     // Load all non built-in resolvers:
-    //load_resolvers();
+    try
+    {
+        load_resolvers();
+    }
+    catch(...)
+    {
+        cout << "Error loading resolver plugins." << endl;
+    }
+}
+
+ResolverService * 
+Resolver::get_darknet()
+{
+    BOOST_FOREACH(ResolverService * rs, m_resolvers )
+    {
+        if(rs->name() == "darknet") return rs;
+    }
+    return 0;
 }
 
 // dynamically load resolver plugins:
@@ -55,8 +72,8 @@ Resolver::load_resolvers()
         string pluginfile = itr->string();
         if(bfs::extension(pluginfile)!=".resolver")
         {
-            cerr << "Skipping '" << pluginfile 
-                 << "' from plugins directory" << endl;
+            //cerr << "Skipping '" << pluginfile 
+            //     << "' from plugins directory" << endl;
             continue;
         }
         string classname = bfs::basename(pluginfile);
@@ -73,13 +90,25 @@ Resolver::load_resolvers()
         {
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
-            cout << "-> Trying: " << pluginfile << endl;
+            cout << "-> " << pluginfile << endl;
             ResolverService * instance = 
                 dynamicLoader.GetClassInstance< ResolverService >
                     ( pluginfile.c_str(), classname.c_str() );
             instance->init(app()->conf(), this);
-            cout << "-> Loaded: " << instance->name() << endl;
+            // does this plugin handle any URLs?
+            vector<string> handlers = instance->get_http_handlers();
+            if(handlers.size())
+            {
+                cout << "-> Registering " << handlers.size() << " HTTP handlers" << endl;
+                //typedef pair<string, http_req_cb> pair_t;
+                BOOST_FOREACH(string url, handlers)
+                {
+                    cout << "-> " << url <<  endl;
+                    m_http_handlers[url] = instance;
+                }
+            }
             m_resolvers.push_back(instance);
+            cout << "-> OK: " << instance->name() << endl;
         }
         catch( PDL::LoaderException & ex )
         {
@@ -87,6 +116,13 @@ Resolver::load_resolvers()
         }
     }
     cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
+}
+
+ResolverService *
+Resolver::get_url_handler(string url)
+{
+    if(m_http_handlers.find(url)==m_http_handlers.end()) return 0;
+    return m_http_handlers[url];
 }
 
 // start resolving! (non-blocking)
