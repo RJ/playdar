@@ -75,8 +75,6 @@ static inline NSString* fullname()
     return (fullname && [fullname length] > 0) ? fullname : NSUserName();
 }
 
-#define PLAYDAR_BIN_PATH [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"]
-
 
 @implementation OrgPlaydarPreferencePane
 
@@ -132,11 +130,10 @@ static inline NSString* fullname()
         pid = playdar_pid();
     }
     else {
-        NSString* path = PLAYDAR_BIN_PATH;
+        NSTask *task = [[NSTask alloc] init];
         @try
         {
-            NSTask *task = [[NSTask alloc] init];
-            [task setLaunchPath:path];
+            [task setLaunchPath:[self daemon]];
             [task setArguments:args];
             [task launch];
             pid = [task processIdentifier];
@@ -144,7 +141,7 @@ static inline NSString* fullname()
         @catch(NSException* e)
         {
             NSString* msg = @"The file at \"";
-            msg = [msg stringByAppendingString:path];
+            msg = [msg stringByAppendingString:[task launchPath]];
             msg = [msg stringByAppendingString:@"\" could not be executed."];
             
             NSBeginAlertSheet(@"Could not start Playdar", 
@@ -174,7 +171,7 @@ static inline NSString* fullname()
 {
     bool const enabled = [check state] == NSOnState;
 	CFArrayRef loginItems = NULL;
-	NSURL *url = [NSURL fileURLWithPath:PLAYDAR_BIN_PATH];
+	NSURL *url = [NSURL fileURLWithPath:[self daemon]];
 	int existingLoginItemIndex = -1;
 	OSStatus err = LIAECopyLoginItems(&loginItems);
 	if(err == noErr) {
@@ -202,7 +199,7 @@ static inline NSString* fullname()
 {
     Boolean foundIt = false;
     CFArrayRef loginItems = NULL;
-    CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)PLAYDAR_BIN_PATH, kCFURLPOSIXPathStyle, false);
+    CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)[self daemon], kCFURLPOSIXPathStyle, false);
     NSLog( @"%@", url );
     OSStatus err = LIAECopyLoginItems(&loginItems);
     if(err == noErr) {
@@ -288,6 +285,17 @@ static inline NSString* fullname()
 -(IBAction)onEditPlaydarIni:(id)sender;
 {
     [[NSWorkspace sharedWorkspace] openFile:ini_path()];
+}
+
+-(NSString*)daemon
+{
+    NSUserDefaults* defaults = [[NSUserDefaultsController sharedUserDefaultsController] defaults];
+    if ([defaults boolForKey:@"byoBinaries"]) {
+        NSString* path = [defaults stringForKey:@"byoBinariesPath"];
+        if (path && [path length])
+            return [path stringByAppendingPathComponent:@"playdar"];
+    }
+    return [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"];
 }
 
 @end
