@@ -457,16 +457,40 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 
 // web interface:
 string 
-darknet::http_handler(const string url,
-                      const vector<string> parts,
-                      const map<string,string> getvars,
-                      const map<string,string> postvars)
+darknet::http_handler(string url,
+                      vector<string> parts,
+                      map<string,string> getvars,
+                      map<string,string> postvars,
+                      playdar::auth * pauth)
 {
-    cout << "http_handler called on darknet" << endl;
+    cout << "http_handler called on darknet. pauth = " << pauth << endl;
+    if( postvars.find("formtoken") != postvars.end() &&
+        postvars.find("newaddr") != postvars.end() &&
+        postvars.find("newport") != postvars.end() &&
+        pauth->consume_formtoken(postvars["formtoken"]) )
+    {
+        string addr = postvars["newaddr"];
+        unsigned short port = boost::lexical_cast<unsigned short>(postvars["newport"]);
+        boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(addr);
+        boost::asio::ip::tcp::endpoint ep(ip, port);
+        servent()->connect_to_remote(ep);
+    }
+    
     typedef pair<string, connection_ptr_weak> pair_t;
     ostringstream os;
-    os  << "<table>"
-        << "<tr style=\"font-weigh:bold;\">"
+    os  << "<h2>Darknet Settings</h2>" << endl
+        << "<form method=\"post\" action=\"\">" << endl
+        << "Connect "
+        << "IP: <input type=\"text\" name=\"newaddr\" />"
+        << "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
+        << "<input type=\"hidden\" name=\"formtoken\" value=\""
+            << pauth->gen_formtoken() << "\"/>"
+        << " <input type=\"submit\" value=\"Connect to remote servent\" />"
+        << "</form>" << endl
+        ;
+    os  << "<h3>Current Connections</h3>"    
+        << "<table>"
+        << "<tr style=\"font-weight:bold;\">"
         << "<td>Username</td><td>Msg Queue Size</td><td>Address</td></tr>";
         
     BOOST_FOREACH(pair_t p, connections())

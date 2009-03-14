@@ -5,6 +5,8 @@
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <set>
+#include <vector>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
 
@@ -165,7 +167,12 @@ public:
     
     string filename() { return m_filename; }
 
+
+
 private:
+
+
+    
     string m_filename;
     Value m_mainval;
     map<string,Value> m_mainmap;

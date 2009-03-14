@@ -122,10 +122,11 @@ public:
         { return conn; }
     }
     
-    string http_handler(const string url,
-                        const vector<string> parts,
-                        const map<string,string> getvars,
-                        const map<string,string> postvars);
+    string http_handler( string url,
+                         vector<string> parts,
+                         map<string,string> getvars,
+                         map<string,string> postvars,
+                        playdar::auth * pauth);
                            
     vector<string> get_http_handlers()
     {

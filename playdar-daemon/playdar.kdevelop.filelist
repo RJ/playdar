@@ -9,6 +9,7 @@ includes/playdar
 includes/playdar/album.h
 includes/playdar/application.h
 includes/playdar/artist.h
+includes/playdar/auth.hpp
 includes/playdar/config.hpp
 includes/playdar/config2.hpp
 includes/playdar/library.h

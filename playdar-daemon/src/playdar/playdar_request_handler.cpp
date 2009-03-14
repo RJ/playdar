@@ -19,6 +19,7 @@ void
 playdar_request_handler::init(MyApplication * app)
 {
     cout << "HTTP handler online." << endl;
+    m_pauth = new playdar::auth(app->library()->db());
     m_app = app;
 }
 
@@ -31,21 +32,6 @@ playdar_request_handler::sid_to_url(source_uid sid)
     return u;
 }
 
-string
-playdar_request_handler::gen_formtoken()
-{
-    string f = playdar::Config::gen_uuid();
-    m_formtokens.insert(f);
-    return f;
-}
-
-bool
-playdar_request_handler::consume_formtoken(string ft)
-{
-    if(m_formtokens.find(ft) == m_formtokens.end()) return false;
-    m_formtokens.erase(ft);
-    return true;
-}
 
 /// parse a querystring or form post body into a variables map
 int
@@ -75,7 +61,7 @@ playdar_request_handler::collect_params(const string & url, map<string,string> &
         UriQueryListA * q = queryList;
         for(int j=0; j<qsnum; j++)
         {
-            vars[q->key]=q->value;
+            vars[q->key]= (q->value ? q->value : "");
             if(q->next) q = q->next;
         }
         if(queryList) uriFreeQueryListA(queryList);
@@ -99,9 +85,14 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
     // Parse params from post body, for form submission
-    if( req.content.length() && collect_params( req.content, postvars ) == -1 )
+    if( req.content.length() && collect_params( string("/?")+req.content, postvars ) == -1 )
     {
         rep = rep.stock_reply(moost::http::reply::bad_request);
+    }
+    else
+    {
+        cout << "collected " << postvars.size() << " params from post data: "
+                << req.content << endl;
     }
     
     /// parse URL parts
@@ -117,12 +108,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     
 
     /// Auth stuff
-    PlaydarAuth pauth(app()->library()->db());
+    
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
     {
         string whom;
-        if(pauth.is_valid(getvars["auth"], whom))
+        if(m_pauth->is_valid(getvars["auth"], whom))
         {
             cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
@@ -202,7 +193,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         map<string,string> vars;
         string filename = "www/static/auth.html";
         
-        string ftoken   = gen_formtoken();
+        string ftoken   = m_pauth->gen_formtoken();
         string url      = getvars["receiverurl"];
         string website  = getvars["website"];
         string name     = getvars["name"];
@@ -222,10 +213,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             postvars.find("name") != postvars.end() &&
             postvars.find("formtoken") != postvars.end() )
     {
-        if(consume_formtoken(postvars["formtoken"]))
+        if(m_pauth->consume_formtoken(postvars["formtoken"]))
         {
             string tok = playdar::Config::gen_uuid(); 
-            pauth.create_new(tok, postvars["website"], postvars["name"]);
+            m_pauth->create_new(tok, postvars["website"], postvars["name"]);
             ostringstream os;
             os  << postvars["receiverurl"]
                 << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
@@ -250,11 +241,11 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         typedef map<string,string> auth_t;
         if( getvars.find("revoke")!=getvars.end() &&
             getvars.find("formtoken")!=getvars.end() &&
-            consume_formtoken(getvars["formtoken"]) )
+            m_pauth->consume_formtoken(getvars["formtoken"]) )
         {
-            pauth.deauth(getvars["revoke"]);
+            m_pauth->deauth(getvars["revoke"]);
         }
-        vector< auth_t > v = pauth.get_all_authed();
+        vector< auth_t > v = m_pauth->get_all_authed();
         ostringstream os;
         os  << "<h2>Authenticated Sites</h2>"
             << "<p>"
@@ -271,7 +262,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             <<  "</tr>"
             << endl;
         int i = 0;
-        string formtoken = gen_formtoken();
+        string formtoken = m_pauth->gen_formtoken();
         BOOST_FOREACH( auth_t &m, v )
         {
             os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
@@ -346,9 +337,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         source_uid sid = parts[2];
         serve_sid(req, rep, sid);
     }
+    // is this url handled by a currently loaded plugin?
     else if(ResolverService * rs = app()->resolver()->get_url_handler(url)) 
     {
-        serve_body(rs->http_handler(url, parts, getvars, postvars),
+        serve_body(rs->http_handler(url, parts, getvars, postvars, m_pauth),
                    req, rep );
     }
     else // unhandled request

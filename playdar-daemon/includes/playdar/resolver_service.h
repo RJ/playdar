@@ -3,7 +3,7 @@
 // Interface for all resolver services
 #include "playdar/resolver.h"
 #include "playdar/application.h"
-
+#include "playdar/auth.hpp"
 #include <DynamicClass.hpp>
 
 
@@ -50,10 +50,11 @@ public:
     }
     
     // handler for HTTP reqs we are registerd for:
-    virtual string http_handler(const string url,
-                                const vector<string> parts,
-                                const map<string,string> getvars,
-                                const map<string,string> postvars)
+    virtual string http_handler( string url,
+                                 vector<string> parts,
+                                 map<string,string> getvars,
+                                 map<string,string> postvars,
+                                playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
     }
