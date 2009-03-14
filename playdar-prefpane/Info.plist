@@ -28,13 +28,15 @@
 	<string>Playdar</string>
 	<key>NSPrincipalClass</key>
 	<string>OrgPlaydarPreferencePane</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
 	<key>SUAllowsAutomaticUpdates</key>
-	<string>1</string>
+	<true/>
 	<key>SUCheckAtStartup</key>
-	<string>1</string>
+	<true/>
 	<key>SUFeedURL</key>
-	<string>http://www.playdar.org/appcast/playdar.prefPane.xml</string>
+	<string>http://www.methylblue.com/playdar/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
-	<string>47000</string>
+	<string>3600</string>
 </dict>
 </plist>
