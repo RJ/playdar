@@ -24,7 +24,6 @@
 		63BE46E60F5B6C0C00BFA9E0 /* playdar in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63BE46E40F5B6C0600BFA9E0 /* playdar */; };
 		63DFABE70F5CAAA1001855D4 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
 		63DFABEE0F5CAAFA001855D4 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
-		63E2F3800F609BFE00738CA2 /* playdar.sh in Resources */ = {isa = PBXBuildFile; fileRef = 63E2F37F0F609BFE00738CA2 /* playdar.sh */; };
 		63E2F3BD0F60A11B00738CA2 /* pc.h in Headers */ = {isa = PBXBuildFile; fileRef = 32DBCFA20370C41700C91783 /* pc.h */; };
 		63E2F3BE0F60A11B00738CA2 /* LoginItemsAE.h in Headers */ = {isa = PBXBuildFile; fileRef = 635AD4D00F5E152D003C0805 /* LoginItemsAE.h */; };
 		63E2F3BF0F60A11B00738CA2 /* LoginItemsAE.c in Sources */ = {isa = PBXBuildFile; fileRef = 635AD4D20F5E1552003C0805 /* LoginItemsAE.c */; };
@@ -105,7 +104,6 @@
 		638388410F5B708F000C8EAF /* libuuid.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libuuid.16.dylib; path = /opt/local/lib/libuuid.16.dylib; sourceTree = "<absolute>"; };
 		63BE46E40F5B6C0600BFA9E0 /* playdar */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = playdar; path = "../playdar-daemon/bin/playdar"; sourceTree = "<group>"; };
 		63DFABE60F5CAAA1001855D4 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
-		63E2F37F0F609BFE00738CA2 /* playdar.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = playdar.sh; sourceTree = "<group>"; };
 		63E2F5330F60D5F200738CA2 /* scanner.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = scanner.sh; sourceTree = "<group>"; };
 		8D202CF70486D31800D8A456 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8D202CF80486D31800D8A456 /* playdar.prefPane */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = playdar.prefPane; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -159,7 +157,6 @@
 				F506C042013D9D8C01CA16C8 /* main.xib */,
 				63E2F5330F60D5F200738CA2 /* scanner.sh */,
 				6381AA7F0F5AC101003D1B3F /* playdar.ini.rb */,
-				63E2F37F0F609BFE00738CA2 /* playdar.sh */,
 				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
 			);
 			name = Resources;
@@ -297,7 +294,6 @@
 				8D202CEF0486D31800D8A456 /* main.xib in Resources */,
 				63773AB70F59674B002D0DE9 /* playdar.icns in Resources */,
 				6381AA800F5AC101003D1B3F /* playdar.ini.rb in Resources */,
-				63E2F3800F609BFE00738CA2 /* playdar.sh in Resources */,
 				63E2F5340F60D5F200738CA2 /* scanner.sh in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

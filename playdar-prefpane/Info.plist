@@ -16,12 +16,12 @@
 	<string>Playdar</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
+	<key>CFBundleVersion</key>
+	<string>0.1.2</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.1</string>
+	<string>0.1.2</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>0.1</string>
 	<key>NSMainNibFile</key>
 	<string>main</string>
 	<key>NSPrefPaneIconLabel</key>
@@ -37,6 +37,6 @@
 	<key>SUFeedURL</key>
 	<string>http://www.methylblue.com/playdar/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
-	<string>3600</string>
+	<string>86400</string>
 </dict>
 </plist>
