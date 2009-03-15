@@ -1,184 +1,10 @@
 <!--#set var="title" value="Playdar - search demo" --><!--#include virtual="../inc/header.html" -->
 
-<script type="text/javascript" src="/static/soundmanager2-nodebug-jsmin.js"></script>
-<script type="text/javascript">
-// see if there's a query string in the # part of the url so that 
-// we can permalink to a specific search
-var parseHash = function () {
-    var hash = location.hash;
-    if (hash == "" || hash == "#") {
-        return;
-    }
-    var params = hash.substr(1).toQueryParams();
-    if (params.artist && params.track) {
-        $('artist').value = params.artist;
-        $('track').value = params.track;
-        $('album').value = params.album ? params.album : "";
-        resolve(params.artist, params.album, params.track);
-    }
-};
-
-var playdar = new Playdar({
-    stat_complete: function (detected) {
-        var text;
-        if (detected) {
-            text = "<b style='color:green;'>Playdar ready</b>";
-            parseHash();
-            setup_page();
-        } else {
-            text = "<b style='color:red;'>Playdar unavailable</b><br/>You need Playdar, the music content resolver, installed and running. See <a href=\"http://www.playdar.org/\">www.playdar.org</a>.";
-        }
-        $('playdar_stat').innerHTML = text;
-    }
-});
-
-soundManager.url = '/static/soundmanager2_flash9.swf';
-soundManager.flashVersion = 9;
-soundManager.onload = function () {
-    playdar.init();
-};
-playdar.soundmanager = soundManager;
-
-var setup_page = function () {
-    $('resultstbl').observe('click', function (event) {
-        var target = event.element();
-        if (target.match('a.play')) {
-            event.stop();
-            var sid = target.hash.substr(1);
-            var sound = playdar.play_stream(sid);
-        }
-    });
-};
-
-function set_play_text () {
-    $('play' + this.sID).update("Play");
-}
-function set_pause_text () {
-    $('play' + this.sID).update("Pause");
-}
-
-// make <TR> element
-var build_result_row = function(result) {
-    nicescore = result.score.toFixed(3);
-    nicepref  = result.preference.toFixed(3);
-    var td;
-    var tr = document.createElement('tr');
-    tr.id = result.sid;
-    
-    var sound = playdar.register_stream(result, {
-        onplay: set_pause_text,
-        onpause: set_play_text,
-        onresume: set_pause_text,
-        onstop: function () {
-            this.setPosition(1);
-            set_play_text.apply(this);
-        },
-        onfinish: function () {
-            playdar.stop_all();
-            set_play_text().apply(this);
-        }
-    });
-    
-    td = new Element('td').update(nicescore);
-    tr.insert(td);
-    
-    td = new Element('td').setStyle({width: "50px"}).update(
-        '<a href="#' + result.sid + '" id="play' + result.sid + '" class="play">'
-         + "Play"
-         + '</a>'
-     );
-    tr.insert(td);
-    
-    td = new Element('td').update(result.artist);
-    tr.insert(td);
-    
-    td = new Element('td').update(result.album);
-    tr.insert(td);
-    
-    td = new Element('td').update(result.track);
-    tr.insert(td);
-    
-    td = new Element('td').update(result.source);
-    tr.insert(td);
-    
-    td = new Element('td').update(
-        '<a href="' + playdar.get_stream_url(result.sid) + '">dl</a> '
-        + '<small>('
-        + Playdar.mmss(result.duration) + ', '
-        + result.mimetype + ', '
-        + (result.size/1000000).toFixed(1) + 'MB, '
-        + result.bitrate + 'Kbps)</small>'
-    );
-    tr.insert(td);
-    return tr;
-};
-
-// Insert results into the table in order of score:
-var results_handler = function (response, final_answer) {
-    var qsolved = '';
-    if (final_answer) {
-        qsolved = response.query.solved ? "solved" : "unsolved";
-        qsolved = " (" + qsolved + ")";
-        $('resolveProgress').hide();
-    } else {
-        $('resolveProgress').show();
-    }
-    $('numresultsspan').update("Found: " + response.results.length + qsolved);
-    response.results.each(function (result) {
-        if ($(result.sid)) {
-            return;
-        }
-        var rows = $$('#resultstbl tr');
-        // First result
-        if (rows.length == 1) {
-            $('resultstbl').down('tbody').insert(build_result_row(result));
-            return;
-        }
-        // walk rows and insert in score-order
-        for (k = 1; k < rows.length; k++) {
-            var row = rows[k];
-            var rowscore = parseFloat(row.down('td').innerHTML);
-            if (rowscore < result.score) {
-                row.insert({before: build_result_row(result)});
-                break;
-            }
-        }
-        // put at the end, lowest so far:
-        if (k == rows.length) {
-            $('resultstbl').down('tbody').insert(build_result_row(result));
-        }
-    });
-};
-playdar.register_results_handler(results_handler);
-
-function clear_results() {
-    playdar.stop_all();
-    $('numresultsspan').innerHTML = '0';
-    // clear table of all but first(header) row
-    var trs = $$('#resultstbl tr');
-    var len = trs.length;
-    for (var i = len-1; i > 0; i--) {
-        $$('#resultstbl tr')[i].remove();
-    }
-}
-
-function resolve(art, alb, trk) {
-    window.location.hash = Object.toQueryString({
-        artist: art,
-        album: alb,
-        track: trk
-    });
-    
-    clear_results();
-    playdar.resolve(art, alb, trk);
-}
-
-</script>
 <h2>Search Demo</h2>
 <!--#include virtual="demolist.html" -->
 <div class="box" id="playdar_stat">Checking for local Playdar service...</div>
 
-<form action="" onsubmit="resolve($('artist').value, $('album').value, $('track').value); return false;">
+<form action="" id="searchForm">
 <fieldset>
 <legend>Track Resolver - Specify artist and track name to (hopefully) find an exact match</legend>
 artist:
@@ -195,8 +21,8 @@ track:
 <h3>Search Results <span style="background-color:lightyellow; padding: 3px;" id="numresultsspan">0</span></h3>
 <div id="resultsdiv">
     <span style="float:right; font-size:9px;">
-        <a href="#" onclick="playdar.get_last_results(); return false;">re-check</a>
-        <a href="#" onclick="clear_results(); return false;">clear</a>
+        <a href="#" id="recheckResults">re-check</a>
+        <a href="#" id="clearResults">clear</a>
     </span>
     <table style="width:100%; font-size:85%;" id="resultstbl"><tr style="font-weight: bold;">
         <td>Score</td> 
@@ -209,5 +35,201 @@ track:
     </tr></table>
     <br/>
 </div>
+
+<script type="text/javascript" src="/static/soundmanager2-nodebug-jsmin.js"></script>
+<script type="text/javascript">
+
+var DEMO = {
+    set_play_text: function () {
+        $('play' + this.sID).update("Play");
+    },
+    set_pause_text: function () {
+        $('play' + this.sID).update("Pause");
+    },
+    setup_stream: function (result) {
+        var sound = DEMO.playdar.register_stream(result, {
+            onplay: DEMO.set_pause_text,
+            onpause: DEMO.set_play_text,
+            onresume: DEMO.set_pause_text,
+            onstop: function () {
+                this.setPosition(1);
+                DEMO.set_play_text.apply(this);
+            },
+            onfinish: function () {
+                DEMO.playdar.stop_all();
+                DEMO.set_play_text().apply(this);
+            }
+        });
+        return sound;
+    },
+    
+    build_result_row: function (result) {
+        var tr = document.createElement('tr');
+        tr.id = result.sid;
+        
+        var td;
+        // Score
+        td = new Element('td').update(result.score.toFixed(3));
+        tr.insert(td);
+        // Play
+        td = new Element('td').setStyle({width: "50px"}).update(
+            '<a href="#' + result.sid + '" id="play' + result.sid + '" class="play">'
+             + "Play"
+             + '<\/a>'
+        );
+        tr.insert(td);
+        // Artist
+        td = new Element('td').update(result.artist);
+        tr.insert(td);
+        // Album
+        td = new Element('td').update(result.album);
+        tr.insert(td);
+        // Track
+        td = new Element('td').update(result.track);
+        tr.insert(td);
+        // Source
+        td = new Element('td').update(result.source);
+        tr.insert(td);
+        // Info
+        td = new Element('td').update(
+            '<a href="' + DEMO.playdar.get_stream_url(result.sid) + '">dl<\/a> '
+            + '<small>('
+            + Playdar.mmss(result.duration) + ', '
+            + result.mimetype + ', '
+            + (result.size/1000000).toFixed(1) + 'MB, '
+            + result.bitrate + 'Kbps)<\/small>'
+        );
+        tr.insert(td);
+        return tr;
+    },
+    
+    process_result: function (result) {
+        var sound = DEMO.setup_stream(result);
+        
+        if ($(result.sid)) {
+            return;
+        }
+        var rows = $$('#resultstbl tr');
+        // First result
+        if (rows.length == 1) {
+            $('resultstbl').down('tbody').insert(DEMO.build_result_row(result));
+            return;
+        }
+        // walk rows and insert in score-order
+        for (k = 1; k < rows.length; k++) {
+            var row = rows[k];
+            var rowscore = parseFloat(row.down('td').innerHTML);
+            if (rowscore < result.score) {
+                row.insert({before: DEMO.build_result_row(result)});
+                break;
+            }
+        }
+        // put at the end, lowest so far:
+        if (k == rows.length) {
+            $('resultstbl').down('tbody').insert(DEMO.build_result_row(result));
+        }
+    },
+    
+    // Insert results into the table in order of score:
+    results_handler: function (response, final_answer) {
+        var qsolved = '';
+        if (final_answer) {
+            qsolved = response.query.solved ? "solved" : "unsolved";
+            qsolved = " (" + qsolved + ")";
+            $('resolveProgress').hide();
+        } else {
+            $('resolveProgress').show();
+        }
+        $('numresultsspan').update("Found: " + response.results.length + qsolved);
+        response.results.each(DEMO.process_result);
+    },
+    
+    clear_results: function () {
+        DEMO.playdar.stop_all();
+        $('numresultsspan').innerHTML = '0';
+        // clear table of all but first(header) row
+        var trs = $$('#resultstbl tr');
+        var len = trs.length;
+        for (var i = len-1; i > 0; i--) {
+            $$('#resultstbl tr')[i].remove();
+        }
+    },
+    
+    resolve: function (art, alb, trk) {
+        window.location.hash = Object.toQueryString({
+            artist: art,
+            album: alb,
+            track: trk
+        });
+        
+        DEMO.clear_results();
+        DEMO.playdar.resolve(art, alb, trk);
+    },
+    
+    setup_event_handlers: function () {
+        $('resultstbl').observe('click', function (e) {
+            var target = e.element();
+            if (target.match('a.play')) {
+                e.stop();
+                var sid = target.hash.substr(1);
+                var sound = DEMO.playdar.play_stream(sid);
+            }
+        });
+        $("recheckResults").observe('click', function (e) {
+            e.stop();
+            DEMO.playdar.get_last_results();
+        });
+        $("clearResults").observe('click', function (e) {
+            e.stop();
+            DEMO.clear_results();
+        });
+        $("searchForm").observe("submit", function (e) {
+            e.stop();
+            DEMO.resolve($('artist').value, $('album').value, $('track').value);
+        });
+    },
+    
+    // see if there's a query string in the # part of the url so that
+    // we can permalink to a specific search
+    parse_hash: function () {
+        var hash = location.hash;
+        if (hash == "" || hash == "#") {
+            return;
+        }
+        var params = hash.substr(1).toQueryParams();
+        if (params.artist && params.track) {
+            $('artist').value = params.artist;
+            $('track').value = params.track;
+            $('album').value = params.album ? params.album : "";
+            DEMO.resolve(params.artist, params.album, params.track);
+        }
+    }
+};
+
+// Setup Playdar and Sound Manager
+DEMO.playdar = new Playdar({
+    stat_complete: function (detected) {
+        var text;
+        if (detected) {
+            text = "<b style='color:green;'>Playdar ready<\/b>";
+            DEMO.parse_hash();
+            DEMO.setup_event_handlers();
+        } else {
+            text = "<b style='color:red;'>Playdar unavailable<\/b><br\/>You need Playdar, the music content resolver, installed and running. See <a href=\"http:\/\/www.playdar.org\/\">www.playdar.org<\/a>.";
+        }
+        $('playdar_stat').innerHTML = text;
+    },
+    results: DEMO.results_handler
+});
+DEMO.playdar.receiver_url = "http:\/\/playdar\/demos\/playdarauth.html";
+
+soundManager.url = '\/static\/soundmanager2_flash9.swf';
+soundManager.flashVersion = 9;
+soundManager.onload = function () {
+    DEMO.playdar.soundmanager = soundManager;
+    DEMO.playdar.init();
+};
+</script>
+
 </body>
 </html>

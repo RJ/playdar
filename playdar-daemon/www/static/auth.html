@@ -1,0 +1,19 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Playdar Authorisation</title>
+</head>
+<body>
+    <h1>This website would like to make use of Playdar:</h1>
+    <form method="post" action="/auth_2/">
+        <input type="submit" value="Allow" />
+        <input type="button" value="Deny" />
+        <hr/>
+        <input type="text" name="formtoken" value="<%FORMTOKEN%>" />
+        <input type="text" name="receiverurl" value="<%URL%>" />
+        <input type="text" name="website" value="<%WEBSITE%>" />
+        <input type="text" name="name" value="<%NAME%>" />
+    </form>
+</body>
+</html>

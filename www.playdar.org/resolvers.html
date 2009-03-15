@@ -16,7 +16,9 @@ resolving framework. The following resolvers are already working:
   (Already works; sqlite with custom ngram indexing)
 </li>
 <li>
-  <strong>Local area network resolver</strong> - find other Playdar installs on the LAN
+  <strong>Local area network resolver</strong> - find other Playdar installs on the LAN.
+  This has the same restrictions as iTunes Shared Libraries - it will only work on your 
+  home network or office network if there are no firewalls in the way.
   (Already works; UDP multicast)
 </li>
 <li>
@@ -46,10 +48,13 @@ Here are some ideas:
     <li>iTunes shared libraries (not sure if this is possible due to silly encryption apple added?)</li>
     <li>UPnP Media Devices</li>
     <li>Any online service that has a search/streaming API</li>
-    <li></li>
     <li><b>Your idea here</b></li>
 </ul>
+</p>
 
+<h3>Write your own Resolver Plugin</h3>
+<p>
+Writing resolver plugins in C++ is easy, just look at this <a href="http://github.com/RJ/playdar/tree/master/playdar-daemon/resolvers/demo">simple demo resolver</a>.
 </p>
 
 

@@ -1,0 +1,76 @@
+<html>
+<head>
+	<title>Introduction to PDL</title>
+</head>
+<body>
+
+<h2 align="center">PDL (Portable Dynamic Loader)</h2>
+
+<h3 align="center">0.3.0</h3>
+
+<h3>Introduction</h3>
+
+<b>PDL</b> is a simple and lightweight C++ library, which provides common cross-platform interface for creating and using dynamically loaded classes.
+
+Project home:<br>
+<a href="http://sourceforge.net/projects/pdl-cpp/">http://sourceforge.net/projects/pdl-cpp/</a><br>
+Project downloads:<br>
+<a href="http://sourceforge.net/project/showfiles.php?group_id=203000">http://sourceforge.net/project/showfiles.php?group_id=203000</a><br>
+
+<h3>Example</h3>
+
+<p>
+Dynamically loaded class interface:
+<pre><b>class</b> MyTestInterface : <b>public</b> PDL::DynamicClass
+{
+<b>public</b>:
+	<b>virtual</b> <b>void</b> DoSomething() throw() = 0;
+	DECLARE_DYNAMIC_CLASS( MyTestInterface )
+};</pre>
+
+<p>
+Dynamically loaded class implementation:
+<pre><b>class</b> MyTestClass1 : <b>public</b> MyTestInterface
+{
+<b>public</b>:
+	<b>void</b> DoSomething() throw()
+	{
+		<i>// Do something</i>
+	}
+};</pre>
+
+<p>
+Dynamically loaded class usage:
+<pre><b>try</b>
+{
+	PDL::DynamicLoader &amp; dynamicLoader = PDL::DynamicLoader::Instance();
+	MyTestInterface * instance =
+		dynamicLoader.GetClassInstance&lt; MyTestInterface &gt;( <i>"./MyTestClass.so"</i>, <i>"MyTestClass"</i> );
+	instance -&gt; DoSomething();
+}
+<b>catch</b>( PDL::LoaderException &amp; ex )
+{
+	fprintf( stderr, <i>"Loader exception: %s\n"</i>, ex.what() );
+}</pre>
+ 
+<h3>Status</h3>
+
+
+The library is under development and testing now.
+
+<p>
+<b>Author:</b> Igor Semenov &lt;<a href="mailto:igor@progz.ru">igor@progz.ru</a>&gt;<br>
+<b>Version:</b> 0.1.0<br>
+<b>License:</b> Copyright (c) 2007, Igor Semenov<br>
+All rights reserved.<br>
+
+<br>
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met: <br>
+* Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer. <br>
+* Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution. <br>
+* Neither the name of Igor Semenov nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission. <br>
+<br>
+THIS SOFTWARE IS PROVIDED BY IGOR SEMENOV ``AS IS'' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL IGOR SEMENOV BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. <br>
+
+</body>
+</html>
