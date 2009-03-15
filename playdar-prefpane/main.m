@@ -16,25 +16,25 @@
  along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// Please forgive my n00bness at Cocoa.
+// I'd actually appreciate it if you emailed me my mistakes! Thanks.
 
-//TODO watch exit code of playdard (if early exits), and watch process while pref pane is open
-// ^^ important in case playdard exits immediately due to crash or somesuch
-
+//TODO when launching, watch the NSTask, and say "Crashed :(" if early exit
+//TODO otherwise check status of pid when window becomes key and update button
 //TODO remember path that we scanned with defaults controller
 //TODO memory leaks
 //TODO log that stupid exception
-//TODO sparkle updates
-// ^^ ensure if prefpane is updated by sparkle, it restarts playdar
 //TODO while open auto restart playdar binary if using byo_bin and playdar binary is modified
-
+//TODO defaults should use org.playdar.plist not com.apple.systempreferences.plist
+//TODO animate in a link to the demo page when user runs the app and it works
 
 #import "main.h"
-#include <sys/sysctl.h>
-#include <Sparkle/SUUpdater.h>
 #include "LoginItemsAE.h"
+#include <Sparkle/SUUpdater.h>
+#include <sys/sysctl.h>
 
 
-/** returns the pid of the running playdard instance, or 0 if not found */
+/** returns the pid of the running playdar instance, or 0 if not found */
 static pid_t playdar_pid()
 {
     int mib[4] = { CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0 };
@@ -68,6 +68,11 @@ static inline NSString* db_path()
     return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Playdar/collection.db"];
 }
 
+static inline NSString* daemon_script_path()
+{
+    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Playdar/playdar.sh"];
+}
+
 static inline NSString* fullname()
 {
     // being cautious
@@ -76,13 +81,16 @@ static inline NSString* fullname()
 }
 
 
+
 @implementation OrgPlaydarPreferencePane
 
 -(void)mainViewDidLoad
 {   
+    NSFileManager* fm = [NSFileManager defaultManager];
+    if([fm fileExistsAtPath:daemon_script_path()] == false)
+        [self writePlaydarSh];
     NSString* ini = ini_path();
-    if([[NSFileManager defaultManager] fileExistsAtPath:ini] == false) 
-    {
+    if([fm fileExistsAtPath:ini] == false){
         NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
         [self execScript:@"playdar.ini.rb" withArgs:args];
     }
@@ -93,11 +101,14 @@ static inline NSString* fullname()
     NSString* home = NSHomeDirectory();
     [self addFolder:[home stringByAppendingPathComponent:@"Music"] setSelected:true];
     [self addFolder:home setSelected:false];
-        
+
     if(pid = playdar_pid()) [self updateStatusTextFields];
     if(![self isLoginItem]) [check setState:NSOffState];
-
-    [[SUUpdater updaterForBundle:[self bundle]] resetUpdateCycle];
+    
+////// Sparkle
+    SUUpdater* updater = [SUUpdater updaterForBundle:[self bundle]];
+    [updater resetUpdateCycle];
+    [updater setDelegate:self];
 }
 
 -(void)addFolder:(NSString*)path setSelected:(bool)select
@@ -118,27 +129,28 @@ static inline NSString* fullname()
 
 -(void)onStart:(id)sender
 {
-    NSMutableArray* args = [NSArray arrayWithObjects:@"-c", ini_path(), nil];
-    
-    if(pid) {
-        if(kill( pid, SIGKILL ) != 0 && playdar_pid()) return;
-        pid = 0;
+    if(pid){
+        // if we can't kill playdar don't pretend we did, unless the problem is
+        // that our pid is invalid
+        if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
+        pid = playdar_pid(); // prolly the right thing to do..
     }
-    else if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
-    {
-        [[self execScript:@"playdar.sh" withArgs:args] waitUntilExit];
-        pid = playdar_pid();
-    }
-    else {
-        NSTask *task = [[NSTask alloc] init];
-        @try
-        {
-            [task setLaunchPath:[self daemon]];
-            [task setArguments:args];
-            [task launch];
-            pid = [task processIdentifier];
+    else if(pid = playdar_pid() == 0){
+        NSTask* task = [[NSTask alloc] init];
+        @try{
+            if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
+                [task setLaunchPath:@"/usr/bin/open"];
+                [task setArguments:[NSArray arrayWithObjects:@"-a", @"Terminal", daemon_script_path(), nil]];
+                [task launch];
+                [task waitUntilExit];
+                pid = playdar_pid();
+            }else{
+                [task setLaunchPath:daemon_script_path()];
+                [task launch];
+                pid = [task processIdentifier];
+            }           
         }
-        @catch(NSException* e)
+        @catch(NSException* e) 
         {
             NSString* msg = @"The file at \"";
             msg = [msg stringByAppendingString:[task launchPath]];
@@ -171,7 +183,7 @@ static inline NSString* fullname()
 {
     bool const enabled = [check state] == NSOnState;
 	CFArrayRef loginItems = NULL;
-	NSURL *url = [NSURL fileURLWithPath:[self daemon]];
+	NSURL *url = [NSURL fileURLWithPath:daemon_script_path()];
 	int existingLoginItemIndex = -1;
 	OSStatus err = LIAECopyLoginItems(&loginItems);
 	if(err == noErr) {
@@ -199,8 +211,7 @@ static inline NSString* fullname()
 {
     Boolean foundIt = false;
     CFArrayRef loginItems = NULL;
-    CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)[self daemon], kCFURLPOSIXPathStyle, false);
-    NSLog( @"%@", url );
+    CFURLRef url = CFURLCreateWithFileSystemPath(kCFAllocatorDefault, (CFStringRef)daemon_script_path(), kCFURLPOSIXPathStyle, false);
     OSStatus err = LIAECopyLoginItems(&loginItems);
     if(err == noErr) {
         for(CFIndex i=0, N=CFArrayGetCount(loginItems); i<N; ++i) {
@@ -278,8 +289,18 @@ static inline NSString* fullname()
 
 -(IBAction)onCloseAdvanced:(id)sender
 {
+    if([[NSUserDefaults standardUserDefaults] boolForKey:@"Homemade"]){
+        NSString* path = [self bin]; //use path that script eventually uses
+        if([[NSFileManager defaultManager] isExecutableFileAtPath:path] == false){
+            NSRunAlertPanel( @"Bad path", [path stringByAppendingString:@" isn't playdar"], nil, nil, nil );
+            return;
+        }
+    }
+    
     [advanced_window orderOut:nil];
     [NSApp endSheet:advanced_window];
+    
+    [self writePlaydarSh];
 }
 
 -(IBAction)onEditPlaydarIni:(id)sender;
@@ -287,15 +308,49 @@ static inline NSString* fullname()
     [[NSWorkspace sharedWorkspace] openFile:ini_path()];
 }
 
--(NSString*)daemon
+-(NSString*)bin
 {
-    NSUserDefaults* defaults = [[NSUserDefaultsController sharedUserDefaultsController] defaults];
-    if ([defaults boolForKey:@"byoBinaries"]) {
-        NSString* path = [defaults stringForKey:@"byoBinariesPath"];
-        if (path && [path length])
-            return [path stringByAppendingPathComponent:@"playdar"];
-    }
-    return [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"];
+    return [[NSUserDefaults standardUserDefaults] boolForKey:@"Homemade"]
+         ? [[[NSUserDefaults standardUserDefaults] stringForKey:@"HomemadePath"] stringByStandardizingPath]
+         : [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"];
+}
+
+-(void)writePlaydarSh
+{
+    NSString* path = daemon_script_path();
+    
+    NSString* command = @"#!/bin/bash\nexec ";
+    command = [command stringByAppendingString:[self bin]];
+    command = [command stringByAppendingString:@" -c "];
+    command = [command stringByAppendingString:[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/org.playdar.ini\n"]];
+    NSError* error;
+    bool ok = [command writeToFile:path
+                        atomically:true
+                          encoding:NSUTF8StringEncoding
+                             error:&error];
+    
+    if (!ok) {} //TODO
+    
+    NSDictionary* dict = [NSDictionary dictionaryWithObject:[NSNumber numberWithUnsignedInt:0755U]
+                                                     forKey:NSFilePosixPermissions];
+    
+    [[NSFileManager defaultManager] changeFileAttributes:dict
+                                                  atPath:path];
+}
+
+@end
+
+
+@implementation OrgPlaydarPreferencePane(SUUpdaterDelegateInformalProtocol)
+
+-(void)updaterWillRelaunchApplication:(SUUpdater*)updater
+{
+    if(pid) kill(pid, SIGKILL);
+}
+
+-(NSString*)pathToRelaunchForUpdater:(SUUpdater*)updater
+{
+    return [[NSBundle mainBundle] executablePath];
 }
 
 @end

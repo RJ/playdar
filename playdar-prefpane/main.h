@@ -31,6 +31,7 @@
     IBOutlet NSTextField* status;
     IBOutlet NSTextField* details;
     IBOutlet NSWindow* advanced_window;
+    
     pid_t pid;
 }
 
@@ -47,7 +48,8 @@
 
 -(bool)isLoginItem;
 
--(NSString*)daemon;
+-(NSString*)bin;
+-(void)writePlaydarSh;
 
 -(IBAction)onSelect:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;
