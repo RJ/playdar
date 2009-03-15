@@ -94,8 +94,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     string url = req.uri.substr(0, req.uri.find("?"));
     vector<std::string> parts;
     boost::split(parts, url, boost::is_any_of("/"));
-    parts.erase(parts.begin()); //  "" before leading /
-    
+    // get rid of cruft from leading/trailing "/" and split:
+    if(parts.size() && parts[0]=="") parts.erase(parts.begin());
+    if(parts.size() && parts[parts.size()-1]=="") parts.erase(parts.end());
+
     /// Auth stuff
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
@@ -276,7 +278,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         serve_body( os.str(), req, rep );
     }
     /// this is for serving static files, not sure we need it:
-    else if(url=="/static/") 
+    else if(parts[0]=="static") 
     {
         serve_static_file(req, rep);
     }
@@ -292,12 +294,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     }
     /// quick hack method for playing a song, if it can be found:
     ///  /quickplay/The+Beatles//Yellow+Submarine
-    else if(parts[1]=="quickplay" && parts.size() == 5)
+    else if(parts[0]=="quickplay" && parts.size() == 4
+            && parts[1].length() && parts[3].length())
     {
         
-        string artist   = unescape(parts[2]);
-        string album    = unescape(parts[3]);
-        string track    = unescape(parts[4]);
+        string artist   = unescape(parts[1]);
+        string album    = parts[2].length()?unescape(parts[2]):"";
+        string track    = unescape(parts[3]);
         boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
         query_uid qid = app()->resolver()->dispatch(rq);
         // wait a couple of seconds for results
@@ -324,15 +327,15 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         }
     }
     /// serves file-id from library 
-    else if(parts[1]=="serve" && parts.size() == 3)
+    else if(parts[0]=="serve" && parts.size() == 2)
     {
-        int fid = atoi(parts[2].c_str());
+        int fid = atoi(parts[1].c_str());
         if(fid) serve_track(req, rep, fid);
     }
     /// serves file based on SID
-    else if(parts[1]=="sid" && parts.size() == 3)
+    else if(parts[0]=="sid" && parts.size() == 2)
     {
-        source_uid sid = parts[2];
+        source_uid sid = parts[1];
         serve_sid(req, rep, sid);
     }
     // is this url handled by a currently loaded plugin?
@@ -369,8 +372,8 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
             r.push_back( Pair("name", "playdar") );
             r.push_back( Pair("version", "0.1.0") );
             r.push_back( Pair("authenticated", permissions.length()>0 ) );
-            r.push_back( Pair("permissions", permissions) );
-            r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
+            //r.push_back( Pair("permissions", permissions) );
+            //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
             write_formatted( r, response );
             break;
         }
@@ -567,7 +570,7 @@ void
 playdar_request_handler::serve_static_file(const moost::http::request& req, moost::http::reply& rep)
 {
     moost::http::filesystem_request_handler frh;
-    frh.doc_root("/home/rj/src/playdar/playdar-daemon/www");
+    frh.doc_root("www");
     frh.handle_request(req, rep);
 }
 
