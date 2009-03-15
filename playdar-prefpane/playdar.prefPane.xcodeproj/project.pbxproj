@@ -21,6 +21,7 @@
 		638388320F5B6FBF000C8EAF /* libboost_filesystem-mt.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6383882A0F5B6FA3000C8EAF /* libboost_filesystem-mt.dylib */; };
 		6383883C0F5B7065000C8EAF /* libtag.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388340F5B6FEF000C8EAF /* libtag.1.dylib */; };
 		6383883D0F5B7065000C8EAF /* libz.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6383883A0F5B704D000C8EAF /* libz.1.dylib */; };
+		639E37630F6D2D2900B274E1 /* sparkle.pem in Resources */ = {isa = PBXBuildFile; fileRef = 639E37620F6D2D2900B274E1 /* sparkle.pem */; };
 		63BE46E60F5B6C0C00BFA9E0 /* playdar in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63BE46E40F5B6C0600BFA9E0 /* playdar */; };
 		63DFABE70F5CAAA1001855D4 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
 		63DFABEE0F5CAAFA001855D4 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
@@ -102,6 +103,7 @@
 		6383883A0F5B704D000C8EAF /* libz.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libz.1.dylib; path = /opt/local/lib/libz.1.dylib; sourceTree = "<absolute>"; };
 		638388400F5B708F000C8EAF /* liburiparser.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = liburiparser.1.dylib; path = /opt/local/lib/liburiparser.1.dylib; sourceTree = "<absolute>"; };
 		638388410F5B708F000C8EAF /* libuuid.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libuuid.16.dylib; path = /opt/local/lib/libuuid.16.dylib; sourceTree = "<absolute>"; };
+		639E37620F6D2D2900B274E1 /* sparkle.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = sparkle.pem; sourceTree = "<group>"; };
 		63BE46E40F5B6C0600BFA9E0 /* playdar */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = playdar; path = "../playdar-daemon/bin/playdar"; sourceTree = "<group>"; };
 		63DFABE60F5CAAA1001855D4 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		63E2F5330F60D5F200738CA2 /* scanner.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = scanner.sh; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 		089C167CFE841241C02AAC07 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				639E37620F6D2D2900B274E1 /* sparkle.pem */,
 				63773AB60F59674B002D0DE9 /* playdar.icns */,
 				8D202CF70486D31800D8A456 /* Info.plist */,
 				089C167DFE841241C02AAC07 /* InfoPlist.strings */,
@@ -295,6 +298,7 @@
 				63773AB70F59674B002D0DE9 /* playdar.icns in Resources */,
 				6381AA800F5AC101003D1B3F /* playdar.ini.rb in Resources */,
 				63E2F5340F60D5F200738CA2 /* scanner.sh in Resources */,
+				639E37630F6D2D2900B274E1 /* sparkle.pem in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

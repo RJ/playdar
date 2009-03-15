@@ -27,6 +27,7 @@
 //TODO while open auto restart playdar binary if using byo_bin and playdar binary is modified
 //TODO defaults should use org.playdar.plist not com.apple.systempreferences.plist
 //TODO animate in a link to the demo page when user runs the app and it works
+//TODO pipe output to a log file
 
 #import "main.h"
 #include "LoginItemsAE.h"
