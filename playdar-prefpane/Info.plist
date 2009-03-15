@@ -18,8 +18,6 @@
 	<string>BNDL</string>
 	<key>CFBundleVersion</key>
 	<string>0.1.2</string>
-	<key>CFBundleShortVersionString</key>
-	<string>0.1.2</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>NSMainNibFile</key>
@@ -38,5 +36,7 @@
 	<string>http://www.methylblue.com/playdar/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
 	<string>86400</string>
+    <key>SUPublicDSAKeyFile</key>
+    <string>sparkle.pem</string>
 </dict>
 </plist>
