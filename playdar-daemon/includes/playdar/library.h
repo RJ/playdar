@@ -26,6 +26,7 @@ public:
     : m_db(dbfilepath.c_str())
     {
         m_app = a;
+        m_dbfilepath = dbfilepath;
     }
 
     ~Library()
@@ -80,12 +81,15 @@ public:
     
     sqlite3pp::database * db(){ return &m_db; }
     
+    string dbfilepath() const { return m_dbfilepath; }
+    
     // DB helper:
     template <typename T> T db_get_one(string sql, T def);
     
 private:
     sqlite3pp::database m_db;
     boost::mutex m_mut;
+    string m_dbfilepath;
     // name -> id caches
     map< string, int > m_artistcache;
     map< int, map<string, int> > m_trackcache;
