@@ -1,15 +1,13 @@
 #ifndef __RS_HTTP_GATEWAY_SCRIPT_H__
 #define __RS_HTTP_GATEWAY_SCRIPT_H__
 
+#include "playdar/playdar_plugin_include.h"
+#include <boost/process.hpp>
+#include <boost/shared_ptr.hpp>
+#include <boost/thread.hpp>
 #include <vector>
 #include <iostream>
 
-#include <boost/process.hpp>
-
-#include <boost/thread.hpp>
-#include <boost/shared_ptr.hpp>
-
-#include "playdar/playdar_plugin_include.h"
 
 namespace playdar {
 namespace resolvers {

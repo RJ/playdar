@@ -14,4 +14,5 @@ TARGET_LINK_LIBRARIES( demo
                        ${OSSPUUID_LIBRARIES}
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_THREAD_LIBRARY}
+                       -undefined\ dynamic_lookup
                      )

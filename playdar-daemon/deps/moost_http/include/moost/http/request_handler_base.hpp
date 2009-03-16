@@ -1,13 +1,13 @@
 #ifndef __MOOST_HTTP_REQUEST_HANDLER_BASE_HPP__
 #define __MOOST_HTTP_REQUEST_HANDLER_BASE_HPP__
 
-#include <string>
-#include <deque>
-#include <boost/lexical_cast.hpp>
-#include <boost/noncopyable.hpp>
-
 #include "moost/http/reply.hpp"
 #include "moost/http/request.hpp"
+#include <boost/lexical_cast.hpp>
+#include <boost/noncopyable.hpp>
+#include <string>
+#include <deque>
+
 
 namespace moost { namespace http {
 

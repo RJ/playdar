@@ -2,9 +2,8 @@
 #define __PLAYABLE_ITEM_H__
 #include "playdar/application.h"
 #include "playdar/streaming_strategy.h"
-#include "json_spirit/json_spirit.h"
 #include "playdar/types.h"
-#include "playdar/config.hpp"
+#include "json_spirit/json_spirit.h"
 #include <cassert>
 /*
     Represents something (a song) that can be played.

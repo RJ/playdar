@@ -1,17 +1,13 @@
 #ifndef __RS_DARKNET_H__
 #define __RS_DARKNET_H__
-#include <iostream>
-#include <string>
-#include <boost/asio.hpp>
-#include "boost/bind.hpp"
-#include <boost/weak_ptr.hpp>
-
 #include "playdar/playdar_plugin_include.h"
-
 #include "msgs.h"
 #include "servent.h"
-
-
+#include <boost/asio.hpp>
+#include <boost/bind.hpp>
+#include <boost/weak_ptr.hpp>
+#include <iostream>
+#include <string>
 
 //namespace playdar {
 //namespace resolvers {

@@ -1,17 +1,16 @@
 #ifndef __MOOST_HTTP_SERVER_HPP__
 #define __MOOST_HTTP_SERVER_HPP__
 
-#include <boost/shared_ptr.hpp>
+#include "moost/http/connection.hpp"
+#include "moost/http/request_handler_base.hpp"
 #include <boost/asio.hpp>
-#include <string>
-#include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
+#include <string>
+#include <vector>
 
-#include "moost/http/connection.hpp"
-#include "moost/http/request_handler_base.hpp"
 
 namespace moost { namespace http {
 

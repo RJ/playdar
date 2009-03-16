@@ -1,15 +1,14 @@
 #ifndef __MOOST_HTTP_REPLY_HPP__
 #define __MOOST_HTTP_REPLY_HPP__
 
+#include "playdar/application.h" // if not first mac compile fails
+#include "playdar/streaming_strategy.h"
+#include "moost/http/header.hpp"
 #include <string>
 #include <vector>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include "moost/http/header.hpp"
-
-#include "playdar/application.h"
-#include "playdar/streaming_strategy.h"
 
 namespace moost { namespace http {
 
