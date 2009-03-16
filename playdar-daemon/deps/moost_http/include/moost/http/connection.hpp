@@ -1,17 +1,16 @@
 #ifndef __MOOST_HTTP_CONNECTION_HPP__
 #define __MOOST_HTTP_CONNECTION_HPP__
 
+#include "moost/http/reply.hpp"
+#include "moost/http/request.hpp"
+#include "moost/http/request_handler_base.hpp"
+#include "moost/http/request_parser.hpp"
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
-
-#include "moost/http/reply.hpp"
-#include "moost/http/request.hpp"
-#include "moost/http/request_handler_base.hpp"
-#include "moost/http/request_parser.hpp"
 
 namespace moost { namespace http {
 

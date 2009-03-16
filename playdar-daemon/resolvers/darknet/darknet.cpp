@@ -1,3 +1,7 @@
+#include "darknet.h"
+#include "msgs.h"
+#include "servent.h"
+#include "ss_darknet.h"
 #include <iostream>                        
 #include <boost/asio.hpp>                  
 #include <boost/lexical_cast.hpp>          
@@ -10,12 +14,6 @@
 #include <cassert>
 #include <boost/lexical_cast.hpp>
 #include <cassert>
-
-#include "darknet.h"
-#include "msgs.h"
-#include "servent.h"
-#include "ss_darknet.h"
-
 
 using namespace playdar::resolvers;
 

@@ -1,18 +1,17 @@
 #ifndef __RS_LAN_UDP_DL_H__
 #define __RS_LAN_UDP_DL_H__
 
-#include <iostream>
-#include <map>
-#include <string>
+#include "playdar/playdar_plugin_include.h"
+#include "json_spirit/json_spirit.h"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #include <boost/asio.hpp>
+#include <iostream>
+#include <map>
+#include <string>
 
-#include "json_spirit/json_spirit.h"
-
-#include "playdar/playdar_plugin_include.h"
 
 /*
     Broadcast search queries on the LAN using UDP multicast

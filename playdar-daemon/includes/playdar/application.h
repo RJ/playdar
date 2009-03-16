@@ -3,15 +3,13 @@
 // for windows:
 #define NOMINMAX
 
-#include <boost/asio.hpp>
-
-#include "playdar/types.h"
 #include "playdar/config.hpp"
-
+#include "playdar/types.h"
 #include "playdar/playable_item.hpp"
+#include <boost/asio.hpp>
+#include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 
-#include <boost/program_options.hpp>
 
 //:::
 //#include "playdar/playdar_request_handler.h"

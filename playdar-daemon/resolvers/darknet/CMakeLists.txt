@@ -19,4 +19,5 @@ TARGET_LINK_LIBRARIES( darknet
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY} 
                        ${Boost_THREAD_LIBRARY}
+                       -undefined\ dynamic_lookup
                      )

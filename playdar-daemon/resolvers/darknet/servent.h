@@ -1,17 +1,16 @@
 #ifndef _PLAYDAR_DARKNET_SERVENT_H_
 #define _PLAYDAR_DARKNET_SERVENT_H_
 
+#include "servent.h"
+#include "darknet.h"
+#include "msgs.h"
+#include "connection.hpp"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <vector>
 
-#include "msgs.h"
-#include "servent.h"
-#include "connection.hpp"
-
-#include "darknet.h"
 
 using namespace std;
 

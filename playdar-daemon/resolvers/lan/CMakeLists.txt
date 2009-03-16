@@ -14,4 +14,5 @@ TARGET_LINK_LIBRARIES( lan_udp
                        ${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_THREAD_LIBRARY}
+                       -undefined\ dynamic_lookup
                      )

@@ -1,17 +1,14 @@
 #ifndef __RESOLVER_QUERY_H__
 #define __RESOLVER_QUERY_H__
 
-#include "playdar/types.h"
 #include "playdar/application.h"
-
+#include "playdar/types.h"
+#include "json_spirit/json_spirit.h"
+#include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
+#include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/foreach.hpp>
-#include "playdar/config.hpp"
-#include "json_spirit/json_spirit.h"
-
 
 
 // Represents a search query to resolve a particular track

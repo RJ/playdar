@@ -1,10 +1,10 @@
 #ifndef __MOOST_HTTP_REQUEST_PARSER_HPP__
 #define __MOOST_HTTP_REQUEST_PARSER_HPP__
 
+#include "moost/http/request.hpp"
 #include <boost/logic/tribool.hpp>
 #include <boost/tuple/tuple.hpp>
 
-#include "moost/http/request.hpp"
 
 namespace moost { namespace http {
 

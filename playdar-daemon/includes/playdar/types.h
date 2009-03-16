@@ -7,12 +7,6 @@
 #include <stdio.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
-#ifdef HAS_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-// default source package for ossp-uuid doesn't namespace itself
-#include <uuid.h> 
-#endif
 
 using namespace std;
 
