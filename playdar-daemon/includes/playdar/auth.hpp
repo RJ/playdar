@@ -10,15 +10,15 @@ class auth
 {
 public:
 
-    auth(sqlite3pp::database * d)
-        : m_db(d)
+    auth(string dbfilepath)
+        : m_db(dbfilepath.c_str())
     {
     }
     
     bool is_valid(string token, string & whom)
     {
         boost::mutex::scoped_lock lock(m_mut);
-        sqlite3pp::query qry(*m_db, "SELECT name FROM playdar_auth WHERE token = ?" );
+        sqlite3pp::query qry(m_db, "SELECT name FROM playdar_auth WHERE token = ?" );
         qry.bind(1, token.c_str(), true);
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
             whom = string((*i).get<const char *>(0));
@@ -31,7 +31,7 @@ public:
     {
         boost::mutex::scoped_lock lock(m_mut);
         vector< map<string,string> > ret;
-        sqlite3pp::query qry(*m_db, "SELECT token, website, name FROM playdar_auth ORDER BY mtime DESC");
+        sqlite3pp::query qry(m_db, "SELECT token, website, name FROM playdar_auth ORDER BY mtime DESC");
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
             map<string,string> m;
             m["token"]   = string((*i).get<const char *>(0));
@@ -47,7 +47,7 @@ public:
     {
         boost::mutex::scoped_lock lock(m_mut);
         string sql = "DELETE FROM playdar_auth WHERE token = ?";
-        sqlite3pp::command cmd(*m_db, sql.c_str());
+        sqlite3pp::command cmd(m_db, sql.c_str());
         cmd.bind(1, token.c_str(), true);
         cmd.execute();
     }
@@ -58,7 +58,7 @@ public:
         string sql = "INSERT INTO playdar_auth "
                      "(token, website, name, mtime, permissions) "
                      "VALUES(?, ?, ?, ?, ?)";
-        sqlite3pp::command cmd(*m_db, sql.c_str());
+        sqlite3pp::command cmd(m_db, sql.c_str());
         cmd.bind(1, token.c_str(), true);
         cmd.bind(2, website.c_str(), true);
         cmd.bind(3, name.c_str(), true);
@@ -87,7 +87,7 @@ public:
 private:
     set<std::string> m_formtokens;
     
-    sqlite3pp::database * m_db;
+    sqlite3pp::database m_db;
     boost::mutex m_mut;
 };
 } //ns

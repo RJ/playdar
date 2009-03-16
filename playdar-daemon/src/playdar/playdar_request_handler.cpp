@@ -19,7 +19,7 @@ void
 playdar_request_handler::init(MyApplication * app)
 {
     cout << "HTTP handler online." << endl;
-    m_pauth = new playdar::auth(app->library()->db());
+    m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
 }
 
