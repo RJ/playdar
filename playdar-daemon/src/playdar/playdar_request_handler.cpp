@@ -186,29 +186,26 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// Phase 1 - this was opened in a popup from a button in the playdar 
     ///           toolbar on some site that needs to authenticate
     else if(url=="/auth_1/" && 
-            getvars.find("receiverurl") != getvars.end() &&
             getvars.find("website") != getvars.end() &&
             getvars.find("name") != getvars.end() )
     {
         map<string,string> vars;
         string filename = "www/static/auth.html";
-        
         string ftoken   = m_pauth->gen_formtoken();
-        string url      = getvars["receiverurl"];
-        string website  = getvars["website"];
-        string name     = getvars["name"];
-        
-        vars["<%URL%>"]=url;
+        vars["<%URL%>"]="";
+        if(getvars.find("receiverurl") != getvars.end())
+        {
+            vars["<%URL%>"] = getvars["receiverurl"];
+        }
         vars["<%FORMTOKEN%>"]=ftoken;
-        vars["<%WEBSITE%>"]=website;
-        vars["<%NAME%>"]=name;
+        vars["<%WEBSITE%>"]=getvars["website"];
+        vars["<%NAME%>"]=getvars["name"];
         serve_dynamic(req, rep, filename, vars);
     }
     /// Phase 2  - Provided the formtoken is valid, the user has authenticated
     ///            and we should create a new authcode and pass it on to the 
     ///            originating domain, which will probably set it in a cookie.
     else if(url=="/auth_2/" &&
-            postvars.find("receiverurl") != postvars.end() &&
             postvars.find("website") != postvars.end() &&
             postvars.find("name") != postvars.end() &&
             postvars.find("formtoken") != postvars.end() )
@@ -217,15 +214,28 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         {
             string tok = playdar::Config::gen_uuid(); 
             m_pauth->create_new(tok, postvars["website"], postvars["name"]);
-            ostringstream os;
-            os  << postvars["receiverurl"]
-                << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
-                << "authtoken=" << tok
-                << "#" << tok;
-            rep = rep.stock_reply(moost::http::reply::moved_permanently); 
-            rep.headers.resize(3);
-            rep.headers[2].name = "Location";
-            rep.headers[2].value = os.str();
+            if( postvars.find("receiverurl") == postvars.end() ||
+                postvars["receiverurl"]=="" )
+            {
+                map<string,string> vars;
+                string filename = "www/static/auth.na.html";
+                vars["<%WEBSITE%>"]=postvars["website"];
+                vars["<%NAME%>"]=postvars["name"];
+                vars["<%AUTHCODE%>"]=tok;
+                serve_dynamic(req, rep, filename, vars);
+            }
+            else
+            {
+                ostringstream os;
+                os  << postvars["receiverurl"]
+                    << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
+                    << "authtoken=" << tok
+                    << "#" << tok;
+                rep = rep.stock_reply(moost::http::reply::moved_permanently); 
+                rep.headers.resize(3);
+                rep.headers[2].name = "Location";
+                rep.headers[2].value = os.str();
+            }
         }
         else
         {
@@ -381,9 +391,8 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
         // No other calls allowed unless authenticated!
         if(permissions.length()==0)
         {
-            cout << "**** Denied! (but actually allowed for now)" << endl;
-            //rep = rep.stock_reply(moost::http::reply::forbidden);
-            //return;
+            cerr << "Not authed, abort!" << endl;
+            return;
         }
         
         if(qs["method"] == "resolve")
