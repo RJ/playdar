@@ -18,7 +18,8 @@
 #include "playdar/application.h"
 #include "playdar/auth.hpp"
          
-class playdar_request_handler : public moost::http::request_handler_base<playdar_request_handler>
+
+class PLAYDAR_DLLEXPORT playdar_request_handler : public moost::http::request_handler_base<playdar_request_handler>
 {
 public:
     void init(MyApplication * app);

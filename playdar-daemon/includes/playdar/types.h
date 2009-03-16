@@ -7,11 +7,18 @@
 #include <stdio.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
+
 #ifdef HAS_OSSP_UUID_H
 #include <ossp/uuid.h>
 #else
 // default source package for ossp-uuid doesn't namespace itself
 #include <uuid.h> 
+#endif
+
+#if defined(_WIN32) || defined(WIN32)
+    #define PLAYDAR_DLLEXPORT __declspec(dllexport)
+#else
+    #define PLAYDAR_DLLEXPORT
 #endif
 
 using namespace std;

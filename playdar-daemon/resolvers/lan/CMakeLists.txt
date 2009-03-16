@@ -10,8 +10,4 @@ SET_TARGET_PROPERTIES(  lan_udp PROPERTIES
                         PREFIX "" 
                         SUFFIX ".resolver")
 
-TARGET_LINK_LIBRARIES( lan_udp
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_THREAD_LIBRARY}
-                     )
+TARGET_LINK_LIBRARIES( lan_udp playdarengine )

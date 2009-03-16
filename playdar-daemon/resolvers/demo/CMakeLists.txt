@@ -10,8 +10,4 @@ SET_TARGET_PROPERTIES(  demo PROPERTIES
                         PREFIX "" 
                         SUFFIX ".resolver")
 
-TARGET_LINK_LIBRARIES( demo
-                       ${OSSPUUID_LIBRARIES}
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_THREAD_LIBRARY}
-                     )
+TARGET_LINK_LIBRARIES( demo playdarengine )

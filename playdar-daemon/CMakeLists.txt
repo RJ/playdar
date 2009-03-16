@@ -59,14 +59,16 @@ TARGET_LINK_LIBRARIES(scanner
                       ${Boost_THREAD_LIBRARY}
                       ${TAGLIB_LIBRARIES})
 
-ADD_EXECUTABLE( playdar
+SET(LIBRARY_OUTPUT_PATH "${PLAYDAR_PATH}/bin")
+
+ADD_LIBRARY   ( playdarengine SHARED
                 ${SRC}/application.cpp
                 ${SRC}/resolver.cpp
                 ${SRC}/resolver_service.cpp
                 ${SRC}/rs_local_library.cpp
                 ${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
-                ${SRC}/playdar/main.cpp
+#                ${SRC}/playdar/main.cpp
 
                 # sqlite wrapper:
                 ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
@@ -89,7 +91,7 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
               )
 
-TARGET_LINK_LIBRARIES( playdar 
+TARGET_LINK_LIBRARIES( playdarengine
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
                        #${URIPARSER_LIBRARIES} # BSD
@@ -102,8 +104,16 @@ TARGET_LINK_LIBRARIES( playdar
                        ${Boost_PROGRAM_OPTIONS_LIBRARY}
                      )
 
-INSTALL(TARGETS scanner RUNTIME DESTINATION bin)
-INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
+ADD_EXECUTABLE(    playdar
+                   ${SRC}/playdar/main.cpp
+              )
+TARGET_LINK_LIBRARIES( playdar 
+                       playdarengine
+                       )
+                        
+
+#INSTALL(TARGETS scanner RUNTIME DESTINATION bin)
+#INSTALL(TARGETS playdarengine LIBRARY DESTINATION bin)
 
 #
 # Resolver Plugins

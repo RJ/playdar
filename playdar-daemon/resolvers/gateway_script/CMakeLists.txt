@@ -12,10 +12,4 @@ SET_TARGET_PROPERTIES(  gateway_script PROPERTIES
                         SUFFIX ".resolver")
 
 
-TARGET_LINK_LIBRARIES( gateway_script
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_REGEX_LIBRARY} # Boost license
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_FILESYSTEM_LIBRARY} 
-                       ${Boost_THREAD_LIBRARY}
-                     )
+TARGET_LINK_LIBRARIES( gateway_script playdarengine )

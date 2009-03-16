@@ -29,7 +29,7 @@ class playdar_request_handler;
  *  and resolver
  *
  */
-class MyApplication
+class PLAYDAR_DLLEXPORT MyApplication
 {
 public:
     MyApplication(playdar::Config c);
