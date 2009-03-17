@@ -364,7 +364,7 @@ static inline NSString* fullname()
 
 -(NSString*)pathToRelaunchForUpdater:(SUUpdater*)updater
 {
-    return [[NSBundle mainBundle] executablePath];
+    return [[NSBundle mainBundle] bundlePath];
 }
 
 @end
