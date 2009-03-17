@@ -17,7 +17,7 @@
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 	<key>CFBundleVersion</key>
-	<string>0.1.2</string>
+	<string>0.1.3</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>NSMainNibFile</key>
@@ -26,8 +26,8 @@
 	<string>Playdar</string>
 	<key>NSPrincipalClass</key>
 	<string>OrgPlaydarPreferencePane</string>
-    <key>SUEnableAutomaticChecks</key>
-    <true/>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>SUAllowsAutomaticUpdates</key>
 	<true/>
 	<key>SUCheckAtStartup</key>
@@ -36,7 +36,7 @@
 	<string>http://www.methylblue.com/playdar/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
 	<string>86400</string>
-    <key>SUPublicDSAKeyFile</key>
-    <string>sparkle.pem</string>
+	<key>SUPublicDSAKeyFile</key>
+	<string>sparkle.pem</string>
 </dict>
 </plist>

@@ -11,6 +11,9 @@ SET_TARGET_PROPERTIES(  gateway_script PROPERTIES
                         PREFIX ""
                         SUFFIX ".resolver")
 
+IF(APPLE)
+    SET(APPLE_PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
+ENDIF(APPLE)
 
 TARGET_LINK_LIBRARIES( gateway_script
                        ${OSSPUUID_LIBRARIES}  # BSD-like
@@ -18,5 +21,5 @@ TARGET_LINK_LIBRARIES( gateway_script
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY} 
                        ${Boost_THREAD_LIBRARY}
-                       -undefined\ dynamic_lookup
+                       ${APPLE_PLUGIN_LDFLAGS}
                      )

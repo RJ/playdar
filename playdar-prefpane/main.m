@@ -61,7 +61,7 @@ end:
 
 static inline NSString* ini_path()
 {
-    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.ini"];
+    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.json"];
 }
 
 static inline NSString* db_path()
@@ -93,7 +93,7 @@ static inline NSString* fullname()
     NSString* ini = ini_path();
     if([fm fileExistsAtPath:ini] == false){
         NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
-        [self execScript:@"playdar.ini.rb" withArgs:args];
+        [self execScript:@"playdar.conf.rb" withArgs:args];
     }
 
     [[popup menu] addItem:[NSMenuItem separatorItem]];
@@ -110,6 +110,12 @@ static inline NSString* fullname()
     SUUpdater* updater = [SUUpdater updaterForBundle:[self bundle]];
     [updater resetUpdateCycle];
     [updater setDelegate:self];
+<<<<<<< HEAD:playdar-prefpane/main.m
+=======
+    
+    if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
+        [updater checkForUpdates:self];
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
 }
 
 -(void)addFolder:(NSString*)path setSelected:(bool)select
@@ -133,10 +139,18 @@ static inline NSString* fullname()
     if(pid){
         // if we can't kill playdar don't pretend we did, unless the problem is
         // that our pid is invalid
+<<<<<<< HEAD:playdar-prefpane/main.m
         if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
         pid = playdar_pid(); // prolly the right thing to do..
     }
     else if(pid = playdar_pid() == 0){
+=======
+        do
+            if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
+        while (pid = playdar_pid());
+    }
+    else {
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
         NSTask* task = [[NSTask alloc] init];
         @try{
             if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
@@ -144,12 +158,20 @@ static inline NSString* fullname()
                 [task setArguments:[NSArray arrayWithObjects:@"-a", @"Terminal", daemon_script_path(), nil]];
                 [task launch];
                 [task waitUntilExit];
+<<<<<<< HEAD:playdar-prefpane/main.m
                 pid = playdar_pid();
+=======
+                pid = -100; //HACK FIXME
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
             }else{
                 [task setLaunchPath:daemon_script_path()];
                 [task launch];
                 pid = [task processIdentifier];
+<<<<<<< HEAD:playdar-prefpane/main.m
             }           
+=======
+            }
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
         }
         @catch(NSException* e) 
         {
@@ -157,7 +179,11 @@ static inline NSString* fullname()
             msg = [msg stringByAppendingString:[task launchPath]];
             msg = [msg stringByAppendingString:@"\" could not be executed."];
             
+<<<<<<< HEAD:playdar-prefpane/main.m
             NSBeginAlertSheet(@"Could not start Playdar", 
+=======
+            NSBeginAlertSheet(@"Could not start Playdar",
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
                               nil, nil, nil,
                               [[self mainView] window],
                               self,
@@ -165,6 +191,23 @@ static inline NSString* fullname()
                               nil,
                               msg );
         }
+        @finally {
+            [task release];
+        }
+    }
+    [self updateStatusTextFields];
+}
+
+-(void)updateStatusTextFields
+{
+    NSLog( @"pid: %d", pid );
+    
+    if (pid) {
+        [start setTitle:@"Stop Playdar"];
+        [status setStringValue:@"Running"];
+    } else {
+        [start setTitle:@"Start Playdar"];
+        [status setStringValue:@"Not running"];
     }
     [self updateStatusTextFields];
 }
@@ -306,7 +349,12 @@ static inline NSString* fullname()
 
 -(IBAction)onEditPlaydarIni:(id)sender;
 {
+<<<<<<< HEAD:playdar-prefpane/main.m
     [[NSWorkspace sharedWorkspace] openFile:ini_path()];
+=======
+    bool b = [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextMate"];
+    if (!b) [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextEdit"];
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
 }
 
 -(NSString*)bin
@@ -319,11 +367,22 @@ static inline NSString* fullname()
 -(void)writePlaydarSh
 {
     NSString* path = daemon_script_path();
+<<<<<<< HEAD:playdar-prefpane/main.m
     
     NSString* command = @"#!/bin/bash\nexec ";
     command = [command stringByAppendingString:[self bin]];
     command = [command stringByAppendingString:@" -c "];
     command = [command stringByAppendingString:[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/org.playdar.ini\n"]];
+=======
+    NSString* cd = [[NSUserDefaults standardUserDefaults] boolForKey:@"Homemade"]
+            ? @"cd `dirname $playdar`/..\n"
+            : @"cd `dirname $playdar`\n";
+    
+    NSMutableString* command = [NSMutableString stringWithString:@"#!/bin/bash\n"];
+    [command appendFormat:@"playdar='%@'\n", [self bin]];
+    [command appendString:cd];
+    [command appendFormat:@"exec $playdar -c '%@'\n", ini_path()];
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
     NSError* error;
     bool ok = [command writeToFile:path
                         atomically:true
@@ -351,7 +410,11 @@ static inline NSString* fullname()
 
 -(NSString*)pathToRelaunchForUpdater:(SUUpdater*)updater
 {
+<<<<<<< HEAD:playdar-prefpane/main.m
     return [[NSBundle mainBundle] executablePath];
+=======
+    return [[NSBundle mainBundle] bundlePath];
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/main.m
 }
 
 @end

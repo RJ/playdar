@@ -13,11 +13,15 @@ SET_TARGET_PROPERTIES(  darknet PROPERTIES
                      )
 
 
+IF(APPLE)
+    SET(APPLE_PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
+ENDIF(APPLE)
+
 TARGET_LINK_LIBRARIES( darknet
                        ${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_REGEX_LIBRARY} # Boost license
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY} 
                        ${Boost_THREAD_LIBRARY}
-                       -undefined\ dynamic_lookup
+                       ${APPLE_PLUGIN_LDFLAGS}
                      )
