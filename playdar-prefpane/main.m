@@ -61,7 +61,7 @@ end:
 
 static inline NSString* ini_path()
 {
-    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.ini"];
+    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Preferences/org.playdar.json"];
 }
 
 static inline NSString* db_path()
@@ -93,7 +93,7 @@ static inline NSString* fullname()
     NSString* ini = ini_path();
     if([fm fileExistsAtPath:ini] == false){
         NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
-        [self execScript:@"playdar.ini.rb" withArgs:args];
+        [self execScript:@"playdar.conf.rb" withArgs:args];
     }
 
     [[popup menu] addItem:[NSMenuItem separatorItem]];
@@ -110,6 +110,9 @@ static inline NSString* fullname()
     SUUpdater* updater = [SUUpdater updaterForBundle:[self bundle]];
     [updater resetUpdateCycle];
     [updater setDelegate:self];
+    
+    if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
+        [updater checkForUpdates:self];
 }
 
 -(void)addFolder:(NSString*)path setSelected:(bool)select
@@ -133,10 +136,11 @@ static inline NSString* fullname()
     if(pid){
         // if we can't kill playdar don't pretend we did, unless the problem is
         // that our pid is invalid
-        if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
-        pid = playdar_pid(); // prolly the right thing to do..
+        do
+            if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
+        while (pid = playdar_pid());
     }
-    else if(pid = playdar_pid() == 0){
+    else {
         NSTask* task = [[NSTask alloc] init];
         @try{
             if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
@@ -144,20 +148,20 @@ static inline NSString* fullname()
                 [task setArguments:[NSArray arrayWithObjects:@"-a", @"Terminal", daemon_script_path(), nil]];
                 [task launch];
                 [task waitUntilExit];
-                pid = playdar_pid();
+                pid = -100; //HACK FIXME
             }else{
                 [task setLaunchPath:daemon_script_path()];
                 [task launch];
                 pid = [task processIdentifier];
-            }           
+            }
         }
-        @catch(NSException* e) 
+        @catch(NSException* e)
         {
             NSString* msg = @"The file at \"";
             msg = [msg stringByAppendingString:[task launchPath]];
             msg = [msg stringByAppendingString:@"\" could not be executed."];
             
-            NSBeginAlertSheet(@"Could not start Playdar", 
+            NSBeginAlertSheet(@"Could not start Playdar",
                               nil, nil, nil,
                               [[self mainView] window],
                               self,
@@ -165,12 +169,17 @@ static inline NSString* fullname()
                               nil,
                               msg );
         }
+        @finally {
+            [task release];
+        }
     }
     [self updateStatusTextFields];
 }
 
 -(void)updateStatusTextFields
 {
+    NSLog( @"pid: %d", pid );
+    
     if (pid) {
         [start setTitle:@"Stop Playdar"];
         [status setStringValue:@"Running"];
@@ -306,7 +315,8 @@ static inline NSString* fullname()
 
 -(IBAction)onEditPlaydarIni:(id)sender;
 {
-    [[NSWorkspace sharedWorkspace] openFile:ini_path()];
+    bool b = [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextMate"];
+    if (!b) [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextEdit"];
 }
 
 -(NSString*)bin
@@ -319,11 +329,14 @@ static inline NSString* fullname()
 -(void)writePlaydarSh
 {
     NSString* path = daemon_script_path();
+    NSString* cd = [[NSUserDefaults standardUserDefaults] boolForKey:@"Homemade"]
+            ? @"cd `dirname $playdar`/..\n"
+            : @"cd `dirname $playdar`\n";
     
-    NSString* command = @"#!/bin/bash\nexec ";
-    command = [command stringByAppendingString:[self bin]];
-    command = [command stringByAppendingString:@" -c "];
-    command = [command stringByAppendingString:[NSHomeDirectory() stringByAppendingPathComponent:@"/Library/Preferences/org.playdar.ini\n"]];
+    NSMutableString* command = [NSMutableString stringWithString:@"#!/bin/bash\n"];
+    [command appendFormat:@"playdar='%@'\n", [self bin]];
+    [command appendString:cd];
+    [command appendFormat:@"exec $playdar -c '%@'\n", ini_path()];
     NSError* error;
     bool ok = [command writeToFile:path
                         atomically:true
