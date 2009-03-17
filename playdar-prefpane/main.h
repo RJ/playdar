@@ -49,7 +49,7 @@
 -(bool)isLoginItem;
 
 -(NSString*)bin;
--(void)writePlaydarSh;
+-(void)writeDaemonScript;
 
 -(IBAction)onSelect:(id)sender; //TODO doesn't need to be IBAction
 -(IBAction)onScan:(id)sender;

@@ -71,7 +71,7 @@ static inline NSString* db_path()
 
 static inline NSString* daemon_script_path()
 {
-    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Playdar/playdar.sh"];
+    return [NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/Playdar/playdar.command"];
 }
 
 static inline NSString* fullname()
@@ -89,7 +89,7 @@ static inline NSString* fullname()
 {   
     NSFileManager* fm = [NSFileManager defaultManager];
     if([fm fileExistsAtPath:daemon_script_path()] == false)
-        [self writePlaydarSh];
+        [self writeDaemonScript];
     NSString* ini = ini_path();
     if([fm fileExistsAtPath:ini] == false){
         NSArray* args = [NSArray arrayWithObjects: fullname(), db_path(), ini, nil];
@@ -310,7 +310,7 @@ static inline NSString* fullname()
     [advanced_window orderOut:nil];
     [NSApp endSheet:advanced_window];
     
-    [self writePlaydarSh];
+    [self writeDaemonScript];
 }
 
 -(IBAction)onEditPlaydarIni:(id)sender;
@@ -326,7 +326,7 @@ static inline NSString* fullname()
          : [[[self bundle] bundlePath] stringByAppendingPathComponent:@"Contents/MacOS/playdar"];
 }
 
--(void)writePlaydarSh
+-(void)writeDaemonScript
 {
     NSString* path = daemon_script_path();
     NSString* cd = [[NSUserDefaults standardUserDefaults] boolForKey:@"Homemade"]
