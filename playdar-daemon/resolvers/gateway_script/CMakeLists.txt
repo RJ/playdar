@@ -1,6 +1,6 @@
 INCLUDE_DIRECTORIES ( ${DEPS}/boost.process )
 
-ADD_LIBRARY(    gateway_script SHARED EXCLUDE_FROM_ALL
+ADD_LIBRARY(    gateway_script SHARED
                 gateway_script.cpp
             )
 #
