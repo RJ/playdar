@@ -10,9 +10,14 @@ SET_TARGET_PROPERTIES(  demo PROPERTIES
                         PREFIX "" 
                         SUFFIX ".resolver")
 
+IF(APPLE)
+    SET(APPLE_PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
+ENDIF(APPLE)
+
+
 TARGET_LINK_LIBRARIES( demo
                        ${OSSPUUID_LIBRARIES}
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_THREAD_LIBRARY}
-                       -undefined\ dynamic_lookup
+                       ${APPLE_PLUGIN_LDFLAGS}
                      )

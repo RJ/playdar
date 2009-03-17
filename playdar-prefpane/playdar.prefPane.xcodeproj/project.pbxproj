@@ -11,9 +11,8 @@
 		632DF4C30F5B70C00078F66A /* libuuid.16.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388410F5B708F000C8EAF /* libuuid.16.dylib */; };
 		632DF4DE0F5B79C00078F66A /* libboost_program_options-mt.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 632DF4DC0F5B79B90078F66A /* libboost_program_options-mt.dylib */; };
 		63773AB70F59674B002D0DE9 /* playdar.icns in Resources */ = {isa = PBXBuildFile; fileRef = 63773AB60F59674B002D0DE9 /* playdar.icns */; };
-		6381AA800F5AC101003D1B3F /* playdar.ini.rb in Resources */ = {isa = PBXBuildFile; fileRef = 6381AA7F0F5AC101003D1B3F /* playdar.ini.rb */; };
+		6381AA800F5AC101003D1B3F /* playdar.conf.rb in Resources */ = {isa = PBXBuildFile; fileRef = 6381AA7F0F5AC101003D1B3F /* playdar.conf.rb */; };
 		6381AAAA0F5AC549003D1B3F /* schema.sql in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6381AAA80F5AC541003D1B3F /* schema.sql */; };
-		6381AAB50F5AC5E5003D1B3F /* playdar.ini in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6381AAB30F5AC5E0003D1B3F /* playdar.ini */; };
 		6381AABA0F5AC655003D1B3F /* scanner in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6381AAB80F5AC655003D1B3F /* scanner */; };
 		6383882F0F5B6FBF000C8EAF /* libboost_system-mt.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388270F5B6FA3000C8EAF /* libboost_system-mt.dylib */; };
 		638388300F5B6FBF000C8EAF /* libboost_thread-mt.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388280F5B6FA3000C8EAF /* libboost_thread-mt.dylib */; };
@@ -22,6 +21,10 @@
 		6383883C0F5B7065000C8EAF /* libtag.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 638388340F5B6FEF000C8EAF /* libtag.1.dylib */; };
 		6383883D0F5B7065000C8EAF /* libz.1.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = 6383883A0F5B704D000C8EAF /* libz.1.dylib */; };
 		639E37630F6D2D2900B274E1 /* sparkle.pem in Resources */ = {isa = PBXBuildFile; fileRef = 639E37620F6D2D2900B274E1 /* sparkle.pem */; };
+<<<<<<< HEAD:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
+=======
+		639E376D0F6F17CA00B274E1 /* playdar.conf in CopyFiles */ = {isa = PBXBuildFile; fileRef = 639E376A0F6F17AD00B274E1 /* playdar.conf */; };
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 		63BE46E60F5B6C0C00BFA9E0 /* playdar in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63BE46E40F5B6C0600BFA9E0 /* playdar */; };
 		63DFABE70F5CAAA1001855D4 /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
 		63DFABEE0F5CAAFA001855D4 /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = 63DFABE60F5CAAA1001855D4 /* Sparkle.framework */; };
@@ -44,7 +47,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				6381AAB50F5AC5E5003D1B3F /* playdar.ini in CopyFiles */,
+				639E376D0F6F17CA00B274E1 /* playdar.conf in CopyFiles */,
 				6381AAAA0F5AC549003D1B3F /* schema.sql in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -91,9 +94,8 @@
 		635AD4D00F5E152D003C0805 /* LoginItemsAE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = LoginItemsAE.h; sourceTree = "<group>"; };
 		635AD4D20F5E1552003C0805 /* LoginItemsAE.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = LoginItemsAE.c; sourceTree = "<group>"; };
 		63773AB60F59674B002D0DE9 /* playdar.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = playdar.icns; sourceTree = "<group>"; };
-		6381AA7F0F5AC101003D1B3F /* playdar.ini.rb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.ruby; path = playdar.ini.rb; sourceTree = "<group>"; };
+		6381AA7F0F5AC101003D1B3F /* playdar.conf.rb */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.ruby; path = playdar.conf.rb; sourceTree = "<group>"; };
 		6381AAA80F5AC541003D1B3F /* schema.sql */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = schema.sql; path = "../playdar-daemon/etc/schema.sql"; sourceTree = SOURCE_ROOT; };
-		6381AAB30F5AC5E0003D1B3F /* playdar.ini */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = playdar.ini; path = "../playdar-daemon/etc/playdar.ini"; sourceTree = SOURCE_ROOT; };
 		6381AAB80F5AC655003D1B3F /* scanner */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = scanner; path = "../playdar-daemon/bin/scanner"; sourceTree = SOURCE_ROOT; };
 		638388270F5B6FA3000C8EAF /* libboost_system-mt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libboost_system-mt.dylib"; path = "/opt/local/lib/libboost_system-mt.dylib"; sourceTree = "<absolute>"; };
 		638388280F5B6FA3000C8EAF /* libboost_thread-mt.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libboost_thread-mt.dylib"; path = "/opt/local/lib/libboost_thread-mt.dylib"; sourceTree = "<absolute>"; };
@@ -104,6 +106,10 @@
 		638388400F5B708F000C8EAF /* liburiparser.1.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = liburiparser.1.dylib; path = /opt/local/lib/liburiparser.1.dylib; sourceTree = "<absolute>"; };
 		638388410F5B708F000C8EAF /* libuuid.16.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libuuid.16.dylib; path = /opt/local/lib/libuuid.16.dylib; sourceTree = "<absolute>"; };
 		639E37620F6D2D2900B274E1 /* sparkle.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = sparkle.pem; sourceTree = "<group>"; };
+<<<<<<< HEAD:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
+=======
+		639E376A0F6F17AD00B274E1 /* playdar.conf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = playdar.conf; path = "../playdar-daemon/etc/playdar.conf"; sourceTree = SOURCE_ROOT; };
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 		63BE46E40F5B6C0600BFA9E0 /* playdar */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; name = playdar; path = "../playdar-daemon/bin/playdar"; sourceTree = "<group>"; };
 		63DFABE60F5CAAA1001855D4 /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = "<group>"; };
 		63E2F5330F60D5F200738CA2 /* scanner.sh */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.script.sh; path = scanner.sh; sourceTree = "<group>"; };
@@ -159,7 +165,11 @@
 				089C167DFE841241C02AAC07 /* InfoPlist.strings */,
 				F506C042013D9D8C01CA16C8 /* main.xib */,
 				63E2F5330F60D5F200738CA2 /* scanner.sh */,
+<<<<<<< HEAD:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 				6381AA7F0F5AC101003D1B3F /* playdar.ini.rb */,
+=======
+				6381AA7F0F5AC101003D1B3F /* playdar.conf.rb */,
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 				089C1671FE841209C02AAC07 /* Frameworks and Libraries */,
 			);
 			name = Resources;
@@ -225,7 +235,7 @@
 				6383883A0F5B704D000C8EAF /* libz.1.dylib */,
 				63BE46E40F5B6C0600BFA9E0 /* playdar */,
 				6381AAB80F5AC655003D1B3F /* scanner */,
-				6381AAB30F5AC5E0003D1B3F /* playdar.ini */,
+				639E376A0F6F17AD00B274E1 /* playdar.conf */,
 				6381AAA80F5AC541003D1B3F /* schema.sql */,
 			);
 			name = "External Files";
@@ -255,11 +265,13 @@
 				8D202CEC0486D31800D8A456 /* Resources */,
 				8D202CF00486D31800D8A456 /* Sources */,
 				8D202CF20486D31800D8A456 /* Frameworks */,
-				631F5A880F5B6A0A00332254 /* ShellScript */,
+				631F5A880F5B6A0A00332254 /* mv playdar playdar.prefPane */,
+				638829FA0F6F1A6F0081F3E4 /* Copy plugins and www */,
 				63DFABED0F5CAAF6001855D4 /* CopyFiles */,
 				6381AA960F5AC1D8003D1B3F /* CopyFiles */,
 				6381AB6A0F5B5CA1003D1B3F /* CopyFiles */,
-				632DF4CE0F5B76940078F66A /* ShellScript */,
+				632DF4CE0F5B76940078F66A /* install_name_tool */,
+				63882A680F6F2E320081F3E4 /* Verify playdar exe */,
 			);
 			buildRules = (
 			);
@@ -296,7 +308,11 @@
 				8D202CED0486D31800D8A456 /* InfoPlist.strings in Resources */,
 				8D202CEF0486D31800D8A456 /* main.xib in Resources */,
 				63773AB70F59674B002D0DE9 /* playdar.icns in Resources */,
+<<<<<<< HEAD:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 				6381AA800F5AC101003D1B3F /* playdar.ini.rb in Resources */,
+=======
+				6381AA800F5AC101003D1B3F /* playdar.conf.rb in Resources */,
+>>>>>>> b25db0b3d1c64e76ea0cf94e46139d6bec46ccf3:playdar-prefpane/playdar.prefPane.xcodeproj/project.pbxproj
 				63E2F5340F60D5F200738CA2 /* scanner.sh in Resources */,
 				639E37630F6D2D2900B274E1 /* sparkle.pem in Resources */,
 			);
@@ -305,7 +321,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		631F5A880F5B6A0A00332254 /* ShellScript */ = {
+		631F5A880F5B6A0A00332254 /* mv playdar playdar.prefPane */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -313,24 +329,54 @@
 			inputPaths = (
 				"$(SRCROOT)/../playdar-daemon/bin/playdar",
 			);
+			name = "mv playdar playdar.prefPane";
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "cd $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nmv playdar playdar.prefPane";
 		};
-		632DF4CE0F5B76940078F66A /* ShellScript */ = {
+		632DF4CE0F5B76940078F66A /* install_name_tool */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputPaths = (
 			);
+			name = install_name_tool;
 			outputPaths = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nruby \"$SRCROOT/install_name_tool.rb\"\nchmod ugo-x *.dylib";
+			shellScript = "cd $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nruby \"$SRCROOT/install_name_tool.rb\"\nchmod ugo-x *.dylib\ncd plugins\nruby \"$SRCROOT/install_name_tool.rb\"";
+		};
+		638829FA0F6F1A6F0081F3E4 /* Copy plugins and www */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Copy plugins and www";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "MacOS=$BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nmkdir $d\ncp ../playdar-daemon/plugins/*.resolver $MacOS/plugins\nrm $MacOS/plugins/demo.resolver\nchmod ugo-x $MacOS/plugins/*.resolver\ncp -R ../playdar-daemon/www $MacOS";
+		};
+		63882A680F6F2E320081F3E4 /* Verify playdar exe */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Verify playdar exe";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "test -f $BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH/playdar";
 		};
 /* End PBXShellScriptBuildPhase section */
 
