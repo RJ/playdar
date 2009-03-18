@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../includes"
+				AdditionalIncludeDirectories="../includes;&quot;C:\src\playdar\playdar-daemon\includes&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="sqlite.lib moostd.lib json_spirit_lib.lib uriparser.lib"
+				AdditionalDependencies="sqlite.lib json_spirit_lib.lib uriparser.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;C:\src\playdar\playdar-daemon\deps\json_spirit_v3.00\release&quot;;&quot;C:\src\uriparser-0.7.4\win32&quot;;C:\src\sqlite\win32\Release;C:\src\uuid;&quot;C:\src\playdar\playdar-daemon\deps\moost_http\moost_test\Release&quot;"
 				GenerateDebugInformation="true"
@@ -97,7 +97,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
