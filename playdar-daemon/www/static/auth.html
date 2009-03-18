@@ -22,11 +22,11 @@
         height: 68px;
         background: #cbdab1;
     }
-    form#auth {
+    div#content {
         margin: 30px;
         text-align: center;
     }
-    form#auth p {
+    div#content p {
         margin: 0 0 25px 0;
     }
     input.button {
@@ -40,15 +40,6 @@
         color: #fff;
         border-color: #6ba318 #426c0b #426c0b #6ba318;
     }
-    div#debug {
-        margin: 40px 0 0 0;
-        padding: 20px 0 0 0;
-        border-top: 1px solid #ccc;
-        color: #999;
-    }
-    div#debug input {
-        color: #999;
-    }
     </style>
 </head>
 <body>
@@ -56,16 +47,18 @@
         <img alt="Playdar - the Music Content Resolver" src="/static/playdar_auth_logo.gif" width="233" height="68"/>
     </a>
     
-    <form method="post" action="/auth_2/" id="auth">
-        <p>Allow access to Playdar from <a href="<%WEBSITE%>"><%NAME%></a></p>
-        <p class="buttons">
-            <input type="button" value="Deny" class="button" onclick="window.close();" />
-            <input type="submit" value="Allow" class="confirm button" />
-        </p>
-        <input type="hidden" name="formtoken" value="<%FORMTOKEN%>" />
-        <input type="hidden" name="receiverurl" value="<%URL%>" />
-        <input type="hidden" name="website" value="<%WEBSITE%>" />
-        <input type="hidden" name="name" value="<%NAME%>" />
-    </form>
+    <div id="content">
+        <form method="post" action="/auth_2/" id="auth">
+            <p>Allow access to Playdar from <a href="<%WEBSITE%>"><%NAME%></a></p>
+            <p class="buttons">
+                <input type="button" value="Deny" class="button" onclick="window.close();" />
+                <input type="submit" value="Allow" class="confirm button" />
+            </p>
+            <input type="hidden" name="formtoken" value="<%FORMTOKEN%>" />
+            <input type="hidden" name="receiverurl" value="<%URL%>" />
+            <input type="hidden" name="website" value="<%WEBSITE%>" />
+            <input type="hidden" name="name" value="<%NAME%>" />
+        </form>
+    </div>
 </body>
 </html>

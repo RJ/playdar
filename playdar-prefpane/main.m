@@ -117,7 +117,7 @@ static inline NSString* fullname()
     SUUpdater* updater = [SUUpdater updaterForBundle:[self bundle]];
     [updater resetUpdateCycle];
     [updater setDelegate:self];
-    
+
     if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask)
         [updater checkForUpdates:self];
 }
@@ -201,8 +201,8 @@ static inline NSString* fullname()
         rect.origin.y -= step;
         [w setFrame:rect display:true animate:true];
     }
-    if([self isLoginItem] == (pid == 0))
-        [self setLoginItem:pid];
+    if([self isLoginItem] == is_dead)
+        [self setLoginItem:!is_dead];
 }
 
 -(void)setLoginItem:(bool)enabled

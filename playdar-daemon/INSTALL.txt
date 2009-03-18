@@ -32,10 +32,26 @@ Assuming debian/ubuntu. Otherwise find similarly named packages:
        $ for f in `ls libboo*-gcc43-mt.so`; do L=`echo $f \
          | sed 's/-gcc43-mt//'`; echo $L; ln -s $f $L; done
 
+  In Ubuntu 8.10 (intrepid) you can do this:
+
+  sudo apt-get install libboost-thread1.35-dev libboost-thread1.35.0 \
+   libboost-system1.35-dev libboost-system1.35.0 libboost-regex1.35-dev \
+   libboost-regex1.35.0 libboost-program-options1.35.0 \
+   libboost-program-options1.35-dev libboost-iostreams1.35.0 \
+   libboost-iostreams1.35-dev libboost-filesystem1.35.0 \
+   libboost-filesystem1.35-dev doxygen
 
 3) You need liburiparser 0.7.0 or higher. 
    The version in ubuntu Ibex is too old - build from source.
    http://uriparser.sourceforge.net/
+
+   Build it like so:
+
+   $ ./configure --disable-test
+   $ make
+   $ make install
+
+   You can ignore it if it complains about Doxygen.
    
 
 Mac Dependencies
