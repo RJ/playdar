@@ -40,8 +40,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../src;C:\src\playdar\src\library"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0501;"
+				AdditionalIncludeDirectories="../includes"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -118,8 +118,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../src;../deps"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501;"
+				AdditionalIncludeDirectories="../src;../deps;../includes"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -181,7 +181,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\application\application.cpp"
+				RelativePath="..\src\application.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\deps\pdl-0.3.0\src\DynamicLibrary.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\deps\pdl-0.3.0\src\DynamicLibraryManager.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\deps\pdl-0.3.0\src\DynamicLoader.cpp"
 				>
 			</File>
 			<File
@@ -189,7 +201,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\library\library.cpp"
+				RelativePath="..\src\library.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\deps\pdl-0.3.0\src\LoaderException.cpp"
 				>
 			</File>
 			<File
@@ -198,10 +214,6 @@
 			</File>
 			<File
 				RelativePath="..\deps\moost_http\src\http\mime_types.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\playable_item.cpp"
 				>
 			</File>
 			<File
@@ -217,23 +229,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\resolver.cpp"
+				RelativePath="..\src\resolver.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\resolver_service.cpp"
+				RelativePath="..\src\resolver_service.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\rs_http_gateway_script.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_lan_udp.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_local_library.cpp"
+				RelativePath="..\src\rs_local_library.cpp"
 				>
 			</File>
 			<File
@@ -247,103 +251,63 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\src\library\album.h"
+				RelativePath="..\includes\playdar\album.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\application\application.h"
+				RelativePath="..\includes\playdar\application.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\library\artist.h"
+				RelativePath="..\includes\playdar\artist.h"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\connection.hpp"
+				RelativePath="..\includes\playdar\auth.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\filesystem_request_handler.hpp"
+				RelativePath="..\includes\playdar\config.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\header.hpp"
+				RelativePath="..\includes\playdar\library.h"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http.hpp"
+				RelativePath="..\src\license_header.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\library\library.h"
+				RelativePath="..\includes\playdar\playable_item.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\mime_types.hpp"
+				RelativePath="..\includes\playdar\playdar_plugin_include.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\playable_item.h"
+				RelativePath="..\includes\playdar\playdar_request_handler.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\playdar\playdar_request_handler.h"
+				RelativePath="..\includes\playdar\resolver.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\playlist\playlist.h"
+				RelativePath="..\includes\playdar\resolver_query.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\reply.hpp"
+				RelativePath="..\includes\playdar\resolver_service.h"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\request.hpp"
+				RelativePath="..\includes\playdar\rs_http_playdar.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\deps\moost_http\include\moost\http\request_handler_base.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\deps\moost_http\include\moost\http\request_parser.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\resolver.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\resolver_query.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\resolver_service.h"
-				>
-			</File>
-			<File
-				RelativePath=".\resource.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_http_gateway_script.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_http_playdar.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_lan_udp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\rs_local_library.h"
-				>
-			</File>
-			<File
-				RelativePath="..\deps\moost_http\include\moost\http\server.hpp"
+				RelativePath="..\includes\playdar\rs_local_library.h"
 				>
 			</File>
 			<File
@@ -351,27 +315,23 @@
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\ss_http.h"
+				RelativePath="..\includes\playdar\ss_http.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\ss_localfile.h"
+				RelativePath="..\includes\playdar\ss_localfile.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\src\resolvers\streaming_strategy.h"
+				RelativePath="..\includes\playdar\streaming_strategy.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\library\track.h"
+				RelativePath="..\includes\playdar\track.h"
 				>
 			</File>
 			<File
-				RelativePath="..\src\application\types.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\resolvers\udp_sender.h"
+				RelativePath="..\includes\playdar\types.h"
 				>
 			</File>
 		</Filter>
