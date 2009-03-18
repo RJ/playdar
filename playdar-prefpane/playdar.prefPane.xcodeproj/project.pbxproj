@@ -348,7 +348,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "MacOS=$BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nmkdir $d\ncp ../playdar-daemon/plugins/*.resolver $MacOS/plugins\nrm $MacOS/plugins/demo.resolver\nchmod ugo-x $MacOS/plugins/*.resolver\ncp -R ../playdar-daemon/www $MacOS";
+			shellScript = "MacOS=$BUILT_PRODUCTS_DIR/$EXECUTABLE_FOLDER_PATH\nmkdir $MacOS/plugins\ncp ../playdar-daemon/plugins/*.resolver $MacOS/plugins\nrm $MacOS/plugins/demo.resolver\nchmod ugo-x $MacOS/plugins/*.resolver\ncp -R ../playdar-daemon/www $MacOS";
 		};
 		63882A680F6F2E320081F3E4 /* Verify playdar exe */ = {
 			isa = PBXShellScriptBuildPhase;
