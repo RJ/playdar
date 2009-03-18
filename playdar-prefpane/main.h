@@ -1,6 +1,6 @@
 /*
  Created on 28/02/2009
- Copyright 2009 Max Howell <mxcl@users.sf.net>
+ Copyright 2009 Max Howell <max@methylblue.com>
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -25,38 +25,37 @@
 {
     IBOutlet NSPopUpButton* popup;
     IBOutlet NSButton* scan;
-    IBOutlet NSButton* start;
-    IBOutlet NSButton* check;
-    IBOutlet NSButton* advanced;
-    IBOutlet NSTextField* status;
-    IBOutlet NSTextField* details;
+    IBOutlet NSButton* enable;
+    IBOutlet NSButton* demos;
+    IBOutlet NSTextField* info;
     IBOutlet NSWindow* advanced_window;
-    
     pid_t pid;
 }
 
 -(void)mainViewDidLoad;
 -(void)addFolder:(NSString*)path setSelected:(bool)select;
 
+-(NSTask*)execScript:(NSString*)command withArgs:(NSArray*)args;
+-(NSString*)bin;
+-(void)writeDaemonScript;
+
+-(bool)isLoginItem;
+-(void)setLoginItem:(bool)enabled;
+
 -(void)openPanelDidEnd:(NSOpenPanel*)panel
             returnCode:(int)returnCode
            contextInfo:(void*)contextInfo;
 
--(void)updateStatusTextFields;
 
--(NSTask*)execScript:(NSString*)command withArgs:(NSArray*)args;
 
--(bool)isLoginItem;
-
--(NSString*)bin;
--(void)writeDaemonScript;
-
--(IBAction)onSelect:(id)sender; //TODO doesn't need to be IBAction
+-(IBAction)onSelect:(id)sender;
 -(IBAction)onScan:(id)sender;
--(IBAction)onStart:(id)sender;
--(IBAction)onStartAtLogin:(id)sender;
+-(IBAction)onEnable:(id)sender;
+-(IBAction)onDemos:(id)sender;
 -(IBAction)onHelp:(id)sender;
 -(IBAction)onAdvanced:(id)sender;
+-(IBAction)onEditConfigFile:(id)sender;
+-(IBAction)onViewStatus:(id)sender;
 -(IBAction)onCloseAdvanced:(id)sender;
--(IBAction)onEditPlaydarIni:(id)sender;
+
 @end

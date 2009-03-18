@@ -1,6 +1,6 @@
 /*
  Created on 28/02/2009
- Copyright 2009 Max Howell <mxcl@users.sf.net>
+ Copyright 2009 Max Howell <max@methylblue.com>
  
  This program is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
@@ -97,15 +97,22 @@ static inline NSString* fullname()
     }
 
     [[popup menu] addItem:[NSMenuItem separatorItem]];
-    [[[popup menu] addItemWithTitle:@"Select..." action:@selector(onSelect:) keyEquivalent:@""] setTarget:self];
+    [[[popup menu] addItemWithTitle:@"Other..." action:@selector(onSelect:) keyEquivalent:@""] setTarget:self];
 
     NSString* home = NSHomeDirectory();
     [self addFolder:[home stringByAppendingPathComponent:@"Music"] setSelected:true];
     [self addFolder:home setSelected:false];
 
-    if(pid = playdar_pid()) [self updateStatusTextFields];
-    if(![self isLoginItem]) [check setState:NSOffState];
-    
+    pid = playdar_pid();
+    if(pid){
+        [enable setState:NSOnState];
+        [demos setHidden:false];
+        [info setHidden:false];
+        NSSize size = [[self mainView] frame].size;
+        size.height += 20;
+        [[self mainView] setFrameSize:size];
+    }
+
 ////// Sparkle
     SUUpdater* updater = [SUUpdater updaterForBundle:[self bundle]];
     [updater resetUpdateCycle];
@@ -131,67 +138,75 @@ static inline NSString* fullname()
     [self execScript:@"scanner.sh" withArgs:args];
 }
 
--(void)onStart:(id)sender
-{
-    if(pid){
+-(void)onEnable:(id)sender
+{    
+    if([enable state] == NSOffState){
         // if we can't kill playdar don't pretend we did, unless the problem is
         // that our pid is invalid
-        do
-            if(kill(pid, SIGKILL) == -1 && errno != ESRCH) return;
-        while (pid = playdar_pid());
-    }
-    else {
-        NSTask* task = [[NSTask alloc] init];
-        @try{
-            if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
-                [task setLaunchPath:@"/usr/bin/open"];
-                [task setArguments:[NSArray arrayWithObjects:@"-a", @"Terminal", daemon_script_path(), nil]];
-                [task launch];
-                [task waitUntilExit];
-                pid = -100; //HACK FIXME
-            }else{
-                [task setLaunchPath:daemon_script_path()];
-                [task launch];
-                pid = [task processIdentifier];
+        // FIXME I'm not so sure if KILL is safe... what's CTRL-C do?
+        if(kill(pid, SIGKILL) == -1 && errno != ESRCH) {
+            [enable setState:NSOnState];
+            //TODO beep, show message
+            return;
+        }
+        pid = 0;
+    }else{
+        pid = playdar_pid(); // for some reason assignment doesn't happen inside if statements..
+        if(!pid){
+            NSTask* task = [[NSTask alloc] init];
+            @try{
+                if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
+                    [task setLaunchPath:@"/usr/bin/open"];
+                    [task setArguments:[NSArray arrayWithObjects:@"-a", @"Terminal", daemon_script_path(), nil]];
+                    [task launch];
+                    [task waitUntilExit];
+                    pid = -100; //HACK FIXME
+                }else{
+                    [task setLaunchPath:daemon_script_path()];
+                    [task launch];
+                    pid = [task processIdentifier];
+                }
+            }
+            @catch(NSException* e)
+            {
+                NSString* msg = @"The file at \"";
+                msg = [msg stringByAppendingString:[task launchPath]];
+                msg = [msg stringByAppendingString:@"\" could not be executed."];
+                
+                NSBeginAlertSheet(@"Could not start Playdar",
+                                  nil, nil, nil,
+                                  [[self mainView] window],
+                                  self,
+                                  nil, nil,
+                                  nil,
+                                  msg );
+            }
+            @finally {
+                [task release];
             }
         }
-        @catch(NSException* e)
-        {
-            NSString* msg = @"The file at \"";
-            msg = [msg stringByAppendingString:[task launchPath]];
-            msg = [msg stringByAppendingString:@"\" could not be executed."];
-            
-            NSBeginAlertSheet(@"Could not start Playdar",
-                              nil, nil, nil,
-                              [[self mainView] window],
-                              self,
-                              nil, nil,
-                              nil,
-                              msg );
-        }
-        @finally {
-            [task release];
-        }
     }
-    [self updateStatusTextFields];
-}
-
--(void)updateStatusTextFields
-{
-    NSLog( @"pid: %d", pid );
     
-    if (pid) {
-        [start setTitle:@"Stop Playdar"];
-        [status setStringValue:@"Running"];
-    } else {
-        [start setTitle:@"Start Playdar"];
-        [status setStringValue:@"Not running"];
+    bool const is_dead = pid == 0;
+    
+    // eg. if we're hidden, and playdar isn't running, then GUI representation is already correct
+    if([info isHidden] != is_dead){    
+        [demos setHidden:is_dead];
+        [info setHidden:is_dead];  
+        
+        int const step = is_dead ? -20 : 20;
+        NSWindow* w = [popup window];
+        NSRect rect = [w frame];
+        rect.size.height += step;
+        rect.origin.y -= step;
+        [w setFrame:rect display:true animate:true];
     }
+    if([self isLoginItem] == (pid == 0))
+        [self setLoginItem:pid];
 }
 
--(void)onStartAtLogin:(id)sender
+-(void)setLoginItem:(bool)enabled
 {
-    bool const enabled = [check state] == NSOnState;
 	CFArrayRef loginItems = NULL;
 	NSURL *url = [NSURL fileURLWithPath:daemon_script_path()];
 	int existingLoginItemIndex = -1;
@@ -313,7 +328,7 @@ static inline NSString* fullname()
     [self writeDaemonScript];
 }
 
--(IBAction)onEditPlaydarIni:(id)sender;
+-(IBAction)onEditConfigFile:(id)sender;
 {
     bool b = [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextMate"];
     if (!b) [[NSWorkspace sharedWorkspace] openFile:ini_path() withApplication:@"TextEdit"];
@@ -350,6 +365,17 @@ static inline NSString* fullname()
     
     [[NSFileManager defaultManager] changeFileAttributes:dict
                                                   atPath:path];
+}
+
+-(IBAction)onDemos:(id)sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://playdar.org/demos/"]];
+}
+
+
+-(IBAction)onViewStatus:(id)sender
+{
+    [[NSWorkspace sharedWorkspace] openURL:[NSURL URLWithString:@"http://localhost:8888"]];
 }
 
 @end
