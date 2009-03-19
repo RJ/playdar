@@ -1,6 +1,5 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
-#include <boost/asio.hpp> // for hostname.
 
 // must be first because ossp uuid.h is stubborn and name-conflicts with
 // the uuid_t in unistd.h. It gets round this with preprocessor magic. But
@@ -21,6 +20,7 @@
 #include <vector>
 #include <sstream>
 #include <boost/algorithm/string.hpp>
+#include <boost/asio.hpp> // for hostname.
 
 namespace playdar {
 
