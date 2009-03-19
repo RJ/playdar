@@ -78,7 +78,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     
     map<string, string> getvars;
     map<string, string> postvars;
-    
     // Parse params from querystring:
     if( collect_params( req.uri, getvars ) == -1 )
     {
@@ -89,15 +88,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     {
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
-    
     /// parse URL parts
     string url = req.uri.substr(0, req.uri.find("?"));
     vector<std::string> parts;
     boost::split(parts, url, boost::is_any_of("/"));
     // get rid of cruft from leading/trailing "/" and split:
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
-    if(parts.size() && parts[parts.size()-1]=="") parts.erase(parts.end());
-
+    //if(parts.size() && parts[parts.size()-1]=="") parts.erase(parts.rbegin());
     /// Auth stuff
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
@@ -118,12 +115,11 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         cout << "AUTH: no auth value provided." << endl;
     }
 
-    
     /// localhost/ - the playdar instance homepage on localhost
     if(url=="/")
     {
         ostringstream os;
-        os  << "<h2>" << app()->conf()->get<string>("name") << "</h2>"
+        os  << "<h2>" << app()->conf()->name() << "</h2>"
             << "<p>"
             << "Your Playdar server is running! Websites and applications that "
             << "support Playdar will ask your permission, and then be able to "

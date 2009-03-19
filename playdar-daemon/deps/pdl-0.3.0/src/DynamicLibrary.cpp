@@ -158,7 +158,7 @@ void * DynamicLibrary::GetSymbolByName( const PDL_CHAR * symbolName )
 
 	return
 #if PLATFORM_WIN32
-		static_cast< void * >( ::GetProcAddress( _library, symbolName ) );
+		static_cast< void * >( ::GetProcAddress( library_, symbolName ) );
 #elif PLATFORM_POSIX
 		dlsym( library_, symbolName );
 #endif

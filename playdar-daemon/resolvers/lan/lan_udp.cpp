@@ -27,7 +27,7 @@ lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
     Object jq;
-    jq.push_back( Pair("from_name", conf()->get<string>("name")) );
+    jq.push_back( Pair("from_name", conf()->name()) );
     jq.push_back( Pair("query", rq->get_json()) );
     ostringstream querystr;
     write_formatted( jq, querystr );
@@ -50,7 +50,7 @@ lan_udp::run()
          << endl;
     // announce our presence to the LAN:
     string hello = "OHAI ";
-    hello += conf()->get<string>("name");
+    hello += conf()->name();
     async_send(broadcast_endpoint_, hello);
     
     io_service.run();

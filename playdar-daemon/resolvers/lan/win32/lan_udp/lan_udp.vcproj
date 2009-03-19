@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="scanner"
-	ProjectGUID="{86B234FE-250D-4BA6-899A-987034D1FE11}"
-	RootNamespace="scanner"
+	Name="lan_udp"
+	ProjectGUID="{BB43CF3C-DBC8-4E48-9788-1895E05C82DB}"
+	RootNamespace="lan_udp"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,8 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../src"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LAN_UDP_EXPORTS"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="3"
@@ -49,7 +48,6 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CallingConvention="0"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -62,11 +60,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tag.lib sqlite.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;C:\src\taglib-1.5-msvc-bin\lib&quot;;C:\src\sqlite\win32\Debug"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -96,9 +92,9 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="..\..\playdar-daemon"
+			OutputDirectory="..\..\..\..\plugins"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -119,8 +115,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;C:\src\playdar\playdar-daemon\includes&quot;;&quot;C:\src\taglib-1.5-msvc-bin\include&quot;;&quot;C:\src\taglib-1.5-msvc-bin\include\taglib&quot;"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
+				AdditionalIncludeDirectories="&quot;C:\src\playdar\playdar-daemon\includes&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LAN_UDP_EXPORTS;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -138,12 +134,14 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tag.lib playdar-engine.lib"
-				OutputFile="$(OutDir)\playdar-scanner.exe"
+				AdditionalDependencies="playdar-engine.lib"
+				OutputFile="$(OutDir)\$(ProjectName).resolver"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;C:\src\playdar\playdar-daemon\win32-playdar\Release&quot;"
+				IgnoreAllDefaultLibraries="false"
+				DelayLoadDLLs=""
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -183,7 +181,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\scanner\scanner.cpp"
+				RelativePath="..\..\lan_udp.cpp"
 				>
 			</File>
 		</Filter>
@@ -192,16 +190,16 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\lan_udp.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
 			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
-			<File
-				RelativePath=".\scanner.rc"
-				>
-			</File>
 		</Filter>
 	</Files>
 	<Globals>

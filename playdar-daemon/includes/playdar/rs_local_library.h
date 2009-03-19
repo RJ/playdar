@@ -16,7 +16,7 @@ class RS_local_library : public ResolverService
     std::string name() const
     { 
         return string("Local Library on ")
-               + conf()->get<string>("name"); 
+               + conf()->name(); 
     }
     protected:
         MyApplication * app() { return m_app; }

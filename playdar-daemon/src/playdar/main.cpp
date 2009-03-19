@@ -90,7 +90,8 @@ int main(int ac, char *av[])
         {
             cerr << "Please edit " << configfile << endl;
             cerr << "YOURNAMEHERE is not a valid name." << endl;
-            return 42;
+			cout << "Autodetecting name: " << conf.name() << endl;
+            //return 42;
         }
 
         MyApplication * app = new MyApplication(conf);
