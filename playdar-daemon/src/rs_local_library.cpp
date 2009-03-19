@@ -178,7 +178,7 @@ RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         {
             boost::shared_ptr<PlayableItem> pip = app()->library()->playable_item_from_fid(fid);
             pip->set_score(finalscore);
-            pip->set_source(conf()->get<string>("name"));
+            pip->set_source(conf()->name());
             final_results.push_back( pip );
         }
     }
