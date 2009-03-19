@@ -70,7 +70,7 @@ bool
 darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(conf()->get<string>("name"), WELCOME));
+    msg_ptr lm(new LameMsg(conf()->name(), WELCOME));
     send_msg(conn, lm);
     return true;
 }
@@ -85,7 +85,7 @@ darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::end
 void
 darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(conf()->get<string>("name"), IDENTIFY));
+    msg_ptr lm(new LameMsg(conf()->name(), IDENTIFY));
     send_msg(conn, lm);
 }
 

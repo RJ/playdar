@@ -1,5 +1,6 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
+#include <boost/asio.hpp> // for hostname.
 
 // must be first because ossp uuid.h is stubborn and name-conflicts with
 // the uuid_t in unistd.h. It gets round this with preprocessor magic. But
@@ -92,9 +93,18 @@ public:
             val = mp[toks[i]];
         }
         while(++i < toks.size());
-        
         return val.get_value<T>();
     }
+
+	string name() const
+	{
+		string n = get<string>("name","YOURNAMEHERE");
+		if(n=="YOURNAMEHERE")
+		{
+			n = boost::asio::ip::host_name();
+		}
+		return n;
+	}
     
     string httpbase()
     {

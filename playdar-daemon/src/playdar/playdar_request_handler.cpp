@@ -115,12 +115,11 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         cout << "AUTH: no auth value provided." << endl;
     }
 
-    cout << "D" << endl;
     /// localhost/ - the playdar instance homepage on localhost
     if(url=="/")
     {
         ostringstream os;
-        os  << "<h2>" << app()->conf()->get<string>("name") << "</h2>"
+        os  << "<h2>" << app()->conf()->name() << "</h2>"
             << "<p>"
             << "Your Playdar server is running! Websites and applications that "
             << "support Playdar will ask your permission, and then be able to "

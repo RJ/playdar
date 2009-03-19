@@ -96,7 +96,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
+			OutputDirectory="..\..\playdar-daemon"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="1"
 			CharacterSet="1"
@@ -119,8 +119,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../src"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501"
+				AdditionalIncludeDirectories="&quot;C:\src\playdar\playdar-daemon\includes&quot;;&quot;C:\src\taglib-1.5-msvc-bin\include&quot;;&quot;C:\src\taglib-1.5-msvc-bin\include\taglib&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_WIN32_WINNT=0x0501;HAS_OSSP_UUID_H"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -138,9 +138,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tag.lib sqlite.lib"
+				AdditionalDependencies="tag.lib playdar-engine.lib"
+				OutputFile="$(OutDir)\playdar-scanner.exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;C:\src\taglib-1.5-msvc-bin\lib&quot;;C:\src\sqlite\win32\Release"
+				AdditionalLibraryDirectories="&quot;C:\src\playdar\playdar-daemon\win32-playdar\Release&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -182,15 +183,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\src\library\library.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\src\scanner\scanner.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\deps\sqlite3pp-read-only\sqlite3pp.cpp"
 				>
 			</File>
 		</Filter>
@@ -199,38 +192,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath="..\src\library\album.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\application\application.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\library\artist.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\library\library.h"
-				>
-			</File>
-			<File
-				RelativePath=".\resource.h"
-				>
-			</File>
-			<File
-				RelativePath="..\deps\sqlite3pp-read-only\sqlite3pp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\library\track.h"
-				>
-			</File>
-			<File
-				RelativePath="..\src\application\types.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
