@@ -110,6 +110,11 @@ public:
         return s;
     }
 
+    size_t num_results() const
+    {
+        return m_results.size();
+    }
+
     vector< boost::shared_ptr<PlayableItem> > results()
     {
         // sort results on score/preference.
