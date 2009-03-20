@@ -59,6 +59,11 @@ public:
 
     ResolverService * get_url_handler(string url);
 
+    const deque< query_uid > & qids() const
+    {
+        return m_qidlist;
+    }
+
 private:
     
     // maps URLs to plugins that handle them:
@@ -71,6 +76,8 @@ private:
     
     map< query_uid, boost::shared_ptr<ResolverQuery> > m_queries;
     map< source_uid, boost::shared_ptr<PlayableItem> > m_pis;
+    // newest-first list of dispatched qids:
+    deque< query_uid > m_qidlist;
     
     unsigned int m_id_counter;
 

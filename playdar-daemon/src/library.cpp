@@ -2,9 +2,6 @@
 #include <iostream>
 #include <stdio.h>
 #include <sstream>
-
-//#include <sqlite3.h>
-#include "sqlite3pp.h"
 #include "playdar/library.h"
 #include <boost/foreach.hpp>
 #include <boost/asio.hpp>

@@ -272,6 +272,7 @@ Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
     boost::mutex::scoped_lock lock(m_mut);
     if(query_exists(rq->id())) return false;
     m_queries[rq->id()] = rq;
+    m_qidlist.push_front(rq->id());
     return true;
 }
 
