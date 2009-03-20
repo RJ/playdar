@@ -149,7 +149,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
             // join leave msg, for debugging on lan
             if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
             {
-                cout << "INFO Online/offline msg: " << msg << endl;
+                cout << "INFO Presence msg: " << msg << endl;
                 break;
             }
      

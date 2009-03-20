@@ -94,7 +94,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     boost::split(parts, url, boost::is_any_of("/"));
     // get rid of cruft from leading/trailing "/" and split:
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
-    //if(parts.size() && parts[parts.size()-1]=="") parts.erase(parts.rbegin());
     /// Auth stuff
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
@@ -102,17 +101,17 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         string whom;
         if(m_pauth->is_valid(getvars["auth"], whom))
         {
-            cout << "AUTH: validated " << whom << endl;
+            //cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
         }
         else
         {
-            cout << "AUTH: Invalid authtoken." << endl;
+            //cout << "AUTH: Invalid authtoken." << endl;
         }
     }
     else
     {
-        cout << "AUTH: no auth value provided." << endl;
+        //cout << "AUTH: no auth value provided." << endl;
     }
 
     /// localhost/ - the playdar instance homepage on localhost
@@ -254,6 +253,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "<td>Artist</td>"
             << "<td>Album</td>"
             << "<td>Track</td>"
+            << "<td>Origin</td>"
             << "<td>Results</td>"
             << "</tr>"
             ;
@@ -275,6 +275,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                     << "<td>" << rq->artist() << "</td>"
                     << "<td>" << rq->album() << "</td>"
                     << "<td>" << rq->track() << "</td>"
+                    << "<td>" << rq->from_name() << "</td>"
                     << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                      << rq->num_results() << "</td>"
                     << "</tr>"
@@ -412,6 +413,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         string album    = parts[2].length()?unescape(parts[2]):"";
         string track    = unescape(parts[3]);
         boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+        rq->set_from_name(app()->conf()->name());
         query_uid qid = app()->resolver()->dispatch(rq);
         // wait a couple of seconds for results
         boost::xtime time; 
@@ -520,6 +522,7 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
                 rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
                 return;
             }
+            rq->set_from_name(app()->conf()->name());
             query_uid qid = app()->resolver()->dispatch(rq);
             Object r;
             r.push_back( Pair("qid", qid) );
@@ -669,9 +672,9 @@ playdar_request_handler::serve_stats(const moost::http::request& req, moost::htt
             << "</table>"
             << "<h2>Resolver Stats</h2>"
             << "<table>"
-            << "<tr><td>Num queries seen</td><td>" 
+            << "<tr><td>Num queries seen</td><td><a href=\"/queries/\">" 
             << app()->resolver()->num_seen_queries() 
-            << "</td></tr>\n"
+            << "</a></td></tr>\n"
             << "</table>"
             ;
     serve_body(reply.str(), req, rep);

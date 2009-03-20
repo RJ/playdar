@@ -51,12 +51,13 @@ public:
         j.push_back( Pair("track",  track())  );
         j.push_back( Pair("mode",  mode())  );
         j.push_back( Pair("solved",  solved())  );
+        j.push_back( Pair("from_name",  from_name())  );
         return j;
     }
     
     static boost::shared_ptr<ResolverQuery> from_json(json_spirit::Object qryobj)
     {
-        string qid, artist, album, track, mode;
+        string qid, artist, album, track, mode, from_name;
         
         using namespace json_spirit;
         map<string,Value> qryobj_map;
@@ -73,13 +74,16 @@ public:
             qid = qryobj_map["qid"].get_str();
         if(qryobj_map.find("mode")!=qryobj_map.end()) 
             mode = qryobj_map["mode"].get_str();
-        
+        if(qryobj_map.find("from_name")!=qryobj_map.end()) 
+            from_name = qryobj_map["from_name"].get_str();
+                    
         if(artist.length()==0 || track.length()==0) throw;
         
         boost::shared_ptr<ResolverQuery>    
             rq(new ResolverQuery(artist, album, track));
         if(mode.length()) rq->set_mode(mode);
         if(qid.length())  rq->set_id(qid);
+        if(from_name.length())  rq->set_from_name(from_name);
         return rq;
     }
     
@@ -87,6 +91,8 @@ public:
     {
         m_uuid = q;
     }
+    
+    void set_from_name(string s) { m_from_name = s; }
     
     void set_mode(string s){ m_mode = s; }
     
@@ -171,6 +177,7 @@ public:
     string album()  const { return m_album; }
     string track()  const { return m_track; }
     string mode()   const { return m_mode;  }
+    string from_name() const { return m_from_name;  }
 
     
     
@@ -180,6 +187,7 @@ private:
     string      m_artist;
     string      m_album;
     string      m_track;
+    string      m_from_name;
     
     // list of functors to fire on new result:
     vector<rq_callback_t> m_callbacks;
