@@ -1,12 +1,12 @@
-PROJECT(playdar)
+PROJECT(playdarproject)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 
-SET(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
-SET(PLAYDAR_PATH ${CMAKE_CURRENT_SOURCE_DIR})
+SET(PLAYDAR_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+SET(CMAKE_MODULE_PATH "${PLAYDAR_PATH}/CMakeModules")
 
 SET(SRC "${PLAYDAR_PATH}/src")
 SET(DEPS "${PLAYDAR_PATH}/deps")
-SET(RESOLVERS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/resolvers")
+SET(RESOLVERS_DIR "${PLAYDAR_PATH}/resolvers")
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_PATH}/bin")
 
 # Don't really do 'make install' properly yet:
@@ -21,7 +21,7 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 #FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
 
 INCLUDE_DIRECTORIES(
-                    ${CMAKE_CURRENT_SOURCE_DIR}/includes  # playdar includes
+                    ${PLAYDAR_PATH}/includes  # playdar includes
                     #${URIPARSER_INCLUDE_DIR}
                     ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
