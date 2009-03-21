@@ -94,7 +94,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     boost::split(parts, url, boost::is_any_of("/"));
     // get rid of cruft from leading/trailing "/" and split:
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
-    //if(parts.size() && parts[parts.size()-1]=="") parts.erase(parts.rbegin());
     /// Auth stuff
     string permissions = "";
     if(getvars.find("auth") != getvars.end())
@@ -102,17 +101,17 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         string whom;
         if(m_pauth->is_valid(getvars["auth"], whom))
         {
-            cout << "AUTH: validated " << whom << endl;
+            //cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
         }
         else
         {
-            cout << "AUTH: Invalid authtoken." << endl;
+            //cout << "AUTH: Invalid authtoken." << endl;
         }
     }
     else
     {
-        cout << "AUTH: no auth value provided." << endl;
+        //cout << "AUTH: no auth value provided." << endl;
     }
 
     /// localhost/ - the playdar instance homepage on localhost
@@ -240,6 +239,112 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             rep.content = "Not Authorized";
         }
     }
+    /// show active queries:
+    else if(url=="/queries/")
+    {
+        size_t numqueries = app()->resolver()->qids().size();
+        ostringstream os;
+        os  << "<h2>Current Queries ("
+            << numqueries <<")</h2>"
+        
+            << "<table>"
+            << "<tr style=\"font-weight:bold;\">"
+            << "<td>QID</td>"
+            << "<td>Artist</td>"
+            << "<td>Album</td>"
+            << "<td>Track</td>"
+            << "<td>Origin</td>"
+            << "<td>Results</td>"
+            << "</tr>"
+            ;
+        int i  = 0;
+        deque< query_uid>::const_iterator it =
+             app()->resolver()->qids().begin();
+        string bgc="";
+        while(it != app()->resolver()->qids().end())
+        {
+            rq_ptr rq;
+            try
+            { 
+                rq = app()->resolver()->rq(*it); 
+                bgc = (++i%2) ? "lightgrey" : "";
+                os  << "<tr style=\"background-color: "<< bgc << "\">"
+                    << "<td style=\"font-size:60%;\">" 
+                    << "<a href=\"/queries/"<< rq->id() <<"\">" 
+                    << rq->id() << "</a></td>"
+                    << "<td>" << rq->artist() << "</td>"
+                    << "<td>" << rq->album() << "</td>"
+                    << "<td>" << rq->track() << "</td>"
+                    << "<td>" << rq->from_name() << "</td>"
+                    << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
+                     << rq->num_results() << "</td>"
+                    << "</tr>"
+                    ; 
+            } catch(...) { }
+            it++;
+        }
+        serve_body( os.str(), req, rep );
+    }
+    /// Inspect specific query id:
+    else if(parts[0]=="queries" && parts.size() == 2)
+    {
+        query_uid qid = parts[1];
+        rq_ptr rq = app()->resolver()->rq(qid);
+        if(!rq)
+        {
+            rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+            return;
+        }
+        vector< pi_ptr > results = rq->results();
+        
+        ostringstream os;
+        os  << "<h2>Query: " << qid << "</h2>"
+            << "<table>"
+            << "<tr><td>Artist</td>"
+            << "<td>" << rq->artist() << "</td></tr>"
+            << "<tr><td>Album</td>"
+            << "<td>" << rq->album() << "</td></tr>"
+            << "<tr><td>Track</td>"
+            << "<td>" << rq->track() << "</td></tr>"
+            << "</table>"
+            
+            << "<h3>Results (" << results.size() << ")</h3>"
+            << "<table>"
+            << "<tr style=\"font-weight:bold;\">"
+            << "<td>SID</td>"
+            << "<td>Artist</td>"
+            << "<td>Album</td>"
+            << "<td>Track</td>"
+            << "<td>Dur</td>"
+            << "<td>Kbps</td>"
+            << "<td>Size</td>"
+            << "<td>Source</td>"
+            << "<td>Score</td>"
+            << "</tr>"
+            ;
+        string bgc="";
+        int i = 0;
+        BOOST_FOREACH(pi_ptr pi, results)
+        {
+            bgc = ++i%2 ? "lightgrey" : "";
+            os  << "<tr style=\"background-color:" << bgc << "\">"
+                << "<td style=\"font-size:60%\">"
+                    << "<a href=\"/sid/"<< pi->id() << "\">" 
+                    << pi->id() << "</a></td>"
+                << "<td>" << pi->artist()   << "</td>"
+                << "<td>" << pi->album()    << "</td>"
+                << "<td>" << pi->track()    << "</td>"
+                << "<td>" << pi->duration() << "</td>"
+                << "<td>" << pi->bitrate()  << "</td>"
+                << "<td>" << pi->size()     << "</td>"
+                << "<td>" << pi->source()   << "</td>"
+                << "<td>" << pi->score()    << "</td>"
+                << "</tr>"
+                ;
+        }
+        os  << "</table>";
+        serve_body( os.str(), req, rep );
+    }
     /// Shows a list of every authenticated site
     /// with a "revoke" options for each.
     else if(url=="/settings/auth/")
@@ -308,6 +413,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         string album    = parts[2].length()?unescape(parts[2]):"";
         string track    = unescape(parts[3]);
         boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+        rq->set_from_name(app()->conf()->name());
         query_uid qid = app()->resolver()->dispatch(rq);
         // wait a couple of seconds for results
         boost::xtime time; 
@@ -416,6 +522,7 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
                 rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
                 return;
             }
+            rq->set_from_name(app()->conf()->name());
             query_uid qid = app()->resolver()->dispatch(rq);
             Object r;
             r.push_back( Pair("qid", qid) );
@@ -532,6 +639,8 @@ playdar_request_handler::serve_body(string reply, const moost::http::request& re
         << "&nbsp; | &nbsp;"
         << "<a href=\"/settings/auth/\">Authentication</a>"
         << "&nbsp; | &nbsp;"
+        << "<a href=\"/queries/\">Queries</a>"
+        << "&nbsp; | &nbsp;"
         << "<a href=\"/settings/config/\">Configuration</a>"
         
         << "&nbsp; || &nbsp;"
@@ -563,9 +672,9 @@ playdar_request_handler::serve_stats(const moost::http::request& req, moost::htt
             << "</table>"
             << "<h2>Resolver Stats</h2>"
             << "<table>"
-            << "<tr><td>Num queries seen</td><td>" 
+            << "<tr><td>Num queries seen</td><td><a href=\"/queries/\">" 
             << app()->resolver()->num_seen_queries() 
-            << "</td></tr>\n"
+            << "</a></td></tr>\n"
             << "</table>"
             ;
     serve_body(reply.str(), req, rep);
