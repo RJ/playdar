@@ -22,7 +22,6 @@
 //TODO when launching, watch the NSTask, and say "Crashed :(" if early exit
 //TODO otherwise check status of pid when window becomes key and update button
 //TODO remember path that we scanned with defaults controller
-//TODO memory leaks
 //TODO log that stupid exception
 //TODO while open auto restart playdar binary if using byo_bin and playdar binary is modified
 //TODO defaults should use org.playdar.plist not com.apple.systempreferences.plist
@@ -144,16 +143,16 @@ static inline NSString* fullname()
         // if we can't kill playdar don't pretend we did, unless the problem is
         // that our pid is invalid
         // FIXME I'm not so sure if KILL is safe... what's CTRL-C do?
-        if(kill(pid, SIGKILL) == -1 && errno != ESRCH) {
+        if(pid>0 && kill(pid, SIGKILL)==-1 && errno!=ESRCH){
             [enable setState:NSOnState];
             //TODO beep, show message
             return;
         }
-        pid = 0;
+        pid=0;
     }else{
         pid = playdar_pid(); // for some reason assignment doesn't happen inside if statements..
         if(!pid){
-            NSTask* task = [[NSTask alloc] init];
+            NSTask* task=[[NSTask alloc] init];
             @try{
                 if([[NSApp currentEvent] modifierFlags] & NSAlternateKeyMask){
                     [task setLaunchPath:@"/usr/bin/open"];
@@ -169,9 +168,9 @@ static inline NSString* fullname()
             }
             @catch(NSException* e)
             {
-                NSString* msg = @"The file at \"";
+                NSString* msg = @"The file at “";
                 msg = [msg stringByAppendingString:[task launchPath]];
-                msg = [msg stringByAppendingString:@"\" could not be executed."];
+                msg = [msg stringByAppendingString:@"” could not be executed."];
                 
                 NSBeginAlertSheet(@"Could not start Playdar",
                                   nil, nil, nil,
@@ -293,7 +292,7 @@ static inline NSString* fullname()
     }
     @catch (NSException* e)
     {
-        //TODO log - couldn't figure out easy way to do this
+        [[NSAlert alertWithMessageText:[e reason]] runModal];
     }
     return task;
 }
@@ -358,13 +357,14 @@ static inline NSString* fullname()
                           encoding:NSUTF8StringEncoding
                              error:&error];
     
-    if (!ok) {} //TODO
-    
-    NSDictionary* dict = [NSDictionary dictionaryWithObject:[NSNumber numberWithUnsignedInt:0755U]
-                                                     forKey:NSFilePosixPermissions];
-    
-    [[NSFileManager defaultManager] changeFileAttributes:dict
-                                                  atPath:path];
+    if(ok){
+        NSDictionary* dict = [NSDictionary dictionaryWithObject:[NSNumber numberWithUnsignedInt:0755U]
+                                                         forKey:NSFilePosixPermissions];
+        [[NSFileManager defaultManager] changeFileAttributes:dict
+                                                      atPath:path];
+    }
+    else
+        [[NSAlert alertWithError:error] runModal];
 }
 
 -(IBAction)onDemos:(id)sender
