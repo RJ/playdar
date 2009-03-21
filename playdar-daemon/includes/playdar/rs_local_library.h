@@ -1,6 +1,10 @@
 #ifndef __RS_LOCAL_LIBRARY_H__
 #define __RS_LOCAL_LIBRARY_H__
 
+#include <boost/thread/thread.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
+
 #include "playdar/resolver_service.h"
 
 class RS_local_library : public ResolverService
@@ -12,7 +16,10 @@ class RS_local_library : public ResolverService
     {
         m_app = a;
     }
-    void start_resolving(boost::shared_ptr<ResolverQuery> rq);
+    void start_resolving(rq_ptr rq);
+    void run();
+    void process(rq_ptr rq);
+    
     std::string name() const
     { 
         return string("Local Library on ")
@@ -23,6 +30,9 @@ class RS_local_library : public ResolverService
         MyApplication * m_app;
         ~RS_local_library() throw() {};
     private:
+        deque<rq_ptr> m_pending;
+        boost::mutex m_mutex;
+        boost::condition m_cond;
     
 ;
 };

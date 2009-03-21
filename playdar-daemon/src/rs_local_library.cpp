@@ -20,12 +20,41 @@ RS_local_library::init(playdar::Config * c, Resolver * r)
     {
         cout << endl << "WARNING! You don't have any files in your database! Run the scanner, then restart Playdar." << endl << endl;
     }
+    // worker thread for doing actual resolving:
+    boost::thread t(boost::bind(&RS_local_library::run, this));
 }
 
 void
-RS_local_library::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+RS_local_library::start_resolving( rq_ptr rq )
 {
-    //cout << "Library resolver, searching: " << rq->str() << endl;
+    boost::mutex::scoped_lock lk(m_mutex);
+    m_pending.push_front( rq );
+    m_cond.notify_one();
+}
+
+/// thread that loops forever processing incoming queries:
+void
+RS_local_library::run()
+{
+    rq_ptr rq;
+    while(true)
+    {
+        {
+            boost::mutex::scoped_lock lk(m_mutex);
+            if(m_pending.size() == 0) m_cond.wait(lk);
+            rq = m_pending.back();
+            m_pending.pop_back();
+        }
+        process( rq );
+    }
+}
+
+/// this is some what fugly atm, but gets the job done for now.
+/// it does the fuzzy library search using the ngram table from the db:
+void
+RS_local_library::process( rq_ptr rq )
+{
+    cout << "Library resolver, searching: " << rq->str() << endl;
     query_uid qid = rq->id();
     Library * library = app()->library();
     vector<scorepair> candidates; 
