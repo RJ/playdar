@@ -25,6 +25,19 @@ class RS_local_library : public ResolverService
         return string("Local Library on ")
                + conf()->name(); 
     }
+    
+    /// max time in milliseconds we'd expect to have results in.
+    unsigned int target_time() const
+    {
+        return 25;
+    }
+    
+    /// highest weighted resolverservices are queried first.
+    unsigned short weight() const
+    {
+        return 100;
+    }
+    
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;

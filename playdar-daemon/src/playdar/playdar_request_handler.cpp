@@ -130,10 +130,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "<ul>"
             << "<li>Local Library (always available)</li>"
             ;
-        BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
+        BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
         {
-            os  << "<li>" << rs->name() ;
-            vector<string> urls = rs->get_http_handlers();
+            os  << "<li>" << lrs.rs->name();
+            vector<string> urls = lrs.rs->get_http_handlers();
             if( urls.size() )
             {
                 os << " &nbsp; Config URLs: " ;

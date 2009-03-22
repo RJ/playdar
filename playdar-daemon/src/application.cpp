@@ -13,7 +13,6 @@ MyApplication::MyApplication(playdar::Config c)
     string db_path = conf()->get<string>("db");
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
-    
     m_ios = boost::shared_ptr<boost::asio::io_service>
                                     (new boost::asio::io_service);
     m_work = boost::shared_ptr<boost::asio::io_service::work>

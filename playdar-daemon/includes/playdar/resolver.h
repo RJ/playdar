@@ -18,6 +18,15 @@
 
 class MyApplication;
 class ResolverService;
+
+struct loaded_rs
+{
+    ResolverService * rs; 
+    unsigned int targettime; // ms before passing to next resolver
+    unsigned short weight; // highest weight runs first.
+};
+
+
 /*
  *  Acts as a container for all content-resolution queries that are running
  *  or waiting to be collected.
@@ -31,9 +40,8 @@ class Resolver
 public:
     Resolver(MyApplication * app);
     void load_resolvers();
-    query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, bool local_only = false);
-    query_uid dispatch(boost::shared_ptr<ResolverQuery> rq,
-                    rq_callback_t cb);
+    query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
+    query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb);
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
@@ -50,12 +58,10 @@ public:
     boost::shared_ptr<PlayableItem> get_pi(source_uid sid);
     
     void register_callback(query_uid qid, rq_callback_t cb);
-    // hack-o-matic: for interactive mode in main.cpp.
-    ResolverService * get_darknet();
     
     size_t num_seen_queries();
     
-    vector<ResolverService *> * resolvers() { return &m_resolvers; }
+    vector<loaded_rs> * resolvers() { return &m_resolvers; }
 
     ResolverService * get_url_handler(string url);
 
@@ -63,8 +69,18 @@ public:
     {
         return m_qidlist;
     }
-
+    
+    bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
+    
+    void run_pipeline_cont( rq_ptr rq, 
+                       unsigned short lastweight,
+                       boost::shared_ptr<boost::asio::deadline_timer> oldtimer);
+    void run_pipeline( rq_ptr rq, unsigned short lastweight );
+    
 private:
+    boost::shared_ptr<boost::asio::io_service::work> m_work;
+    boost::shared_ptr<boost::asio::io_service> m_io_service;
+
     
     // maps URLs to plugins that handle them:
     map<string, ResolverService *> m_http_handlers;
@@ -81,8 +97,8 @@ private:
     
     unsigned int m_id_counter;
 
-    ResolverService * m_rs_local; // local library resolver
-    vector<ResolverService *> m_resolvers;
+    //ResolverService * m_rs_local; // local library resolver
+    vector<loaded_rs> m_resolvers;
     
     boost::mutex m_mut;
 };

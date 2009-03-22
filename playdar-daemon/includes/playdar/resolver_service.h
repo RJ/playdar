@@ -35,6 +35,18 @@ public:
     {
         return "UNKNOWN_RESOLVER";
     }
+    
+    /// max time in milliseconds we'd expect to have results in.
+    virtual unsigned int target_time() const
+    {
+        return 1000;
+    }
+    
+    /// highest weighted resolverservices are queried first.
+    virtual unsigned short weight() const
+    {
+        return 100;
+    }
 
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
 
