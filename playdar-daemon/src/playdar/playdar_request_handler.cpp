@@ -567,6 +567,29 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
             
             write_formatted( r, response );
         }
+        else if(qs["method"] == "list_queries")
+        {
+            deque< query_uid>::const_iterator it =
+                app()->resolver()->qids().begin();
+            Array qlist;
+            while(it != app()->resolver()->qids().end())
+            {
+                rq_ptr rq;
+                try
+                { 
+                    Object obj;
+                    rq = app()->resolver()->rq(*it);
+                    obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
+                    obj.push_back( Pair("query", rq->get_json()) );
+                    qlist.push_back( obj );
+                } catch(...) { }
+                it++;
+            }
+            // wrap that in an object, so we can add stats to it later
+            Object o;
+            o.push_back( Pair("queries", qlist) );
+            write_formatted( o, response );
+        }
         else if(qs["method"] == "list_artists")
         {
             vector< artist_ptr > artists = app()->library()->list_artists();
