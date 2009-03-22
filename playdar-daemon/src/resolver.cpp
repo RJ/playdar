@@ -26,6 +26,8 @@ Resolver::Resolver(MyApplication * app)
     m_id_counter = 0;
     cout << "Resolver starting..." << endl;
     
+    boost::thread t(boost::bind(&Resolver::dispatch_runner, this));
+    
     // set up io_service with work so it never ends:
     m_io_service = boost::shared_ptr<boost::asio::io_service>
                    (new boost::asio::io_service);
@@ -123,10 +125,15 @@ Resolver::load_resolvers()
             }
             loaded_rs cr;
             cr.rs = instance;
-            cr.weight = instance->weight();
-            cr.targettime = instance->target_time();
+            string rsopt = "resolvers.";
+            confopt += classname;
+            cr.weight = app()->conf()->get<int>(rsopt + ".weight", 
+                                                instance->weight());
+            cr.targettime = app()->conf()->get<int>(rsopt + ".targettime", 
+                                                    instance->target_time());
             m_resolvers.push_back( cr );
-            cout << "-> OK: " << instance->name() << endl;
+            cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime << "] " 
+                 << instance->name() << endl;
         }
         catch( PDL::LoaderException & ex )
         {
@@ -161,14 +168,34 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
         // probably malformed, eg no track name specified.
         throw;
     }
+    boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
     {
         // already running
         return rq->id();
     }
     if(cb) rq->register_callback(cb);
-    run_pipeline( rq, 999 );
+    m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
+    m_cond.notify_one();
+    
     return rq->id();
+}
+
+/// thread that loops forever dispatching stuff in the queue
+void
+Resolver::dispatch_runner()
+{
+    pair<rq_ptr, unsigned short> p;
+    while(true)
+    {
+        {
+            boost::mutex::scoped_lock lk(m_mutex);
+            if(m_pending.size() == 0) m_cond.wait(lk);
+            p = m_pending.back();
+            m_pending.pop_back();
+        }
+        run_pipeline( p.first, p.second );
+    }
 }
 
 /// go thru list of resolversservices and dispatch in order
@@ -222,37 +249,29 @@ Resolver::run_pipeline_cont( rq_ptr rq,
     {
         cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
              << endl;
+        boost::mutex::scoped_lock lk(m_mut_stats);
+        m_solved_at_weight[lastweight]++;
     }
     else
     {
-        // continue with resolvers < previous weight:
-        run_pipeline( rq, lastweight );
+        boost::mutex::scoped_lock lk(m_mutex);
+        m_pending.push_front( pair<rq_ptr, unsigned short>(rq, lastweight) );
+        m_cond.notify_one();
     }
-}
-
-void 
-Resolver::register_callback(query_uid qid, rq_callback_t cb)
-{
-    boost::mutex::scoped_lock lock(m_mut);
-    if(query_exists(qid)) return;
-    m_queries[qid]->register_callback(cb);
 }
 
 // a resolver will report results here
 // false means give up on this query, it's over
 // true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > results, string via)
+Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
 {
     if(results.size()==0)
     {
         return true;
     }
-    boost::mutex::scoped_lock lock(m_mut);
+    boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return false; // query was deleted
-    // cout << "RESOLVER add_results(" << qid << ", via: '"
-    //     << via <<"')  "<< results.size()<<" results" 
-    //     << endl;
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {
@@ -265,11 +284,11 @@ Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > r
 
 // gets all the current results for a query
 // but leaves query active. (ie, results may change later)
-vector< boost::shared_ptr<PlayableItem> >
+vector< pi_ptr >
 Resolver::get_results(query_uid qid)
 {
-    vector< boost::shared_ptr<PlayableItem> > ret;
-    boost::mutex::scoped_lock lock(m_mut);
+    vector< pi_ptr > ret;
+    boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return ret; // query was deleted
     return m_queries[qid]->results();
 }
@@ -277,8 +296,8 @@ Resolver::get_results(query_uid qid)
 void
 Resolver::end_query(query_uid qid)
 {
-    boost::mutex::scoped_lock lock(m_mut);
-    m_queries.erase(qid);
+    //boost::mutex::scoped_lock lock(m_mut);
+    //m_queries.erase(qid);
 }
 
 // check how many results we found for this query id
@@ -286,7 +305,7 @@ int
 Resolver::num_results(query_uid qid)
 {
     {
-        boost::mutex::scoped_lock lock(m_mut);
+        boost::mutex::scoped_lock lock(m_mut_results);
         if(query_exists(qid)) 
         {
             return m_queries[qid]->results().size();
@@ -307,7 +326,6 @@ Resolver::query_exists(const query_uid & qid)
 bool 
 Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {
-    boost::mutex::scoped_lock lock(m_mut);
     if(query_exists(rq->id())) return false;
     m_queries[rq->id()] = rq;
     m_qidlist.push_front(rq->id());

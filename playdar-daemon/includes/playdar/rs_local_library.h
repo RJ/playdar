@@ -22,14 +22,13 @@ class RS_local_library : public ResolverService
     
     std::string name() const
     { 
-        return string("Local Library on ")
-               + conf()->name(); 
+        return "Local Library";
     }
     
     /// max time in milliseconds we'd expect to have results in.
     unsigned int target_time() const
     {
-        return 25;
+        return 10;
     }
     
     /// highest weighted resolverservices are queried first.
