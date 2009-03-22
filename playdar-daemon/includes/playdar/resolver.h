@@ -2,7 +2,9 @@
 #define __RESOLVER__H__
 
 #include <list>
+#include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/thread/condition.hpp>
 
 #include "playdar/types.h"
 #include "playdar/resolver_query.hpp"
