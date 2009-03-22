@@ -54,7 +54,7 @@ RS_local_library::run()
 void
 RS_local_library::process( rq_ptr rq )
 {
-    cout << "Library resolver, searching: " << rq->str() << endl;
+    //cout << "Library resolver, searching: " << rq->str() << endl;
     query_uid qid = rq->id();
     Library * library = app()->library();
     vector<scorepair> candidates; 
@@ -217,7 +217,7 @@ RS_local_library::process( rq_ptr rq )
     }
     else
     {
-        cout << "Library: No matches for: " << rq->str() << endl;
+        //cout << "Library: No matches for: " << rq->str() << endl;
     }
 }
 

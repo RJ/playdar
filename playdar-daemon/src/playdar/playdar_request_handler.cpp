@@ -126,28 +126,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "</p>"
             
             << "<p>"
-            << "Loaded resolver plugins:"
-            << "<ul>"
-            << "<li>Local Library (always available)</li>"
-            ;
-        BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
-        {
-            os  << "<li>" << rs->name() ;
-            vector<string> urls = rs->get_http_handlers();
-            if( urls.size() )
-            {
-                os << " &nbsp; Config URLs: " ;
-                BOOST_FOREACH(string u, urls)
-                {
-                    os << "<a href=\""<< u <<"\">" << u << "</a> &nbsp; " ;
-                }
-            }
-            os  << "</li>" << endl;
-        }
-        os  << "</ul>"
-            << "</p>"
-            
-            << "<p>"
             << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
             << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
             << "</p>"
@@ -155,6 +133,51 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "<p>"
             << "For the real demo that uses the JSON API, check "
             << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+            << "</p>"
+            
+            << "<p>"
+            << "<h3>Resolver Pipeline</h3>"
+            << "<table>"
+            << "<tr style=\"font-weight: bold;\">"
+            << "<td>Plugin Name</td>"
+            << "<td>Weight</td>"
+            << "<td>Target Time</td>"
+            << "<td>Solved</td>"
+            << "<td>Configuration</td>"
+            << "</tr>"
+            ;
+        unsigned short lw = 0;
+        bool dupe = false;
+        int i = 0;
+        string bgc="";
+        BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+        {
+            if(lw == lrs.weight) dupe = true; else dupe = false;
+            if(lw==0) lw = lrs.weight;
+            if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
+            os  << "<tr style=\"background-color: " << bgc << "\">"
+                << "<td>" << lrs.rs->name() << "</td>"
+                << "<td>" << lrs.weight << "</td>"
+                << "<td>" << lrs.targettime << "ms</td>";
+            if(dupe){ os << "<td> </td>"; }
+            else
+            {
+                os << "<td>" 
+                   << app()->resolver()->solved_at_weight(lrs.weight) 
+                   << "</td>"; 
+            }
+            os << "<td>" ;
+            vector<string> urls = lrs.rs->get_http_handlers();
+            if( urls.size() )
+            {
+                BOOST_FOREACH(string u, urls)
+                {
+                    os << "<a href=\""<< u <<"\">" << u << "</a><br/> " ;
+                }
+            }
+            os  << "</td></tr>" << endl;
+        }
+        os  << "</table>"
             << "</p>"
             ;
          serve_body(os.str(), req, rep);
@@ -631,7 +654,10 @@ void
 playdar_request_handler::serve_body(string reply, const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream r;
-    r   << "<html><head><title>Playdar</title></head><body>"
+    r   << "<html><head><title>Playdar</title>"
+        << "<style type=\"text/css\">"
+        << "td { padding: 5px; }"
+        << "</style></head><body>"
         << "<h1>Local Playdar Server</h1>"
         << "<a href=\"/\">Home</a>"
         << "&nbsp; | &nbsp;"
