@@ -249,8 +249,6 @@ Resolver::run_pipeline_cont( rq_ptr rq,
     {
         cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
              << endl;
-        boost::mutex::scoped_lock lk(m_mut_stats);
-        m_solved_at_weight[lastweight]++;
     }
     else
     {

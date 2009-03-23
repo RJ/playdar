@@ -15,6 +15,15 @@
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 
+/*
+
+    Known gaping security problem:
+    not doing htmlentities() on user-provided data before rendering HTML
+    so there are many script-injection possibilities atm.
+    TODO write/find an htmlentities method and apply liberally.
+
+*/
+
 void 
 playdar_request_handler::init(MyApplication * app)
 {
@@ -142,7 +151,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "<td>Plugin Name</td>"
             << "<td>Weight</td>"
             << "<td>Target Time</td>"
-            << "<td>Solved</td>"
             << "<td>Configuration</td>"
             << "</tr>"
             ;
@@ -159,13 +167,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 << "<td>" << lrs.rs->name() << "</td>"
                 << "<td>" << lrs.weight << "</td>"
                 << "<td>" << lrs.targettime << "ms</td>";
-            if(dupe){ os << "<td> </td>"; }
-            else
-            {
-                os << "<td>" 
-                   << app()->resolver()->solved_at_weight(lrs.weight) 
-                   << "</td>"; 
-            }
             os << "<td>" ;
             vector<string> urls = lrs.rs->get_http_handlers();
             if( urls.size() )

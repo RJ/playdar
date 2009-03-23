@@ -80,15 +80,7 @@ public:
     void run_pipeline( rq_ptr rq, unsigned short lastweight );
     
     void dispatch_runner();
-    
-    unsigned int solved_at_weight(unsigned short w)
-    {
-        boost::mutex::scoped_lock lk(m_mut_stats);
-        if(m_solved_at_weight.find(w) != m_solved_at_weight.end())
-            return m_solved_at_weight[w];
-        else
-            return 0;
-    }
+
     
 private:
     boost::shared_ptr<boost::asio::io_service::work> m_work;
@@ -114,15 +106,12 @@ private:
     vector<loaded_rs> m_resolvers;
     
     boost::mutex m_mut_results; // when adding results
-    boost::mutex m_mut_stats;   // when incrementing stats
     
     // for dispatching to the pipeline:
     deque< pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
-    
-    // stats for solved queries:
-    map<unsigned short, unsigned int> m_solved_at_weight;
+
 };
 
 #endif
