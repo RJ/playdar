@@ -8,8 +8,6 @@
 
 
 class ResolverService : public PDL::DynamicClass, std::exception
-
-
 {
 public:
     ResolverService(){}
@@ -54,6 +52,7 @@ public:
 
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
 
+    /** thread-safe */
     virtual bool report_results(query_uid qid, 
         vector< boost::shared_ptr<PlayableItem> > results,
         string via);
