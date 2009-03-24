@@ -110,6 +110,7 @@ int main(int ac, char *av[])
     {
         app = new MyApplication(conf);
         
+#ifndef WIN32
         /// this might not compile on windows?
         struct sigaction setmask;
         sigemptyset( &setmask.sa_mask );
@@ -118,7 +119,7 @@ int main(int ac, char *av[])
         sigaction( SIGHUP, &setmask, (struct sigaction *) NULL );
         sigaction( SIGINT,  &setmask, (struct sigaction *) NULL );
         /// probably need to look for WM_BLAHWTFMSG or something.
-        
+#endif
         // start http server:
         string ip = "0.0.0.0"; 
         boost::thread http_thread(
