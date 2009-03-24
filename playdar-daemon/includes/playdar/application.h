@@ -14,6 +14,8 @@
 //:::
 //#include "playdar/playdar_request_handler.h"
 
+//namespace moost{ namespace http{ class server; } } // fwd
+
 using namespace std;
 
 class Library;
@@ -32,21 +34,9 @@ class MyApplication
 public:
     MyApplication(playdar::Config c);
     ~MyApplication();
-    /*
-    std::string name();
-    unsigned short http_port();
-    unsigned short multicast_port();
-    boost::asio::ip::address_v4 private_ip();
-    boost::asio::ip::address_v4 public_ip();
-    boost::asio::ip::address_v4 multicast_ip();
-    string httpbase();
-    */
+
     Library * library();
     Resolver * resolver();
-    //boost::program_options::variables_map popt(){ return m_po ; }
-    
-    //template <typename T> T option(string o, T def);
-    //template <typename T> T option(string o);
     
     playdar::Config * conf()
     {
@@ -66,12 +56,14 @@ public:
     
     static int levenshtein(const std::string & first, const std::string & second);
 
+    // functor that terminates http server:
+    void set_http_stopper(boost::function<void()> f) { m_stop_http=f; }
+    
+    void shutdown(int sig = -1);
     
 private:
     
-    boost::shared_ptr<boost::asio::io_service::work> m_work;
-    boost::shared_ptr<boost::asio::io_service> m_ios;
-    
+    boost::function<void()> m_stop_http;
     playdar::Config m_config;
     Library * m_library;
     Resolver * m_resolver;

@@ -183,6 +183,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             ;
          serve_body(os.str(), req, rep);
     }
+    else if(url=="/shutdown/")
+    {
+        app()->shutdown();
+    }
     /// Show config file (no editor yet)
     else if(url=="/settings/config/")
     {

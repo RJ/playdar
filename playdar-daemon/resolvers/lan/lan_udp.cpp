@@ -13,11 +13,18 @@ lan_udp::init(playdar::Config * c, Resolver * r)
          (  boost::asio::ip::address::from_string
             (conf()->get<string> ("plugins.lan_udp.multicast")), 
            conf()->get<int>("plugins.lan_udp.port"));
-    boost::thread m_responder_thread(boost::bind(&lan_udp::run, this));
+    m_responder_thread = new boost::thread(boost::bind(&lan_udp::run, this));
 }
 
 lan_udp::~lan_udp() throw()
 {
+    // sync send goodbye msg:
+    //cout << "Sending goodbye msg over UDP" << endl;
+    //string msg = "KTHXBYE "; msg += conf()->name();
+    //socket_->send_to(boost::asio::buffer(msg.c_str(), msg.length()), *broadcast_endpoint_);
+    cout << "DTOR LAN/UDP " << endl;
+    m_io_service->stop();
+    m_responder_thread->join();
     delete(socket_);
     delete(broadcast_endpoint_);
 }
@@ -37,8 +44,8 @@ lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 void 
 lan_udp::run()
 {
-    boost::asio::io_service io_service;
-    start_listening(io_service,
+    m_io_service = new boost::asio::io_service;
+    start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
                     (conf()->get<string>("plugins.lan_udp.multicast")), 
@@ -53,7 +60,7 @@ lan_udp::run()
     hello += conf()->name();
     async_send(broadcast_endpoint_, hello);
     
-    io_service.run();
+    m_io_service->run();
 }
 
 void 

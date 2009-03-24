@@ -17,6 +17,10 @@ public:
     
     std::string name() const { return "Demo"; }
     
+    void Destroy()
+    {
+        cout << "DTOR(destroy) Demo" << endl;
+    }
 protected:    
     ~demo() throw() { };
 

@@ -21,30 +21,23 @@
 
 
 Resolver::Resolver(MyApplication * app)
-    :m_app(app)
+    :m_app(app), m_exiting(false)
 {
     m_id_counter = 0;
     cout << "Resolver starting..." << endl;
     
-    boost::thread t(boost::bind(&Resolver::dispatch_runner, this));
+    m_t = new boost::thread(boost::bind(&Resolver::dispatch_runner, this));
     
     // set up io_service with work so it never ends:
-    m_io_service = boost::shared_ptr<boost::asio::io_service>
-                   (new boost::asio::io_service);
-    m_work = boost::shared_ptr<boost::asio::io_service::work>
-             (new boost::asio::io_service::work(*m_io_service));
-    boost::thread iothr(boost::bind(&boost::asio::io_service::run, m_io_service.get()));
+    
+    m_io_service = new boost::asio::io_service();
+    m_work = new boost::asio::io_service::work(*m_io_service);
+    m_iothr = new boost::thread(boost::bind(
+                    &boost::asio::io_service::run,
+                    m_io_service));
              
     // Initialize built-in local library resolver:
-    loaded_rs cr;
-    cr.rs = new RS_local_library();
-    // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)cr.rs)->set_app(m_app);
-    cr.weight = cr.rs->weight();
-    cr.targettime = cr.rs->target_time();
-    cr.rs->init(m_app->conf(), this);
-    
-    m_resolvers.push_back( cr );
+    load_library_resolver();
 
     // Load all non built-in resolvers:
     try
@@ -56,13 +49,34 @@ Resolver::Resolver(MyApplication * app)
         cout << "Error loading resolver plugins." << endl;
     }
     
-    //TODO at this point, user settings could override weights suggested
-    //     by resolverservices by modifying the loaded_rs structs.
-    
     // sort the list of resolvers by weight, descending:
     boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
         boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
     sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
+}
+
+void
+Resolver::load_library_resolver()
+{
+    loaded_rs cr;
+    cr.rs = new RS_local_library();
+    // local library resolver is special, it gets a handle to app:
+    ((RS_local_library *)cr.rs)->set_app(m_app);
+    cr.weight = cr.rs->weight();
+    cr.targettime = cr.rs->target_time();
+    cr.rs->init(m_app->conf(), this);
+    m_resolvers.push_back( cr );
+}
+
+
+Resolver::~Resolver()
+{
+    m_exiting = true;
+    m_cond.notify_one();
+    m_t->join();
+    delete(m_work);
+    m_io_service->stop();
+    m_iothr->join();
 }
 
 bool
@@ -185,17 +199,26 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
 void
 Resolver::dispatch_runner()
 {
-    pair<rq_ptr, unsigned short> p;
-    while(true)
+    try
     {
+        pair<rq_ptr, unsigned short> p;
+        while(true)
         {
-            boost::mutex::scoped_lock lk(m_mutex);
-            if(m_pending.size() == 0) m_cond.wait(lk);
-            p = m_pending.back();
-            m_pending.pop_back();
+            {
+                boost::mutex::scoped_lock lk(m_mutex);
+                if(m_pending.size() == 0) m_cond.wait(lk);
+                if(m_exiting) break;
+                p = m_pending.back();
+                m_pending.pop_back();
+            }
+            run_pipeline( p.first, p.second );
         }
-        run_pipeline( p.first, p.second );
     }
+    catch(...)
+    {
+        cout << "Error exiting Resolver::dispatch_runner" << endl;
+    }
+    cout << "Resolver dispatch_runner terminating" << endl;
 }
 
 /// go thru list of resolversservices and dispatch in order

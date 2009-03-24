@@ -43,6 +43,7 @@ class Resolver
 {
 public:
     Resolver(MyApplication * app);
+    ~Resolver();
     void load_resolvers();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb);
@@ -83,9 +84,11 @@ public:
 
     
 private:
-    boost::shared_ptr<boost::asio::io_service::work> m_work;
-    boost::shared_ptr<boost::asio::io_service> m_io_service;
-
+    void load_library_resolver();
+    
+    boost::asio::io_service::work * m_work;
+    boost::asio::io_service * m_io_service;
+    
     
     // maps URLs to plugins that handle them:
     map<string, ResolverService *> m_http_handlers;
@@ -100,6 +103,9 @@ private:
     // newest-first list of dispatched qids:
     deque< query_uid > m_qidlist;
     
+    bool m_exiting;
+    boost::thread * m_t;
+    boost::thread * m_iothr;
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:

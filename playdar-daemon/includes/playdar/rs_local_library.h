@@ -37,11 +37,20 @@ class RS_local_library : public ResolverService
         return 100;
     }
     
+    
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;
-        ~RS_local_library() throw() {};
+        ~RS_local_library() throw() 
+        {
+            m_exiting = true;
+            m_cond.notify_all();
+            m_t->join();
+        };
+        
     private:
+        bool m_exiting;
+        boost::thread * m_t;
         deque<rq_ptr> m_pending;
         boost::mutex m_mutex;
         boost::condition m_cond;

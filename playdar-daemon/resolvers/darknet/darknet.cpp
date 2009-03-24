@@ -32,10 +32,10 @@ darknet::init(playdar::Config * c, Resolver * r)
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
     
-    boost::thread_group threads; // TODO configurable threads?
+    m_threads = new boost::thread_group; // TODO configurable threads?
     for (std::size_t i = 0; i < 5; ++i)
     {
-        threads.create_thread(boost::bind(
+        m_threads->create_thread(boost::bind(
             &boost::asio::io_service::run, m_io_service.get()));
     }
  
@@ -51,6 +51,13 @@ darknet::init(playdar::Config * c, Resolver * r)
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
     }
+}
+
+darknet::~darknet() throw()
+{
+    m_io_service->stop();
+    m_threads->join_all();
+    
 }
 
 void

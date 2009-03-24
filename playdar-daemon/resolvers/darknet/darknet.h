@@ -145,9 +145,10 @@ public:
     }
 
 protected:
-    ~darknet() throw() {}
+    ~darknet() throw();
     
 private:
+    boost::thread_group * m_threads;
     boost::shared_ptr<boost::asio::io_service> m_io_service;
     boost::shared_ptr<boost::asio::io_service> m_io_service_p;
     boost::shared_ptr<Servent> m_servent;

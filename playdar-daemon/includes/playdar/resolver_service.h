@@ -14,6 +14,10 @@ class ResolverService : public PDL::DynamicClass, std::exception
 public:
     ResolverService(){}
     
+    virtual void Destroy()
+    {
+        cout << "Unloading " << name() << endl;
+    }
     
     virtual void init(playdar::Config * c, Resolver * r)
     {
@@ -71,12 +75,10 @@ public:
         return "This plugin has no web interface.";
     }
     
-//protected:
-    
-    
     DECLARE_DYNAMIC_CLASS( ResolverService )
     
 protected:
+
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;

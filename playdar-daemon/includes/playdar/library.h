@@ -31,6 +31,7 @@ public:
 
     ~Library()
     {
+        cout << "DTOR library" << endl;
     }
 
     int add_dir(string, int);
