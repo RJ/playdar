@@ -9,21 +9,24 @@ namespace resolvers {
 class demo : public ResolverService
 {
 public:
-    demo(){}
+    demo() {}
     
-    void init(playdar::Config * c, Resolver * r);
+    /** you should call the base implementation if you reimplement */
+    virtual void init(playdar::Config * c, Resolver * r);
 
-    void start_resolving(boost::shared_ptr<ResolverQuery> rq);
+    /** the base version is pure virtual */
+    virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     
+    /** current convention dictates not appending "Resolver" */
     std::string name() const { return "Demo"; }
     
     void Destroy()
     {
         cout << "DTOR(destroy) Demo" << endl;
     }
-protected:    
-    ~demo() throw() { };
 
+protected:
+    virtual ~demo() throw() {}
 };
 
 // This makes the plugin loading possible:
