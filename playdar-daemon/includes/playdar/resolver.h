@@ -44,7 +44,8 @@ class Resolver
 public:
     Resolver(MyApplication * app);
     ~Resolver();
-    void load_resolvers();
+    void load_resolver_plugins();
+    void load_resolver_scripts();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb);
                     

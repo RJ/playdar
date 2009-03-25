@@ -32,6 +32,7 @@ INCLUDE_DIRECTORIES(
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
                     ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
+                    ${DEPS}/boost.process          # spawning resolver scripts
                    )
 
 # Always check local/lib first:
@@ -67,6 +68,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/resolver.cpp
                 ${SRC}/resolver_service.cpp
                 ${SRC}/rs_local_library.cpp
+                ${SRC}/rs_script.cpp
                 ${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar/main.cpp

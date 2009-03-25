@@ -12,6 +12,7 @@
 #include "json_spirit/json_spirit.h"
 #include <boost/foreach.hpp>
 
+
 class RS_http_playdar  : public ResolverService
 {
     public:
