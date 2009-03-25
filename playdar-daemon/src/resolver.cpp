@@ -8,6 +8,7 @@
 #include "playdar/resolver.h"
 
 #include "playdar/rs_local_library.h"
+#include "playdar/rs_script.h"
 #include "playdar/library.h"
 
 // PDL stuff:
@@ -29,7 +30,6 @@ Resolver::Resolver(MyApplication * app)
     m_t = new boost::thread(boost::bind(&Resolver::dispatch_runner, this));
     
     // set up io_service with work so it never ends:
-    
     m_io_service = new boost::asio::io_service();
     m_work = new boost::asio::io_service::work(*m_io_service);
     m_iothr = new boost::thread(boost::bind(
@@ -42,7 +42,8 @@ Resolver::Resolver(MyApplication * app)
     // Load all non built-in resolvers:
     try
     {
-        load_resolvers();
+        load_resolver_scripts(); // external processes
+        load_resolver_plugins(); // DLL plugins
     }
     catch(...)
     {
@@ -85,9 +86,46 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
     return lhs.weight > rhs.weight;
 }
 
+/// spawn resolver scripts:
+void 
+Resolver::load_resolver_scripts()
+{
+    cout << "Loading resolver scripts:" << endl;
+    typedef map<string,string> st;
+    vector< st > scripts = app()->conf()->get_scriptlist();
+    BOOST_FOREACH( st & p, scripts )
+    {
+        cout << "-> Loading: " << p["path"] << endl;
+        try
+        {
+            loaded_rs cr;
+            cr.rs = new playdar::resolvers::rs_script();
+            // custom init method for scripts:
+            ((playdar::resolvers::rs_script *)cr.rs)->init(app()->conf(), this, p["path"]);
+            if(p.find("targettime")!=p.end())
+                cr.targettime = boost::lexical_cast<int>(p["targettime"]);
+            else
+                cr.targettime = cr.rs->target_time();
+                
+            if(p.find("weight")!=p.end())
+                cr.weight = boost::lexical_cast<int>(p["weight"]);
+            else
+                cr.weight = cr.rs->weight();
+            
+            m_resolvers.push_back( cr );
+            cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime << "] " 
+                 << cr.rs->name() << endl;
+        }
+        catch(...)
+        {
+            cout << "Error initializing script" << endl;
+        }
+    }
+}
+
 /// dynamically load resolver plugins:
 void 
-Resolver::load_resolvers()
+Resolver::load_resolver_plugins()
 {
     namespace bfs = boost::filesystem;
     bfs::directory_iterator end_itr;

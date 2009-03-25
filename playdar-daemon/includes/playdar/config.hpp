@@ -21,6 +21,8 @@
 #include <sstream>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp> // for hostname.
+#include <boost/foreach.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace playdar {
 
@@ -94,6 +96,43 @@ public:
         }
         while(++i < toks.size());
         return val.get_value<T>();
+    }
+    
+    // list of resolver scripts
+    vector< map<string, string> > get_scriptlist()
+    { 
+        vector< map<string, string> > ret;
+        if( m_mainmap.find("scripts")!=m_mainmap.end() &&
+            m_mainmap["scripts"].type() == array_type)
+        {
+            Array arr = m_mainmap["scripts"].get_array();
+            BOOST_FOREACH( Value & v, arr )
+            {
+                if( v.type() != obj_type ) continue;
+                map<string,Value> m;
+                obj_to_map( v.get_obj(), m );
+                if( m.find("path")==m.end() ||
+                    m["path"].type() != str_type ) continue;
+                map<string, string> script;
+                script["path"] = m["path"].get_str();
+                // target time set by the user?
+                if( m.find("targettime") != m.end() &&
+                    m["targettime"].type() == int_type )
+                {
+                    script["targettime"] =
+                        boost::lexical_cast<string>(m["targettime"].get_int());
+                }
+                // weight set by the user?
+                if( m.find("weight") != m.end() &&
+                    m["weight"].type() == int_type )
+                {
+                    script["weight"] =
+                        boost::lexical_cast<string>(m["weight"].get_int());
+                }
+                ret.push_back( script );
+            }
+        }
+        return ret;
     }
 
 	string name() const
