@@ -42,12 +42,25 @@ class lan_udp : public ResolverService
     void send_response( query_uid qid, 
                         boost::shared_ptr<PlayableItem> pip,
                         boost::asio::ip::udp::endpoint sep );
+    
+    /// max time in milliseconds we'd expect to have results in.
+    unsigned int target_time() const
+    {
+        return 50;
+    }
+    
+    /// highest weighted resolverservices are queried first.
+    unsigned short weight() const
+    {
+        return 99;
+    }
                         
 protected:    
     ~lan_udp() throw();
     
 private:
-
+    boost::asio::io_service * m_io_service;
+    boost::thread * m_responder_thread;
     void handle_send(   const boost::system::error_code& error,
                                 size_t bytes_recvd,
                                 char * scratch );

@@ -8,12 +8,14 @@
 
 
 class ResolverService : public PDL::DynamicClass, std::exception
-
-
 {
 public:
     ResolverService(){}
     
+    virtual void Destroy()
+    {
+        cout << "Unloading " << name() << endl;
+    }
     
     virtual void init(playdar::Config * c, Resolver * r)
     {
@@ -35,9 +37,22 @@ public:
     {
         return "UNKNOWN_RESOLVER";
     }
+    
+    /// max time in milliseconds we'd expect to have results in.
+    virtual unsigned int target_time() const
+    {
+        return 1000;
+    }
+    
+    /// highest weighted resolverservices are queried first.
+    virtual unsigned short weight() const
+    {
+        return 100;
+    }
 
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
 
+    /** thread-safe */
     virtual bool report_results(query_uid qid, 
         vector< boost::shared_ptr<PlayableItem> > results,
         string via);
@@ -59,12 +74,10 @@ public:
         return "This plugin has no web interface.";
     }
     
-//protected:
-    
-    
     DECLARE_DYNAMIC_CLASS( ResolverService )
     
 protected:
+
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;

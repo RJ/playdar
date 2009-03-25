@@ -45,6 +45,13 @@ public:
         if(socket().is_open()) socket().close();
     }
     
+    bool alive()
+    {
+        // perhaps make this actually ping them in future.
+        // this is typically checked before starting a stream.
+        return socket().is_open();
+    }
+    
     /// Get the underlying socket. Used for making a Connection or for accepting
     /// an incoming Connection.
     boost::asio::ip::tcp::socket& socket()

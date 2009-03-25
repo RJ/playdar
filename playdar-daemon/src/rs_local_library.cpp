@@ -15,13 +15,14 @@ RS_local_library::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
     m_conf = c;
+    m_exiting = false;
     cout << "Local library resolver: " << app()->library()->num_files() << " files indexed." << endl;
     if(app()->library()->num_files() == 0)
     {
         cout << endl << "WARNING! You don't have any files in your database! Run the scanner, then restart Playdar." << endl << endl;
     }
     // worker thread for doing actual resolving:
-    boost::thread t(boost::bind(&RS_local_library::run, this));
+    m_t = new boost::thread(boost::bind(&RS_local_library::run, this));
 }
 
 void
@@ -36,16 +37,24 @@ RS_local_library::start_resolving( rq_ptr rq )
 void
 RS_local_library::run()
 {
-    rq_ptr rq;
-    while(true)
+    try
     {
+        rq_ptr rq;
+        while(true)
         {
-            boost::mutex::scoped_lock lk(m_mutex);
-            if(m_pending.size() == 0) m_cond.wait(lk);
-            rq = m_pending.back();
-            m_pending.pop_back();
+            {
+                boost::mutex::scoped_lock lk(m_mutex);
+                if(m_pending.size() == 0) m_cond.wait(lk);
+                if(m_exiting) break;
+                rq = m_pending.back();
+                m_pending.pop_back();
+            }
+            process( rq );
         }
-        process( rq );
+    }
+    catch(...)
+    {
+        cout << "RS_local_library runner exiting." << endl;
     }
 }
 
@@ -54,7 +63,7 @@ RS_local_library::run()
 void
 RS_local_library::process( rq_ptr rq )
 {
-    cout << "Library resolver, searching: " << rq->str() << endl;
+    //cout << "Library resolver, searching: " << rq->str() << endl;
     query_uid qid = rq->id();
     Library * library = app()->library();
     vector<scorepair> candidates; 
@@ -217,7 +226,7 @@ RS_local_library::process( rq_ptr rq )
     }
     else
     {
-        cout << "Library: No matches for: " << rq->str() << endl;
+        //cout << "Library: No matches for: " << rq->str() << endl;
     }
 }
 

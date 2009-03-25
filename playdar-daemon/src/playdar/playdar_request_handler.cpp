@@ -15,6 +15,15 @@
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 
+/*
+
+    Known gaping security problem:
+    not doing htmlentities() on user-provided data before rendering HTML
+    so there are many script-injection possibilities atm.
+    TODO write/find an htmlentities method and apply liberally.
+
+*/
+
 void 
 playdar_request_handler::init(MyApplication * app)
 {
@@ -126,28 +135,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "</p>"
             
             << "<p>"
-            << "Loaded resolver plugins:"
-            << "<ul>"
-            << "<li>Local Library (always available)</li>"
-            ;
-        BOOST_FOREACH(ResolverService * rs, *app()->resolver()->resolvers())
-        {
-            os  << "<li>" << rs->name() ;
-            vector<string> urls = rs->get_http_handlers();
-            if( urls.size() )
-            {
-                os << " &nbsp; Config URLs: " ;
-                BOOST_FOREACH(string u, urls)
-                {
-                    os << "<a href=\""<< u <<"\">" << u << "</a> &nbsp; " ;
-                }
-            }
-            os  << "</li>" << endl;
-        }
-        os  << "</ul>"
-            << "</p>"
-            
-            << "<p>"
             << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
             << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
             << "</p>"
@@ -156,8 +143,49 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "For the real demo that uses the JSON API, check "
             << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
             << "</p>"
+            
+            << "<p>"
+            << "<h3>Resolver Pipeline</h3>"
+            << "<table>"
+            << "<tr style=\"font-weight: bold;\">"
+            << "<td>Plugin Name</td>"
+            << "<td>Weight</td>"
+            << "<td>Target Time</td>"
+            << "<td>Configuration</td>"
+            << "</tr>"
+            ;
+        unsigned short lw = 0;
+        bool dupe = false;
+        int i = 0;
+        string bgc="";
+        BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+        {
+            if(lw == lrs.weight) dupe = true; else dupe = false;
+            if(lw==0) lw = lrs.weight;
+            if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
+            os  << "<tr style=\"background-color: " << bgc << "\">"
+                << "<td>" << lrs.rs->name() << "</td>"
+                << "<td>" << lrs.weight << "</td>"
+                << "<td>" << lrs.targettime << "ms</td>";
+            os << "<td>" ;
+            vector<string> urls = lrs.rs->get_http_handlers();
+            if( urls.size() )
+            {
+                BOOST_FOREACH(string u, urls)
+                {
+                    os << "<a href=\""<< u <<"\">" << u << "</a><br/> " ;
+                }
+            }
+            os  << "</td></tr>" << endl;
+        }
+        os  << "</table>"
+            << "</p>"
             ;
          serve_body(os.str(), req, rep);
+    }
+    else if(url=="/shutdown/")
+    {
+        app()->shutdown();
     }
     /// Show config file (no editor yet)
     else if(url=="/settings/config/")
@@ -349,17 +377,19 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// with a "revoke" options for each.
     else if(url=="/settings/auth/")
     {
+        ostringstream os;
+        os  << "<h2>Authenticated Sites</h2>";
         typedef map<string,string> auth_t;
-        if( getvars.find("revoke")!=getvars.end() &&
-            getvars.find("formtoken")!=getvars.end() &&
-            m_pauth->consume_formtoken(getvars["formtoken"]) )
+        if( getvars.find("revoke")!=getvars.end() )
         {
             m_pauth->deauth(getvars["revoke"]);
+            os  << "<p style=\"font-weight:bold;\">"
+                << "You have revoked access for auth-token: "
+                << getvars["revoke"]
+                << "</p>";
         }
         vector< auth_t > v = m_pauth->get_all_authed();
-        ostringstream os;
-        os  << "<h2>Authenticated Sites</h2>"
-            << "<p>"
+        os  << "<p>"
             << "The first time a site requests access to your Playdar, "
             << "you'll have a chance to allow/deny it. You can see the list "
             << "of authenticated sites here, and delete any if necessary."
@@ -380,8 +410,8 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 <<  "<td>" << m["name"] << "</td>"
                 <<  "<td>" << m["website"] << "</td>"
                 <<  "<td>" << m["token"] << "</td>"
-                <<  "<td><a href=\"/settings/auth/?formtoken="
-                <<  formtoken << "&revoke="  << m["token"] <<"\">Revoke</a>"
+                <<  "<td><a href=\"/settings/auth/?revoke="  
+                << m["token"] <<"\">Revoke</a>"
                 <<  "</td>"
                 << "</tr>";
         }
@@ -544,6 +574,29 @@ playdar_request_handler::handle_rest_api(   map<string,string> qs,
             
             write_formatted( r, response );
         }
+        else if(qs["method"] == "list_queries")
+        {
+            deque< query_uid>::const_iterator it =
+                app()->resolver()->qids().begin();
+            Array qlist;
+            while(it != app()->resolver()->qids().end())
+            {
+                rq_ptr rq;
+                try
+                { 
+                    Object obj;
+                    rq = app()->resolver()->rq(*it);
+                    obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
+                    obj.push_back( Pair("query", rq->get_json()) );
+                    qlist.push_back( obj );
+                } catch(...) { }
+                it++;
+            }
+            // wrap that in an object, so we can add stats to it later
+            Object o;
+            o.push_back( Pair("queries", qlist) );
+            write_formatted( o, response );
+        }
         else if(qs["method"] == "list_artists")
         {
             vector< artist_ptr > artists = app()->library()->list_artists();
@@ -631,7 +684,10 @@ void
 playdar_request_handler::serve_body(string reply, const moost::http::request& req, moost::http::reply& rep)
 {
     std::ostringstream r;
-    r   << "<html><head><title>Playdar</title></head><body>"
+    r   << "<html><head><title>Playdar</title>"
+        << "<style type=\"text/css\">"
+        << "td { padding: 5px; }"
+        << "</style></head><body>"
         << "<h1>Local Playdar Server</h1>"
         << "<a href=\"/\">Home</a>"
         << "&nbsp; | &nbsp;"

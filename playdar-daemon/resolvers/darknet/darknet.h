@@ -29,6 +29,19 @@ public:
     
     std::string name() const { return "Darknet"; }
     
+    /// max time in milliseconds we'd expect to have results in.
+    unsigned int target_time() const
+    {
+        return 3000;
+    }
+    
+    /// highest weighted resolverservices are queried first.
+    unsigned short weight() const
+    {
+        return 50;
+    }
+    
+    
     void start_io(boost::shared_ptr<boost::asio::io_service> io_service)
     {
         io_service->run();
@@ -132,9 +145,10 @@ public:
     }
 
 protected:
-    ~darknet() throw() {}
+    ~darknet() throw();
     
 private:
+    boost::thread_group * m_threads;
     boost::shared_ptr<boost::asio::io_service> m_io_service;
     boost::shared_ptr<boost::asio::io_service> m_io_service_p;
     boost::shared_ptr<Servent> m_servent;

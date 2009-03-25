@@ -21,19 +21,24 @@
 
 
 Resolver::Resolver(MyApplication * app)
-    :m_app(app)
+    :m_app(app), m_exiting(false)
 {
     m_id_counter = 0;
     cout << "Resolver starting..." << endl;
-    // Initialize built-in local library resolver:
-    m_rs_local = 0;
-    m_rs_local  = new RS_local_library();
-    // local library resolver is special, it needs handle to app:
-    ((RS_local_library *)m_rs_local)->set_app(m_app);
-    // normal init:
-    m_rs_local->init(m_app->conf(), this);
-
     
+    m_t = new boost::thread(boost::bind(&Resolver::dispatch_runner, this));
+    
+    // set up io_service with work so it never ends:
+    
+    m_io_service = new boost::asio::io_service();
+    m_work = new boost::asio::io_service::work(*m_io_service);
+    m_iothr = new boost::thread(boost::bind(
+                    &boost::asio::io_service::run,
+                    m_io_service));
+             
+    // Initialize built-in local library resolver:
+    load_library_resolver();
+
     // Load all non built-in resolvers:
     try
     {
@@ -43,19 +48,44 @@ Resolver::Resolver(MyApplication * app)
     {
         cout << "Error loading resolver plugins." << endl;
     }
+    
+    // sort the list of resolvers by weight, descending:
+    boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
+        boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
+    sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
 }
 
-ResolverService * 
-Resolver::get_darknet()
+void
+Resolver::load_library_resolver()
 {
-    BOOST_FOREACH(ResolverService * rs, m_resolvers )
-    {
-        if(rs->name() == "darknet") return rs;
-    }
-    return 0;
+    loaded_rs cr;
+    cr.rs = new RS_local_library();
+    // local library resolver is special, it gets a handle to app:
+    ((RS_local_library *)cr.rs)->set_app(m_app);
+    cr.weight = cr.rs->weight();
+    cr.targettime = cr.rs->target_time();
+    cr.rs->init(m_app->conf(), this);
+    m_resolvers.push_back( cr );
 }
 
-// dynamically load resolver plugins:
+
+Resolver::~Resolver()
+{
+    m_exiting = true;
+    m_cond.notify_one();
+    m_t->join();
+    delete(m_work);
+    m_io_service->stop();
+    m_iothr->join();
+}
+
+bool
+Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
+{
+    return lhs.weight > rhs.weight;
+}
+
+/// dynamically load resolver plugins:
 void 
 Resolver::load_resolvers()
 {
@@ -90,7 +120,7 @@ Resolver::load_resolvers()
         {
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
-            cout << "-> " << pluginfile << endl;
+            cout << "Loading resolver: " << pluginfile << endl;
             ResolverService * instance = 
                 dynamicLoader.GetClassInstance< ResolverService >
                     ( pluginfile.c_str(), classname.c_str() );
@@ -107,8 +137,17 @@ Resolver::load_resolvers()
                     m_http_handlers[url] = instance;
                 }
             }
-            m_resolvers.push_back(instance);
-            cout << "-> OK: " << instance->name() << endl;
+            loaded_rs cr;
+            cr.rs = instance;
+            string rsopt = "resolvers.";
+            confopt += classname;
+            cr.weight = app()->conf()->get<int>(rsopt + ".weight", 
+                                                instance->weight());
+            cr.targettime = app()->conf()->get<int>(rsopt + ".targettime", 
+                                                    instance->target_time());
+            m_resolvers.push_back( cr );
+            cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime << "] " 
+                 << instance->name() << endl;
         }
         catch( PDL::LoaderException & ex )
         {
@@ -125,37 +164,13 @@ Resolver::get_url_handler(string url)
     return m_http_handlers[url];
 }
 
-// start resolving! (non-blocking)
-// returns a query_uid so you can check status of this query later
+/// start resolving! (non-blocking)
+/// returns a query_uid so you can check status of this query later
 query_uid 
-Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
-                    bool local_only/* = false */) 
+Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq)
 {
-    if(!rq->valid())
-    {
-        throw;
-    }
-    if(!add_new_query(rq))
-    {
-        //cout<< "RESOLVER: Not dispatching "<<rq->id()<<" - already running." << endl;
-        return rq->id();
-    }
-    cout << "RESOLVER: dispatch("<< rq->id() <<"): " << rq->str() 
-         << "  [mode:"<< rq->mode() <<"]" << endl;
-    
-    // do the local library (blocking) resolver, because it's quick:
-    m_rs_local->start_resolving(rq);
-
-    // if it was solved by the local library, dont bother with the other resolvers!
-    if(!local_only && !rq->solved())
-    {
-        // these calls shouldn't block, plugins do their own threading etc.
-        BOOST_FOREACH(ResolverService * rs, m_resolvers)
-        {
-            if(rs) rs->start_resolving(rq);
-        }
-    }
-    return rq->id();
+    rq_callback_t null_cb;
+    return dispatch(rq, null_cb);
 }
 
 query_uid 
@@ -164,57 +179,120 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
 {
     if(!rq->valid())
     {
+        // probably malformed, eg no track name specified.
         throw;
     }
+    boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
     {
+        // already running
         return rq->id();
     }
-    cout << "RESOLVER: dispatch-with-cb("<< rq->id() <<"): " 
-         << rq->str() << "  [mode:"<< rq->mode() <<"]" << endl;
-         
-    rq->register_callback(cb);
+    if(cb) rq->register_callback(cb);
+    m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
+    m_cond.notify_one();
     
-    // do the local library (blocking) resolver, because it's quick:
-    m_rs_local->start_resolving(rq);
-    
-    if(!rq->solved())
-    {
-        // these calls shouldn't block!
-        BOOST_FOREACH(ResolverService * rs, m_resolvers)
-        {
-            if(rs) rs->start_resolving(rq);
-        }
-    }
     return rq->id();
 }
 
-
-
-
-void 
-Resolver::register_callback(query_uid qid, rq_callback_t cb)
+/// thread that loops forever dispatching stuff in the queue
+void
+Resolver::dispatch_runner()
 {
-    boost::mutex::scoped_lock lock(m_mut);
-    if(query_exists(qid)) return;
-    m_queries[qid]->register_callback(cb);
+    try
+    {
+        pair<rq_ptr, unsigned short> p;
+        while(true)
+        {
+            {
+                boost::mutex::scoped_lock lk(m_mutex);
+                if(m_pending.size() == 0) m_cond.wait(lk);
+                if(m_exiting) break;
+                p = m_pending.back();
+                m_pending.pop_back();
+            }
+            run_pipeline( p.first, p.second );
+        }
+    }
+    catch(...)
+    {
+        cout << "Error exiting Resolver::dispatch_runner" << endl;
+    }
+    cout << "Resolver dispatch_runner terminating" << endl;
+}
+
+/// go thru list of resolversservices and dispatch in order
+/// lastweight is the weight of the last resolver we dispatched to.
+void
+Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
+{
+    unsigned short atweight;
+    unsigned int mintime;
+    bool started = false;
+    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    {
+        if(lrs.weight >= lastweight) continue;
+        if(!started)
+        {
+            atweight = lrs.weight;
+            mintime = lrs.targettime;
+            started = true;
+            cout << "Pipeline at weight: " << atweight << endl;
+        }
+        if(lrs.weight != atweight)
+        {
+            // we've dispatched to everything of weight "atweight"
+            // and the shortest targettime at that weight is "mintime"
+            // so schedule a callaback after mintime to carry on down the
+            // chain and dispatch to the next lowest weighted resolver services.
+            cout << "Will continue pipeline after " << mintime << "ms." << endl;
+            boost::shared_ptr<boost::asio::deadline_timer> 
+                t(new boost::asio::deadline_timer( m_work->get_io_service() ));
+            t->expires_from_now(boost::posix_time::milliseconds(mintime));
+            // pass the timer pointer to the handler so it doesnt autodestruct:
+            t->async_wait(boost::bind(&Resolver::run_pipeline_cont, this,
+                                      rq, atweight, t));
+            break;
+        }
+        if(lrs.targettime < mintime) mintime = lrs.targettime;
+        // dispatch to this resolver:
+        cout << "Pipeline dispatching to " << lrs.rs->name() 
+             << " (lastweight: " << lastweight << ")" << endl;
+        lrs.rs->start_resolving(rq);
+    }
+}
+
+void
+Resolver::run_pipeline_cont( rq_ptr rq, 
+                        unsigned short lastweight,
+                        boost::shared_ptr<boost::asio::deadline_timer> oldtimer)
+{
+    cout << "Pipeline continues.." << endl;
+    if(rq->solved())
+    {
+        cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
+             << endl;
+    }
+    else
+    {
+        boost::mutex::scoped_lock lk(m_mutex);
+        m_pending.push_front( pair<rq_ptr, unsigned short>(rq, lastweight) );
+        m_cond.notify_one();
+    }
 }
 
 // a resolver will report results here
 // false means give up on this query, it's over
 // true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > results, string via)
+Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
 {
     if(results.size()==0)
     {
         return true;
     }
-    boost::mutex::scoped_lock lock(m_mut);
+    boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return false; // query was deleted
-    cout << "RESOLVER add_results(" << qid << ", via: '"
-         << via <<"')  "<< results.size()<<" results" 
-         << endl;
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {
@@ -227,11 +305,11 @@ Resolver::add_results(query_uid qid, vector< boost::shared_ptr<PlayableItem> > r
 
 // gets all the current results for a query
 // but leaves query active. (ie, results may change later)
-vector< boost::shared_ptr<PlayableItem> >
+vector< pi_ptr >
 Resolver::get_results(query_uid qid)
 {
-    vector< boost::shared_ptr<PlayableItem> > ret;
-    boost::mutex::scoped_lock lock(m_mut);
+    vector< pi_ptr > ret;
+    boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return ret; // query was deleted
     return m_queries[qid]->results();
 }
@@ -239,8 +317,8 @@ Resolver::get_results(query_uid qid)
 void
 Resolver::end_query(query_uid qid)
 {
-    boost::mutex::scoped_lock lock(m_mut);
-    m_queries.erase(qid);
+    //boost::mutex::scoped_lock lock(m_mut);
+    //m_queries.erase(qid);
 }
 
 // check how many results we found for this query id
@@ -248,7 +326,7 @@ int
 Resolver::num_results(query_uid qid)
 {
     {
-        boost::mutex::scoped_lock lock(m_mut);
+        boost::mutex::scoped_lock lock(m_mut_results);
         if(query_exists(qid)) 
         {
             return m_queries[qid]->results().size();
@@ -269,7 +347,6 @@ Resolver::query_exists(const query_uid & qid)
 bool 
 Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {
-    boost::mutex::scoped_lock lock(m_mut);
     if(query_exists(rq->id())) return false;
     m_queries[rq->id()] = rq;
     m_qidlist.push_front(rq->id());
