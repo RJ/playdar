@@ -1,6 +1,8 @@
 #ifndef __RS_HTTP_rs_script_H__
 #define __RS_HTTP_rs_script_H__
 
+#include "playdar/resolver_service.h"
+
 #include <boost/process.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -11,7 +13,7 @@
 #include <vector>
 #include <iostream>
 
-#include "playdar/resolver_service.h"
+
 
 namespace playdar {
 namespace resolvers {
