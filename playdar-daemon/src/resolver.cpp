@@ -49,11 +49,19 @@ Resolver::Resolver(MyApplication * app)
     {
         cout << "Error loading resolver plugins." << endl;
     }
-    
     // sort the list of resolvers by weight, descending:
     boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
         boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
     sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
+    cout << endl;
+    cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
+    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    {
+        cout << "RESOLVER w:" << lrs.weight << "\tt:" << lrs.targettime 
+             << "\t[" << (lrs.script?"script":"plugin") << "]  " 
+             << lrs.rs->name() << endl;
+    }
+    cout << endl;
 }
 
 void
@@ -99,6 +107,7 @@ Resolver::load_resolver_scripts()
         try
         {
             loaded_rs cr;
+            cr.script = true;
             cr.rs = new playdar::resolvers::rs_script();
             // custom init method for scripts:
             ((playdar::resolvers::rs_script *)cr.rs)->init(app()->conf(), this, p["path"]);
@@ -112,9 +121,12 @@ Resolver::load_resolver_scripts()
             else
                 cr.weight = cr.rs->weight();
             
-            m_resolvers.push_back( cr );
-            cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime << "] " 
-                 << cr.rs->name() << endl;
+            if(cr.weight > 0)
+            {
+                m_resolvers.push_back( cr );
+                cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime
+                     << "] " << cr.rs->name() << endl;
+            }
         }
         catch(...)
         {
@@ -176,6 +188,7 @@ Resolver::load_resolver_plugins()
                 }
             }
             loaded_rs cr;
+            cr.script = false;
             cr.rs = instance;
             string rsopt = "resolvers.";
             confopt += classname;
@@ -192,7 +205,6 @@ Resolver::load_resolver_plugins()
             cerr << "-> Error: " << ex.what() << endl;
         }
     }
-    cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
 }
 
 ResolverService *

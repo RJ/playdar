@@ -28,6 +28,7 @@ struct loaded_rs
     ResolverService * rs; 
     unsigned int targettime; // ms before passing to next resolver
     unsigned short weight;   // highest weight runs first.
+    bool script;             // true if external process, false if plugin.
 };
 
 

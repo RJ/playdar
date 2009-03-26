@@ -58,6 +58,7 @@ class rs_script : public ResolverService
         void process_output();
         
         bool m_dead;
+        bool m_got_settings;
         string m_scriptpath;
         bp::child * m_c;
         boost::thread * m_t;
@@ -68,6 +69,10 @@ class rs_script : public ResolverService
         deque<rq_ptr> m_pending;
         boost::mutex m_mutex;
         boost::condition m_cond;
+        
+        // used to wait for settings object from script:
+        boost::mutex m_mutex_settings;
+        boost::condition m_cond_settings;
 };
 
 
