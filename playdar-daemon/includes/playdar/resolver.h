@@ -28,6 +28,7 @@ struct loaded_rs
     ResolverService * rs; 
     unsigned int targettime; // ms before passing to next resolver
     unsigned short weight;   // highest weight runs first.
+    bool script;             // true if external process, false if plugin.
 };
 
 
@@ -43,7 +44,9 @@ class Resolver
 {
 public:
     Resolver(MyApplication * app);
-    void load_resolvers();
+    ~Resolver();
+    void load_resolver_plugins();
+    void load_resolver_scripts();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb);
                     
@@ -80,20 +83,14 @@ public:
     void run_pipeline( rq_ptr rq, unsigned short lastweight );
     
     void dispatch_runner();
-    
-    unsigned int solved_at_weight(unsigned short w)
-    {
-        boost::mutex::scoped_lock lk(m_mut_stats);
-        if(m_solved_at_weight.find(w) != m_solved_at_weight.end())
-            return m_solved_at_weight[w];
-        else
-            return 0;
-    }
+
     
 private:
-    boost::shared_ptr<boost::asio::io_service::work> m_work;
-    boost::shared_ptr<boost::asio::io_service> m_io_service;
-
+    void load_library_resolver();
+    
+    boost::asio::io_service::work * m_work;
+    boost::asio::io_service * m_io_service;
+    
     
     // maps URLs to plugins that handle them:
     map<string, ResolverService *> m_http_handlers;
@@ -108,21 +105,21 @@ private:
     // newest-first list of dispatched qids:
     deque< query_uid > m_qidlist;
     
+    bool m_exiting;
+    boost::thread * m_t;
+    boost::thread * m_iothr;
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:
     vector<loaded_rs> m_resolvers;
     
     boost::mutex m_mut_results; // when adding results
-    boost::mutex m_mut_stats;   // when incrementing stats
     
     // for dispatching to the pipeline:
     deque< pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
-    
-    // stats for solved queries:
-    map<unsigned short, unsigned int> m_solved_at_weight;
+
 };
 
 #endif

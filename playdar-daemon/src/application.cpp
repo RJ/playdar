@@ -13,16 +13,23 @@ MyApplication::MyApplication(playdar::Config c)
     string db_path = conf()->get<string>("db");
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
-    m_ios = boost::shared_ptr<boost::asio::io_service>
-                                    (new boost::asio::io_service);
-    m_work = boost::shared_ptr<boost::asio::io_service::work>
-                (new boost::asio::io_service::work(*m_ios));
-    
 }
 
 MyApplication::~MyApplication()
 {
+    cout << "DTOR MyApplication" << endl;
+    cout << "Stopping resolver..." << endl;
+    delete(m_resolver);
+    cout << "Stopping library..." << endl;
     delete(m_library);
+}
+     
+void
+MyApplication::shutdown(int sig)
+{
+
+    cout << "Stopping http(" << sig << ")..." << endl;
+    if(m_stop_http) m_stop_http();
 }
     
 Library * 

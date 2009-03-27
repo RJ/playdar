@@ -15,6 +15,15 @@
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 
+/*
+
+    Known gaping security problem:
+    not doing htmlentities() on user-provided data before rendering HTML
+    so there are many script-injection possibilities atm.
+    TODO write/find an htmlentities method and apply liberally.
+
+*/
+
 void 
 playdar_request_handler::init(MyApplication * app)
 {
@@ -142,7 +151,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "<td>Plugin Name</td>"
             << "<td>Weight</td>"
             << "<td>Target Time</td>"
-            << "<td>Solved</td>"
             << "<td>Configuration</td>"
             << "</tr>"
             ;
@@ -159,13 +167,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 << "<td>" << lrs.rs->name() << "</td>"
                 << "<td>" << lrs.weight << "</td>"
                 << "<td>" << lrs.targettime << "ms</td>";
-            if(dupe){ os << "<td> </td>"; }
-            else
-            {
-                os << "<td>" 
-                   << app()->resolver()->solved_at_weight(lrs.weight) 
-                   << "</td>"; 
-            }
             os << "<td>" ;
             vector<string> urls = lrs.rs->get_http_handlers();
             if( urls.size() )
@@ -181,6 +182,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             << "</p>"
             ;
          serve_body(os.str(), req, rep);
+    }
+    else if(url=="/shutdown/")
+    {
+        app()->shutdown();
     }
     /// Show config file (no editor yet)
     else if(url=="/settings/config/")
@@ -372,17 +377,19 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     /// with a "revoke" options for each.
     else if(url=="/settings/auth/")
     {
+        ostringstream os;
+        os  << "<h2>Authenticated Sites</h2>";
         typedef map<string,string> auth_t;
-        if( getvars.find("revoke")!=getvars.end() &&
-            getvars.find("formtoken")!=getvars.end() &&
-            m_pauth->consume_formtoken(getvars["formtoken"]) )
+        if( getvars.find("revoke")!=getvars.end() )
         {
             m_pauth->deauth(getvars["revoke"]);
+            os  << "<p style=\"font-weight:bold;\">"
+                << "You have revoked access for auth-token: "
+                << getvars["revoke"]
+                << "</p>";
         }
         vector< auth_t > v = m_pauth->get_all_authed();
-        ostringstream os;
-        os  << "<h2>Authenticated Sites</h2>"
-            << "<p>"
+        os  << "<p>"
             << "The first time a site requests access to your Playdar, "
             << "you'll have a chance to allow/deny it. You can see the list "
             << "of authenticated sites here, and delete any if necessary."
@@ -403,8 +410,8 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 <<  "<td>" << m["name"] << "</td>"
                 <<  "<td>" << m["website"] << "</td>"
                 <<  "<td>" << m["token"] << "</td>"
-                <<  "<td><a href=\"/settings/auth/?formtoken="
-                <<  formtoken << "&revoke="  << m["token"] <<"\">Revoke</a>"
+                <<  "<td><a href=\"/settings/auth/?revoke="  
+                << m["token"] <<"\">Revoke</a>"
                 <<  "</td>"
                 << "</tr>";
         }

@@ -8,6 +8,7 @@
 #include "playdar/resolver.h"
 
 #include "playdar/rs_local_library.h"
+#include "playdar/rs_script.h"
 #include "playdar/library.h"
 
 // PDL stuff:
@@ -21,21 +22,51 @@
 
 
 Resolver::Resolver(MyApplication * app)
-    :m_app(app)
+    :m_app(app), m_exiting(false)
 {
     m_id_counter = 0;
     cout << "Resolver starting..." << endl;
     
-    boost::thread t(boost::bind(&Resolver::dispatch_runner, this));
+    m_t = new boost::thread(boost::bind(&Resolver::dispatch_runner, this));
     
     // set up io_service with work so it never ends:
-    m_io_service = boost::shared_ptr<boost::asio::io_service>
-                   (new boost::asio::io_service);
-    m_work = boost::shared_ptr<boost::asio::io_service::work>
-             (new boost::asio::io_service::work(*m_io_service));
-    boost::thread iothr(boost::bind(&boost::asio::io_service::run, m_io_service.get()));
+    m_io_service = new boost::asio::io_service();
+    m_work = new boost::asio::io_service::work(*m_io_service);
+    m_iothr = new boost::thread(boost::bind(
+                    &boost::asio::io_service::run,
+                    m_io_service));
              
     // Initialize built-in local library resolver:
+    load_library_resolver();
+
+    // Load all non built-in resolvers:
+    try
+    {
+        load_resolver_scripts(); // external processes
+        load_resolver_plugins(); // DLL plugins
+    }
+    catch(...)
+    {
+        cout << "Error loading resolver plugins." << endl;
+    }
+    // sort the list of resolvers by weight, descending:
+    boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
+        boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
+    sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
+    cout << endl;
+    cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
+    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    {
+        cout << "RESOLVER w:" << lrs.weight << "\tt:" << lrs.targettime 
+             << "\t[" << (lrs.script?"script":"plugin") << "]  " 
+             << lrs.rs->name() << endl;
+    }
+    cout << endl;
+}
+
+void
+Resolver::load_library_resolver()
+{
     loaded_rs cr;
     cr.rs = new RS_local_library();
     // local library resolver is special, it gets a handle to app:
@@ -43,26 +74,18 @@ Resolver::Resolver(MyApplication * app)
     cr.weight = cr.rs->weight();
     cr.targettime = cr.rs->target_time();
     cr.rs->init(m_app->conf(), this);
-    
     m_resolvers.push_back( cr );
+}
 
-    // Load all non built-in resolvers:
-    try
-    {
-        load_resolvers();
-    }
-    catch(...)
-    {
-        cout << "Error loading resolver plugins." << endl;
-    }
-    
-    //TODO at this point, user settings could override weights suggested
-    //     by resolverservices by modifying the loaded_rs structs.
-    
-    // sort the list of resolvers by weight, descending:
-    boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
-        boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
-    sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
+
+Resolver::~Resolver()
+{
+    m_exiting = true;
+    m_cond.notify_one();
+    m_t->join();
+    delete(m_work);
+    m_io_service->stop();
+    m_iothr->join();
 }
 
 bool
@@ -71,9 +94,50 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
     return lhs.weight > rhs.weight;
 }
 
+/// spawn resolver scripts:
+void 
+Resolver::load_resolver_scripts()
+{
+    cout << "Loading resolver scripts:" << endl;
+    typedef map<string,string> st;
+    vector< st > scripts = app()->conf()->get_scriptlist();
+    BOOST_FOREACH( st & p, scripts )
+    {
+        cout << "-> Loading: " << p["path"] << endl;
+        try
+        {
+            loaded_rs cr;
+            cr.script = true;
+            cr.rs = new playdar::resolvers::rs_script();
+            // custom init method for scripts:
+            ((playdar::resolvers::rs_script *)cr.rs)->init(app()->conf(), this, p["path"]);
+            if(p.find("targettime")!=p.end())
+                cr.targettime = boost::lexical_cast<int>(p["targettime"]);
+            else
+                cr.targettime = cr.rs->target_time();
+                
+            if(p.find("weight")!=p.end())
+                cr.weight = boost::lexical_cast<int>(p["weight"]);
+            else
+                cr.weight = cr.rs->weight();
+            
+            if(cr.weight > 0)
+            {
+                m_resolvers.push_back( cr );
+                cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime
+                     << "] " << cr.rs->name() << endl;
+            }
+        }
+        catch(...)
+        {
+            cout << "Error initializing script" << endl;
+        }
+    }
+}
+
 /// dynamically load resolver plugins:
 void 
-Resolver::load_resolvers()
+Resolver::load_resolver_plugins()
 {
     namespace bfs = boost::filesystem;
     bfs::directory_iterator end_itr;
@@ -124,6 +188,7 @@ Resolver::load_resolvers()
                 }
             }
             loaded_rs cr;
+            cr.script = false;
             cr.rs = instance;
             string rsopt = "resolvers.";
             confopt += classname;
@@ -140,7 +205,6 @@ Resolver::load_resolvers()
             cerr << "-> Error: " << ex.what() << endl;
         }
     }
-    cout << "Num Resolvers Loaded: " << m_resolvers.size() << endl;
 }
 
 ResolverService *
@@ -185,17 +249,26 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
 void
 Resolver::dispatch_runner()
 {
-    pair<rq_ptr, unsigned short> p;
-    while(true)
+    try
     {
+        pair<rq_ptr, unsigned short> p;
+        while(true)
         {
-            boost::mutex::scoped_lock lk(m_mutex);
-            if(m_pending.size() == 0) m_cond.wait(lk);
-            p = m_pending.back();
-            m_pending.pop_back();
+            {
+                boost::mutex::scoped_lock lk(m_mutex);
+                if(m_pending.size() == 0) m_cond.wait(lk);
+                if(m_exiting) break;
+                p = m_pending.back();
+                m_pending.pop_back();
+            }
+            run_pipeline( p.first, p.second );
         }
-        run_pipeline( p.first, p.second );
     }
+    catch(...)
+    {
+        cout << "Error exiting Resolver::dispatch_runner" << endl;
+    }
+    cout << "Resolver dispatch_runner terminating" << endl;
 }
 
 /// go thru list of resolversservices and dispatch in order
@@ -249,8 +322,6 @@ Resolver::run_pipeline_cont( rq_ptr rq,
     {
         cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
              << endl;
-        boost::mutex::scoped_lock lk(m_mut_stats);
-        m_solved_at_weight[lastweight]++;
     }
     else
     {

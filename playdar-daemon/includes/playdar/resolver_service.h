@@ -1,19 +1,21 @@
 #ifndef __RESOLVER_SERVICE_H__
 #define __RESOLVER_SERVICE_H__
 // Interface for all resolver services
-#include "playdar/resolver.h"
 #include "playdar/application.h"
+#include "playdar/resolver.h"
 #include "playdar/auth.hpp"
 #include <DynamicClass.hpp>
 
 
 class ResolverService : public PDL::DynamicClass, std::exception
-
-
 {
 public:
     ResolverService(){}
     
+    virtual void Destroy()
+    {
+        cout << "Unloading " << name() << endl;
+    }
     
     virtual void init(playdar::Config * c, Resolver * r)
     {
@@ -50,6 +52,7 @@ public:
 
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
 
+    /** thread-safe */
     virtual bool report_results(query_uid qid, 
         vector< boost::shared_ptr<PlayableItem> > results,
         string via);
@@ -71,12 +74,10 @@ public:
         return "This plugin has no web interface.";
     }
     
-//protected:
-    
-    
     DECLARE_DYNAMIC_CLASS( ResolverService )
     
 protected:
+
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;

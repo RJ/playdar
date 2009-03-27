@@ -12,7 +12,6 @@
     The attached StreamingStrategy embodies how to access the song - this PlayableItem
     could refer to a local file, or a remote file. Clients use the "sid" to access it.
 */
-
 using namespace std;
 
 class PlayableItem
@@ -40,7 +39,7 @@ public:
     
     ~PlayableItem()
     {
-        cout << "dtor, playableitem" << endl;
+        //cout << "dtor, playableitem" << endl;
     }
     
     static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
@@ -82,7 +81,15 @@ public:
             duration= resobj_map["duration"].get_int();
         
         if(resobj_map.find("score")!=resobj_map.end())
-            score   = (float)resobj_map["score"].get_real();
+        {
+            if(resobj_map["score"].type() == int_type)
+                score = (float) (resobj_map["score"].get_int());
+            else 
+            if (resobj_map["score"].type() == real_type)
+                score = (float) (resobj_map["score"].get_real());
+            else
+                score = (float) 0.0;
+        }
         
         if(!artist.length() && !track.length()) throw;
         

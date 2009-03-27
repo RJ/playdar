@@ -89,7 +89,13 @@ public:
     void start()
     {
         reset();
+        if(!m_conn->alive())
+        {
+            cout << "Darknet connection went away :(" << endl;
+            throw;
+        }
         m_active = true;
+        // setup a timer to abort if we don't get data quick enough?
         m_darknet->start_sidrequest(
             m_conn, 
             m_sid, 
