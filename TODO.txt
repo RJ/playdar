@@ -41,17 +41,6 @@ This means it could play any file format, not just mp3 like flash.
 
 The content resolving framework
 -------------------------------
-Make ResolverService plugins into shared-libraries and have playdar load them
-at runtime, so installing new ways to resolve content is just adding a .so/.dll
-Use http://sourceforge.net/projects/pdl-cpp/ for portability?
-Or maybe the experimental Boost.Extension.
-
-Make Resolver cleverer than just hitting up resolverservices sequentially. 
-some sort of pipeline with resolverservices specifying their priority level,
-based on how fast they can typically resolve stuff. 
-Local=fastest, p2p=slower etc. Resolverservices of equal weights queried in
-parallel. Start with fastest. Stop when query is solved.
-
 resolversevice that uses libjingle, and searches and streams from remote hosts
 found via jabber. login multiple times to jabber with your JID/resource
 ie: rj@example.com/work rj@example.com/home etc.
