@@ -195,9 +195,10 @@ void connection<RequestHandler>::handle_write_stream
                     total += len;
                     //cout << "Sending " << len << " bytes.. " << endl;
                     boost::asio::async_write(socket_, boost::asio::buffer(buf, len),
-                        /*strand_.wrap(*/
+                       strand_.wrap(
                         boost::bind(&connection<RequestHandler>::handle_write_stream, connection<RequestHandler>::shared_from_this(),
-                        boost::asio::placeholders::error, ss, buf))/*)*/;
+                        boost::asio::placeholders::error, ss, buf)
+                       ));
                     return;
                 }
                 // end of stream..
