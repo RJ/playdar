@@ -28,7 +28,7 @@
 #ifndef __PDL_DYNAMIC_LIBRARY_MANAGER_HPP__
 #define __PDL_DYNAMIC_LIBRARY_MANAGER_HPP__
 
-#include <platform.h>
+#include "./platform.h"
 #include <string>
 #include <map>
 
