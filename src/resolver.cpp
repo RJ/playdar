@@ -17,7 +17,7 @@
 #include <DynamicLibrary.hpp>
 #include <DynamicLibraryManager.hpp>
 #include <LoaderException.hpp>
-#include <platform.h>
+#include "./platform.h"
 // end PDL stuff
 
 

@@ -25,7 +25,7 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <platform.h>
+#include "./platform.h"
 #include <DynamicLibrary.hpp>
 #include <DynamicLibraryManager.hpp>
 #include <LoaderException.hpp>

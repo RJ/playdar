@@ -95,7 +95,7 @@
 #ifndef __PDL_DYNAMIC_LOADER_HPP__
 #define __PDL_DYNAMIC_LOADER_HPP__
 
-#include <platform.h>
+#include "./platform.h"
 #include <memory>
 
 /**
