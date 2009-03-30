@@ -1,7 +1,8 @@
 #include "playdar/rs_script.h"
 #include <boost/foreach.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 /*
-This plugin spawns an external process, typically a perl/python/ruby script
+This resolver spawns an external process, typically a python/ruby script
 which will do the actual resolving. Messages are passed to the script down
 stdin, results expected from stdout of the script.
 
@@ -21,8 +22,9 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
     m_conf = c;
     m_dead = false;
     m_exiting = false;
-    m_weight = 75;
+    m_weight = 1;
     m_targettime = 1000;
+    m_got_settings = false;
     m_scriptpath = script;
     if(m_scriptpath=="")
     {
@@ -30,28 +32,51 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
              << endl;
         m_name = "MISSING SCRIPT PATH";
         m_dead = true;
+        m_weight = 0;
         throw;
     }
     else
     {
         m_name = m_scriptpath; // should be overwritten by script settings
-        cout << "Gateway script starting: "<<m_scriptpath << endl;
-        // dispatcher thread:
-        m_dt = new boost::thread(boost::bind(&rs_script::run, this));
-        // stdinout thread:
-        init_worker();
+        cout << "Starting resolver process: "<<m_scriptpath << endl;
+        // wait for script to send us a settings object:
+        boost::mutex::scoped_lock lk(m_mutex_settings);
+        init_worker(); // launch script
+        cout << "-> Waiting for settings from script (5 secs)..." << endl;
+        if(!m_got_settings) 
+        {
+            boost::xtime time; 
+            boost::xtime_get(&time,boost::TIME_UTC); 
+            time.sec += 5;
+            m_cond_settings.timed_wait(lk, time);
+            /* doesn't work on boost 1.35, but new way is this:
+            m_cond_settings.timed_wait(lk, boost::posix_time::seconds(5));
+            */
+        }
         
+        if(m_got_settings)
+        {
+            cout << "-> OK, script reports name: " << m_name << endl;
+            // dispatcher thread:
+            m_dt = new boost::thread(boost::bind(&rs_script::run, this));
+        }
+        else
+        {
+            cout << "-> FAILED - script didn't report any settings" << endl;
+            m_dead = true;
+            m_weight = 0; // disable us.
+        }
     }
 }
 
 rs_script::~rs_script() throw()
 {
-    cout <<"DTOR Gateway script " << endl;
+    cout <<"DTOR Resolver script " << endl;
     m_exiting = true;
     m_cond.notify_all();
-    m_dt->join();
+    if(m_dt) m_dt->join();
     m_os->close();
-    m_t->join();
+    if(m_t) m_t->join();
 }
 
 void
@@ -62,9 +87,11 @@ rs_script::start_resolving(rq_ptr rq)
         cerr << "Not dispatching to script:  " << m_scriptpath << endl;
         return;
     }
-    cout << "gateway dispatch enqueue: " << rq->str() << endl;
-    boost::mutex::scoped_lock lk(m_mutex);
-    m_pending.push_front( rq );
+    //cout << "gateway dispatch enqueue: " << rq->str() << endl;
+    {
+        boost::mutex::scoped_lock lk(m_mutex);
+        m_pending.push_front( rq );
+    }
     m_cond.notify_one();
 }
 
@@ -78,7 +105,7 @@ rs_script::run()
         while(true)
         {
             {
-                cout << "Waiting on something" << endl;
+                //cout << "Waiting on something" << endl;
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
                 if(m_exiting || m_dead) break;
@@ -87,7 +114,7 @@ rs_script::run()
             }
             // dispatch query to script:
             {
-                cout << "Got " << rq->str() << endl;
+                //cout << "Got " << rq->str() << endl;
                 ostringstream os;
                 write_formatted( rq->get_json(), os );
                 string msg = os.str();
@@ -100,7 +127,7 @@ rs_script::run()
     }
     catch(...)
     {
-        cout << "gateway resolver runner exiting." << endl;
+        cout << "exception in rs_script runner." << endl;
     }
     cout << "rs_script dispatch runner ending" << endl;
 }
@@ -129,7 +156,7 @@ rs_script::init_worker()
 void 
 rs_script::process_output()
 {
-    cout << "Gateway process_output started.." <<endl;
+    //cout << "Gateway process_output started.." <<endl;
     using namespace json_spirit;
     bp::pistream &is = m_c->get_stdout();
     Value j;
@@ -140,7 +167,7 @@ rs_script::process_output()
         is.read( (char*)&len, 4 );
         if(is.fail() || is.eof()) break;
         len = ntohl(len);
-        cout << "Incoming msg of length " << len << endl;
+        //cout << "Incoming msg of length " << len << endl;
         if(len > sizeof(buffer))
         {
             cerr << "Gateway plugin aborting, payload too big" << endl;
@@ -149,7 +176,7 @@ rs_script::process_output()
         is.read( (char*)&buffer, len );
         if(is.fail() || is.eof()) break;
         string msg((char*)&buffer, len);
-        std::cout << "Msg: '" << msg << "'"<< endl;
+        //std::cout << "Msg: '" << msg << "'"<< endl;
         if(!read(msg, j) || j.type() != obj_type)
         {
             cerr << "Aborting, invalid JSON." << endl;
@@ -167,23 +194,24 @@ rs_script::process_output()
                 rr["weight"].type() == int_type )
             {
                 m_weight = rr["weight"].get_int();
-                cout << "Gateway setting w:" << m_weight << endl;
+                //cout << "Gateway setting w:" << m_weight << endl;
             }
             
             if( rr.find("targettime") != rr.end() &&
                 rr["targettime"].type() == int_type )
             {
                 m_targettime = rr["targettime"].get_int();
-                cout << "Gateway setting t:" << m_targettime << endl;
+                //cout << "Gateway setting t:" << m_targettime << endl;
             }
             
             if( rr.find("name") != rr.end() &&
                 rr["name"].type() == str_type )
             {
                 m_name = rr["name"].get_str();
-                cout << "Gateway setting name:" << m_name << endl;
+                //cout << "Gateway setting name:" << m_name << endl;
             }
-            
+            m_got_settings = true;
+            m_cond_settings.notify_one();
             continue;
         }
         // must be a query result:
@@ -195,19 +223,19 @@ rs_script::process_output()
             Object po = result.get_obj();
             boost::shared_ptr<PlayableItem> pip;
             pip = PlayableItem::from_json(po);
-            cout << "Parserd pip from script: " << endl;
-            write_formatted(  pip->get_json(), cout );
+            //cout << "Parserd pip from script: " << endl;
+            //write_formatted(  pip->get_json(), cout );
             map<string,Value> po_map;
             obj_to_map(po, po_map);
             string url   = po_map["url"].get_str();  
-            cout << "url=" << url << endl;
+            //cout << "url=" << url << endl;
             boost::shared_ptr<StreamingStrategy> s(new HTTPStreamingStrategy(url));
             pip->set_streaming_strategy(s);
             v.push_back(pip);
         }
         report_results(qid, v, name());
     }
-    cout << "Gateway plugin read loop exited :(" << endl;
+    cout << "Gateway plugin read loop exited" << endl;
     m_dead = true;
 }
 
