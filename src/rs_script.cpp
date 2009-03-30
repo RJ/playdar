@@ -1,4 +1,5 @@
 #include "playdar/rs_script.h"
+#include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 /*
@@ -35,6 +36,10 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
         m_weight = 0;
         throw;
     }
+    else if(!boost::filesystem::exists(m_scriptpath))
+    {
+        cout << "-> FAILED - script doesn't exist at: " << m_scriptpath << endl;
+    }
     else
     {
         m_name = m_scriptpath; // should be overwritten by script settings
@@ -43,8 +48,17 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
         boost::mutex::scoped_lock lk(m_mutex_settings);
         init_worker(); // launch script
         cout << "-> Waiting for settings from script (5 secs)..." << endl;
-        if(!m_got_settings)
+        if(!m_got_settings) 
+        {
+            boost::xtime time; 
+            boost::xtime_get(&time,boost::TIME_UTC); 
+            time.sec += 5;
+            m_cond_settings.timed_wait(lk, time);
+            /* doesn't work on boost 1.35, but new way is this:
             m_cond_settings.timed_wait(lk, boost::posix_time::seconds(5));
+            */
+        }
+        
         if(m_got_settings)
         {
             cout << "-> OK, script reports name: " << m_name << endl;
@@ -79,8 +93,10 @@ rs_script::start_resolving(rq_ptr rq)
         return;
     }
     //cout << "gateway dispatch enqueue: " << rq->str() << endl;
-    boost::mutex::scoped_lock lk(m_mutex);
-    m_pending.push_front( rq );
+    {
+        boost::mutex::scoped_lock lk(m_mutex);
+        m_pending.push_front( rq );
+    }
     m_cond.notify_one();
 }
 
@@ -145,7 +161,7 @@ rs_script::init_worker()
 void 
 rs_script::process_output()
 {
-    //cout << "Gateway process_output started.." <<endl;
+    cout << "Gateway process_output started.." <<endl;
     using namespace json_spirit;
     bp::pistream &is = m_c->get_stdout();
     Value j;
@@ -156,7 +172,7 @@ rs_script::process_output()
         is.read( (char*)&len, 4 );
         if(is.fail() || is.eof()) break;
         len = ntohl(len);
-        //cout << "Incoming msg of length " << len << endl;
+        cout << "Incoming msg of length " << len << endl;
         if(len > sizeof(buffer))
         {
             cerr << "Gateway plugin aborting, payload too big" << endl;
@@ -165,7 +181,7 @@ rs_script::process_output()
         is.read( (char*)&buffer, len );
         if(is.fail() || is.eof()) break;
         string msg((char*)&buffer, len);
-        //std::cout << "Msg: '" << msg << "'"<< endl;
+        std::cout << "Msg: '" << msg << "'"<< endl;
         if(!read(msg, j) || j.type() != obj_type)
         {
             cerr << "Aborting, invalid JSON." << endl;
@@ -212,12 +228,12 @@ rs_script::process_output()
             Object po = result.get_obj();
             boost::shared_ptr<PlayableItem> pip;
             pip = PlayableItem::from_json(po);
-            //cout << "Parserd pip from script: " << endl;
-            //write_formatted(  pip->get_json(), cout );
+            cout << "Parserd pip from script: " << endl;
+            write_formatted(  pip->get_json(), cout );
             map<string,Value> po_map;
             obj_to_map(po, po_map);
             string url   = po_map["url"].get_str();  
-            //cout << "url=" << url << endl;
+            cout << "url=" << url << endl;
             boost::shared_ptr<StreamingStrategy> s(new HTTPStreamingStrategy(url));
             pip->set_streaming_strategy(s);
             v.push_back(pip);
