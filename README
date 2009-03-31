@@ -1,0 +1,12 @@
+ScrobSub 2
+==========
+A cross-platform plain-c library that allows you to submit scrobbles to Last.fm 
+using the official Audioscrobbler application, or if that isn't installed,
+independently.
+
+Max Howell <max@last.fm>
+
+
+Dependencies
+============
+Just what came with the system.
