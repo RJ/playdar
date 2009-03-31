@@ -1,8 +1,11 @@
 #ifndef __RESOLVER_QUERY_H__
 #define __RESOLVER_QUERY_H__
 
-#include "playdar/application.h"
+//#include "playdar/application.h"
 #include "playdar/types.h"
+#include "playdar/config.hpp"
+#include "playdar/playable_item.hpp"
+
 #include "json_spirit/json_spirit.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
