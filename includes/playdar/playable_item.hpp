@@ -1,6 +1,6 @@
 #ifndef __PLAYABLE_ITEM_H__
 #define __PLAYABLE_ITEM_H__
-#include "playdar/application.h"
+#include "playdar/config.hpp"
 #include "playdar/streaming_strategy.h"
 #include "playdar/types.h"
 #include "json_spirit/json_spirit.h"

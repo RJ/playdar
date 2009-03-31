@@ -11,8 +11,8 @@ lan_udp::init(playdar::Config * c, Resolver * r)
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
          (  boost::asio::ip::address::from_string
-            (conf()->get<string> ("plugins.lan_udp.multicast")), 
-           conf()->get<int>("plugins.lan_udp.port"));
+            (conf()->get<string> ("plugins.lan_udp.multicast", "")), 
+           conf()->get<int>("plugins.lan_udp.port", 0));
     m_responder_thread = new boost::thread(boost::bind(&lan_udp::run, this));
 }
 
@@ -48,8 +48,8 @@ lan_udp::run()
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    (conf()->get<string>("plugins.lan_udp.multicast")), 
-                    conf()->get<int>("plugins.lan_udp.port")); 
+                    (conf()->get<string>("plugins.lan_udp.multicast", "")), 
+                    conf()->get<int>("plugins.lan_udp.port", 0)); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"

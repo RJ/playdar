@@ -141,9 +141,7 @@ Resolver::load_resolver_plugins()
 {
     namespace bfs = boost::filesystem;
     bfs::directory_iterator end_itr;
-    //bfs::path appdir = bfs::initial_path();
-    //bfs::path p(appdir.string() +"/plugins/");
-    bfs::path p("plugins");
+    bfs::path p( m_app->conf()->get(string("plugin_path"), string("plugins")) );
     cout << "Loading resolver plugins from: " 
          << p.string() << endl;
     for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
