@@ -2,10 +2,7 @@
 # Created by Max Howell <max@methylblue.com> twitter.com/mxcl
 # Licensed the same as Playdar
 #
-# Uses python 2.5 and the simplejson extension
-# Mac OS X: sudo port install py25-simplejson
-# Linux:    ?
-# Windows:  ?
+# Uses Python 2.5 and our own bundled simplejson
 
 ######################################################################## imports
 import hmac, hashlib, time
@@ -60,12 +57,8 @@ def resolve(artist, track):
             t["url"]    = percent_encode(element_value(e, 'location'))
             t["album"]  = element_value(e, 'album', False)
             t["source"] = "SeeqPod"
-            
-            t['size'] = 3000000
-            t['bitrate'] = 128
-            t['score'] = 0.75
             tracks.append(t)
-            break
+            break # the json calls are slow, one is enough
         except:
             pass
     return tracks
