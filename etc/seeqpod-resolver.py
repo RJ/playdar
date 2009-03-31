@@ -54,11 +54,15 @@ def resolve(artist, track):
             t = dict()
             t["artist"] = element_value(e, 'creator')
             t["track"]  = element_value(e, 'title')
-            t["url"]    = percent_encode(element_value(e, 'location'))
             t["album"]  = element_value(e, 'album', False)
-            t["source"] = "SeeqPod"
+            t["url"]    = percent_encode(element_value(e, 'location'))
+            t["source"] = 'SeeqPod'
             tracks.append(t)
             break # the json calls are slow, one is enough
+            # TODO when playdar can score results itself, we should submit them 
+            # all and let it decide which one is best, although that is assuming
+            # seeqpod doesn't order them in best-first order, which it might, 
+            # but that is undocumented if so
         except:
             pass
     return tracks
@@ -66,7 +70,7 @@ def resolve(artist, track):
 ####################################################################### settings
 settings = dict()
 settings["settings"] = True
-settings["name"] = "SeeqPod Resolver (Python 2.6)"
+settings["name"] = "SeeqPod Resolver"
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
