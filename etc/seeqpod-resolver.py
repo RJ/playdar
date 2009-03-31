@@ -57,13 +57,9 @@ def resolve(artist, track):
             t = dict()
             t["artist"] = element_value(e, 'creator')
             t["track"]  = element_value(e, 'title')
-            t["url"]    = percent_encode(element_value(e, 'location'))
             t["album"]  = element_value(e, 'album', False)
-            t["source"] = "SeeqPod"
-            
-            t['size'] = 3000000
-            t['bitrate'] = 128
-            t['score'] = 0.75
+            t["url"]    = percent_encode(element_value(e, 'location'))
+            t["source"] = 'SeeqPod'
             tracks.append(t)
             break
         except:
@@ -73,7 +69,7 @@ def resolve(artist, track):
 ####################################################################### settings
 settings = dict()
 settings["settings"] = True
-settings["name"] = "SeeqPod Resolver (Python 2.6)"
+settings["name"] = "SeeqPod Resolver"
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
