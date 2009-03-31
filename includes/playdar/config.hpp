@@ -67,13 +67,6 @@ public:
     // get a value from json object
     // or value from nested *objects* by using a key of first.second.third
     template <typename T>
-    T get(string k) const
-    {
-        T def;
-        return get<T>(k,def); 
-    }
-    
-    template <typename T>
     T get(string k, T def) const
     {
         std::vector<std::string> toks;

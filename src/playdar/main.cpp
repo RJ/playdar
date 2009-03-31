@@ -99,7 +99,7 @@ int main(int ac, char *av[])
     cout << "Using config file: " << configfile << endl;
             
     playdar::Config conf(configfile);
-    if(conf.get<string>("name")=="YOURNAMEHERE")
+    if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
     {
         cerr << "Please edit " << configfile << endl;
         cerr << "YOURNAMEHERE is not a valid name." << endl;
@@ -124,7 +124,7 @@ int main(int ac, char *av[])
         string ip = "0.0.0.0"; 
         boost::thread http_thread(
             boost::bind(&start_http_server, 
-                        ip, app->conf()->get<int>("http_port"),
+                        ip, app->conf()->get<int>("http_port", 0),
                         boost::thread::hardware_concurrency()+1,
                         app));
         
