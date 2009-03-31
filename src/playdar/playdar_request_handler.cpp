@@ -213,7 +213,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
             getvars.find("name") != getvars.end() )
     {
         map<string,string> vars;
-        string filename = "www/static/auth.html";
+        string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
         string ftoken   = m_pauth->gen_formtoken();
         vars["<%URL%>"]="";
         if(getvars.find("receiverurl") != getvars.end())
@@ -241,7 +241,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 postvars["receiverurl"]=="" )
             {
                 map<string,string> vars;
-                string filename = "www/static/auth.na.html";
+                string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
                 vars["<%WEBSITE%>"]=postvars["website"];
                 vars["<%NAME%>"]=postvars["name"];
                 vars["<%AUTHCODE%>"]=tok;

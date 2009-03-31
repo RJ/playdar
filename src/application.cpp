@@ -10,7 +10,7 @@ using namespace std;
 MyApplication::MyApplication(playdar::Config c)
     : m_config(c)
 {
-    string db_path = conf()->get<string>("db");
+    string db_path = conf()->get<string>("db", "");
     m_library   = new Library( db_path, this );
     m_resolver  = new Resolver(this);
 }
