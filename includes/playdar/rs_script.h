@@ -58,12 +58,14 @@ class rs_script : public ResolverService
     
         void init_worker();
         void process_output();
+        void process_stderr();
         
         bool m_dead;
         bool m_got_settings;
         string m_scriptpath;
         bp::child * m_c;
-        boost::thread * m_t;
+        boost::thread * m_t; // std out (main comms)
+        boost::thread * m_e; // std error (logging)
         bp::postream * m_os;
         
         bool m_exiting;

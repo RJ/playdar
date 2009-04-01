@@ -1,7 +1,7 @@
 #ifndef __HTTP_STRAT_H__
 #define __HTTP_STRAT_H__
 #include <boost/asio.hpp>
-
+#include "playdar/streaming_strategy.h"
 using namespace boost::asio::ip;
 /*
     Consider this a nasty hack until I find a decent c++ http library
