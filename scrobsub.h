@@ -20,9 +20,11 @@
 #ifndef __SCROBSUB_PLUGIN_H__
 #define __SCROBSUB_PLUGIN_H__
 
+#include <stdbool.h>
+
 /** the callback must be set, when the callback is called, you get one of the
   * SCROBSUB_ values. */
-void scrobsub_init(void(*callback)(int event, char* message));
+void scrobsub_init(void(*callback)(int event, const char* message));
 
 /** you need to call scrobsub_auth, but you can do it whenever you want, 
   * although, no scrobbling will happen until then */
@@ -39,11 +41,13 @@ void scrobsub_set_enabled(bool enabled);
 
 /** this will auth your application with Last.fm via the users web browser 
   * any submissions in the mean time will be queued */
-void scrobsub_auth(char* api_key, char* shared_secret);
+void scrobsub_auth();
 
 
-/** a new track started */
-void scrobsub_start(char* artist, char* track, char* album, char* mbid, uint duration, uint track_number);
+/** A new track started.
+  * You are responsible for the memory of these pointers, it must exist until 
+  * the next scrobsub_start or scrobsub_stop */
+void scrobsub_start(const char* artist, const char* track, const char* album, const char* mbid, unsigned int duration, unsigned int track_number);
 void scrobsub_pause();
 void scrobsub_resume();
 /** only call this when playback stops, if a new track is about to start, call
@@ -51,8 +55,24 @@ void scrobsub_resume();
 void scrobsub_stop();
 
 
+#define SCROBSUB_STOPPED 0
+#define SCROBSUB_PLAYING 1
+#define SCROBSUB_PAUSED 2
+
+int scrobsub_state();
+
+
 /** can be useful sometimes, has no effect if the official Auidioscrobbler is
   * calling the shots */
 void scrobsub_force_submit();
+
+
+/** returns true if there's a key, provide a char[33] as out if you want it, but 
+  * feel free to pass 0 */ 
+bool scrobsub_session_key(char* out);
+
+
+/** for your convenience, we use it, so maybe you need to as well */
+void scrobsub_md5(char out[33], const char* in);
 
 #endif

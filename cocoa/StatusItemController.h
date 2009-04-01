@@ -17,4 +17,15 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
+#import <Cocoa/Cocoa.h>
 
+
+@interface StatusItemController : NSObject
+{
+    NSStatusItem* status_item;
+    IBOutlet NSMenu* menu;   
+}
+
+-(void)awakeFromNib;
+
+@end

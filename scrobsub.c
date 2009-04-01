@@ -18,37 +18,50 @@
  ***************************************************************************/
 
 #include "scrobsub.h"
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
 
-static void(*callback)(int event, char* message);
 static bool enabled;
 static time_t start_time;
 static time_t pause_time;
 static int state;
-static const char* shared_secret;
 
 
-#define STOPPED 0
-#define PLAYING 1
-#define PAUSED 2
+void(*scrobsub_callback)(int event, const char* message);
+void scrobsub_get(char* response, const char* host, const char* path);
+void scrobsub_post(char* response, const char* host, const char* path, const char* post_data);
 
-
-static bool get_session_key()
+bool scrobsub_session_key(char* out)
 {
-    return 0;
+    return false;
 }
+
 
 static bool use_the_moose()
 {
+#if SCROBSUB_NO_RELAY    
+    // we are the moose
+    return false;
+#else
     return true;
+#endif
+}
+
+static time_t now()
+{
+    time_t t;
+    time(&t);
+    mktime(gmtime(&t));
+    return t;
 }
 
 
-
-void scrobsub_init(void(*callbackp)(int event, char* message))
+void scrobsub_init(void(*callback)(int, const char*))
 {
-    callback = callbackp;
+    scrobsub_callback = callback;
     
-    if(!use_the_moose() && !session_key())
+    if(!use_the_moose() && !scrobsub_session_key(NULL))
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
 } 
 
@@ -59,29 +72,31 @@ void scrobsub_set_enabled(bool enabledp)
 }
 
 
-void scrobsub_auth(char* api_key, char* shared_secret)
+static void get_auth(char out[33], time_t time)
 {
-    //TODO
+    char auth[32+10+1];
+    strcpy(auth, SCROBSUB_SHARED_SECRET);
+    snprintf(&auth[32], 11, "%d", time);
+    scrobsub_md5(out, auth);
 }
 
 
-static void get_auth(time_t time, char out[33])
+static const char* get_username()
 {
-    char auth[32+10+1];
-    strcpy(auth, shared_secret);
-    snprintf(auth[32], 11, "%d", time);
-    md5(out, auth);
+    return "mxcl"; //TODO
 }
 
 
 static void handshake()
 {
-    char* username = get_username();
+    const char* username = get_username();
     time_t time = now();
     char auth[33];
     get_auth(auth, time);
-    int const n = 8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
+    int n = 8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
     char query[n];
+    char session_key[33];
+    scrobsub_session_key(session_key);
 
     n = snprintf(query, n, "?hs=true"
                            "&p=1.2.1"
@@ -92,33 +107,35 @@ static void handshake()
                            "&a=%s" // length 32
                            "&api_key=" SCROBSUB_API_KEY // length 32
                            "&sk=%s", // length 32
-                           username, time, auth, get_session_key());
+                           username, time, auth, session_key);
     if (n<0) return;
 
     char* response = query;
-    get(response, "post.audioscrobbler.com", 80, query);
+    scrobsub_get(response, "post.audioscrobbler.com:80", query);
 }
 
 
-void scrobsub_start(char* artist, char* track, char* album, char* mbid, uint duration, uint track_number)
+void scrobsub_start(const char* artist, const char* track, const char* album, const char* mbid, unsigned int duration, unsigned int track_number)
 {
-    state = PLAYING
-    
+    state = SCROBSUB_PLAYING;
+
+#if !SCROBSUB_NO_RELAY
     if(use_the_moose()){
         moose_push(artist, track, album, mbid, duration, track_number);
         return;
     }
+#endif
     
-    
+    start_time = now();
 }
 
 
 void scrobsub_pause()
 {
-    if(state != PLAYING)
+    if(state != SCROBSUB_PLAYING)
         return;
 
-    state = PAUSED;
+    state = SCROBSUB_PAUSED;
     pause_time = now();
 }
 
@@ -138,4 +155,10 @@ void scrobsub_stop()
 void scrobsub_force_submit()
 {
     
+}
+
+
+int scrobsub_state()
+{
+    return state;
 }
