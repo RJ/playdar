@@ -22,10 +22,12 @@
 #include <string.h>
 #include <time.h>
 
-static bool enabled;
-static time_t start_time;
-static time_t pause_time;
-static int state;
+static bool enabled = true;
+static time_t start_time = 0;
+static time_t pause_time = 0;
+static int state = SCROBSUB_STOPPED;
+static char* session_id = 0;
+static unsigned int N = 0;
 
 
 void(*scrobsub_callback)(int event, const char* message);
@@ -100,10 +102,10 @@ static void handshake()
 
     n = snprintf(query, n, "?hs=true"
                            "&p=1.2.1"
-                           "&c=" SCROBSUB_CLIENT_ID      // max 3 chars
-                           "&v=" SCROBSUB_CLIENT_VERSION // max 8 chars
+                           "&c=" SCROBSUB_CLIENT_ID      // length 3
+                           "&v=" SCROBSUB_CLIENT_VERSION // length 8 max
                            "&u=%s"
-                           "&t=%d" // length 10 for the next 1000 years at least :P
+                           "&t=%d" // length 10 for the next millenia at least :P
                            "&a=%s" // length 32
                            "&api_key=" SCROBSUB_API_KEY // length 32
                            "&sk=%s", // length 32
@@ -127,34 +129,109 @@ void scrobsub_start(const char* artist, const char* track, const char* album, co
 #endif
     
     start_time = now();
+
+    //TODO
+    //    static time_t previous_np = 0;
+    //    time_t time = now();
+    //    if(time - previous_np < 4)   
+    
+    if (duration>9999) duration = 9999;
+    if (track_number>99) track_number = 99;
+    
+    N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
+    int n = 32+4+2+N +2+6*3;
+    char post_data[n];
+    snprintf(post_data, n, "s=%s"
+                          "&a=%s"
+                          "&t=%s"
+                          "&b=%s"
+                          "&l=%d"
+                          "&n=%d"
+                          "&m=%s",
+                          session_id,
+                          artist,
+                          track,
+                          duration,
+                          track_number,
+                          mbid);
+    
+    for(int x = 0; x < 2; ++x){
+        char response[3];
+        scrobsub_post(response, np_host, np_port, np_path, post_data);
+        if(strcmp(response, "OK") == 0)
+            break;
+        handshake();
+    }
 }
 
 
 void scrobsub_pause()
 {
-    if(state != SCROBSUB_PLAYING)
-        return;
-
-    state = SCROBSUB_PAUSED;
-    pause_time = now();
+    if(state == SCROBSUB_PLAYING){
+        state = SCROBSUB_PAUSED;
+        // we subtract pause_time so we continue to keep a record of the amount
+        // of time paused so far
+        pause_time = now() - pause_time;
+    }
 }
 
 
 void scrobsub_resume()
 {
+    if(state == SCROBSUB_PAUSED){
+        pause_time = now() - pause_time;
+        state = SCROBSUB_PLAYING;
+    }
+}
+
+
+static unsigned int scrobble_time(unsigned int duration)
+{
+    if(duration>240*2) return 240;
+    if(duration<30) return 30;
+    return duration/2;
+}
+
+
+static void submit()
+{
+    //TODO check track is valid to submit
     
+    if(state == SCROBSUB_PAUSED)
+        scrobsub_resume();
+    if(now() - timestamp + pause_time < scrobble_time(duration))
+        return;
+
+    int n = 32+N+10+1 +2+9*5;
+    char post_data[n];
+        
+    n = snprintf(post_data, n, "s=%s"
+                           "&a[0]=%s"
+                           "&t[0]=%s"
+                           "&b[0]=%s"
+                           "&l[0]=%d"
+                           "&n[0]=%d"
+                           "&m[0]=%s"
+                           "&i[0]=%d"
+                           "&o[0]=%c"
+                           "&r[0]=",
+                           session_id, artist, track, album, duration, track_number, mbid, timestamp, 'P' );
+        
+    for (int x=0; x<2; ++x){    
+        char response[128];
+        post(response, submit_host, submit_port, submit_path, post_data);
+        if(strcmp(response,"BADSESSION") == 0)
+            handshake();
+        break;
+    }
 }
 
 
 void scrobsub_stop()
 {
-    
-}
-
-
-void scrobsub_force_submit()
-{
-    
+    if(state != SCROBSUB_STOPPED)
+        submit();
+    state = SCROBSUB_STOPPED;
 }
 
 
