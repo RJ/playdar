@@ -72,7 +72,7 @@ function get_matches($rq){
 // settings for this resolver, reported when we start:
 function get_settings(){
     $s = new stdclass;
-    $s->settings = true;
+    $s->_msgtype = "settings";
     $s->name = "php resolver script";
     $s->targettime = 15; // fast atm, it's all hardcoded.
     $s->weight = 80; // 1-100. higher means preferable.
