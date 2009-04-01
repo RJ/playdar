@@ -19,17 +19,18 @@
 
 #include "scrobsub.h"
 
-static void(*callback)(int event, char* message);
-static bool enabled;
-static time_t start_time;
-static time_t pause_time;
-static int state;
-static const char* shared_secret;
-
-
 #define STOPPED 0
 #define PLAYING 1
 #define PAUSED 2
+
+static void(*callback)(int event, char* message) = 0;
+static bool enabled = true;
+static time_t start_time = 0;
+static time_t pause_time = 0;
+static int state = STOPPED;
+static const char* shared_secret = 0;
+static char* session_id = 0;
+static uint N = 0;
 
 
 static bool get_session_key()
@@ -48,7 +49,7 @@ void scrobsub_init(void(*callbackp)(int event, char* message))
 {
     callback = callbackp;
     
-    if(!use_the_moose() && !session_key())
+    if(!use_the_moose() && !get_session_key())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
 } 
 
@@ -85,10 +86,10 @@ static void handshake()
 
     n = snprintf(query, n, "?hs=true"
                            "&p=1.2.1"
-                           "&c=" SCROBSUB_CLIENT_ID      // max 3 chars
-                           "&v=" SCROBSUB_CLIENT_VERSION // max 8 chars
+                           "&c=" SCROBSUB_CLIENT_ID      // length 3
+                           "&v=" SCROBSUB_CLIENT_VERSION // length 8 max
                            "&u=%s"
-                           "&t=%d" // length 10 for the next 1000 years at least :P
+                           "&t=%d" // length 10 for the next millenia at least :P
                            "&a=%s" // length 32
                            "&api_key=" SCROBSUB_API_KEY // length 32
                            "&sk=%s", // length 32
@@ -102,40 +103,113 @@ static void handshake()
 
 void scrobsub_start(char* artist, char* track, char* album, char* mbid, uint duration, uint track_number)
 {
-    state = PLAYING
+    //TODO
+//    static time_t previous_np = 0;
+//    time_t time = now();
+//    if(time - previous_np < 4)
+    
+    state = PLAYING;
     
     if(use_the_moose()){
         moose_push(artist, track, album, mbid, duration, track_number);
         return;
     }
+        
+    if (duration>9999) duration = 9999;
+    if (track_number>99) track_number = 99;
     
+    N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
+    int n = 32+4+2+N +2+6*3;
+    char post_data[n];
+    snprintf(post_data, n, "s=%s"
+                          "&a=%s"
+                          "&t=%s"
+                          "&b=%s"
+                          "&l=%d"
+                          "&n=%d"
+                          "&m=%s",
+                          session_id,
+                          artist,
+                          track,
+                          duration,
+                          track_number,
+                          mbid);
     
+    for(int x = 0; x < 2; ++x){
+        char response[3];
+        post(response, np_host, np_port, np_path, post_data);
+        if(strcmp(response, "OK") == 0)
+            break;
+        handshake();
+    }
 }
 
 
 void scrobsub_pause()
 {
-    if(state != PLAYING)
-        return;
-
-    state = PAUSED;
-    pause_time = now();
+    if(state == PLAYING){
+        state = PAUSED;
+        // we subtract pause_time so we continue to keep a record of the amount
+        // of time paused so far
+        pause_time = now() - pause_time;
+    }
 }
 
 
 void scrobsub_resume()
 {
+    if(state == PAUSED){
+        pause_time = now() - pause_time;
+        state = PLAYING
+    }
+}
+
+
+static uint scrobble_time(uint duration)
+{
+    if(duration>240*2) return 240;
+    if(duration<30) return 30;
+    return duration/2;
+}
+
+
+static void submit()
+{
+    //TODO check track is valid to submit
     
+    if(state == PAUSED)
+        scrobsub_resume();
+    if(now() - timestamp + pause_time < scrobble_time(duration))
+        return;
+
+    int n = 32+N+10+1 +2+9*5
+    char post_data[n];
+        
+    n = snprintf(post_data, n, "s=%s"
+                           "&a[0]=%s"
+                           "&t[0]=%s"
+                           "&b[0]=%s"
+                           "&l[0]=%d"
+                           "&n[0]=%d"
+                           "&m[0]=%s"
+                           "&i[0]=%d"
+                           "&o[0]=%c"
+                           "&r[0]=",
+                           session_id, artist, track, album, duration, track_number, mbid, timestamp, 'P' );
+        
+    for (int x=0; x<2; ++x){    
+        char response[128];
+        post(response, submit_host, submit_port, submit_path, post_data);
+        if(strcmp(response,"BADSESSION")
+            handshake();
+        break;
+    }
 }
 
 
 void scrobsub_stop()
 {
-    
-}
-
-
-void scrobsub_force_submit()
-{
-    
+    if(state != STOPPED)
+        submit();
+    state = STOPPED;
 }

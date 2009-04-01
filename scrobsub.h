@@ -50,9 +50,4 @@ void scrobsub_resume();
   * scrobsub_start() instead */
 void scrobsub_stop();
 
-
-/** can be useful sometimes, has no effect if the official Auidioscrobbler is
-  * calling the shots */
-void scrobsub_force_submit();
-
 #endif
