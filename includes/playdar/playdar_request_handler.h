@@ -51,8 +51,12 @@ private:
     void serve_sid(const moost::http::request& req, moost::http::reply& rep, source_uid sid);
     void serve_dynamic( const moost::http::request& req, moost::http::reply& rep, 
                                         string tpl, map<string,string> vars);
+
+    void handle_auth1( map<string, string>& vars, const moost::http::request& req, moost::http::reply& );
     MyApplication * m_app;
-    
+   
+    typedef std::map< const string, boost::function<void( map<string, string>&, const moost::http::request&, moost::http::reply&)> > HandlerMap;
+    HandlerMap m_urlHandlers;
 
 };
 
