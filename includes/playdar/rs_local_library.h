@@ -11,7 +11,7 @@ class RS_local_library : public ResolverService
 {
     public:
     RS_local_library(){}
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     void set_app(MyApplication * a)
     {
         m_app = a;

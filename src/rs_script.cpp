@@ -16,7 +16,7 @@ namespace resolvers {
     init() will spawn the external script and block until the script
     sends us a settings object, containing a name, weight and targettime.
 */
-void
+bool
 rs_script::init(playdar::Config * c, Resolver * r, string script) 
 {
     m_resolver  = r;
@@ -34,11 +34,12 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
         m_name = "MISSING SCRIPT PATH";
         m_dead = true;
         m_weight = 0;
-        throw;
+        return false;
     }
     else if(!boost::filesystem::exists(m_scriptpath))
     {
         cout << "-> FAILED - script doesn't exist at: " << m_scriptpath << endl;
+        return false;
     }
     else
     {
@@ -70,8 +71,10 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
             cout << "-> FAILED - script didn't report any settings" << endl;
             m_dead = true;
             m_weight = 0; // disable us.
+            return false;
         }
     }
+    return true;
 }
 
 rs_script::~rs_script() throw()
@@ -239,10 +242,15 @@ rs_script::process_output()
         }
         
         // a query result:
-        if(msgtype == "results")
+        if( msgtype == "results" &&
+            rr.find("qid") != rr.end() && 
+            rr["qid"].type() == str_type &&
+            rr.find("results") != rr.end() && 
+            rr["results"].type() == array_type )
         {
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
+            cout << "Got " << resultsA.size() << " results from script" << endl;
             vector< boost::shared_ptr<PlayableItem> > v;
             BOOST_FOREACH(Value & result, resultsA)
             {

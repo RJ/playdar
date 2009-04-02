@@ -10,7 +10,7 @@
 */
 
     
-void
+bool
 RS_local_library::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
@@ -25,6 +25,7 @@ RS_local_library::init(playdar::Config * c, Resolver * r)
     }
     // worker thread for doing actual resolving:
     m_t = new boost::thread(boost::bind(&RS_local_library::run, this));
+    return true;
 }
 
 void

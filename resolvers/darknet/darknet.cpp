@@ -17,7 +17,7 @@
 
 using namespace playdar::resolvers;
 
-void
+bool
 darknet::init(playdar::Config * c, Resolver * r)
 {
     m_resolver = r;
@@ -51,6 +51,7 @@ darknet::init(playdar::Config * c, Resolver * r)
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
     }
+    return true;
 }
 
 darknet::~darknet() throw()
@@ -328,7 +329,6 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     boost::shared_ptr<StreamingStrategy> s(
                             new DarknetStreamingStrategy( this, conn, pip->id() ));
     pip->set_streaming_strategy(s);
-    //pip->set_preference((float)0.6); 
     vector< boost::shared_ptr<PlayableItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr, name());

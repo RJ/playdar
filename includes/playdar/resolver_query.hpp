@@ -144,7 +144,9 @@ public:
     bool sorter(const boost::shared_ptr<PlayableItem> & lhs, const boost::shared_ptr<PlayableItem> & rhs)
     {
         // if equal scores, prefer item with higher preference (ie, network reliability)
-        if(lhs->score() == rhs->score()) return lhs->preference() > rhs->preference();
+        //if(lhs->score() == rhs->score()) return lhs->preference() > rhs->preference();
+        // TODO: the one that came from the resolverservice with the
+        // highest weight should win if there is a tie.
         return lhs->score() > rhs->score();
     }
 

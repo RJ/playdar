@@ -7,7 +7,7 @@ namespace playdar
 {
     namespace resolvers
     {
-        class ampache : public ResolverService
+        class ampache : public ResolverServicePlugin
         {
             string auth;
             
@@ -21,7 +21,7 @@ namespace playdar
             std::map<int, Query> queries;
             
         public:
-            virtual void init(playdar::Config * c, Resolver * r);
+            virtual bool init(playdar::Config * c, Resolver * r);
  
             void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     

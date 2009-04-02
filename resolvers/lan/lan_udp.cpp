@@ -3,7 +3,7 @@
 namespace playdar {
 namespace resolvers {
 
-void
+bool
 lan_udp::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
@@ -14,6 +14,7 @@ lan_udp::init(playdar::Config * c, Resolver * r)
             (conf()->get<string> ("plugins.lan_udp.multicast", "")), 
            conf()->get<int>("plugins.lan_udp.port", 0));
     m_responder_thread = new boost::thread(boost::bind(&lan_udp::run, this));
+    return true;
 }
 
 lan_udp::~lan_udp() throw()
@@ -232,8 +233,6 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 boost::shared_ptr<StreamingStrategy> 
                     s(new HTTPStreamingStrategy(url));
                 pip->set_streaming_strategy(s);
-                // anything on udp multicast must be pretty fast:
-                pip->set_preference((float)0.9); 
                 vector< boost::shared_ptr<PlayableItem> > v;
                 v.push_back(pip);
                 report_results(qid, v, name());
