@@ -64,13 +64,8 @@ def resolve(artist, track):
 
 ####################################################################### settings
 settings = dict()
-<<<<<<< HEAD:etc/seeqpod-resolver.py
-ettings["settings"] = True
-settings["name"] = "SeeqPod Resolver (Python 2.5)"
-=======
 settings["settings"] = True
 settings["name"] = "SeeqPod Resolver"
->>>>>>> 3b70386533c13b006dd3a7684af15dd99e870959:etc/seeqpod-resolver.py
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
