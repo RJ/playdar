@@ -2,7 +2,7 @@ PROJECT(playdarproject)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.6 FATAL_ERROR)
 
 SET(PLAYDAR_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
-SET(CMAKE_MODULE_PATH "${PLAYDAR_PATH}/CMakeModules")
+SET(CMAKE_MODULE_PATH "c:/cygwin/home/doug/CMakeModules" "${PLAYDAR_PATH}/CMakeModules")
 
 SET(SRC "${PLAYDAR_PATH}/src")
 SET(DEPS "${PLAYDAR_PATH}/deps")
@@ -12,17 +12,19 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_PATH}/bin")
 # Don't really do 'make install' properly yet:
 SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
+SET(Boost_USE_STATIC_LIBS ON)
+SET(Boost_USE_MULTITHREADED ON)
+FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
-FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options)
 FIND_PACKAGE(OsspUuid REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 # we're not doing this because CMake sucks and RJ's machine had the right one
 # in /usr/local and an old one in /usr and CMake chose the wrong one :P
-#FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
+FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
 
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
-                    #${URIPARSER_INCLUDE_DIR}
+                    ${URIPARSER_INCLUDE_DIR}
                     ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
@@ -42,7 +44,7 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
 #add definitions, compiler switches, etc.
-ADD_DEFINITIONS(-Wall -ggdb) 
+#ADD_DEFINITIONS(-Wall -ggdb) 
 
 # PDL doesn't know apple mac = posix, this tells it:
 IF(APPLE)
@@ -56,30 +58,60 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
               )
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
-                      ${Boost_FILESYSTEM_LIBRARY}
-                      ${Boost_SYSTEM_LIBRARY}
-                      ${Boost_REGEX_LIBRARY}
-                      ${Boost_THREAD_LIBRARY}
+					  ${Boost_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 
+ADD_LIBRARY( playdarlib STATIC
+			${SRC}/application.cpp
+			${SRC}/resolver.cpp
+			${SRC}/resolver_service.cpp
+			${SRC}/rs_local_library.cpp
+			${SRC}/rs_script.cpp
+			${SRC}/library.cpp
+			
+			# json parser:
+			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
+			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
+			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
+			
+			# Portable Dynamic Loader:
+			${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
+			${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
+			${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
+			${DEPS}/pdl-0.3.0/src/LoaderException.cpp
+		
+			${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
+
+			${SRC}/rql/ResultSet.cpp
+			${SRC}/rql/RqlQuery.cpp
+			${SRC}/rql/RqlOpProcessor.cpp
+			${SRC}/rql/parser/parser.cpp
+			${SRC}/rql/SimilarArtists.cpp
+			)
+			
+TARGET_LINK_LIBRARIES( playdarlib 
+			${SQLITE3_LIBRARIES}
+			)
+	
+					  
 ADD_EXECUTABLE( playdar
 
-                ${SRC}/application.cpp
-                ${SRC}/resolver.cpp
-                ${SRC}/resolver_service.cpp
-                ${SRC}/rs_local_library.cpp
-                ${SRC}/rs_script.cpp
-                ${SRC}/library.cpp
+                #${SRC}/application.cpp
+                #${SRC}/resolver.cpp
+                #${SRC}/resolver_service.cpp
+                #${SRC}/rs_local_library.cpp
+                #${SRC}/rs_script.cpp
+                #${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar/main.cpp
 
                 # sqlite wrapper:
-                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
+                #${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
 
                 # json parser:
-                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
-                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
-                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
+                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
+                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
+                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
 
                 # moost http:
                 ${DEPS}/moost_http/src/http/filesystem_request_handler.cpp
@@ -88,25 +120,21 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/moost_http/src/http/request_parser.cpp
 
                 # Portable Dynamic Loader:
-                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
+                #${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
+                #${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
+                #${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
+                #${DEPS}/pdl-0.3.0/src/LoaderException.cpp
               )
 
 TARGET_LINK_LIBRARIES( playdar 
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
-                       #${URIPARSER_LIBRARIES} # BSD
-                       uriparser
+                       ${URIPARSER_LIBRARIES} # BSD
                        ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_REGEX_LIBRARY} # Boost license
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_FILESYSTEM_LIBRARY} 
-                       ${Boost_THREAD_LIBRARY}
-                       ${Boost_PROGRAM_OPTIONS_LIBRARY}
+					   ${Boost_LIBRARIES}	  # Boost license
+					   playdarlib
                      )
-
+					 
 INSTALL(TARGETS scanner RUNTIME DESTINATION bin)
 INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
 
