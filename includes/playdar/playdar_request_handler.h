@@ -63,7 +63,8 @@ private:
     void handle_sid( const moost::http::request& req, moost::http::reply& );
     void handle_quickplay( const moost::http::request& req, moost::http::reply& );
     void handle_api( const moost::http::request& req, moost::http::reply& );
-    
+    void handle_pluginurl( const moost::http::request& req, moost::http::reply& );
+
     string handle_queries_root();
     MyApplication * m_app;
    

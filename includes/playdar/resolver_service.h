@@ -58,19 +58,13 @@ public:
         vector< boost::shared_ptr<PlayableItem> > results,
         string via);
     
-    // default is empty, ie no http urls handle
-    virtual vector<string> get_http_handlers()
-    {
-        vector<string> h;
-        return h;
-    }
     
     // handler for HTTP reqs we are registerd for:
     virtual string http_handler( string url,
                                  vector<string> parts,
                                  map<string,string> getvars,
                                  map<string,string> postvars,
-                                playdar::auth * pauth)
+                                 playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
     }
