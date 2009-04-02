@@ -5,3 +5,4 @@ build/Makefile
 build/resolvers
 bin
 .DS_Store
+etc/simplejson/*.pyc

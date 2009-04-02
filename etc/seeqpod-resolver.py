@@ -37,7 +37,7 @@ def percent_encode(url):
     # Ha! Yeah, needs work
     return url.replace(' ', '%20')
 
-def element_value(e, name, throw = True):
+def element_value(e, name, throw = False):
     try:
         return e.getElementsByTagName(name)[0].firstChild.nodeValue
     except:
@@ -54,19 +54,23 @@ def resolve(artist, track):
             t = dict()
             t["artist"] = element_value(e, 'creator')
             t["track"]  = element_value(e, 'title')
-            t["url"]    = percent_encode(element_value(e, 'location'))
-            t["album"]  = element_value(e, 'album', False)
-            t["source"] = "SeeqPod"
+            t["album"]  = element_value(e, 'album')
+            t["url"]    = percent_encode(element_value(e, 'location'), True)
+            t["source"] = 'SeeqPod'
             tracks.append(t)
-            break # the json calls are slow, one is enough
         except:
             pass
     return tracks
 
 ####################################################################### settings
 settings = dict()
+<<<<<<< HEAD:etc/seeqpod-resolver.py
 ettings["settings"] = True
 settings["name"] = "SeeqPod Resolver (Python 2.5)"
+=======
+settings["settings"] = True
+settings["name"] = "SeeqPod Resolver"
+>>>>>>> 3b70386533c13b006dd3a7684af15dd99e870959:etc/seeqpod-resolver.py
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
@@ -77,6 +81,9 @@ while 1:
     length = unpack('!L', length)[0]
     if not length:
         break
+    # something probably went wrong, most likely we're out of sync and are 
+    # reading the 4 bytes length header in the middle of a json string. We can't
+    # recover. Bail.
     if length > 4096 or length < 0:
         break
     if length > 0:
