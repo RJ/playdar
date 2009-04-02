@@ -67,10 +67,12 @@ public:
             {
                 memcpy(buf, m_partial.c_str(), p);
                 m_partial="";
+                m_bytesreceived+=p;
                 return p;
             }else{
                 memcpy(buf, m_partial.c_str(), size);
                 m_partial = m_partial.substr(size-1, string::npos);
+                m_bytesreceived+=size;
                 return size;
             }
         }
@@ -79,11 +81,15 @@ public:
 
         if (error == boost::asio::error::eof)
         {
+            m_bytesreceived+=len;
+            cout << "Clean shutdown, bytes recvd: " << m_bytesreceived << endl;
             reset();
             return len; // Connection closed cleanly by peer.
         }
         else if (error)
         {
+            m_bytesreceived+=len;
+            cout << "Unclean shutdown, bytes recvd: " << m_bytesreceived << endl;
             reset();
             throw boost::system::system_error(error); // Some other error.
         }   
@@ -198,18 +204,29 @@ private:
         {
             if(headers.find("location")==headers.end())
             {
-                cerr << "HTTP redirect given with no Location header! error." << endl;
+                cerr << "HTTP redirect given with no Location header!" 
+                     << endl;
                 return;
             }
             if(m_numredirects++==3)
             {
-                cerr << "HTTP Redirect limit of 3 reached. Failed." << endl;
+                cerr << "HTTP Redirect limit of 3 reached. Failed." 
+                     << endl;
                 return;
             }
-            // reset and connect to new server we are redirected to:
-            cout << "Following HTTP redirect to: " << headers["location"] 
-                 << endl;
-            parse_url(headers["location"]);
+            
+            string newurl = headers["location"];
+            if(newurl.at(0)=='/')
+            {
+                // if it starts with / it's on same domain, rebuild full url
+                ostringstream oss;
+                oss << "http://" << m_host << ":" << m_port 
+                    << headers["location"];
+                newurl = oss.str();
+            }
+            cout << "Following HTTP redirect to: " << newurl << endl;
+            // recurse - this resets connection and tries again.
+            parse_url(newurl);
             do_connect();
             return;
         }
