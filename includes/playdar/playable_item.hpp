@@ -28,7 +28,6 @@ public:
         set_mimetype("text/plain");
         set_preference(1.0);
         set_source("unspecified");
-
     }
     
     PlayableItem(string art, string alb, string trk)

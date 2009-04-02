@@ -6,8 +6,7 @@
 #include "playdar/auth.hpp"
 #include <DynamicClass.hpp>
 
-
-class ResolverService : public PDL::DynamicClass, std::exception
+class ResolverService
 {
 public:
     ResolverService(){}
@@ -17,10 +16,12 @@ public:
         cout << "Unloading " << name() << endl;
     }
     
-    virtual void init(playdar::Config * c, Resolver * r)
+    // called once at startup. returning false disables this resolver.
+    virtual bool init(playdar::Config * c, Resolver * r)
     {
         m_resolver = r;
         m_conf = c;
+        return true;
     }
     
     virtual const playdar::Config * conf() const
@@ -74,12 +75,21 @@ public:
         return "This plugin has no web interface.";
     }
     
-    DECLARE_DYNAMIC_CLASS( ResolverService )
-    
 protected:
 
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;
 };
+
+// this is what the dynamically loaded resolver plugins extend:
+class ResolverServicePlugin 
+ : public PDL::DynamicClass,
+   public ResolverService
+{
+public:
+    DECLARE_DYNAMIC_CLASS( ResolverServicePlugin )
+};
+
+
 #endif

@@ -4,11 +4,12 @@
 namespace playdar {
 namespace resolvers {
 
-void
+bool
 ampache::init(playdar::Config * c, Resolver * r)
 {
     ResolverService::init( c, r );
     handshake();
+    return true;
 }
 
 void

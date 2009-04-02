@@ -17,7 +17,7 @@
 
 using namespace playdar::resolvers;
 
-void
+bool
 darknet::init(playdar::Config * c, Resolver * r)
 {
     m_resolver = r;
@@ -51,6 +51,7 @@ darknet::init(playdar::Config * c, Resolver * r)
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
     }
+    return true;
 }
 
 darknet::~darknet() throw()

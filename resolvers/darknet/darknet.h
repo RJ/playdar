@@ -17,13 +17,13 @@ namespace resolvers {
 
 class Servent; //fwd decl
 
-class darknet : public ResolverService
+class darknet : public ResolverServicePlugin
 {
 
 public:
     darknet(){};
     
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     

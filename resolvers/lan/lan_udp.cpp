@@ -3,7 +3,7 @@
 namespace playdar {
 namespace resolvers {
 
-void
+bool
 lan_udp::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
@@ -14,6 +14,7 @@ lan_udp::init(playdar::Config * c, Resolver * r)
             (conf()->get<string> ("plugins.lan_udp.multicast", "")), 
            conf()->get<int>("plugins.lan_udp.port", 0));
     m_responder_thread = new boost::thread(boost::bind(&lan_udp::run, this));
+    return true;
 }
 
 lan_udp::~lan_udp() throw()
