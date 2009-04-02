@@ -26,7 +26,6 @@ public:
         set_size(0);
         set_bitrate(0);
         set_mimetype("text/plain");
-        set_preference(1.0);
         set_source("unspecified");
     }
     
@@ -127,7 +126,6 @@ public:
         j.push_back( Pair("duration", duration()) );
         j.push_back( Pair("url", url()) );
         j.push_back( Pair("score", (double)score()) );
-        j.push_back( Pair("preference", (double)preference()) );
         return j;
     }
 
@@ -148,23 +146,17 @@ public:
     void set_track(string s)    { m_track  = s; }
     void set_url(string s)      { m_url    = s; }
     void set_source(string s)   { m_source = s; }
-    void set_mimetype(string s)   { m_mimetype = s; }
+    void set_mimetype(string s) { m_mimetype = s; }
     void set_duration(int s)    { m_duration = s; }
     void set_tracknum(int s)    { m_tracknum = s; }
-    void set_size(int s)    { m_size = s; }
-    void set_bitrate(int s)    { m_bitrate = s; }
-    void set_score(float s)     
+    void set_size(int s)        { m_size = s; }
+    void set_bitrate(int s)     { m_bitrate = s; }
+    void set_score(float s)
     { 
         assert(s <= 1.0);
         assert(s >= 0);
         m_score  = s; 
     }
-    void set_preference(float s)   // bigger = faster network
-    { 
-        assert(s <= 1.0);
-        assert(s >= 0);
-        m_preference = s; 
-    } 
     
     // getters
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
@@ -192,7 +184,6 @@ public:
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
     const int size() const          { return m_size; }
-    const float preference() const  { return 1.0 ; }
     
 private:
     boost::shared_ptr<StreamingStrategy> m_ss;
@@ -206,7 +197,6 @@ private:
     int m_duration;
     int m_bitrate;
     int m_tracknum;
-    float m_preference;
     float m_score;
     string m_source;
 };

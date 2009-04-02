@@ -233,8 +233,6 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 boost::shared_ptr<StreamingStrategy> 
                     s(new HTTPStreamingStrategy(url));
                 pip->set_streaming_strategy(s);
-                // anything on udp multicast must be pretty fast:
-                pip->set_preference((float)0.9); 
                 vector< boost::shared_ptr<PlayableItem> > v;
                 v.push_back(pip);
                 report_results(qid, v, name());
