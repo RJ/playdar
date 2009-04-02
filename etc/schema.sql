@@ -96,4 +96,17 @@ CREATE TABLE IF NOT EXISTS playdar_settings (
 );
 CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
 
+-- Community tags
 
+CREATE TABLE IF NOT EXISTS tag (
+	name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS track_tag (
+	track INTEGER NOT NULL REFERENCES track(id),
+	tag INTEGER NOT NULL REFERENCES tag(id),
+	weight FLOAT NOT NULL
+);
+
+CREATE UNIQUE INDEX track_tag_track_idx ON track_tag(track);
+CREATE UNIQUE INDEX track_tag_tag_idx ON track_tag(tag);

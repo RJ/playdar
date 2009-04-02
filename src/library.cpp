@@ -590,5 +590,18 @@ Library::load_album(int n)
     return ptr;
 }
 
+boost::shared_ptr<Library::tagvec> 
+Library::get_tags()
+{
+    sqlite3pp::query qry(m_db, 
+        "SELECT name, sum(weight) FROM track_tag"
+        "INNER JOIN tag ON track_tag.tag = tag.id");
+    int count = qry.begin()->data_count();
+    boost::shared_ptr<tagvec> p( new tagvec( count ) );
+    for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+        p->push_back( i->get_columns<string, float>(0, 1) );
+    }
+    return p;
+}
 
-
+Library::rql()

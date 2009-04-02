@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <map>
 #include <vector>
+#include <boost/thread.hpp>
 #include "sqlite3pp.h"
 
 using namespace std;
@@ -14,8 +15,8 @@ using namespace std;
 #include "playdar/album.h"
 #include "playdar/track.h"
 
-#include "playdar/streaming_strategy.h"
-#include "playdar/ss_localfile.hpp"
+//#include "playdar/streaming_strategy.h"
+//#include "playdar/ss_localfile.hpp"
 
 class MyApplication;
 
@@ -64,6 +65,10 @@ public:
     
     track_ptr   load_track(artist_ptr artp, string n);
     track_ptr   load_track(int n);
+
+    // tags:
+    typedef vector< boost::tuple<string, float> > tagvec;
+    boost::shared_ptr<tagvec> get_tags();
 
     // browsing:
     vector< boost::shared_ptr<Artist> > list_artists();
