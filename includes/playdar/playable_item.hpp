@@ -20,6 +20,13 @@ class PlayableItem
 public:
     PlayableItem()
     {
+    }
+    
+    PlayableItem(string art, string alb, string trk)
+    {
+        set_artist(art);
+        set_album(alb);
+        set_track(trk);
         set_duration(0);
         set_tracknum(0);
         set_score(0);
@@ -28,15 +35,6 @@ public:
         set_mimetype("text/plain");
         set_preference(1.0);
         set_source("unspecified");
-
-    }
-    
-    PlayableItem(string art, string alb, string trk)
-    {
-        PlayableItem();
-        set_artist(art);
-        set_album(alb);
-        set_track(trk);
     }
     
     ~PlayableItem()
