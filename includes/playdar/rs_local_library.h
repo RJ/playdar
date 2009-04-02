@@ -54,6 +54,8 @@ class RS_local_library : public ResolverService
         deque<rq_ptr> m_pending;
         boost::mutex m_mutex;
         boost::condition m_cond;
+        
+        vector<scorepair> find_candidates(rq_ptr rq, unsigned int limit = 0);
     
 ;
 };

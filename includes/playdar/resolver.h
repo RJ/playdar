@@ -83,6 +83,11 @@ public:
     void run_pipeline( rq_ptr rq, unsigned short lastweight );
     
     void dispatch_runner();
+    
+
+    float calculate_score( const rq_ptr & rq, // query
+                           const pi_ptr & pi, // candidate
+                           string & reason ); // fail reason
 
     
 private:
