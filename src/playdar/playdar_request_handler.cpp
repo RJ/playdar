@@ -31,7 +31,11 @@ playdar_request_handler::init(MyApplication * app)
     m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
 
-    m_urlHandlers[ "auth1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2, _3 );
+    m_urlHandlers[ "auth_1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2 );
+    m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
+    m_urlHandlers[ "shutdown" ] = boost::bind( &playdar_request_handler::handle_shutdown, this, _1, _2 );
+    m_urlHandlers[ "settings" ] = boost::bind( &playdar_request_handler::handle_settings, this, _1, _2 );
+    m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
 }
 
 
@@ -41,6 +45,18 @@ playdar_request_handler::sid_to_url(source_uid sid)
     string u = app()->conf()->httpbase();
     u += "/sid/" + sid;
     return u;
+}
+
+
+void 
+playdar_request_handler::collect_parts( const string & url, vector<string>& parts )
+{
+    const string& path = url.substr(0, url.find("?"));
+    
+    boost::split(parts, path, boost::is_any_of("/"));
+    
+    if(parts.size() && parts[0]=="") parts.erase(parts.begin());
+    if(parts.size() && *(parts.end() -1)=="") parts.erase(parts.end()-1);
 }
 
 
@@ -100,12 +116,10 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
     /// parse URL parts
-    string url = req.uri.substr(0, req.uri.find("?"));
-    vector<std::string> parts;
-    boost::split(parts, url, boost::is_any_of("/"));
-    cout << "**Parts: ";
-    for( vector<std::string>::iterator i = parts.begin(); i != parts.end(); i++ )
-        cout << "  " << *i << endl;
+    const string& url = req.uri.substr(0, req.uri.find("?"));
+    
+    vector<string> parts;
+    collect_parts( url, parts );
 
     // get rid of cruft from leading/trailing "/" and split:
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
@@ -129,99 +143,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         //cout << "AUTH: no auth value provided." << endl;
     }
 
-    if( m_urlHandlers.find( url ) != m_urlHandlers.end())
-        m_urlHandlers[ url ]( getvars, req, rep );
+    HandlerMap::iterator handler = m_urlHandlers.find( parts[0] );
+    if( handler != m_urlHandlers.end())
+        handler->second( req, rep );
     else
     {
-
-        /// localhost/ - the playdar instance homepage on localhost
-        if(url=="/")
-        {
-            ostringstream os;
-            os  << "<h2>" << app()->conf()->name() << "</h2>"
-                << "<p>"
-                << "Your Playdar server is running! Websites and applications that "
-                << "support Playdar will ask your permission, and then be able to "
-                << "access music you have on your machine."
-                << "</p>"
-
-                << "<p>"
-                << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
-                << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
-                << "</p>"
-
-                << "<p>"
-                << "For the real demo that uses the JSON API, check "
-                << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
-                << "</p>"
-
-                << "<p>"
-                << "<h3>Resolver Pipeline</h3>"
-                << "<table>"
-                << "<tr style=\"font-weight: bold;\">"
-                << "<td>Plugin Name</td>"
-                << "<td>Weight</td>"
-                << "<td>Target Time</td>"
-                << "<td>Configuration</td>"
-                << "</tr>"
-                ;
-            unsigned short lw = 0;
-            bool dupe = false;
-            int i = 0;
-            string bgc="";
-            BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
-            {
-                if(lw == lrs.weight) dupe = true; else dupe = false;
-                if(lw==0) lw = lrs.weight;
-                if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
-                os  << "<tr style=\"background-color: " << bgc << "\">"
-                    << "<td>" << lrs.rs->name() << "</td>"
-                    << "<td>" << lrs.weight << "</td>"
-                    << "<td>" << lrs.targettime << "ms</td>";
-                os << "<td>" ;
-                vector<string> urls = lrs.rs->get_http_handlers();
-                if( urls.size() )
-                {
-                    BOOST_FOREACH(string u, urls)
-                    {
-                        os << "<a href=\""<< u <<"\">" << u << "</a><br/> " ;
-                    }
-                }
-                os  << "</td></tr>" << endl;
-            }
-            os  << "</table>"
-                << "</p>"
-                ;
-            serve_body(os.str(), req, rep);
-        }
-        else if(url=="/shutdown/")
-        {
-            app()->shutdown();
-        }
-        /// Show config file (no editor yet)
-        else if(url=="/settings/config/")
-        {
-            ostringstream os;
-            os  << "<h2>Configuration</h2>"
-                << "<p>"
-                << "Config options are stored as a JSON object in the file: "
-                << "<code>" << app()->conf()->filename() << "</code>"
-                << "</p>"
-                << "<p>"
-                << "The contents of the file are shown below, to edit it use "
-                << "your favourite text editor."
-                << "</p>"
-                << "<pre>"
-                << app()->conf()->str()
-                << "</pre>"
-                ;
-            serve_body(os.str(), req, rep);
-        }
-
-        /// Phase 2  - Provided the formtoken is valid, the user has authenticated
-        ///            and we should create a new authcode and pass it on to the 
-        ///            originating domain, which will probably set it in a cookie.
-        else if(url=="/auth_2/" &&
+        cout << "**No Handler found for: " << url << endl;
+        if(url=="/auth_2/" &&
                 postvars.find("website") != postvars.end() &&
                 postvars.find("name") != postvars.end() &&
                 postvars.find("formtoken") != postvars.end() )
@@ -259,157 +187,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
                 rep = rep.stock_reply(moost::http::reply::unauthorized); 
                 rep.content = "Not Authorized";
             }
-        }
-        /// show active queries:
-        else if(url=="/queries/")
-        {
-            size_t numqueries = app()->resolver()->qids().size();
-            ostringstream os;
-            os  << "<h2>Current Queries ("
-                << numqueries <<")</h2>"
-
-                << "<table>"
-                << "<tr style=\"font-weight:bold;\">"
-                << "<td>QID</td>"
-                << "<td>Artist</td>"
-                << "<td>Album</td>"
-                << "<td>Track</td>"
-                << "<td>Origin</td>"
-                << "<td>Results</td>"
-                << "</tr>"
-                ;
-            int i  = 0;
-            deque< query_uid>::const_iterator it =
-                app()->resolver()->qids().begin();
-            string bgc="";
-            while(it != app()->resolver()->qids().end())
-            {
-                rq_ptr rq;
-                try
-                { 
-                    rq = app()->resolver()->rq(*it); 
-                    bgc = (++i%2) ? "lightgrey" : "";
-                    os  << "<tr style=\"background-color: "<< bgc << "\">"
-                        << "<td style=\"font-size:60%;\">" 
-                        << "<a href=\"/queries/"<< rq->id() <<"\">" 
-                        << rq->id() << "</a></td>"
-                        << "<td>" << rq->artist() << "</td>"
-                        << "<td>" << rq->album() << "</td>"
-                        << "<td>" << rq->track() << "</td>"
-                        << "<td>" << rq->from_name() << "</td>"
-                        << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
-                        << rq->num_results() << "</td>"
-                        << "</tr>"
-                        ; 
-                } catch(...) { }
-                it++;
-            }
-            serve_body( os.str(), req, rep );
-        }
-        /// Inspect specific query id:
-        else if(parts[0]=="queries" && parts.size() == 2)
-        {
-            query_uid qid = parts[1];
-            rq_ptr rq = app()->resolver()->rq(qid);
-            if(!rq)
-            {
-                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
-                return;
-            }
-            vector< pi_ptr > results = rq->results();
-
-            ostringstream os;
-            os  << "<h2>Query: " << qid << "</h2>"
-                << "<table>"
-                << "<tr><td>Artist</td>"
-                << "<td>" << rq->artist() << "</td></tr>"
-                << "<tr><td>Album</td>"
-                << "<td>" << rq->album() << "</td></tr>"
-                << "<tr><td>Track</td>"
-                << "<td>" << rq->track() << "</td></tr>"
-                << "</table>"
-
-                << "<h3>Results (" << results.size() << ")</h3>"
-                << "<table>"
-                << "<tr style=\"font-weight:bold;\">"
-                << "<td>SID</td>"
-                << "<td>Artist</td>"
-                << "<td>Album</td>"
-                << "<td>Track</td>"
-                << "<td>Dur</td>"
-                << "<td>Kbps</td>"
-                << "<td>Size</td>"
-                << "<td>Source</td>"
-                << "<td>Score</td>"
-                << "</tr>"
-                ;
-            string bgc="";
-            int i = 0;
-            BOOST_FOREACH(pi_ptr pi, results)
-            {
-                bgc = ++i%2 ? "lightgrey" : "";
-                os  << "<tr style=\"background-color:" << bgc << "\">"
-                    << "<td style=\"font-size:60%\">"
-                    << "<a href=\"/sid/"<< pi->id() << "\">" 
-                    << pi->id() << "</a></td>"
-                    << "<td>" << pi->artist()   << "</td>"
-                    << "<td>" << pi->album()    << "</td>"
-                    << "<td>" << pi->track()    << "</td>"
-                    << "<td>" << pi->duration() << "</td>"
-                    << "<td>" << pi->bitrate()  << "</td>"
-                    << "<td>" << pi->size()     << "</td>"
-                    << "<td>" << pi->source()   << "</td>"
-                    << "<td>" << pi->score()    << "</td>"
-                    << "</tr>"
-                    ;
-            }
-            os  << "</table>";
-            serve_body( os.str(), req, rep );
-        }
-        /// Shows a list of every authenticated site
-        /// with a "revoke" options for each.
-        else if(url=="/settings/auth/")
-        {
-            ostringstream os;
-            os  << "<h2>Authenticated Sites</h2>";
-            typedef map<string,string> auth_t;
-            if( getvars.find("revoke")!=getvars.end() )
-            {
-                m_pauth->deauth(getvars["revoke"]);
-                os  << "<p style=\"font-weight:bold;\">"
-                    << "You have revoked access for auth-token: "
-                    << getvars["revoke"]
-                    << "</p>";
-            }
-            vector< auth_t > v = m_pauth->get_all_authed();
-            os  << "<p>"
-                << "The first time a site requests access to your Playdar, "
-                << "you'll have a chance to allow/deny it. You can see the list "
-                << "of authenticated sites here, and delete any if necessary."
-                << "</p>"
-                << "<table style=\"width:95%\">" << endl
-                <<  "<tr style=\"font-weight:bold;\">"
-                <<   "<td>Name</td>"
-                <<   "<td>Website</td>"
-                <<   "<td>Auth Code</td>"
-                <<   "<td>Options</td>"
-                <<  "</tr>"
-                << endl;
-            int i = 0;
-            string formtoken = m_pauth->gen_formtoken();
-            BOOST_FOREACH( auth_t &m, v )
-            {
-                os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
-                    <<  "<td>" << m["name"] << "</td>"
-                    <<  "<td>" << m["website"] << "</td>"
-                    <<  "<td>" << m["token"] << "</td>"
-                    <<  "<td><a href=\"/settings/auth/?revoke="  
-                    << m["token"] <<"\">Revoke</a>"
-                    <<  "</td>"
-                    << "</tr>";
-            }
-            os  << "</table>" << endl;
-            serve_body( os.str(), req, rep );
         }
         /// this is for serving static files, not sure we need it:
         else if(parts[0]=="static") 
@@ -491,10 +268,18 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 /// Phase 1 - this was opened in a popup from a button in the playdar 
 ///           toolbar on some site that needs to authenticate
 void 
-playdar_request_handler::handle_auth1( map<string, string>& getvars, 
-                                       const moost::http::request& req,
+playdar_request_handler::handle_auth1( const moost::http::request& req,
                                        moost::http::reply& rep)
 {
+    map<string, string> getvars;
+
+    // Parse params from querystring:
+    if( collect_params( req.uri, getvars ) == -1 )
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
+        return;
+    }
+    
     if( getvars.find("website") == getvars.end() ||
         getvars.find("name") == getvars.end() )
                 return;
@@ -511,6 +296,289 @@ playdar_request_handler::handle_auth1( map<string, string>& getvars,
     vars["<%WEBSITE%>"]=getvars["website"];
     vars["<%NAME%>"]=getvars["name"];
     serve_dynamic(req, rep, filename, vars);
+}
+
+
+void 
+playdar_request_handler::handle_root( const moost::http::request& req,
+                                      moost::http::reply& rep)
+{
+    ostringstream os;
+    os  << "<h2>" << app()->conf()->name() << "</h2>"
+        << "<p>"
+        << "Your Playdar server is running! Websites and applications that "
+        << "support Playdar will ask your permission, and then be able to "
+        << "access music you have on your machine."
+        << "</p>"
+
+        << "<p>"
+        << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+        << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+        << "</p>"
+
+        << "<p>"
+        << "For the real demo that uses the JSON API, check "
+        << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+        << "</p>"
+
+        << "<p>"
+        << "<h3>Resolver Pipeline</h3>"
+        << "<table>"
+        << "<tr style=\"font-weight: bold;\">"
+        << "<td>Plugin Name</td>"
+        << "<td>Weight</td>"
+        << "<td>Target Time</td>"
+        << "<td>Configuration</td>"
+        << "</tr>"
+        ;
+    unsigned short lw = 0;
+    bool dupe = false;
+    int i = 0;
+    string bgc="";
+    BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+    {
+        if(lw == lrs.weight) dupe = true; else dupe = false;
+        if(lw==0) lw = lrs.weight;
+        if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
+        os  << "<tr style=\"background-color: " << bgc << "\">"
+            << "<td>" << lrs.rs->name() << "</td>"
+            << "<td>" << lrs.weight << "</td>"
+            << "<td>" << lrs.targettime << "ms</td>";
+        os << "<td>" ;
+        vector<string> urls = lrs.rs->get_http_handlers();
+        if( urls.size() )
+        {
+            BOOST_FOREACH(string u, urls)
+            {
+                os << "<a href=\""<< u <<"\">" << u << "</a><br/> " ;
+            }
+        }
+        os  << "</td></tr>" << endl;
+    }
+    os  << "</table>"
+        << "</p>"
+        ;
+    serve_body(os.str(), req, rep);
+
+}
+
+void 
+playdar_request_handler::handle_shutdown( const moost::http::request& req,
+                                          moost::http::reply& rep )
+{
+    app()->shutdown();
+}
+
+void 
+playdar_request_handler::handle_settings( const moost::http::request& req,
+                                          moost::http::reply& rep )
+{
+    map<string, string> getvars;
+
+    // Parse params from querystring:
+    if( collect_params( req.uri, getvars ) == -1 )
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
+        return;
+    }
+    
+    vector<std::string> parts;
+    collect_parts( req.uri, parts );
+    
+    if( parts.size() == 1 || parts[1] == "config" )
+    {
+        ostringstream os;
+        os  << "<h2>Configuration</h2>"
+            << "<p>"
+            << "Config options are stored as a JSON object in the file: "
+            << "<code>" << app()->conf()->filename() << "</code>"
+            << "</p>"
+            << "<p>"
+            << "The contents of the file are shown below, to edit it use "
+            << "your favourite text editor."
+            << "</p>"
+            << "<pre>"
+            << app()->conf()->str()
+            << "</pre>"
+            ;
+        serve_body(os.str(), req, rep);
+    }
+    else if( parts[1] == "auth" )
+    {
+        ostringstream os;
+        os  << "<h2>Authenticated Sites</h2>";
+        typedef map<string,string> auth_t;
+        if( getvars.find("revoke")!=getvars.end() )
+        {
+            m_pauth->deauth(getvars["revoke"]);
+            os  << "<p style=\"font-weight:bold;\">"
+                << "You have revoked access for auth-token: "
+                << getvars["revoke"]
+                << "</p>";
+        }
+        vector< auth_t > v = m_pauth->get_all_authed();
+        os  << "<p>"
+            << "The first time a site requests access to your Playdar, "
+            << "you'll have a chance to allow/deny it. You can see the list "
+            << "of authenticated sites here, and delete any if necessary."
+            << "</p>"
+            << "<table style=\"width:95%\">" << endl
+            <<  "<tr style=\"font-weight:bold;\">"
+            <<   "<td>Name</td>"
+            <<   "<td>Website</td>"
+            <<   "<td>Auth Code</td>"
+            <<   "<td>Options</td>"
+            <<  "</tr>"
+            << endl;
+        int i = 0;
+        string formtoken = m_pauth->gen_formtoken();
+        BOOST_FOREACH( auth_t &m, v )
+        {
+            os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
+                <<  "<td>" << m["name"] << "</td>"
+                <<  "<td>" << m["website"] << "</td>"
+                <<  "<td>" << m["token"] << "</td>"
+                <<  "<td><a href=\"/settings/auth/?revoke="  
+                << m["token"] <<"\">Revoke</a>"
+                <<  "</td>"
+                << "</tr>";
+        }
+        os  << "</table>" << endl;
+        serve_body( os.str(), req, rep );
+    }
+    else
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+}
+
+string 
+playdar_request_handler::handle_queries_root()
+{
+    size_t numqueries = app()->resolver()->qids().size();
+    ostringstream os;
+    os  << "<h2>Current Queries ("
+        << numqueries <<")</h2>"
+
+        << "<table>"
+        << "<tr style=\"font-weight:bold;\">"
+        << "<td>QID</td>"
+        << "<td>Artist</td>"
+        << "<td>Album</td>"
+        << "<td>Track</td>"
+        << "<td>Origin</td>"
+        << "<td>Results</td>"
+        << "</tr>"
+        ;
+    int i  = 0;
+    deque< query_uid>::const_iterator it =
+        app()->resolver()->qids().begin();
+    string bgc="";
+    while(it != app()->resolver()->qids().end())
+    {
+        rq_ptr rq;
+        try
+        { 
+            rq = app()->resolver()->rq(*it); 
+            bgc = (++i%2) ? "lightgrey" : "";
+            os  << "<tr style=\"background-color: "<< bgc << "\">"
+                << "<td style=\"font-size:60%;\">" 
+                << "<a href=\"/queries/"<< rq->id() <<"\">" 
+                << rq->id() << "</a></td>"
+                << "<td>" << rq->artist() << "</td>"
+                << "<td>" << rq->album() << "</td>"
+                << "<td>" << rq->track() << "</td>"
+                << "<td>" << rq->from_name() << "</td>"
+                << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
+                << rq->num_results() << "</td>"
+                << "</tr>"
+                ; 
+        } catch(...) { }
+        it++;
+    }  
+    return os.str();
+}
+
+void 
+playdar_request_handler::handle_queries( const moost::http::request& req,
+                                         moost::http::reply& rep )
+{
+    vector<string> parts;
+    collect_parts( req.uri, parts );
+    
+    cout << "Query handler, parts: " << parts[0] << ", " << parts[1] << endl;
+    do
+    {
+        if( parts.size() == 1 )
+        {
+            const string& s = handle_queries_root();
+            serve_body( s, req, rep );
+            break;
+        }
+        else if( parts.size() == 2 )
+        {
+           query_uid qid = parts[1];
+           rq_ptr rq = app()->resolver()->rq(qid);
+           if(!rq)
+           {
+               rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+               return;
+           }
+           vector< pi_ptr > results = rq->results();
+
+           ostringstream os;
+           os  << "<h2>Query: " << qid << "</h2>"
+               << "<table>"
+               << "<tr><td>Artist</td>"
+               << "<td>" << rq->artist() << "</td></tr>"
+               << "<tr><td>Album</td>"
+               << "<td>" << rq->album() << "</td></tr>"
+               << "<tr><td>Track</td>"
+               << "<td>" << rq->track() << "</td></tr>"
+               << "</table>"
+
+               << "<h3>Results (" << results.size() << ")</h3>"
+               << "<table>"
+               << "<tr style=\"font-weight:bold;\">"
+               << "<td>SID</td>"
+               << "<td>Artist</td>"
+               << "<td>Album</td>"
+               << "<td>Track</td>"
+               << "<td>Dur</td>"
+               << "<td>Kbps</td>"
+               << "<td>Size</td>"
+               << "<td>Source</td>"
+               << "<td>Score</td>"
+               << "</tr>"
+               ;
+           string bgc="";
+           int i = 0;
+           BOOST_FOREACH(pi_ptr pi, results)
+           {
+               bgc = ++i%2 ? "lightgrey" : "";
+               os  << "<tr style=\"background-color:" << bgc << "\">"
+                   << "<td style=\"font-size:60%\">"
+                   << "<a href=\"/sid/"<< pi->id() << "\">" 
+                   << pi->id() << "</a></td>"
+                   << "<td>" << pi->artist()   << "</td>"
+                   << "<td>" << pi->album()    << "</td>"
+                   << "<td>" << pi->track()    << "</td>"
+                   << "<td>" << pi->duration() << "</td>"
+                   << "<td>" << pi->bitrate()  << "</td>"
+                   << "<td>" << pi->size()     << "</td>"
+                   << "<td>" << pi->source()   << "</td>"
+                   << "<td>" << pi->score()    << "</td>"
+                   << "</tr>"
+                   ;
+           }
+           os  << "</table>";
+           serve_body( os.str(), req, rep );
+           break;
+        }
+        else
+        {
+           rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        }
+    }
+    while( false );
 }
 
 //

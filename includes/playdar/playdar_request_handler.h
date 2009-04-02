@@ -41,6 +41,7 @@ private:
 
     string sid_to_url(source_uid sid); 
     int collect_params(const string & url, map<string,string> & vars);
+    void collect_parts(const string & url, vector<string>& parts);
     void handle_json_query(string query, const moost::http::request& req, moost::http::reply& rep);
     void handle_rest_api(map<string, string> querystring, const moost::http::request& req, moost::http::reply& rep, string permissions);
 
@@ -52,10 +53,15 @@ private:
     void serve_dynamic( const moost::http::request& req, moost::http::reply& rep, 
                                         string tpl, map<string,string> vars);
 
-    void handle_auth1( map<string, string>& vars, const moost::http::request& req, moost::http::reply& );
+    void handle_auth1( const moost::http::request& req, moost::http::reply& );
+    void handle_root( const moost::http::request& req, moost::http::reply& );
+    void handle_shutdown( const moost::http::request& req, moost::http::reply& );
+    void handle_settings( const moost::http::request& req, moost::http::reply& );
+    void handle_queries( const moost::http::request& req, moost::http::reply& );
+    string handle_queries_root();
     MyApplication * m_app;
    
-    typedef std::map< const string, boost::function<void( map<string, string>&, const moost::http::request&, moost::http::reply&)> > HandlerMap;
+    typedef std::map< const string, boost::function<void( const moost::http::request&, moost::http::reply&)> > HandlerMap;
     HandlerMap m_urlHandlers;
 
 };
