@@ -329,7 +329,6 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     boost::shared_ptr<StreamingStrategy> s(
                             new DarknetStreamingStrategy( this, conn, pip->id() ));
     pip->set_streaming_strategy(s);
-    //pip->set_preference((float)0.6); 
     vector< boost::shared_ptr<PlayableItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr, name());
