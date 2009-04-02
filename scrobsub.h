@@ -69,7 +69,7 @@ void scrobsub_force_submit();
 
 /** returns true if there's a key, provide a char[33] as out if you want it, but 
   * feel free to pass 0 */ 
-bool scrobsub_session_key(char* out);
+bool scrobsub_session_key(const char* out);
 
 
 /** for your convenience, we use it, so maybe you need to as well */

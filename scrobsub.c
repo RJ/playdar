@@ -28,16 +28,22 @@ static time_t pause_time = 0;
 static int state = SCROBSUB_STOPPED;
 static char* session_id = 0;
 static unsigned int N = 0;
+static char* np_url = 0;
+static char* submit_url = 0;
+
+
+static const char* artist;
+static const char* track;
+static const char* album;
+static const char* mbid;
+static unsigned int duration;
+static unsigned int track_number;
 
 
 void(*scrobsub_callback)(int event, const char* message);
-void scrobsub_get(char* response, const char* host, const char* path);
-void scrobsub_post(char* response, const char* host, const char* path, const char* post_data);
-
-bool scrobsub_session_key(char* out)
-{
-    return false;
-}
+void scrobsub_get(char* response, const char* url);
+void scrobsub_post(char* response, const char* url, const char* post_data);
+void scrobsub_parse_ok_handshake_response(char* response);
 
 
 static bool use_the_moose()
@@ -89,37 +95,69 @@ static const char* get_username()
 }
 
 
+static char* handshake_response_strdup(char** p)
+{
+    char* start = *p;
+    while (*++(*p)) if (**p == '\n') break;
+    **p = '\0';
+    return strdup(start);
+}
+
+
 static void handshake()
 {
     const char* username = get_username();
     time_t time = now();
     char auth[33];
     get_auth(auth, time);
-    int n = 8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
-    char query[n];
+    int n = 34+8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
+    char url[n];
     char session_key[33];
     scrobsub_session_key(session_key);
 
-    n = snprintf(query, n, "?hs=true"
-                           "&p=1.2.1"
-                           "&c=" SCROBSUB_CLIENT_ID      // length 3
-                           "&v=" SCROBSUB_CLIENT_VERSION // length 8 max
-                           "&u=%s"
-                           "&t=%d" // length 10 for the next millenia at least :P
-                           "&a=%s" // length 32
-                           "&api_key=" SCROBSUB_API_KEY // length 32
-                           "&sk=%s", // length 32
-                           username, time, auth, session_key);
-    if (n<0) return;
+    n = snprintf(url, n, "http://post.audioscrobbler.com:80/"
+                 "?hs=true"
+                 "&p=1.2.1"
+                 "&c=" SCROBSUB_CLIENT_ID      // length 3
+                 "&v=" SCROBSUB_CLIENT_VERSION // length 8 max
+                 "&u=%s"
+                 "&t=%d" // length 10 for the next millenia at least :P
+                 "&a=%s" // length 32
+                 "&api_key=" SCROBSUB_API_KEY // length 32
+                 "&sk=%s", // length 32
+                 username, time, auth, session_key);
+    if (n<0) return; //TODO error callback
 
-    char* response = query;
-    scrobsub_get(response, "post.audioscrobbler.com:80", query);
+    char responses[256];
+    char* response = responses;
+    scrobsub_get(responses, url);
+
+    if (response[0] == 'O' && response[1] == 'K' && response[2] == '\n')
+    {
+        response += 3;
+        session_id = handshake_response_strdup(&response);
+        np_url = handshake_response_strdup(&response);
+        submit_url = handshake_response_strdup(&response);
+    }
+    else
+        //TODO better
+        (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, response);
 }
 
 
-void scrobsub_start(const char* artist, const char* track, const char* album, const char* mbid, unsigned int duration, unsigned int track_number)
+void scrobsub_start(const char* _artist, const char* _track, const char* _album, const char* _mbid, unsigned int _duration, unsigned int _track_number)
 {
+    if (!session_id) 
+        handshake();
+    
     state = SCROBSUB_PLAYING;
+    
+    artist = _artist;
+    track = _track;
+    album = _album;
+    mbid = _mbid;
+    duration = _duration;
+    track_number = _track_number;
 
 #if !SCROBSUB_NO_RELAY
     if(use_the_moose()){
@@ -127,7 +165,7 @@ void scrobsub_start(const char* artist, const char* track, const char* album, co
         return;
     }
 #endif
-    
+
     start_time = now();
 
     //TODO
@@ -151,14 +189,15 @@ void scrobsub_start(const char* artist, const char* track, const char* album, co
                           session_id,
                           artist,
                           track,
+                          album,
                           duration,
                           track_number,
                           mbid);
     
     for(int x = 0; x < 2; ++x){
-        char response[3];
-        scrobsub_post(response, np_host, np_port, np_path, post_data);
-        if(strcmp(response, "OK") == 0)
+        char response[256];
+        scrobsub_post(response, np_url, post_data);
+        if(response[0] == 'O' && response[1] == 'K' && response[2] == '\n')
             break;
         handshake();
     }
@@ -199,12 +238,12 @@ static void submit()
     
     if(state == SCROBSUB_PAUSED)
         scrobsub_resume();
-    if(now() - timestamp + pause_time < scrobble_time(duration))
+    if(now() - start_time + pause_time < scrobble_time(duration))
         return;
 
     int n = 32+N+10+1 +2+9*5;
     char post_data[n];
-        
+
     n = snprintf(post_data, n, "s=%s"
                            "&a[0]=%s"
                            "&t[0]=%s"
@@ -215,12 +254,12 @@ static void submit()
                            "&i[0]=%d"
                            "&o[0]=%c"
                            "&r[0]=",
-                           session_id, artist, track, album, duration, track_number, mbid, timestamp, 'P' );
+                           session_id, artist, track, album, duration, track_number, mbid, start_time, 'P' );
         
     for (int x=0; x<2; ++x){    
         char response[128];
-        post(response, submit_host, submit_port, submit_path, post_data);
-        if(strcmp(response,"BADSESSION") == 0)
+        scrobsub_post(response, submit_url, post_data);
+        if(strcmp(response, "BADSESSION") == 0) //TODO has a newline I believe, but we should do startsWith
             handshake();
         break;
     }
@@ -232,6 +271,9 @@ void scrobsub_stop()
     if(state != SCROBSUB_STOPPED)
         submit();
     state = SCROBSUB_STOPPED;
+    
+    artist = track = album = mbid = "";
+    duration = track_number = 0;
 }
 
 
