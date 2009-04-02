@@ -43,6 +43,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
+
 }
 
 
@@ -131,26 +132,9 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
         handler->second( req, rep );
     else
     {
-        cout << "**No Handler found for: " << url << endl;
-        
-        if(ResolverService * rs = app()->resolver()->get_url_handler(url)) 
-        {
-            map<string, string> postvars;
-            // Parse params from post body, for form submission
-            if( req.content.length() && collect_params( string("/?")+req.content, postvars ) == -1 )
-            {
-                rep = rep.stock_reply(moost::http::reply::bad_request);
-            }
-            
-            serve_body(rs->http_handler(url, parts, getvars, postvars, m_pauth),
-                    req, rep );
-        }
-        else // unhandled request
-        {
-            rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
-            //rep.content = "make a valid request, kthxbye";
-        }
-   } 
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        //rep.content = "make a valid request, kthxbye";
+    } 
 }
 
 
@@ -289,14 +273,14 @@ playdar_request_handler::handle_root( const moost::http::request& req,
             << "<td>" << lrs.weight << "</td>"
             << "<td>" << lrs.targettime << "ms</td>";
         os << "<td>" ;
-        vector<string> urls = lrs.rs->get_http_handlers();
-        if( urls.size() )
-        {
-            BOOST_FOREACH(string u, urls)
-            {
-                os << "<a href=\""<< u <<"\">" << u << "</a><br/> " ;
-            }
-        }
+
+        string name = lrs.rs->name();
+        boost::algorithm::to_lower( name );
+        
+        m_urlHandlers[ name ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
+        
+        os << "<a href=\""<< name << "/config" <<"\">" << name << " config</a><br/> " ;
+
         os  << "</td></tr>" << endl;
     }
     os  << "</table>"
@@ -304,6 +288,36 @@ playdar_request_handler::handle_root( const moost::http::request& req,
         ;
     serve_body(os.str(), req, rep);
 
+}
+
+void
+playdar_request_handler::handle_pluginurl( const moost::http::request& req,
+                                           moost::http::reply& rep )
+{
+
+    string url;
+    vector<string> parts;
+    collect_parts( req.uri, parts );
+
+    map<string, string> getvars;
+    collect_params( req.uri, getvars );
+
+    map<string, string> postvars;
+
+    ResolverService* resolver = app()->resolver()->get_resolver( parts[0] );
+
+    if( resolver == 0 )
+    {
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        return;
+    }
+
+    serve_body( resolver->http_handler( req.uri,
+                                          parts,
+                                          getvars,
+                                          postvars,
+                                          m_pauth),
+               req, rep );
 }
 
 void 

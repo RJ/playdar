@@ -190,18 +190,9 @@ Resolver::load_resolver_plugins()
                 instance->Destroy();
                 continue;
             }
-            // does this plugin handle any URLs?
-            vector<string> handlers = instance->get_http_handlers();
-            if(handlers.size())
-            {
-                cout << "-> Registering " << handlers.size() << " HTTP handlers" << endl;
-                //typedef pair<string, http_req_cb> pair_t;
-                BOOST_FOREACH(string url, handlers)
-                {
-                    cout << "-> " << url <<  endl;
-                    m_http_handlers[url] = instance;
-                }
-            }
+            
+            m_pluginNameMap[ classname ] = instance;
+
             loaded_rs cr;
             cr.script = false;
             cr.rs = instance;
@@ -222,12 +213,6 @@ Resolver::load_resolver_plugins()
     }
 }
 
-ResolverService *
-Resolver::get_url_handler(string url)
-{
-    if(m_http_handlers.find(url)==m_http_handlers.end()) return 0;
-    return m_http_handlers[url];
-}
 
 /// start resolving! (non-blocking)
 /// returns a query_uid so you can check status of this query later

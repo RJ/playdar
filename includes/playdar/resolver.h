@@ -68,7 +68,13 @@ public:
     
     vector<loaded_rs> * resolvers() { return &m_resolvers; }
 
-    ResolverService * get_url_handler(string url);
+    ResolverService * get_resolver(string name)
+    {
+        if( m_pluginNameMap.find( name ) == m_pluginNameMap.end())
+            return 0;
+
+        return m_pluginNameMap[ name ];
+    }
 
     const deque< query_uid > & qids() const
     {
@@ -97,9 +103,6 @@ private:
     boost::asio::io_service * m_io_service;
     
     
-    // maps URLs to plugins that handle them:
-    map<string, ResolverService *> m_http_handlers;
-    
     query_uid generate_qid();
     source_uid generate_sid();
     
@@ -117,6 +120,8 @@ private:
 
     // resolver plugin pipeline:
     vector<loaded_rs> m_resolvers;
+
+    map< string, ResolverService* > m_pluginNameMap;
     
     boost::mutex m_mut_results; // when adding results
     
