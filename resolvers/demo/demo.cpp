@@ -7,7 +7,7 @@ namespace resolvers {
 /*
     Called once when plugin is loaded when playdar starts up.
 */
-void
+bool
 demo::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
@@ -15,7 +15,7 @@ demo::init(playdar::Config * c, Resolver * r)
     cout << "Demo resolver init(): "
          << "this only finds 'Sweet Melissa' by the artist 'Big Bad Sun'"
          << endl;
-
+    return true;
 }
 
 /*

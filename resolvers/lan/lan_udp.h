@@ -23,12 +23,12 @@
 namespace playdar {
 namespace resolvers {
 
-class lan_udp : public ResolverService
+class lan_udp : public ResolverServicePlugin
 {
     public:
     lan_udp(){}
     
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     std::string name() const { return "LAN/UDP"; }

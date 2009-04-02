@@ -73,8 +73,13 @@ Resolver::load_library_resolver()
     ((RS_local_library *)cr.rs)->set_app(m_app);
     cr.weight = cr.rs->weight();
     cr.targettime = cr.rs->target_time();
-    cr.rs->init(m_app->conf(), this);
-    m_resolvers.push_back( cr );
+    if(cr.rs->init(m_app->conf(), this))
+    {
+        m_resolvers.push_back( cr );
+    }else{
+        cerr << "Couldn't load local library resolver. This is bad." 
+             << endl;
+    }
 }
 
 
@@ -109,8 +114,14 @@ Resolver::load_resolver_scripts()
             loaded_rs cr;
             cr.script = true;
             cr.rs = new playdar::resolvers::rs_script();
-            // custom init method for scripts:
-            ((playdar::resolvers::rs_script *)cr.rs)->init(app()->conf(), this, p["path"]);
+            bool init = ((playdar::resolvers::rs_script *) cr.rs)
+                        ->init(app()->conf(), this, p["path"]);
+            if(!init)
+            {
+                cerr << "-> ERROR couldn't initialize." << endl;
+                continue;
+            }
+            
             if(p.find("targettime")!=p.end())
                 cr.targettime = boost::lexical_cast<int>(p["targettime"]);
             else
@@ -124,7 +135,8 @@ Resolver::load_resolver_scripts()
             if(cr.weight > 0)
             {
                 m_resolvers.push_back( cr );
-                cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime
+                cout << "-> OK [w:" << cr.weight 
+                     << " t:" << cr.targettime
                      << "] " << cr.rs->name() << endl;
             }
         }
@@ -170,9 +182,14 @@ Resolver::load_resolver_plugins()
                 PDL::DynamicLoader::Instance();
             cout << "Loading resolver: " << pluginfile << endl;
             ResolverService * instance = 
-                dynamicLoader.GetClassInstance< ResolverService >
+                dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-            instance->init(app()->conf(), this);
+            if( ! instance->init(app()->conf(), this) )
+            {
+                cerr << "-> ERROR couldn't initialize." << endl;
+                instance->Destroy();
+                continue;
+            }
             // does this plugin handle any URLs?
             vector<string> handlers = instance->get_http_handlers();
             if(handlers.size())
@@ -341,9 +358,18 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     }
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return false; // query was deleted
+    string reason;
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {
+        // resolver fixes the score using a standard algorithm
+        // unless a non-zero score was specified by resolver.
+        if(pip->score() < 0.1)
+        {
+            float score = calculate_score( m_queries[qid], pip, reason );
+            if(score == 0.0) continue;
+            pip->set_score( score );
+        }
         m_queries[qid]->add_result(pip);
         // update map of source id -> playable item
         m_pis[pip->id()] = pip;

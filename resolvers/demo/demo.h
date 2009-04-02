@@ -6,13 +6,13 @@
 namespace playdar {
 namespace resolvers {
 
-class demo : public ResolverService
+class demo : public ResolverServicePlugin
 {
 public:
     demo() {}
     
     /** you should call the base implementation if you reimplement */
-    virtual void init(playdar::Config * c, Resolver * r);
+    virtual bool init(playdar::Config * c, Resolver * r);
 
     /** the base version is pure virtual */
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq);
