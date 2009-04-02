@@ -60,10 +60,6 @@ def resolve(artist, track):
             t["url"]    = percent_encode(element_value(e, 'location'))
             t["album"]  = element_value(e, 'album', False)
             t["source"] = "SeeqPod"
-            
-            t['size'] = 3000000
-            t['bitrate'] = 128
-            t['score'] = 0.75
             tracks.append(t)
             break
         except:
@@ -73,25 +69,29 @@ def resolve(artist, track):
 ####################################################################### settings
 settings = dict()
 settings["settings"] = True
-settings["name"] = "SeeqPod Resolver (Python 2.6)"
+settings["name"] = "SeeqPod Resolver (Python 2.5)"
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
 
 ###################################################################### main loop
 while 1:
-    try:
-        length = sys.stdin.read(4)
-        if not length:
-            break
-        length = unpack('!L', length)[0]
-        if length > 0:
-            request = json.loads(sys.stdin.read(length))
+    length = sys.stdin.read(4)
+    length = unpack('!L', length)[0]
+    if not length:
+        break
+    if length > 4096 or length < 0:
+        break
+    if length > 0:
+        msg = sys.stdin.read(length)
+        try:
+            request = json.loads(msg)
             tracks = resolve(request['artist'], request['track'])
             if len(tracks) > 0:
                 response = { 'qid':request['qid'], 'results':tracks }
                 print_json(response)
-    except:
-        # oh how yuck! But yeah, we don't really ever want to exit..
-        # I'm sure there's some exceptions we should exit for though, pls fix
-        pass
+        except:
+            # safe to continue, skipping this msg, because at least
+            # we consumed enough input so next iteration hits size header.
+            pass
+
