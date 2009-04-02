@@ -37,7 +37,7 @@ def percent_encode(url):
     # Ha! Yeah, needs work
     return url.replace(' ', '%20')
 
-def element_value(e, name, throw = True):
+def element_value(e, name, throw = False):
     try:
         return e.getElementsByTagName(name)[0].firstChild.nodeValue
     except:
@@ -54,15 +54,10 @@ def resolve(artist, track):
             t = dict()
             t["artist"] = element_value(e, 'creator')
             t["track"]  = element_value(e, 'title')
-            t["album"]  = element_value(e, 'album', False)
-            t["url"]    = percent_encode(element_value(e, 'location'))
+            t["album"]  = element_value(e, 'album')
+            t["url"]    = percent_encode(element_value(e, 'location'), True)
             t["source"] = 'SeeqPod'
             tracks.append(t)
-            break # the json calls are slow, one is enough
-            # TODO when playdar can score results itself, we should submit them 
-            # all and let it decide which one is best, although that is assuming
-            # seeqpod doesn't order them in best-first order, which it might, 
-            # but that is undocumented if so
         except:
             pass
     return tracks
@@ -77,18 +72,25 @@ print_json( settings )
 
 ###################################################################### main loop
 while 1:
-    try:
-        length = sys.stdin.read(4)
-        if not length:
-            break
-        length = unpack('!L', length)[0]
-        if length > 0:
-            request = json.loads(sys.stdin.read(length))
+    length = sys.stdin.read(4)
+    length = unpack('!L', length)[0]
+    if not length:
+        break
+    # something probably went wrong, most likely we're out of sync and are 
+    # reading the 4 bytes length header in the middle of a json string. We can't
+    # recover. Bail.
+    if length > 4096 or length < 0:
+        break
+    if length > 0:
+        msg = sys.stdin.read(length)
+        try:
+            request = json.loads(msg)
             tracks = resolve(request['artist'], request['track'])
             if len(tracks) > 0:
                 response = { 'qid':request['qid'], 'results':tracks }
                 print_json(response)
-    except:
-        # oh how yuck! But yeah, we don't really ever want to exit..
-        # I'm sure there's some exceptions we should exit for though, pls fix
-        pass
+        except:
+            # safe to continue, skipping this msg, because at least
+            # we consumed enough input so next iteration hits size header.
+            pass
+

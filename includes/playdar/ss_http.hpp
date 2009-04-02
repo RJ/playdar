@@ -1,6 +1,8 @@
 #ifndef __HTTP_STRAT_H__
 #define __HTTP_STRAT_H__
 #include <boost/asio.hpp>
+#include <boost/algorithm/string.hpp>
+
 
 using namespace boost::asio::ip;
 /*
@@ -12,9 +14,19 @@ class HTTPStreamingStrategy : public StreamingStrategy
 public:
 
     HTTPStreamingStrategy(string url)
-        : m_connected(false)
+    {   
+        reset();
+        if(!parse_url(url)) throw;
+    }
+    
+    HTTPStreamingStrategy(string host, unsigned short port, string url)
+        : m_host(host), m_url(url), m_port(port)
     {
-        //mega crude
+        reset();
+    }
+    
+    bool parse_url(string url)
+    {
         boost::regex re("http://(.[^/^:]*)\\:?([0-9]*)/(.*)");
         boost::cmatch matches;
         if(boost::regex_match(url.c_str(), matches, re))
@@ -24,20 +36,17 @@ public:
                 ? 80 // default when port not specified
                 : boost::lexical_cast<int>(matches[2]);
             m_url = "/" + matches[3];
-            cout << m_host << "," << m_port << "," << m_url << endl;
+            cout << "URL: " << m_host << ":" << m_port << " " << m_url << endl;
+            return true;
         }
         else
         {
-            cerr << "Invalid URL passed to HTTPStreamingStrategy" << endl;
-            throw;
+            cerr << "Invalid URL: " << url << endl;
+            return false;
         }
     }
 
-    HTTPStreamingStrategy(string host, unsigned short port, string url)
-        : m_host(host), m_url(url), m_port(port)
-    {
-        m_connected = false;
-    }
+
     
     ~HTTPStreamingStrategy(){  }
     
@@ -58,10 +67,12 @@ public:
             {
                 memcpy(buf, m_partial.c_str(), p);
                 m_partial="";
+                m_bytesreceived+=p;
                 return p;
             }else{
                 memcpy(buf, m_partial.c_str(), size);
                 m_partial = m_partial.substr(size-1, string::npos);
+                m_bytesreceived+=size;
                 return size;
             }
         }
@@ -70,11 +81,15 @@ public:
 
         if (error == boost::asio::error::eof)
         {
+            m_bytesreceived+=len;
+            cout << "Clean shutdown, bytes recvd: " << m_bytesreceived << endl;
             reset();
             return len; // Connection closed cleanly by peer.
         }
         else if (error)
         {
+            m_bytesreceived+=len;
+            cout << "Unclean shutdown, bytes recvd: " << m_bytesreceived << endl;
             reset();
             throw boost::system::system_error(error); // Some other error.
         }   
@@ -94,6 +109,8 @@ public:
         m_socket.reset();
         m_partial="";
         m_connected=false;
+        m_bytesreceived = 0;
+        m_numredirects = 0;
     }
     
 private:
@@ -102,13 +119,14 @@ private:
 
     void do_connect()
     {
-        //cout << debug() << endl; //"HTTPStreamingStrategy: http://" << m_host << ":" << m_port << m_url << endl;
+        cout << debug() << endl; 
 
         tcp::resolver resolver(m_io_service);
         tcp::endpoint ep;
-        
         boost::regex re("[0-9]*\\.[0-9]*\\.[0-9]*\\.[0-9]*");
         boost::cmatch matches;
+
+        // if it's a numeric IP, connect, otherwise resolve name first:
         if(boost::regex_match(m_host.c_str(), matches, re))
         {
             boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(m_host);
@@ -125,13 +143,15 @@ private:
             }
             ep.port(m_port);
         }
-        m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>(new tcp::socket(m_io_service));
+        m_socket = boost::shared_ptr<boost::asio::ip::tcp::socket>
+                                    (new tcp::socket(m_io_service));
 
         boost::system::error_code error = boost::asio::error::host_not_found;
         m_socket->connect(ep, error);
         if (error) throw boost::system::system_error(error);
 
         boost::system::error_code werror;
+
         ostringstream rs;
         rs  << "GET " << m_url << " HTTP/1.0\r\n"
             << "Host: " <<m_host<<":"<<m_port<<"\r\n"
@@ -146,7 +166,7 @@ private:
             return;
         }
         boost::asio::streambuf response;
-       
+    
         boost::asio::read_until(*m_socket, response, "\r\n");
 
         // Check that response is OK.
@@ -159,24 +179,76 @@ private:
         std::getline(response_stream, status_message);
         if (!response_stream || http_version.substr(0, 5) != "HTTP/")
         {
-          std::cout << "Invalid response\n";
-          return;
+            std::cout << "Invalid response\n";
+            return;
         }
-        if (status_code != 200)
-        {
-          std::cout << "Response returned with status code " << status_code << "\n";
-          return;
-        }
-
         // Read the response headers, which are terminated by a blank line.
         boost::asio::read_until(*m_socket, response, "\r\n\r\n");
 
+        cout << "Status code: " << status_code << endl
+             << "Status message: " << status_message << endl;
         // Process the response headers.
-        std::string header;
-        while (std::getline(response_stream, header) && header != "\r")
-          std::cout << header << "\n";
-        //std::cout << "\n";
-
+        map<string,string> headers;
+        std::string line;
+        while (std::getline(response_stream, line) && line!= "\r")
+        {
+            size_t offset = line.find(':');
+            string key = boost::to_lower_copy(line.substr(0,offset));
+            string value = boost::trim_copy(line.substr(offset+1));
+            headers[key]=value;
+            cout << "'"<< key <<"' = '" << value << "'" << "\n";
+        }
+        
+        // was it a redirect?
+        if(status_code == 301 || status_code == 302)
+        {
+            if(headers.find("location")==headers.end())
+            {
+                cerr << "HTTP redirect given with no Location header!" 
+                     << endl;
+                return;
+            }
+            if(m_numredirects++==3)
+            {
+                cerr << "HTTP Redirect limit of 3 reached. Failed." 
+                     << endl;
+                return;
+            }
+            
+            string newurl = headers["location"];
+            if(newurl.at(0)=='/')
+            {
+                // if it starts with / it's on same domain, rebuild full url
+                ostringstream oss;
+                oss << "http://" << m_host << ":" << m_port 
+                    << headers["location"];
+                newurl = oss.str();
+            }
+            cout << "Following HTTP redirect to: " << newurl << endl;
+            // recurse - this resets connection and tries again.
+            parse_url(newurl);
+            do_connect();
+            return;
+        }
+        
+        // hack for stupid 404 pages that use the 200 code:
+        if(headers.find("content-type")!=headers.end() && status_code==200)
+        {
+            if(boost::to_lower_copy(headers["content-type"]) == "text/html")
+            {
+                cout << "Page claims 200 OK but is HTML -> pretend it's 404." 
+                     << endl;
+                status_code = 404;
+            }
+        }
+        
+        
+        if (status_code != 200)
+        {
+            cerr << "HTTP status code " << status_code << " was not OK\n";
+            return;
+        }
+        
         // save whatever content we already have.
         if (response.size() > 0)
         {
@@ -195,6 +267,8 @@ private:
     string m_host;
     string m_url;
     unsigned short m_port;
+    int m_numredirects;
+    size_t m_bytesreceived;
 };
 
 #endif
