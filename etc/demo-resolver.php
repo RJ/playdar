@@ -36,6 +36,7 @@ while(!feof($in)){
     // don't reply with anything if there were no matches:
     if(count($pis)==0) continue;
     $res = new stdclass;
+    $res->_msgtype = "results";
     $res->qid = $rq->qid;
     $res->results = array();
     $res->results = $pis;
