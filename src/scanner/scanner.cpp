@@ -151,48 +151,57 @@ int main(int argc, char *argv[])
         cerr<<"Usage: "<<argv[0] << " <collection.db> <scan_dir>"<<endl;
         return 1;
     }
-    gLibrary = new Library(argv[1], 0);
-    // get last scan date:
-    cout << "Loading data from last scan..." << flush;
-    map<string,int> mtimes = gLibrary->file_mtimes();
-    cout << mtimes.size() << " files+dir mtimes loaded" << endl;
-    cout << "Scanning for changes..." << endl;
-    bfs::path dir(argv[2]);
-    sqlite3pp::transaction xct(*(gLibrary->db()));
-    {
-        // first scan for mp3/aac/etc files:
-        try
+    try {
+        gLibrary = new Library(argv[1], 0);
+
+        // get last scan date:
+        cout << "Loading data from last scan..." << flush;
+        map<string,int> mtimes = gLibrary->file_mtimes();
+        cout << mtimes.size() << " files+dir mtimes loaded" << endl;
+        cout << "Scanning for changes..." << endl;
+        bfs::path dir(argv[2]);
+        sqlite3pp::transaction xct(*(gLibrary->db()));
         {
-            scan(dir, mtimes);
-            cout << "Scan complete ok." << endl;
+            // first scan for mp3/aac/etc files:
+            try
+            {
+                scan(dir, mtimes);
+                cout << "Scan complete ok." << endl;
+            }
+            catch(...)
+            {
+                cout << "Scan failed." << endl;
+                xct.rollback();
+                return 1;
+            }
+            // now create fuzzy text index:
+            try
+            {
+                cout << endl << "Building search indexes..." << endl;
+                gLibrary->build_index("artist");
+                gLibrary->build_index("album");
+                gLibrary->build_index("track");
+                xct.commit();
+                cout << "Finished,   scanned: " << scanned 
+                    << " skipped: " << skipped 
+                    << " ignored: " << ignored 
+                    << endl;
+            }
+            catch(...)
+            {
+                cout << "Index update failed, delete your database, fix the bug, and retry" << endl;
+                xct.rollback();
+                return 1;
+            }
         }
-        catch(...)
-        {
-            cout << "Scan failed." << endl;
-            xct.rollback();
-            return 1;
-        }
-        // now create fuzzy text index:
-        try
-        {
-            cout << endl << "Building search indexes..." << endl;
-            gLibrary->build_index("artist");
-            gLibrary->build_index("album");
-            gLibrary->build_index("track");
-            xct.commit();
-            cout << "Finished,   scanned: " << scanned 
-                << " skipped: " << skipped 
-                << " ignored: " << ignored 
-                << endl;
-        }
-        catch(...)
-        {
-            cout << "Index update failed, delete your database, fix the bug, and retry" << endl;
-            xct.rollback();
-            return 1;
-        }
+        delete gLibrary; 
+    } catch (const std::exception& e) {
+        cout << "failed: " << e.what();
+        return 1;
+    } catch (...) {
+        cout << "failed with unhandled exception";
+        return 1;
     }
-    delete(gLibrary); 
     return 0;
 }
 

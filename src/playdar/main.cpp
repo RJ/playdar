@@ -74,16 +74,22 @@ int main(int ac, char *av[])
     visible.add(generic);
 
     po::variables_map vm;
-    po::parsed_options parsedopts_cmd = 
-        po::command_line_parser(ac, av).
-        options(cmdline_options).run();
+    bool error;
+    try {
+        po::parsed_options parsedopts_cmd = po::command_line_parser(ac, av).options(cmdline_options).run();
+        store(parsedopts_cmd, vm);
+        error = false;
+    } catch (po::error& ex) {
+        // probably an unknown option.
+        cerr << ex.what() << "\n";
+        error = true;
+    }
         
-    store(parsedopts_cmd, vm);
     notify(vm);
 
-    if (vm.count("help")) {
+    if (error || vm.count("help")) {
         cout << visible << "\n";
-        return 0;
+        return error ? 1 : 0;
     }
     if (vm.count("version")) {
         cout << "TODO\n";
