@@ -54,10 +54,16 @@ private:
                                         string tpl, map<string,string> vars);
 
     void handle_auth1( const moost::http::request& req, moost::http::reply& );
+    void handle_auth2( const moost::http::request& req, moost::http::reply& );
     void handle_root( const moost::http::request& req, moost::http::reply& );
     void handle_shutdown( const moost::http::request& req, moost::http::reply& );
     void handle_settings( const moost::http::request& req, moost::http::reply& );
     void handle_queries( const moost::http::request& req, moost::http::reply& );
+    void handle_serve( const moost::http::request& req, moost::http::reply& );
+    void handle_sid( const moost::http::request& req, moost::http::reply& );
+    void handle_quickplay( const moost::http::request& req, moost::http::reply& );
+    void handle_api( const moost::http::request& req, moost::http::reply& );
+    
     string handle_queries_root();
     MyApplication * m_app;
    

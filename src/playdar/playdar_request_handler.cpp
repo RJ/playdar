@@ -31,11 +31,18 @@ playdar_request_handler::init(MyApplication * app)
     m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
 
-    m_urlHandlers[ "auth_1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2 );
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
+    m_urlHandlers[ "auth_1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2 );
+    m_urlHandlers[ "auth_2" ] = boost::bind( &playdar_request_handler::handle_auth2, this, _1, _2 );
     m_urlHandlers[ "shutdown" ] = boost::bind( &playdar_request_handler::handle_shutdown, this, _1, _2 );
     m_urlHandlers[ "settings" ] = boost::bind( &playdar_request_handler::handle_settings, this, _1, _2 );
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
+    m_urlHandlers[ "stats" ] = boost::bind( &playdar_request_handler::serve_stats, this, _1, _2 );
+    m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
+    m_urlHandlers[ "serve" ] = boost::bind( &playdar_request_handler::handle_serve, this, _1, _2 );
+    m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
+    m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
+    m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
 }
 
 
@@ -104,17 +111,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     rep.unset_streaming();
     
     map<string, string> getvars;
-    map<string, string> postvars;
     // Parse params from querystring:
     if( collect_params( req.uri, getvars ) == -1 )
     {
         rep = rep.stock_reply(moost::http::reply::bad_request);
     }
-    // Parse params from post body, for form submission
-    if( req.content.length() && collect_params( string("/?")+req.content, postvars ) == -1 )
-    {
-        rep = rep.stock_reply(moost::http::reply::bad_request);
-    }
+
     /// parse URL parts
     const string& url = req.uri.substr(0, req.uri.find("?"));
     
@@ -123,25 +125,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 
     // get rid of cruft from leading/trailing "/" and split:
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
-    /// Auth stuff
-    string permissions = "";
-    if(getvars.find("auth") != getvars.end())
-    {
-        string whom;
-        if(m_pauth->is_valid(getvars["auth"], whom))
-        {
-            //cout << "AUTH: validated " << whom << endl;
-            permissions = "*"; // allow all.
-        }
-        else
-        {
-            //cout << "AUTH: Invalid authtoken." << endl;
-        }
-    }
-    else
-    {
-        //cout << "AUTH: no auth value provided." << endl;
-    }
 
     HandlerMap::iterator handler = m_urlHandlers.find( parts[0] );
     if( handler != m_urlHandlers.end())
@@ -149,110 +132,16 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     else
     {
         cout << "**No Handler found for: " << url << endl;
-        if(url=="/auth_2/" &&
-                postvars.find("website") != postvars.end() &&
-                postvars.find("name") != postvars.end() &&
-                postvars.find("formtoken") != postvars.end() )
+        
+        if(ResolverService * rs = app()->resolver()->get_url_handler(url)) 
         {
-            if(m_pauth->consume_formtoken(postvars["formtoken"]))
+            map<string, string> postvars;
+            // Parse params from post body, for form submission
+            if( req.content.length() && collect_params( string("/?")+req.content, postvars ) == -1 )
             {
-                string tok = playdar::Config::gen_uuid(); 
-                m_pauth->create_new(tok, postvars["website"], postvars["name"]);
-                if( postvars.find("receiverurl") == postvars.end() ||
-                        postvars["receiverurl"]=="" )
-                {
-                    map<string,string> vars;
-                    string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
-                    vars["<%WEBSITE%>"]=postvars["website"];
-                    vars["<%NAME%>"]=postvars["name"];
-                    vars["<%AUTHCODE%>"]=tok;
-                    serve_dynamic(req, rep, filename, vars);
-                }
-                else
-                {
-                    ostringstream os;
-                    os  << postvars["receiverurl"]
-                        << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
-                        << "authtoken=" << tok
-                        << "#" << tok;
-                    rep = rep.stock_reply(moost::http::reply::moved_permanently); 
-                    rep.headers.resize(3);
-                    rep.headers[2].name = "Location";
-                    rep.headers[2].value = os.str();
-                }
+                rep = rep.stock_reply(moost::http::reply::bad_request);
             }
-            else
-            {
-                cerr << "Invalid formtoken, not authenticating" << endl;
-                rep = rep.stock_reply(moost::http::reply::unauthorized); 
-                rep.content = "Not Authorized";
-            }
-        }
-        /// this is for serving static files, not sure we need it:
-        else if(parts[0]=="static") 
-        {
-            serve_static_file(req, rep);
-        }
-        /// JSON API:
-        else if(url=="/api/" && getvars.count("method")==1)
-        {
-            handle_rest_api(getvars, req, rep, permissions);
-        }
-        /// Misc stats on your playdar instance
-        else if(url=="/stats/") 
-        {
-            serve_stats(req, rep);
-        }
-        /// quick hack method for playing a song, if it can be found:
-        ///  /quickplay/The+Beatles//Yellow+Submarine
-        else if(parts[0]=="quickplay" && parts.size() == 4
-                && parts[1].length() && parts[3].length())
-        {
-
-            string artist   = unescape(parts[1]);
-            string album    = parts[2].length()?unescape(parts[2]):"";
-            string track    = unescape(parts[3]);
-            boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
-            rq->set_from_name(app()->conf()->name());
-            query_uid qid = app()->resolver()->dispatch(rq);
-            // wait a couple of seconds for results
-            boost::xtime time; 
-            boost::xtime_get(&time,boost::TIME_UTC); 
-            time.sec += 2;
-            boost::thread::sleep(time);
-            vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qid);
-            if(results.size())
-            {
-                json_spirit::Object ro = results[0]->get_json();
-                cout << "Top result:" <<endl;
-                json_spirit::write_formatted( ro, cout );
-                cout << endl;
-                string url = "/sid/";
-                url += results[0]->id();
-                rep.headers.resize(3);
-                rep.status = moost::http::reply::moved_temporarily;
-                moost::http::header h;
-                h.name = "Location";
-                h.value = url;
-                rep.headers[2] = h;
-                rep.content = "";
-            }
-        }
-        /// serves file-id from library 
-        else if(parts[0]=="serve" && parts.size() == 2)
-        {
-            int fid = atoi(parts[1].c_str());
-            if(fid) serve_track(req, rep, fid);
-        }
-        /// serves file based on SID
-        else if(parts[0]=="sid" && parts.size() == 2)
-        {
-            source_uid sid = parts[1];
-            serve_sid(req, rep, sid);
-        }
-        // is this url handled by a currently loaded plugin?
-        else if(ResolverService * rs = app()->resolver()->get_url_handler(url)) 
-        {
+            
             serve_body(rs->http_handler(url, parts, getvars, postvars, m_pauth),
                     req, rep );
         }
@@ -296,6 +185,61 @@ playdar_request_handler::handle_auth1( const moost::http::request& req,
     vars["<%WEBSITE%>"]=getvars["website"];
     vars["<%NAME%>"]=getvars["name"];
     serve_dynamic(req, rep, filename, vars);
+}
+
+
+void 
+playdar_request_handler::handle_auth2( const moost::http::request& req, moost::http::reply& rep )
+{
+    map< string, string > postvars;
+    
+    // Parse params from post body, for form submission
+    if( req.content.length() && collect_params( string("/?")+req.content, postvars ) == -1 )
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
+    }
+    
+    if( postvars.find("website") == postvars.end() ||
+        postvars.find("name") == postvars.end() ||
+        postvars.find("formtoken") == postvars.end())
+    {
+        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
+        return;
+    }
+    
+    if(m_pauth->consume_formtoken(postvars["formtoken"]))
+    {
+        string tok = playdar::Config::gen_uuid(); 
+        m_pauth->create_new(tok, postvars["website"], postvars["name"]);
+        if( postvars.find("receiverurl") == postvars.end() ||
+           postvars["receiverurl"]=="" )
+        {
+            map<string,string> vars;
+            string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
+            vars["<%WEBSITE%>"]=postvars["website"];
+            vars["<%NAME%>"]=postvars["name"];
+            vars["<%AUTHCODE%>"]=tok;
+            serve_dynamic(req, rep, filename, vars);
+        }
+        else
+        {
+            ostringstream os;
+            os  << postvars["receiverurl"]
+            << ( strstr(postvars["receiverurl"].c_str(), "?")==0 ? "?" : "&" )
+            << "authtoken=" << tok
+            << "#" << tok;
+            rep = rep.stock_reply(moost::http::reply::moved_permanently); 
+            rep.headers.resize(3);
+            rep.headers[2].name = "Location";
+            rep.headers[2].value = os.str();
+        }
+    }
+    else
+    {
+        cerr << "Invalid formtoken, not authenticating" << endl;
+        rep = rep.stock_reply(moost::http::reply::unauthorized); 
+        rep.content = "Not Authorized";
+    }
 }
 
 
@@ -579,6 +523,126 @@ playdar_request_handler::handle_queries( const moost::http::request& req,
         }
     }
     while( false );
+}
+
+/// serves file-id from library 
+void 
+playdar_request_handler::handle_serve( const moost::http::request& req,
+                                       moost::http::reply& rep )
+{
+    vector<string> parts;
+    collect_parts( req.uri, parts );
+    
+    if(parts.size() != 2)
+    {
+        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
+        return;
+    }
+    
+    int fid = atoi(parts[1].c_str());
+    if(fid) serve_track(req, rep, fid);
+}
+
+/// serves file based on SID
+void 
+playdar_request_handler::handle_sid( const moost::http::request& req,
+                                     moost::http::reply& rep )
+{
+    vector<string> parts;
+    collect_parts( req.uri, parts );
+    
+    if( parts.size() != 2)
+    {
+        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
+        return;
+    }
+    
+    source_uid sid = parts[1];
+    serve_sid(req, rep, sid);
+}
+
+/// quick hack method for playing a song, if it can be found:
+///  /quickplay/The+Beatles//Yellow+Submarine
+void
+playdar_request_handler::handle_quickplay( const moost::http::request& req, 
+                                           moost::http::reply& rep )
+{
+    vector<string> parts;
+    collect_parts( req.uri, parts );
+    
+    if( parts.size() != 4
+       || !parts[1].length() || !parts[3].length() )
+    {
+        rep = moost::http::reply::stock_reply( moost::http::reply::bad_request );
+        return;
+    }
+    
+    string artist   = unescape(parts[1]);
+    string album    = parts[2].length()?unescape(parts[2]):"";
+    string track    = unescape(parts[3]);
+    boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+    rq->set_from_name(app()->conf()->name());
+    query_uid qid = app()->resolver()->dispatch(rq);
+    // wait a couple of seconds for results
+    boost::xtime time; 
+    boost::xtime_get(&time,boost::TIME_UTC); 
+    time.sec += 2;
+    boost::thread::sleep(time);
+    vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qid);
+    if(results.size())
+    {
+        json_spirit::Object ro = results[0]->get_json();
+        cout << "Top result:" <<endl;
+        json_spirit::write_formatted( ro, cout );
+        cout << endl;
+        string url = "/sid/";
+        url += results[0]->id();
+        rep.headers.resize(3);
+        rep.status = moost::http::reply::moved_temporarily;
+        moost::http::header h;
+        h.name = "Location";
+        h.value = url;
+        rep.headers[2] = h;
+        rep.content = "";
+    }
+}
+
+void
+playdar_request_handler::handle_api( const moost::http::request& req, 
+                                           moost::http::reply& rep )
+{
+    map<string,string> getvars;
+    
+    // Parse params from querystring:
+    if( collect_params( req.uri, getvars ) == -1 ||
+        getvars.count("method")!=1)
+    {
+        rep = rep.stock_reply(moost::http::reply::bad_request);
+        return;
+    }
+    
+    /// Auth stuff
+    string permissions = "";
+    if(getvars.find("auth") != getvars.end())
+    {
+        string whom;
+        if(m_pauth->is_valid(getvars["auth"], whom))
+        {
+            //cout << "AUTH: validated " << whom << endl;
+            permissions = "*"; // allow all.
+        }
+        else
+        {
+            //cout << "AUTH: Invalid authtoken." << endl;
+        }
+    }
+    else
+    {
+        //cout << "AUTH: no auth value provided." << endl;
+    }
+
+    
+    handle_rest_api(getvars, req, rep, permissions);
 }
 
 //
