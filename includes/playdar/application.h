@@ -54,8 +54,6 @@ public:
         return newbase + orig.substr(slash);
     }
     
-    static int levenshtein(const std::string & first, const std::string & second);
-
     // functor that terminates http server:
     void set_http_stopper(boost::function<void()> f) { m_stop_http=f; }
     

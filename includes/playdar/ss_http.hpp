@@ -4,10 +4,15 @@
 #include "playdar/streaming_strategy.h"
 #include <boost/algorithm/string.hpp>
 
+#include "playdar/utils/base64.h"
 
 using namespace boost::asio::ip;
 /*
     Consider this a nasty hack until I find a decent c++ http library
+
+    HTTP Basic Auth:
+    Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+    base64(username:password)
 
 */
 class HTTPStreamingStrategy : public StreamingStrategy
@@ -28,15 +33,37 @@ public:
     
     bool parse_url(string url)
     {
-        boost::regex re("http://(.[^/^:]*)\\:?([0-9]*)/(.*)");
+        boost::regex re("http://(.*@)?(.[^/^:]*)\\:?([0-9]*)/(.*)");
         boost::cmatch matches;
         if(boost::regex_match(url.c_str(), matches, re))
         {
-            m_host = matches[1];
-            m_port = matches[2]==""
+            m_host = matches[2];
+            unsigned int colpos;
+            // does it start with user:pass@ (ie, http basic auth)
+            if( matches[1] != "" )
+            {
+                string authbit = matches[1]; // user:pass@
+                string username, password;
+                colpos = authbit.find(':');
+                if(colpos == authbit.npos)
+                {
+                    username = authbit.substr(0, authbit.length()-1);
+                    password = "";
+                }
+                else
+                {
+                    username = authbit.substr(0, colpos);
+                    password = authbit.substr(colpos+1, authbit.length()-colpos-2);
+                }
+                // construct basic auth header
+                m_authheader = "Authorization: Basic " +
+                                playdar::utils::base64_encode
+                                       (username + ":" + password);
+            }
+            m_port = matches[3]==""
                 ? 80 // default when port not specified
-                : boost::lexical_cast<int>(matches[2]);
-            m_url = "/" + matches[3];
+                : boost::lexical_cast<int>(matches[3]);
+            m_url = "/" + matches[4];
             cout << "URL: " << m_host << ":" << m_port << " " << m_url << endl;
             return true;
         }
@@ -157,8 +184,12 @@ private:
         rs  << "GET " << m_url << " HTTP/1.0\r\n"
             << "Host: " <<m_host<<":"<<m_port<<"\r\n"
             << "Accept: */*\r\n"
-            << "Connection: close\r\n"
-            << "\r\n";
+            << "Connection: close\r\n";
+        if(m_authheader.length() && m_numredirects == 0)
+        {
+            rs << m_authheader << "\r\n";
+        }
+        rs  << "\r\n";
         boost::asio::write(*m_socket, boost::asio::buffer(rs.str()), boost::asio::transfer_all(), werror);
         if(werror)
         {
@@ -270,6 +301,7 @@ private:
     unsigned short m_port;
     int m_numredirects;
     size_t m_bytesreceived;
+    string m_authheader;
 };
 
 #endif

@@ -11,6 +11,8 @@
 #include "playdar/rs_script.h"
 #include "playdar/library.h"
 
+#include "playdar/utils/levenshtein.h"
+
 // PDL stuff:
 #include <DynamicLoader.hpp>
 #include <DynamicClass.hpp>
@@ -190,18 +192,9 @@ Resolver::load_resolver_plugins()
                 instance->Destroy();
                 continue;
             }
-            // does this plugin handle any URLs?
-            vector<string> handlers = instance->get_http_handlers();
-            if(handlers.size())
-            {
-                cout << "-> Registering " << handlers.size() << " HTTP handlers" << endl;
-                //typedef pair<string, http_req_cb> pair_t;
-                BOOST_FOREACH(string url, handlers)
-                {
-                    cout << "-> " << url <<  endl;
-                    m_http_handlers[url] = instance;
-                }
-            }
+            
+            m_pluginNameMap[ classname ] = instance;
+
             loaded_rs cr;
             cr.script = false;
             cr.rs = instance;
@@ -222,12 +215,6 @@ Resolver::load_resolver_plugins()
     }
 }
 
-ResolverService *
-Resolver::get_url_handler(string url)
-{
-    if(m_http_handlers.find(url)==m_http_handlers.end()) return 0;
-    return m_http_handlers[url];
-}
 
 /// start resolving! (non-blocking)
 /// returns a query_uid so you can check status of this query later
@@ -467,10 +454,10 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     // short-circuit for exact match
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
-    unsigned int trked = MyApplication::levenshtein( 
+    unsigned int trked = playdar::utils::levenshtein( 
                             Library::sortname(trk),
                             Library::sortname(o_trk));
-    unsigned int arted = MyApplication::levenshtein( 
+    unsigned int arted = playdar::utils::levenshtein( 
                             Library::sortname(art),
                             Library::sortname(o_art));
     // tolerances:
