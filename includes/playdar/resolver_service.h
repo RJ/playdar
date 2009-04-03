@@ -4,8 +4,10 @@
 #include "playdar/application.h"
 #include "playdar/resolver.h"
 #include "playdar/auth.hpp"
+
 #include <DynamicClass.hpp>
 
+class playdar_request;
 class ResolverService
 {
 public:
@@ -60,10 +62,7 @@ public:
     
     
     // handler for HTTP reqs we are registerd for:
-    virtual string http_handler( string url,
-                                 vector<string> parts,
-                                 map<string,string> getvars,
-                                 map<string,string> postvars,
+    virtual string http_handler( const playdar_request& ,
                                  playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
