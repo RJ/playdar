@@ -89,10 +89,17 @@ void scrobsub_post(char response[256], const char* url, const char* post_data)
     NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:urls
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:10];
-    [request setHTTPMethod:@"POST"];
-    [request setHTTPBody:[NSString stringWithUTF8String:post_data]];
-    [request setValue:@"ARSE" forHTTPHeaderField:@"User-Agent"];
     
+    NSData *postData = [[NSString stringWithUTF8String:post_data] dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
+    NSString *postLength = [NSString stringWithFormat:@"%d", [postData length]];
+    
+    [request setHTTPMethod:@"POST"];
+    [request setHTTPBody:postData];
+    [request setValue:@"ARSE" forHTTPHeaderField:@"User-Agent"];
+    [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
+    [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
+
+    [[request URL] retain]; //debug TODO remove
     [request retain]; //debug TODO remove
     
     NSURLResponse* headers = NULL;
