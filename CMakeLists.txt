@@ -71,6 +71,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_script.cpp
                 ${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
+                ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
 
                 # sqlite wrapper:
