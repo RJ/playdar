@@ -23,8 +23,11 @@
 //#include "lib/lastfm/ws/WsReplyBlock.h"
 #include "similarity/CosSimilarity.h"
 #include <boost/bind.hpp>
+#include <list>
 
-// Returns a TagDataset::Entry containing tags for the artist.
+using namespace std;
+
+// Returns a Library::ArtistTags containing tags for the artist.
 // Calls the last.fm webservice to get the tags and blocks
 // for up to 10 seconds while waiting for the response.
 // 
@@ -34,10 +37,10 @@
 //
 // a return containing an empty tagVec could be considered failure
 //
-TagDataset::Entry
+Library::TagVec
 dlArtistTags(Library& library, const string& artist, int artistId)
 {
-    TagDataset::Entry result;
+    Library::TagVec result;
 #if 0 // TODO!
     result.artistId = artistId;
 
@@ -70,103 +73,97 @@ dlArtistTags(Library& library, const string& artist, int artistId)
 //////////////////////////////////////
 
 
+//static
 void
-resultCb(list<SimilarArtists::Result>& results, const TagDataset::Entry& entry, float score)
+SimilarArtists::resultCb(list<SimilarArtists::SimilarArtist>& results, const Library::ArtistTagMap::const_iterator& it, float score)
 {
     if (score > 0.1) {
-        results.push_back(make_pair(entry.artistId, score));
+        results.push_back(make_pair(it->first, score));
     }
 }
 
-list<SimilarArtists::Result>
-SimilarArtists::getSimilarArtists(Library& library, const QString& artist, int artistId)
+void
+SimilarArtists::getSimilarArtists(Library& library, const string& artist, int artistId, list<SimilarArtists::SimilarArtist>& out)
 {
-    list<Result> results;
+    m_dataset.load(library);
 
-    m_dataset.load(coll);
+    bool found = false;
+    Library::ArtistTagMap::const_iterator pArtist = m_dataset.findArtist(artistId, &found);
 
-    TagDataset::Entry otherArtist;
-    TagDataset::Entry *pArtist = artistId > 0 ? m_dataset.findArtist(artistId) : 0;
-
-    if (pArtist == 0) {
-        otherArtist = dlArtistTags(coll, artist, artistId);
-        if (otherArtist.tagVec.size()) {
-            // result looks good
-            pArtist = &otherArtist;
-            if (artistId < 1) {
-                // this previously-unknown-to-us artist has some tags 
-                // at Last.fm, so why not add their name to our db:
-                otherArtist.artistId = library.getArtistId(artist, LocalCollection::Create);
-            }
-        }
+    if (!found) {
+        // todo
+        return;
+        //otherArtist = dlArtistTags(library, artist, artistId);
+        //if (otherArtist.size()) {
+        //    // result looks good
+        //    pArtist = &otherArtist;
+        //}
     }
 
-    if (pArtist && m_dataset.m_allArtists.size()) {
-        if (m_dataset.m_allArtists.size()) {
-            moost::algo::CosSimilarity::findSimilar/*<TagDataset::Entry, TagDataset::EntryList, TagDataset>*/(
-                boost::bind(resultCb, boost::ref(results), _1, _2),
-                *pArtist,
-                m_dataset.m_allArtists,
-                m_dataset);
-        }
-    }
-
-    return results;
+    moost::algo::CosSimilarity::findSimilar(
+        boost::bind(resultCb, boost::ref(out), _1, _2),
+        pArtist,
+        m_dataset.m_allArtists,
+        m_dataset);
 }
 
-
+//static
 bool 
-artistList_orderByWeightDesc(const SimilarArtists::Result& a, const SimilarArtists::Result& b)
+SimilarArtists::artistList_orderByWeightDesc(const SimilarArtist& a, const SimilarArtist& b)
 {
     return a.second > b.second;
 }
 
 void
-SimilarArtists::buildArtistFilter(Library& library, int artistId, set<int>& filterSet)
+SimilarArtists::buildArtistFilter(Library& library, int artistId, set<int>& out)
 {
     // These artists are too random, so we exclude them from sim-art.
     // Maybe when track tags are actually track tags (and not artist 
     // tags) we won't need to do this.  Maybe?
-    const char* duds[] = { "various artists", "various", "soundtrack", "[unknown]", NULL };
+    static const char* duds[] = { "various artists", "various", "soundtrack", "[unknown]", NULL };
     for (const char** artist = &duds[0]; *artist; artist++) {
-        int id = coll.getArtistId(*artist, LocalCollection::NoCreate);
-        if (id > 0) filterSet.insert(id);
+        int id = library.get_artist_id(*artist);
+        if (id > 0) out.insert(id);
     }
 
-    if (result.contains(artistId)) {
+    if (out.find(artistId) != out.end()) {
         // unless we're looking for the similar artists of 
         // "various" etc, then the above are good candidates!
-        filterSet.clear();
+        out.clear();
     }
 
     // the artist of "similar artist" is always excluded:
-    filterSet += artistId;
+    out.insert(artistId);
 }
 
 ResultSetPtr
 SimilarArtists::filesBySimilarArtist(Library& library, const char* artist)
 {
-    ResultSet result;
+    ResultSetPtr result( new ResultSet() );
 
-    QString qsArtist = QString(artist).simplified().toLower();
-    int artistId = library.getArtistId(qsArtist, LocalCollection::NoCreate);
+    int artistId = library.get_artist_id(artist);
 
     set<int> artistFilter;
     buildArtistFilter(library, artistId, artistFilter);
 
-    list<SimilarArtists::Result> artistList = getSimilarArtists(coll, qsArtist, artistId);
-    qSort(artistList.begin(), artistList.end(), artistList_orderByWeightDesc);
+    list<SimilarArtist> artistList;
+    getSimilarArtists(library, artist, artistId, artistList);
+    artistList.sort( artistList_orderByWeightDesc );
 
-    list<SimilarArtists::Result>::const_iterator pArtist = artistList.begin();
+    list<SimilarArtist>::const_iterator pArtist = artistList.begin();
     int artistCount = 0;
     int trackCount = 0;
     while ((trackCount < 10000 || artistCount < 20) && pArtist != artistList.end())
     {
-        if (!artistFilter.contains(pArtist->first)) {
-            QList<uint> tracks = coll.filesByArtistId(pArtist->first, LocalCollection::AvailableSources);
-            foreach(uint trackId, tracks) {
-                result << TrackResult(trackId, pArtist->first, pArtist->second);
-            }
+        if (artistFilter.find(pArtist->first) == artistFilter.end()) 
+        {
+            // artist is not in the filter set.
+
+            list<int> tracks;
+            //library.tracksByArtistId(pArtist->first, tracks);
+            //foreach(uint trackId, tracks) {
+            //    result << TrackResult(trackId, pArtist->first, pArtist->second);
+            //}
             trackCount += tracks.size();
             artistCount++;
         }

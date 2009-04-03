@@ -39,7 +39,7 @@ class RqlOpProcessor
     ResultSetPtr artist();
     ResultSetPtr similarArtist();
 
-    void normalise(float weight, ResultSetPtr& rs);
+    void normalise(float weight, ResultSetPtr rs);
 
 public:
     static ResultSetPtr process(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists);

@@ -28,7 +28,7 @@
 using namespace fm::last::query_parser;
 
 template<typename Iterator>
-RqlOpProcessor::RqlOpProcessor(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists)
+RqlOpProcessor<Iterator>::RqlOpProcessor(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists)
     : m_library(library)
     , m_similarArtists(similarArtists)
     , m_it(begin)
@@ -38,7 +38,7 @@ RqlOpProcessor::RqlOpProcessor(Iterator begin, Iterator end, Library& library, S
 
 template<typename Iterator>
 void 
-RqlOpProcessor::next()
+RqlOpProcessor<Iterator>::next()
 {
     if (++m_it == m_end) {
         throw "unterminated query. how could the parser do this to us??"; // it's an outrage
@@ -47,7 +47,7 @@ RqlOpProcessor::next()
 
 template<typename Iterator>
 ResultSetPtr 
-RqlOpProcessor::process()
+RqlOpProcessor<Iterator>::process()
 {
     if (m_it->isRoot) {
         // note the operator type, then move on and get the operands
@@ -99,14 +99,15 @@ RqlOpProcessor::process()
 
 template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor::unsupported()
+RqlOpProcessor<Iterator>::unsupported()
 {
     ResultSetPtr r(new ResultSet());
     return r;
 }
 
+template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor::globalTag()
+RqlOpProcessor<Iterator>::globalTag()
 {
     ResultSetPtr rs( new ResultSet() );
     m_library.filesWithTag(
@@ -117,9 +118,10 @@ RqlOpProcessor::globalTag()
     return rs;
 }
 
+
 template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor::userTag()
+RqlOpProcessor<Iterator>::userTag()
 {
     // todo: we have no user tags yet
     return globalTag();
@@ -127,12 +129,12 @@ RqlOpProcessor::userTag()
 
 void insertTrackResult(ResultSet* rs, int track, int artist, float weight)
 {
-    rs.insert(new TrackResult(track, artist, weight));
+    rs->insert(TrackResult(track, artist, weight));
 }
 
 template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor::artist()
+RqlOpProcessor<Iterator>::artist()
 {
     ResultSetPtr rs( new ResultSet() ):
     m_collection.filesByArtist( 
@@ -144,8 +146,8 @@ RqlOpProcessor::artist()
 }
 
 template<typename Iterator>
-ResultSet 
-RqlOpProcessor::similarArtist()
+ResultSetPtr
+RqlOpProcessor<Iterator>::similarArtist()
 {
     ResultSetPtr rs( m_similarArtists.filesBySimilarArtist(m_collection, m_it->name.data()) );
     normalise(m_it->weight, rs);
@@ -155,24 +157,29 @@ RqlOpProcessor::similarArtist()
 // static
 template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor::process(Iterator begin, Iterator end, LocalCollection& collection, SimilarArtists& similarArtists)
+RqlOpProcessor<Iterator>::process(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists)
 {
     return RqlOpProcessor(begin, end, collection, similarArtists).process();
 }
 
+template<typename Iterator>
 void
-RqlOpProcessor::normalise(float weight, ResultSetPtr rs)
+RqlOpProcessor<Iterator>::normalise(float weight, ResultSetPtr rs)
 {
     if (weight < 0.0001) return;
 
+    ResultSet::iterator p;
+
     float sum = 0;
-    foreach(const TrackResult& tr, rs) {
-        sum += tr.weight;
+    for(p = rs->begin(); p != rs->end(); p++) {
+        sum += p->weight;
     }
     sum /= weight;
     if (sum < 0.0001) return;
 
-    for(ResultSet::iterator p = rs.begin(); p != rs.end(); p++) {
+    // need to cast away the constness to mutate the weight
+    // this is safe because the set is not keyed on the weight
+    for(p = rs->begin(); p != rs->end(); p++) {
         const_cast<TrackResult*>(&(*p))->weight /= sum;
     }
 }

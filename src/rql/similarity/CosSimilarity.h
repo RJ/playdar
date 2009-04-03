@@ -34,119 +34,81 @@ class CosSimilarity
 
 public:
 
-   // Compare 'base' to 'candidates'; callback on 'resultFun' to deliver 
-   // the similarity score.  Uses accessPolicy to access a TEntry.
-   // TEntry is effectively opaque to findSimilar.
-   //
-   // TEntryAccessPolicy has to implement
-   //
-   // TEntryIterator get_begin(const TEntry&)
-   // TEntryIterator get_end(const TEntry&)
-   // (IMPORTANT: the iterator range returned MUST be sorted by id!)
-   //
-   // int get_id(const TEntryIterator&)
-   // float get_score(const TEntryIterator&)
-   //
-   // float get_norm(const TEntry&)
-   // Note: here the pair contains the value from the similarity computation and the number of co-occurences
-   // double apply_post_process( const TEntry& entryA, const TEntry& entryB, const std::pair<double, int>& simVal ); 
-   //
-   // note: the EntryAccessPolicy can contain other stuff as it is always copied by ref and
-   //       treated as const
-   //
-   // TCandContainer must support begin() and end() methods
-   //
-   // 
-   template< typename TResultFun, typename TEntry, typename TCandContainer, typename TEntryAccessPolicy>
-   static void findSimilar( 
-      TResultFun resultFun,
-      const TEntry& base,
-      const TCandContainer& candidates,
-      const TEntryAccessPolicy& accessPolicy )
-   {
-      typename TCandContainer::const_iterator cIt;
-      for ( cIt = candidates.begin(); cIt != candidates.end(); ++cIt )
-      {
-         resultFun( *cIt, (float) getCosOfAngle(base, *cIt, accessPolicy) );
-      }
-   }
+    // Compare 'base' to 'candidates'; callback on 'resultFun' to deliver 
+    // the similarity score.  Uses accessPolicy to access a TEntry.
+    // TEntry is effectively opaque to findSimilar.
+    //
+    // TPolicy has to implement
+    //
+    // TEntryIterator get_begin( const TCandContainer::const_iterator& )
+    // TEntryIterator get_end( const TCandContainer::const_iterator& )
+    // (IMPORTANT: the iterator range returned MUST be sorted by id!)
+    //
+    // int get_id(const TEntryIterator&)
+    // float get_score(const TEntryIterator&)
+    //
+    // float get_norm(const TEntry&)
+    // Note: here the pair contains the value from the similarity computation and the number of co-occurences
+    // double apply_post_process( const TEntry& entryA, const TEntry& entryB, const std::pair<double, int>& simVal ); 
+    //
+    // note: the EntryAccessPolicy can contain other stuff as it is always copied by ref and
+    //       treated as const
+    //
+    // TCandContainer must support begin() and end() methods
+    //
+    // 
+    template< typename TResultFun, typename TCandContainer, typename TPolicy>
+    static void findSimilar( 
+        TResultFun resultFun,
+        const typename TCandContainer::const_iterator& base,
+        const TCandContainer& candidates,
+        const TPolicy& accessPolicy )
+    {
+        typename TCandContainer::const_iterator cIt;
+        for ( cIt = candidates.begin(); cIt != candidates.end(); ++cIt )
+        {
+            resultFun( cIt, (float) getCosOfAngle(base, cIt, accessPolicy) );
+        }
+    }
 
-   //////////////////////////////////////////////////////////////////////////
-   //template< typename TEntry, typename TEntryAccessPolicy>
-   //static double getNorm( const TEntry& entry, const TEntryAccessPolicy& accessPolicy )
-   //{
-   //   return getNorm( accessPolicy.get_begin(entry), accessPolicy.get_end(entry), accessPolicy );
-   //}
-
-   //////////////////////////////////////////////////////////////////////////
-   //////////////////////////////////////////////////////////////////////////
 private:
 
-   template <typename TEntry>
-   static bool comparer( const std::pair<TEntry, float>& p1, const std::pair<TEntry, float>& p2 )
-   { return p1.second > p2.second; }
+    // TIterator here is TCandContainer::const_iterator
+    template< typename TIterator, typename TPolicy>
+    static double getCosOfAngle( const TIterator& pA, const TIterator& pB, const TPolicy& accessPolicy )
+    {
+        std::pair<double, int> simVal = getDotProduct(
+            accessPolicy.get_begin(pA), accessPolicy.get_end(pA), 
+            accessPolicy.get_begin(pB), accessPolicy.get_end(pB),
+            accessPolicy);
+        simVal.first /= ( accessPolicy.get_norm(pA) * accessPolicy.get_norm(pB) );
+        return accessPolicy.apply_post_process(pA, pB, simVal);
+    }
 
-   //////////////////////////////////////////////////////////////////////////
+    template< typename TEntryIterator, typename TPolicy>
+    static std::pair<double, int>
+        getDotProduct( TEntryIterator begA, TEntryIterator endA,
+        TEntryIterator begB, TEntryIterator endB,
+        const TPolicy& accessPolicy )
+    {
+        std::pair<double, int> res(0,0);
+        for (; begA != endA && begB != endB; )
+        {
+            if ( accessPolicy.get_id(begA) < accessPolicy.get_id(begB) )
+                ++begA;
+            else if ( accessPolicy.get_id(begB) < accessPolicy.get_id(begA) )
+                ++begB;
+            else
+            {
+                res.first += accessPolicy.get_score(begA) * accessPolicy.get_score(begB);
+                ++(res.second);
+                ++begA;
+                ++begB;
+            }
+        }
 
-   //template< typename TEntryIterator, typename TEntryAccessPolicy>
-   //static double getNorm( TEntryIterator beg, TEntryIterator end, 
-   //                       const TEntryAccessPolicy& accessPolicy )
-   //{
-   //   double norm = 0;
-   //   for (; beg != end; ++beg)
-   //      norm += accessPolicy.get_score(beg) * accessPolicy.get_score(beg);
-   //   return std::sqrt(norm);
-   //}
-
-   //////////////////////////////////////////////////////////////////////////
-
-   template< typename TEntry, typename TEntryAccessPolicy>
-   static double getCosOfAngle( const TEntry& entryA, const TEntry& entryB,
-                                const TEntryAccessPolicy& accessPolicy )
-   {
-      std::pair<double, int> simVal = getDotProduct(entryA, entryB, accessPolicy);
-      simVal.first /= ( accessPolicy.get_norm(entryA) * accessPolicy.get_norm(entryB) );
-      return accessPolicy.apply_post_process(entryA, entryB, simVal);
-   }
-
-   //////////////////////////////////////////////////////////////////////////
-
-   template< typename TEntry, typename TEntryAccessPolicy>
-   static std::pair<double, int>
-      getDotProduct( const TEntry& entryA, const TEntry& entryB,
-                     const TEntryAccessPolicy& accessPolicy )
-   {
-      return getDotProduct( accessPolicy.get_begin(entryA), accessPolicy.get_end(entryA), 
-                            accessPolicy.get_begin(entryB), accessPolicy.get_end(entryB),
-                            accessPolicy );
-   }
-   
-   //////////////////////////////////////////////////////////////////////////
-
-   template< typename TEntryIterator, typename TEntryAccessPolicy>
-   static std::pair<double, int>
-      getDotProduct( TEntryIterator begA, TEntryIterator endA,
-                     TEntryIterator begB, TEntryIterator endB,
-                     const TEntryAccessPolicy& accessPolicy )
-   {
-      std::pair<double, int> res(0,0);
-      for (; begA != endA && begB != endB; )
-      {
-         if ( accessPolicy.get_id(begA) < accessPolicy.get_id(begB) )
-            ++begA;
-         else if ( accessPolicy.get_id(begB) < accessPolicy.get_id(begA) )
-            ++begB;
-         else
-         {
-            res.first += accessPolicy.get_score(begA) * accessPolicy.get_score(begB);
-            ++(res.second);
-            ++begA;
-            ++begB;
-         }
-      }
-      
-      return res;
-   }
+        return res;
+    }
 };
 
 }}
