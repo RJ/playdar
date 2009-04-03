@@ -67,9 +67,9 @@ int scrobsub_state();
 void scrobsub_force_submit();
 
 
-/** returns true if there's a key, provide a char[33] as out if you want it, but 
-  * feel free to pass 0 */ 
-bool scrobsub_session_key(const char* out);
+/** return 0 if none yet allocated, you may need to auth */ 
+const char* scrobsub_session_key();
+const char* scrobsub_username();
 
 
 /** for your convenience, we use it, so maybe you need to as well */

@@ -21,8 +21,11 @@
 #include <CommonCrypto/CommonDigest.h>
 #include <Cocoa/Cocoa.h>
 
+#define KEYCHAIN_NAME "fm.last.Audioscrobbler"
+
 static NSString* token;
 static NSString* session_key;
+static NSString* username;
 extern void(*scrobsub_callback)(int event, const char* message);
 bool scrobsub_finish_auth();
 
@@ -30,62 +33,79 @@ void scrobsub_md5(char out[33], const char* in)
 {
     unsigned char d[CC_MD5_DIGEST_LENGTH];
 	CC_MD5(in, strlen(in), d);
-    snprintf(out, sizeof(out), "%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]);
+    snprintf(out, 33, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]);
 }
 
-bool scrobsub_session_key(const char* out)
+const char* scrobsub_username()
 {
-    if (!session_key)
-        return false;
-    
-    out = [session_key UTF8String];
-    return true;
+    return username ? [username UTF8String] : 0;
 }
 
-static void check_for_session_key()
+const char* scrobsub_session_key()
 {
-    if (!scrobsub_session_key(NULL)){
-        if (!token){
-            (scrobsub_callback)(SCROBSUB_AUTH_REQUIRED, "");
-            return;
-        }
-        if (!scrobsub_finish_auth()){
+    if (!session_key){
+        if (token && !scrobsub_finish_auth()){
             (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, "Couldn't auth with Last.fm");
-            return;
+            return 0;
         }
+
+        username = [[NSUserDefaults standardUserDefaults] stringForKey:@"Username"];
+        const char* utf8_username = [username UTF8String];
+        if (!utf8_username){
+            (scrobsub_callback)(SCROBSUB_AUTH_REQUIRED, "");
+            return 0;
+        }
+        
+        void* key;
+        UInt32 n;
+        OSStatus err = SecKeychainFindGenericPassword(NULL, //default keychain
+                                                      sizeof(KEYCHAIN_NAME),
+                                                      KEYCHAIN_NAME,
+                                                      strlen(utf8_username),
+                                                      utf8_username,
+                                                      &n,
+                                                      &key,
+                                                      NULL);
+        session_key = [[NSString alloc] initWithBytes:key length:n encoding:NSASCIIStringEncoding];
+        SecKeychainItemFreeContent(NULL, key);
+        (void)err; //TODO
     }
-}    
+    return [session_key UTF8String];
+}
 
 void scrobsub_get(char response[256], const char* url)
 {
-    check_for_session_key();
-
-    NSStringEncoding* encoding;
+    NSStringEncoding encoding;
     NSString *output = [NSString stringWithContentsOfURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]
-                                            usedEncoding:encoding
+                                            usedEncoding:&encoding
                                                    error:nil];
     strncpy(response, [output UTF8String], 256);
 }
 
 void scrobsub_post(char response[256], const char* url, const char* post_data)
 {   
-    //check_for_session_key(); TODO don't think this is required
+    NSURL* urls = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
     
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:urls
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
                                                        timeoutInterval:10];
     [request setHTTPMethod:@"POST"];
     [request setHTTPBody:[NSString stringWithUTF8String:post_data]];
-//TODO    [request setValue: forHTTPHeaderField:@"User-Agent"];
+    [request setValue:@"ARSE" forHTTPHeaderField:@"User-Agent"];
     
-    NSURLResponse* headers;
-    NSData* data = [NSURLConnection sendSynchronousRequest:request returningResponse:&headers error:nil];
+    [request retain]; //debug TODO remove
+    
+    NSURLResponse* headers = NULL;
+    NSError* error = NULL;
+    NSData* data = [NSURLConnection sendSynchronousRequest:request returningResponse:&headers error:&error];
     
     [data getBytes:response length:256];
 }
 
 void scrobsub_auth()
 {
+    if (token) return;
+    
     NSURL* url = [NSURL URLWithString:@"http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=" SCROBSUB_API_KEY ];
     NSXMLDocument* xml = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:nil];
     token = [[[[xml rootElement] elementsForName:@"token"] lastObject] stringValue];
@@ -95,8 +115,9 @@ void scrobsub_auth()
     [xml release];
 }
 
+
 //TODO localise and get webservice error
-//TODO store key in keychain
+//TODO error handling
 bool scrobsub_finish_auth()
 {
     char sig[33];
@@ -105,9 +126,27 @@ bool scrobsub_finish_auth()
     NSURL* url = [NSURL URLWithString:[NSString stringWithFormat:@"http://ws.audioscrobbler.com/2.0/?method=auth.getSession&api_key=" SCROBSUB_API_KEY "&token=%@&api_sig=%s", token, sig]];
 
     NSXMLDocument* xml = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:nil];
-    session_key = [[[[xml rootElement] elementsForName:@"key"] lastObject] stringValue];
-    NSString* username = [[[[xml rootElement] elementsForName:@"name"] lastObject] stringValue];
+    NSXMLElement* session = [[[xml rootElement] elementsForName:@"session"] lastObject];
+    session_key = [[[session elementsForName:@"key"] lastObject] stringValue];
+    username = [[[session elementsForName:@"name"] lastObject] stringValue];
     [xml release];
+    [session_key retain];
+    [username retain];
+    
+    const char* utf8_username = [username UTF8String];
+    OSStatus err = SecKeychainAddGenericPassword(NULL, //default keychain
+                                                 sizeof(KEYCHAIN_NAME),
+                                                 KEYCHAIN_NAME,
+                                                 strlen(utf8_username),
+                                                 utf8_username,
+                                                 32,
+                                                 [session_key UTF8String],
+                                                 NULL);
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    [defaults setObject:username forKey:@"Username"];
+    [defaults synchronize];
+
+    (void)err; //TODO
     
     return true;
 }

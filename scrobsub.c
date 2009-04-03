@@ -89,32 +89,25 @@ static void get_auth(char out[33], time_t time)
 }
 
 
-static const char* get_username()
-{
-    return "mxcl"; //TODO
-}
-
-
 static char* handshake_response_strdup(char** p)
 {
     char* start = *p;
     while (*++(*p)) if (**p == '\n') break;
-    **p = '\0';
+    *(*p)++ = '\0';
     return strdup(start);
 }
 
 
 static void handshake()
 {
-    const char* username = get_username();
+    const char* session_key = scrobsub_session_key();
+    const char* username = scrobsub_username();
     time_t time = now();
     char auth[33];
     get_auth(auth, time);
     int n = 34+8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
     char url[n];
-    char session_key[33];
-    scrobsub_session_key(session_key);
-
+    
     n = snprintf(url, n, "http://post.audioscrobbler.com:80/"
                  "?hs=true"
                  "&p=1.2.1"
