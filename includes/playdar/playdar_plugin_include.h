@@ -2,5 +2,6 @@
 #include "playdar/config.hpp"
 #include "playdar/playable_item.hpp"
 #include "playdar/resolver_service.h"
+#include "playdar/playdar_request.h"
 #include "playdar/types.h"
 #include "json_spirit/json_spirit.h"

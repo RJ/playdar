@@ -131,10 +131,7 @@ public:
         { return conn; }
     }
     
-    string http_handler( string url,
-                         vector<string> parts,
-                         map<string,string> getvars,
-                         map<string,string> postvars,
+    string http_handler( const playdar_request& req,
                         playdar::auth * pauth);
                            
     vector<string> get_http_handlers()
