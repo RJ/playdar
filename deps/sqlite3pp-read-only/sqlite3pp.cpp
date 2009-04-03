@@ -35,7 +35,12 @@ namespace sqlite3pp
       (*h)();
     }
 
-    void update_hook_impl(void* p, int opcode, char const* dbname, char const* tablename, int64_t /*sqlite3_int64*/ rowid)
+// Not sure why this is needed.
+#ifdef __x86_64__
+    void update_hook_impl(void* p, int opcode, char const* dbname, char const* tablename, sqlite3_int64 rowid)
+#else
+    void update_hook_impl(void* p, int opcode, char const* dbname, char const* tablename, int64_t rowid)
+#endif
     {
       database::update_handler* h = static_cast<database::update_handler*>(p);
       (*h)(opcode, dbname, tablename, rowid);
