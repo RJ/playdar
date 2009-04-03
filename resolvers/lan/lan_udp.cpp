@@ -1,4 +1,5 @@
 #include "lan_udp.h"
+#include <time.h>
 
 namespace playdar {
 namespace resolvers {
@@ -24,6 +25,7 @@ lan_udp::~lan_udp() throw()
     //string msg = "KTHXBYE "; msg += conf()->name();
     //socket_->send_to(boost::asio::buffer(msg.c_str(), msg.length()), *broadcast_endpoint_);
     cout << "DTOR LAN/UDP " << endl;
+    //send_pang();
     m_io_service->stop();
     m_responder_thread->join();
     delete(socket_);
@@ -34,11 +36,8 @@ void
 lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
-    Object jq;
-    jq.push_back( Pair("from_name", conf()->name()) );
-    jq.push_back( Pair("query", rq->get_json()) );
     ostringstream querystr;
-    write_formatted( jq, querystr );
+    write_formatted( rq->get_json(), querystr );
     async_send(broadcast_endpoint_, querystr.str());
 }
 
@@ -56,11 +55,7 @@ lan_udp::run()
          << socket_->local_endpoint().address() << ":"
          << socket_->local_endpoint().port()
          << endl;
-    // announce our presence to the LAN:
-    string hello = "OHAI ";
-    hello += conf()->name();
-    async_send(broadcast_endpoint_, hello);
-    
+    send_ping(); // announce our presence to the LAN
     m_io_service->run();
 }
 
@@ -150,17 +145,10 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 break;
             }
             
-            //cout    << "LAN_UDP: Received multicast message (from " 
-            //        << sender_address.to_string() << ":" << //sender_port << "):" << endl; 
-            //cout << msg << endl;
-    
-            // join leave msg, for debugging on lan
-            if(msg.substr(0,5)=="OHAI " || msg.substr(0,8)=="KTHXBYE ")
-            {
-                cout << "INFO Presence msg: " << msg << endl;
-                break;
-            }
-     
+            cout    << "LAN_UDP: Received multicast message (from " 
+                    << sender_address.to_string() << "):" 
+                    << endl << msg << endl;
+            
             using namespace json_spirit;
             // try and parse it as json:
             Value mv;
@@ -173,13 +161,26 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
             map<string,Value> r;
             obj_to_map(qo,r);
             
-            if(r.find("query")!=r.end()) // REQUEST / NEW QUERY
+            // we identify JSON messages by the "_msgtype" property:
+            string msgtype = "";
+            if( r.find("_msgtype")!=r.end() &&
+                r["_msgtype"].type() == str_type )
             {
-                Object qryobj = r["query"].get_obj();
+                msgtype = r["_msgtype"].get_str();
+            }
+            else
+            {
+                cerr << "UDP msg rcvd without _msgtype - discarding"
+                     << endl;
+                break;
+            }
+            
+            if(msgtype == "rq") // REQUEST / NEW QUERY
+            {
                 boost::shared_ptr<ResolverQuery> rq;
                 try
                 {
-                    rq = ResolverQuery::from_json(qryobj);
+                    rq = ResolverQuery::from_json(qo);
                 } 
                 catch (...) 
                 {
@@ -192,7 +193,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                     //cout << "LAN_UDP: discarding message, QID already exists: " << rq->id() << endl;
                     break;
                 }
-
+                
                 // dispatch query with our callback that will
                 // respond to the searcher via UDP.
                 rq_callback_t cb =
@@ -200,7 +201,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                              sender_endpoint_);
                 query_uid qid = resolver()->dispatch(rq, cb);
             }
-            else if(r.find("qid")!=r.end()) // RESPONSE 
+            else if(msgtype == "result") // RESPONSE 
             {
                 Object resobj = r["result"].get_obj();
                 map<string,Value> resobj_map;
@@ -241,6 +242,14 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                         << pip->track() << "' [score: "<< pip->score() <<"]" 
                         << endl;
             }
+            else if(msgtype == "ping")
+            {
+                send_pong();
+            }
+            else if(msgtype == "pong")
+            {
+                receive_pong( r, sender_endpoint_ );
+            }
             
         }while(false);
                 
@@ -268,6 +277,7 @@ lan_udp::send_response( query_uid qid,
          << endl;
     using namespace json_spirit;
     Object response;
+    response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     Object result = pip->get_json();
     response.push_back( Pair("result", result) );
@@ -275,6 +285,72 @@ lan_udp::send_response( query_uid qid,
     write_formatted( response, ss );
     async_send(&sep, ss.str());
 }
+
+// LAN presence stuff.
+
+void
+lan_udp::send_ping()
+{
+    cout << "LAN/UDP sending ping.." << endl;
+    using namespace json_spirit;
+    Object jq;
+    jq.push_back( Pair("_msgtype", "ping") );
+    jq.push_back( Pair("from_name", conf()->name()) );
+    ostringstream os;
+    write_formatted( jq, os );
+    async_send(broadcast_endpoint_, os.str());
+}
+
+void
+lan_udp::send_pong()
+{
+    cout << "LAN/UDP sending pong.." << endl;
+    using namespace json_spirit;
+    Object o;
+    o.push_back( Pair("_msgtype", "pong") );
+    o.push_back( Pair("from_name", conf()->name()) );
+    ostringstream os;
+    write_formatted( o, os );
+    async_send(broadcast_endpoint_, os.str());
+}
+
+void
+lan_udp::send_pang()
+{
+    cout << "LAN/UDP sending pang.." << endl;
+    using namespace json_spirit;
+    Object o;
+    o.push_back( Pair("_msgtype", "pang") );
+    o.push_back( Pair("from_name", conf()->name()) );
+    ostringstream os;
+    write_formatted( o, os );
+    async_send(broadcast_endpoint_, os.str());
+}
+
+void
+lan_udp::receive_pong(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint)
+{
+    if(om.find("from_name")==om.end() ||
+       om["from_name"].type()!=str_type)
+    {
+        cout << "Malformed UDP PING dropped." << endl;
+        return;
+    }
+    string from_name = om["from_name"].get_str();
+    cout << "Received UDP PONG from '" << from_name 
+         << "' @ " << sender_endpoint.address().to_string()
+         << endl;
+    m_lannodes[from_name] = "yup";
+    cout << "Current LAN roster: ";
+    typedef std::pair<string,string> pair_t;
+    BOOST_FOREACH( pair_t p, m_lannodes )
+    {
+        cout << p.first << ", ";
+    }
+    cout << endl;
+}
+
 
 
 }}

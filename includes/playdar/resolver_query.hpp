@@ -48,6 +48,7 @@ public:
     {
         using namespace json_spirit;
         Object j;
+        j.push_back( Pair("_msgtype", "rq")   );
         j.push_back( Pair("qid",    id())     );
         j.push_back( Pair("artist", artist()) );
         j.push_back( Pair("album",  album())  );

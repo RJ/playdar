@@ -73,6 +73,15 @@ private:
     boost::asio::ip::udp::endpoint * broadcast_endpoint_;
     enum { max_length = 1024 };
     char data_[max_length];
+    
+   // typedef struct { time_t lastdate } lannode;
+   
+    map<string,string> m_lannodes;
+    void send_ping();
+    void send_pong();
+    void send_pang();
+    void receive_pong(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
 };
 
 EXPORT_DYNAMIC_CLASS( lan_udp )

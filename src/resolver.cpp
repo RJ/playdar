@@ -351,12 +351,12 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     {
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        if(pip->score() < 0.1)
-        {
+        //if(pip->score() < 0.1)
+        //{
             float score = calculate_score( m_queries[qid], pip, reason );
             if(score == 0.0) continue;
             pip->set_score( score );
-        }
+        //}
         m_queries[qid]->add_result(pip);
         // update map of source id -> playable item
         m_pis[pip->id()] = pip;
