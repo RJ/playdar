@@ -138,10 +138,58 @@ static void handshake()
 }
 
 
+static unsigned int scrobble_time(unsigned int duration)
+{
+    if(duration>240*2) return 240;
+    if(duration<30*2) return 30;
+    return duration/2;
+}
+
+
+static void submit()
+{
+    //TODO check track is valid to submit
+    
+    if(state == SCROBSUB_PAUSED)
+        scrobsub_resume(); //sets pause time correctly
+    if(now() - (start_time + pause_time) < scrobble_time(duration))
+        return;
+    
+    int n = 32+N+10+1 +2+9*5;
+    char post_data[n];
+    
+    n = snprintf(post_data, n, 
+                     "s=%s"
+                 "&a[0]=%s"
+                 "&t[0]=%s"
+                 "&b[0]=%s"
+                 "&l[0]=%d"
+                 "&n[0]=%d"
+                 "&m[0]=%s"
+                 "&i[0]=%d"
+                 "&o[0]=%c"
+                 "&r[0]=",
+                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P' );
+    
+    for (int x=0; x<2; ++x){    
+        char response[128];
+        scrobsub_post(response, submit_url, post_data);
+        if(strcmp(response, "BADSESSION\n") == 0)
+            handshake();
+        if(response[0] != 'O' && response[1] != 'K' && response[2] != '\n')
+            (scrobsub_callback(SCROBSUB_ERROR_RESPONSE, response);
+        break;
+    }
+}
+
+
 void scrobsub_start(const char* _artist, const char* _track, const char* _album, const char* _mbid, unsigned int _duration, unsigned int _track_number)
 {
-    if (!session_id) 
+    if (!session_id)
         handshake();
+    
+    if (state != SCROBSUB_STOPPED)
+        submit();
     
     state = SCROBSUB_PLAYING;
     
@@ -213,48 +261,6 @@ void scrobsub_resume()
     if(state == SCROBSUB_PAUSED){
         pause_time = now() - pause_time;
         state = SCROBSUB_PLAYING;
-    }
-}
-
-
-static unsigned int scrobble_time(unsigned int duration)
-{
-    if(duration>240*2) return 240;
-    if(duration<30) return 30;
-    return duration/2;
-}
-
-
-static void submit()
-{
-    //TODO check track is valid to submit
-    
-    if(state == SCROBSUB_PAUSED)
-        scrobsub_resume();
-    if(now() - start_time + pause_time < scrobble_time(duration))
-        return;
-
-    int n = 32+N+10+1 +2+9*5;
-    char post_data[n];
-
-    n = snprintf(post_data, n, "s=%s"
-                           "&a[0]=%s"
-                           "&t[0]=%s"
-                           "&b[0]=%s"
-                           "&l[0]=%d"
-                           "&n[0]=%d"
-                           "&m[0]=%s"
-                           "&i[0]=%d"
-                           "&o[0]=%c"
-                           "&r[0]=",
-                           session_id, artist, track, album, duration, track_number, mbid, start_time, 'P' );
-        
-    for (int x=0; x<2; ++x){    
-        char response[128];
-        scrobsub_post(response, submit_url, post_data);
-        if(strcmp(response, "BADSESSION") == 0) //TODO has a newline I believe, but we should do startsWith
-            handshake();
-        break;
     }
 }
 

@@ -38,7 +38,7 @@ void scrobsub_md5(char out[33], const char* in)
 
 const char* scrobsub_username()
 {
-    return username ? [username UTF8String] : 0;
+    return [username UTF8String];
 }
 
 const char* scrobsub_session_key()
@@ -84,23 +84,17 @@ void scrobsub_get(char response[256], const char* url)
 
 void scrobsub_post(char response[256], const char* url, const char* post_data)
 {   
-    NSURL* urls = [NSURL URLWithString:[NSString stringWithUTF8String:url]];
+    int const n = strlen(post_data);
+    NSData *body = [NSData dataWithBytes:post_data length:n];    
     
-    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:urls
+    NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL:[NSURL URLWithString:[NSString stringWithUTF8String:url]]
                                                            cachePolicy:NSURLRequestReloadIgnoringCacheData
-                                                       timeoutInterval:10];
-    
-    NSData *postData = [[NSString stringWithUTF8String:post_data] dataUsingEncoding:NSUTF8StringEncoding allowLossyConversion:YES];
-    NSString *postLength = [NSString stringWithFormat:@"%d", [postData length]];
-    
+                                                       timeoutInterval:10];    
     [request setHTTPMethod:@"POST"];
-    [request setHTTPBody:postData];
-    [request setValue:@"ARSE" forHTTPHeaderField:@"User-Agent"];
-    [request setValue:postLength forHTTPHeaderField:@"Content-Length"];
+    [request setHTTPBody:body];
+    [request setValue:@"fm.last.Audioscrobbler" forHTTPHeaderField:@"User-Agent"];
+    [request setValue:[[NSNumber numberWithInteger:n] stringValue] forHTTPHeaderField:@"Content-Length"];
     [request setValue:@"application/x-www-form-urlencoded" forHTTPHeaderField:@"Content-Type"];
-
-    [[request URL] retain]; //debug TODO remove
-    [request retain]; //debug TODO remove
     
     NSURLResponse* headers = NULL;
     NSError* error = NULL;
