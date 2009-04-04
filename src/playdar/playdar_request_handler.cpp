@@ -802,6 +802,12 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
     boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
     cout << "-> " << ss->debug() << endl;
+    if(pip->mimetype().length())
+    {
+        rep.headers.resize(2);
+        rep.headers[1].name = "Content-Type";
+        rep.headers[1].value = pip->mimetype();
+    }
     // hand off the streaming strategy for the http server to do:
     rep.set_streaming(ss, pip->size());
     return;  

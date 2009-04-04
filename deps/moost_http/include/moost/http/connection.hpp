@@ -108,9 +108,10 @@ void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
         boost::shared_ptr<StreamingStrategy> ss = reply_.get_ss();
         cout << "sending headers.." << endl;
         boost::asio::async_write(socket_, reply_.to_buffers(false),
-            /*strand_.wrap(*/
+            strand_.wrap(
             boost::bind(&connection<RequestHandler>::handle_write_stream,             connection<RequestHandler>::shared_from_this(),
-                        boost::asio::placeholders::error, ss, (char*)0))/*)*/;
+                        boost::asio::placeholders::error, ss, (char*)0))
+                        );
       }
       
     }
