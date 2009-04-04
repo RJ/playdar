@@ -44,8 +44,8 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
-    // handlers provided by plugins:
-    BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+    // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
+    BOOST_FOREACH( loaded_rs & lrs, *m_app->resolver()->resolvers() )
     {
         string name = lrs.rs->name();
         boost::algorithm::to_lower( name );
