@@ -1,30 +1,30 @@
-#include "lan_udp.h"
+#include "lan.h"
 #include <time.h>
 
 namespace playdar {
 namespace resolvers {
 
 bool
-lan_udp::init(playdar::Config * c, Resolver * r)
+lan::init(playdar::Config * c, Resolver * r)
 {
     m_resolver  = r;
     m_conf = c;
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
          (  boost::asio::ip::address::from_string
-            (conf()->get<string> ("plugins.lan_udp.multicast", "")), 
-           conf()->get<int>("plugins.lan_udp.port", 0));
-    m_responder_thread = new boost::thread(boost::bind(&lan_udp::run, this));
+            (conf()->get<string> ("plugins.lan.multicast", "")), 
+           conf()->get<int>("plugins.lan.port", 0));
+    m_responder_thread = new boost::thread(boost::bind(&lan::run, this));
     return true;
 }
 
-lan_udp::~lan_udp() throw()
+lan::~lan() throw()
 {
     // sync send goodbye msg:
     //cout << "Sending goodbye msg over UDP" << endl;
     //string msg = "KTHXBYE "; msg += conf()->name();
     //socket_->send_to(boost::asio::buffer(msg.c_str(), msg.length()), *broadcast_endpoint_);
-    cout << "DTOR LAN/UDP " << endl;
+    cout << "DTOR LAN " << endl;
     //send_pang();
     m_io_service->stop();
     m_responder_thread->join();
@@ -33,7 +33,7 @@ lan_udp::~lan_udp() throw()
 }
 
 void
-lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     using namespace json_spirit;
     ostringstream querystr;
@@ -42,14 +42,14 @@ lan_udp::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 }
 
 void 
-lan_udp::run()
+lan::run()
 {
     m_io_service = new boost::asio::io_service;
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    (conf()->get<string>("plugins.lan_udp.multicast", "")), 
-                    conf()->get<int>("plugins.lan_udp.port", 0)); 
+                    (conf()->get<string>("plugins.lan.multicast", "")), 
+                    conf()->get<int>("plugins.lan.port", 0)); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -60,7 +60,7 @@ lan_udp::run()
 }
 
 void 
-lan_udp::start_listening(boost::asio::io_service& io_service,
+lan::start_listening(boost::asio::io_service& io_service,
         const boost::asio::ip::address& listen_address,
         const boost::asio::ip::address& multicast_address,
         const short multicast_port)
@@ -79,14 +79,14 @@ lan_udp::start_listening(boost::asio::io_service& io_service,
 
     socket_->async_receive_from(
             boost::asio::buffer(data_, max_length), sender_endpoint_,
-            boost::bind(&lan_udp::handle_receive_from, this,
+            boost::bind(&lan::handle_receive_from, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred));
                 
 }
 
 void 
-lan_udp::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
+lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
                        string message)                       
 {
     if(message.length()>max_length)
@@ -102,13 +102,13 @@ lan_udp::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
     socket_->async_send_to(     
             boost::asio::buffer(buf,message.length()), 
             *remote_endpoint,
-            boost::bind(&lan_udp::handle_send, this,
+            boost::bind(&lan::handle_send, this,
                 boost::asio::placeholders::error,
                 boost::asio::placeholders::bytes_transferred,
                 buf));
 }
 
-void lan_udp::handle_send(   const boost::system::error_code& error,
+void lan::handle_send(   const boost::system::error_code& error,
                                 size_t bytes_recvd,
                                 char * scratch )
 {
@@ -121,7 +121,7 @@ void lan_udp::handle_send(   const boost::system::error_code& error,
 
 
 void 
-lan_udp::handle_receive_from(const boost::system::error_code& error,
+lan::handle_receive_from(const boost::system::error_code& error,
         size_t bytes_recvd)
 {
     if (!error)
@@ -145,7 +145,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 break;
             }
             
-            cout    << "LAN_UDP: Received multicast message (from " 
+            cout    << "lan: Received multicast message (from " 
                     << sender_address.to_string() << "):" 
                     << endl << msg << endl;
             
@@ -154,7 +154,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
             Value mv;
             if(!read(msg, mv)) 
             {
-                cout << "LAN_UDP: invalid JSON in this message, discarding." << endl;
+                cout << "lan: invalid JSON in this message, discarding." << endl;
                 break; // Invalid JSON, ignore it.
             }
             Object qo = mv.get_obj();
@@ -184,20 +184,20 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 } 
                 catch (...) 
                 {
-                    cout << "LAN_UDP: missing fields in JSON query object, discarding" << endl;
+                    cout << "lan: missing fields in JSON query object, discarding" << endl;
                     break; 
                 }
                 
                 if(resolver()->query_exists(rq->id()))
                 {
-                    //cout << "LAN_UDP: discarding message, QID already exists: " << rq->id() << endl;
+                    //cout << "lan: discarding message, QID already exists: " << rq->id() << endl;
                     break;
                 }
                 
                 // dispatch query with our callback that will
                 // respond to the searcher via UDP.
                 rq_callback_t cb =
-                 boost::bind(&lan_udp::send_response, this, _1, _2,
+                 boost::bind(&lan::send_response, this, _1, _2,
                              sender_endpoint_);
                 query_uid qid = resolver()->dispatch(rq, cb);
             }
@@ -209,10 +209,10 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 query_uid qid = r["qid"].get_str();
                 if(!resolver()->query_exists(qid))
                 {
-                    cout << "LAN_UDP: Ignoring response - QID invalid or expired" << endl;
+                    cout << "lan: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
-                //cout << "LAN_UDP: Got udp response." <<endl;
+                //cout << "lan: Got udp response." <<endl;
                 boost::shared_ptr<PlayableItem> pip;
                 try
                 {
@@ -220,7 +220,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 }
                 catch (...)
                 {
-                    cout << "LAN_UDP: Missing fields in response json, discarding" << endl;
+                    cout << "lan: Missing fields in response json, discarding" << endl;
                     break;
                 }
                 ostringstream rbs;
@@ -255,7 +255,7 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
                 
         socket_->async_receive_from(
                 boost::asio::buffer(data_, max_length), sender_endpoint_,
-                boost::bind(&lan_udp::handle_receive_from, this,
+                boost::bind(&lan::handle_receive_from, this,
                     boost::asio::placeholders::error,
                     boost::asio::placeholders::bytes_transferred));
     }
@@ -267,11 +267,11 @@ lan_udp::handle_receive_from(const boost::system::error_code& error,
 
 // fired when a new result is available for a running query:
 void
-lan_udp::send_response( query_uid qid, 
+lan::send_response( query_uid qid, 
                         boost::shared_ptr<PlayableItem> pip,
                         boost::asio::ip::udp::endpoint sep )
 {
-    cout << "LAN_UDP responding for " << qid << " to: " 
+    cout << "lan responding for " << qid << " to: " 
          << sep.address().to_string() 
          << " score: " << pip->score()
          << endl;
@@ -289,9 +289,9 @@ lan_udp::send_response( query_uid qid,
 // LAN presence stuff.
 
 void
-lan_udp::send_ping()
+lan::send_ping()
 {
-    cout << "LAN/UDP sending ping.." << endl;
+    cout << "LAN sending ping.." << endl;
     using namespace json_spirit;
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
@@ -302,22 +302,23 @@ lan_udp::send_ping()
 }
 
 void
-lan_udp::send_pong()
+lan::send_pong()
 {
-    cout << "LAN/UDP sending pong.." << endl;
+    cout << "LAN sending pong.." << endl;
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
     o.push_back( Pair("from_name", conf()->name()) );
+    o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
     ostringstream os;
     write_formatted( o, os );
     async_send(broadcast_endpoint_, os.str());
 }
 
 void
-lan_udp::send_pang()
+lan::send_pang()
 {
-    cout << "LAN/UDP sending pang.." << endl;
+    cout << "LAN sending pang.." << endl;
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pang") );
@@ -328,7 +329,7 @@ lan_udp::send_pang()
 }
 
 void
-lan_udp::receive_pong(map<string,Value> & om,
+lan::receive_pong(map<string,Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint)
 {
     if(om.find("from_name")==om.end() ||
@@ -337,20 +338,62 @@ lan_udp::receive_pong(map<string,Value> & om,
         cout << "Malformed UDP PING dropped." << endl;
         return;
     }
+    if(om.find("http_port")==om.end() ||
+       om["http_port"].type()!=int_type)
+    {
+        cout << "Malformed UDP PING dropped." << endl;
+        return;
+    }
     string from_name = om["from_name"].get_str();
     cout << "Received UDP PONG from '" << from_name 
          << "' @ " << sender_endpoint.address().to_string()
          << endl;
-    m_lannodes[from_name] = "yup";
+    ostringstream hbase;
+    hbase   << "http://" << sender_endpoint.address().to_string() 
+            << ":" << om["http_port"].get_int();
+    
+    lannode node;
+    time(&node.lastdate);
+    node.name = from_name;
+    node.http_base = hbase.str();
+    node.udp_ep = sender_endpoint;
+    m_lannodes[from_name] = node;
     cout << "Current LAN roster: ";
-    typedef std::pair<string,string> pair_t;
+    typedef std::pair<string,lannode> pair_t;
     BOOST_FOREACH( pair_t p, m_lannodes )
     {
-        cout << p.first << ", ";
+        cout << p.first << ": " << p.second.lastdate << ", ";
     }
     cout << endl;
 }
 
+string 
+lan::http_handler( const playdar_request& req,
+                         playdar::auth * pauth)
+{
+    cout << "request handler on lan for url: " << req.url() << endl;
+    time_t now;
+    time(&now);
+    ostringstream os;
+    os  << "<h2>LAN</h2>"
+        << "<p>Detected nodes:"
+        << "<table>" 
+        << "<tr style=\"font-weight:bold;\">"
+        << "<td>Name</td> <td>Address</td> <td>Seconds since last ping</td>"
+        << "</td>"
+        << endl;
+    typedef std::pair<string,lannode> pair_t;
+    BOOST_FOREACH( pair_t p, m_lannodes )
+    {
+        os  << "<tr><td>" << p.first << "</td>"
+            << "<td><a href=\"" << p.second.http_base << "/\">"<< p.second.http_base <<"</a></td>"
+            << "<td>" << (now - p.second.lastdate) << "</td>"
+            << "</tr>" << endl;
+    }
+    os  << "</ul></p>" << endl;
+    
+    return os.str();
+}
 
 
 }}

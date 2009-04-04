@@ -31,7 +31,7 @@ playdar_request_handler::init(MyApplication * app)
     cout << "HTTP handler online." << endl;
     m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
-
+    // built-in handlers:
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
     m_urlHandlers[ "auth_1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2 );
     m_urlHandlers[ "auth_2" ] = boost::bind( &playdar_request_handler::handle_auth2, this, _1, _2 );
@@ -44,7 +44,13 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
-
+    // handlers provided by plugins:
+    BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+    {
+        string name = lrs.rs->name();
+        boost::algorithm::to_lower( name );
+        m_urlHandlers[ name ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
+    }
 }
 
 
@@ -64,6 +70,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     rep.unset_streaming();
     
     string base = req.uri.substr(1, req.uri.find("/", 1)-1);
+    boost::to_lower(base);
     cout << "Base: " << base << endl;
     HandlerMap::iterator handler = m_urlHandlers.find( base );
     if( handler != m_urlHandlers.end())
@@ -198,9 +205,6 @@ playdar_request_handler::handle_root( const playdar_request& req,
 
         string name = lrs.rs->name();
         boost::algorithm::to_lower( name );
-        
-        m_urlHandlers[ name ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
-        
         os << "<a href=\""<< name << "/config" <<"\">" << name << " config</a><br/> " ;
 
         os  << "</td></tr>" << endl;
@@ -216,11 +220,12 @@ void
 playdar_request_handler::handle_pluginurl( const playdar_request& req,
                                            moost::http::reply& rep )
 {
-
+    cout << "pluginhandler: " << req.parts()[0] << endl;
     ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
 
     if( resolver == 0 )
     {
+        cout << "No plugin of that name found." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
         return;
     }
@@ -802,11 +807,17 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
     boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
     cout << "-> " << ss->debug() << endl;
+    rep.headers.resize(2);
     if(pip->mimetype().length())
     {
-        rep.headers.resize(2);
+        
         rep.headers[1].name = "Content-Type";
         rep.headers[1].value = pip->mimetype();
+    }
+    if(pip->size())
+    {
+        rep.headers[0].name = "Content-Length";
+        rep.headers[0].value = boost::lexical_cast<string>(pip->size());
     }
     // hand off the streaming strategy for the http server to do:
     rep.set_streaming(ss, pip->size());

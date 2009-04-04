@@ -4,6 +4,7 @@
 #include <boost/foreach.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "playdar/resolver.h"
 
@@ -51,6 +52,13 @@ Resolver::Resolver(MyApplication * app)
     {
         cout << "Error loading resolver plugins." << endl;
     }
+    typedef std::pair<string,ResolverService*> pairx;
+    BOOST_FOREACH( pairx px, m_pluginNameMap )
+    {
+        cout << px.first << ", " ;
+    }
+    cout << endl;
+    
     // sort the list of resolvers by weight, descending:
     boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
         boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
@@ -169,6 +177,12 @@ Resolver::load_resolver_plugins()
             continue;
         }
         string classname = bfs::basename(pluginfile);
+        if(m_pluginNameMap.find(boost::to_lower_copy(classname)) != m_pluginNameMap.end())
+        {
+            cerr << "ERROR: Plugin class '"<< classname << "' already in use. "
+                 << "Case-insensitivity applies." << endl;
+            continue;
+        }
         string confopt = "resolvers.";
         confopt += classname;
         confopt += ".enabled";
@@ -193,7 +207,7 @@ Resolver::load_resolver_plugins()
                 continue;
             }
             
-            m_pluginNameMap[ classname ] = instance;
+            m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
 
             loaded_rs cr;
             cr.script = false;
