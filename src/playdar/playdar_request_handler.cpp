@@ -33,6 +33,7 @@ playdar_request_handler::init(MyApplication * app)
     m_app = app;
     // built-in handlers:
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
+    m_urlHandlers[ "crossdomain.xml" ] = boost::bind( &playdar_request_handler::handle_crossdomain, this, _1, _2 );
     m_urlHandlers[ "auth_1" ] = boost::bind( &playdar_request_handler::handle_auth1, this, _1, _2 );
     m_urlHandlers[ "auth_2" ] = boost::bind( &playdar_request_handler::handle_auth2, this, _1, _2 );
     m_urlHandlers[ "shutdown" ] = boost::bind( &playdar_request_handler::handle_shutdown, this, _1, _2 );
@@ -155,6 +156,21 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     }
 }
 
+void 
+playdar_request_handler::handle_crossdomain( const playdar_request& req,
+                                             moost::http::reply& rep)
+{
+    ostringstream os;
+    os  << "<?xml version=\"1.0\"?>" << endl
+        << "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"
+        << "<cross-domain-policy><allow-access-from domain=\"*\" /></cross-domain-policy>" << endl;
+    rep.headers.resize(2);
+    rep.headers[0].name = "Content-Length";
+    rep.headers[0].value = os.str().length();
+    rep.headers[1].name = "Content-Type";
+    rep.headers[1].value = "text/xml";
+    rep.content = os.str();
+}
 
 void 
 playdar_request_handler::handle_root( const playdar_request& req,
