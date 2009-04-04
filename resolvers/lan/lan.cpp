@@ -20,12 +20,8 @@ lan::init(playdar::Config * c, Resolver * r)
 
 lan::~lan() throw()
 {
-    // sync send goodbye msg:
-    //cout << "Sending goodbye msg over UDP" << endl;
-    //string msg = "KTHXBYE "; msg += conf()->name();
-    //socket_->send_to(boost::asio::buffer(msg.c_str(), msg.length()), *broadcast_endpoint_);
     cout << "DTOR LAN " << endl;
-    send_pang();
+    //send_pang(); // can't send when shutting down - crashes atm.
     m_io_service->stop();
     m_responder_thread->join();
     delete(socket_);
@@ -334,8 +330,7 @@ lan::send_pang()
     o.push_back( Pair("from_name", conf()->name()) );
     ostringstream os;
     write_formatted( o, os );
-    socket_->send_to(boost::asio::buffer(os.str().c_str(), os.str().length()), *broadcast_endpoint_);
-    //async_send(broadcast_endpoint_, os.str());
+    async_send(broadcast_endpoint_, os.str());
 }
 
 void
@@ -347,6 +342,8 @@ lan::receive_ping(map<string,Value> & om,
         cout << "Malformed UDP PING dropped." << endl;
         return;
     }
+    // ignore pings sent from ourselves:
+    if(om["from_name"]==conf()->name()) return;
     if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
         cout << "Malformed UDP PING dropped." << endl;

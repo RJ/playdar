@@ -820,6 +820,12 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
 {
     cout << "Serving SID " << sid << endl;
     boost::shared_ptr<PlayableItem> pip = app()->resolver()->get_pi(sid);
+    if(!pip)
+    {
+        cerr << "This SID does not exist." << endl;
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found );
+        return;
+    }
     cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
     boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
     cout << "-> " << ss->debug() << endl;
