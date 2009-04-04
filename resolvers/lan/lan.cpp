@@ -301,7 +301,7 @@ lan::send_ping()
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
     jq.push_back( Pair("from_name", conf()->name()) );
-    o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
+    jq.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
@@ -309,7 +309,7 @@ lan::send_ping()
 
 /// pong reply back to specific user
 void
-lan::send_pong(const boost::asio::ip::udp::endpoint &  sender_endpoint)
+lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
 {
     cout << "LAN sending pong back to " 
          << sender_endpoint.address().to_string() <<".." << endl;
@@ -320,7 +320,7 @@ lan::send_pong(const boost::asio::ip::udp::endpoint &  sender_endpoint)
     o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
     ostringstream os;
     write_formatted( o, os );
-    async_send(sender_endpoint, os.str());
+    async_send( &sender_endpoint, os.str() );
 }
 
 /// called when we shutdown - uses a blocking send due to shutdown mechanics.
@@ -334,7 +334,7 @@ lan::send_pang()
     o.push_back( Pair("from_name", conf()->name()) );
     ostringstream os;
     write_formatted( o, os );
-    socket_->send_to(boost::asio::buffer(o.str().c_str(), o.str().length()), *broadcast_endpoint_);
+    socket_->send_to(boost::asio::buffer(os.str().c_str(), os.str().length()), *broadcast_endpoint_);
     //async_send(broadcast_endpoint_, os.str());
 }
 
@@ -342,14 +342,12 @@ void
 lan::receive_ping(map<string,Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint)
 {
-    if(om.find("from_name")==om.end() ||
-       om["from_name"].type()!=str_type)
+    if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
         cout << "Malformed UDP PING dropped." << endl;
         return;
     }
-    if(om.find("http_port")==om.end() ||
-       om["http_port"].type()!=int_type)
+    if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
         cout << "Malformed UDP PING dropped." << endl;
         return;
@@ -374,16 +372,14 @@ void
 lan::receive_pong(map<string,Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint)
 {
-    if(om.find("from_name")==om.end() ||
-       om["from_name"].type()!=str_type)
+    if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
-        cout << "Malformed UDP PING dropped." << endl;
+        cout << "Malformed UDP PONG dropped." << endl;
         return;
     }
-    if(om.find("http_port")==om.end() ||
-       om["http_port"].type()!=int_type)
+    if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
-        cout << "Malformed UDP PING dropped." << endl;
+        cout << "Malformed UDP PONG dropped." << endl;
         return;
     }
     string from_name = om["from_name"].get_str();
@@ -413,8 +409,7 @@ void
 lan::receive_pang(map<string,Value> & om,
                   const boost::asio::ip::udp::endpoint &  sender_endpoint)
 {
-    if(om.find("from_name")==om.end() ||
-       om["from_name"].type()!=str_type)
+    if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
         cout << "Malformed UDP PANG dropped." << endl;
         return;

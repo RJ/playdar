@@ -89,7 +89,7 @@ private:
     map<string,lannode> m_lannodes;
     // lan discovery:
     void send_ping();
-    void send_pong();
+    void send_pong( boost::asio::ip::udp::endpoint sender_endpoint);
     void send_pang();
     void receive_pong(map<string,Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);

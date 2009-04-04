@@ -26,7 +26,6 @@ includes/playdar/track.h
 includes/playdar/types.h
 includes/playdar/utils
 includes/playdar/utils/levenshtein.h
-includes/playdar/utils/time.hpp
 resolvers
 resolvers/darknet
 resolvers/darknet/CMakeLists.txt
@@ -53,7 +52,3 @@ src/scanner
 src/scanner/scanner.cpp
 src/utils
 src/utils/levenshtein.cpp
-win32-playdar
-win32-playdar/resource.h
-win32-scanner
-win32-scanner/resource.h
