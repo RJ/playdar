@@ -508,8 +508,8 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     }
     
     // combine the edit distance of artist & track into a final score:
-    float artdist_pc = (o_art.length()-arted) / o_art.length();
-    float trkdist_pc = (o_trk.length()-trked) / o_trk.length();
+    float artdist_pc = (o_art.length()-arted) / (float) o_art.length();
+    float trkdist_pc = (o_trk.length()-trked) / (float) o_trk.length();
     return artdist_pc * trkdist_pc;
 }
 
