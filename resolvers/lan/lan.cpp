@@ -25,7 +25,7 @@ lan::~lan() throw()
     //string msg = "KTHXBYE "; msg += conf()->name();
     //socket_->send_to(boost::asio::buffer(msg.c_str(), msg.length()), *broadcast_endpoint_);
     cout << "DTOR LAN " << endl;
-    //send_pang();
+    send_pang();
     m_io_service->stop();
     m_responder_thread->join();
     delete(socket_);
@@ -244,11 +244,15 @@ lan::handle_receive_from(const boost::system::error_code& error,
             }
             else if(msgtype == "ping")
             {
-                send_pong();
+                receive_ping( r, sender_endpoint_ );
             }
             else if(msgtype == "pong")
             {
                 receive_pong( r, sender_endpoint_ );
+            }
+            else if(msgtype == "pang")
+            {
+                receive_pang( r, sender_endpoint_ );
             }
             
         }while(false);
@@ -288,6 +292,7 @@ lan::send_response( query_uid qid,
 
 // LAN presence stuff.
 
+/// broadcast ping to LAN and see who's out there
 void
 lan::send_ping()
 {
@@ -296,15 +301,18 @@ lan::send_ping()
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
     jq.push_back( Pair("from_name", conf()->name()) );
+    o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
 }
 
+/// pong reply back to specific user
 void
-lan::send_pong()
+lan::send_pong(const boost::asio::ip::udp::endpoint &  sender_endpoint)
 {
-    cout << "LAN sending pong.." << endl;
+    cout << "LAN sending pong back to " 
+         << sender_endpoint.address().to_string() <<".." << endl;
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
@@ -312,9 +320,10 @@ lan::send_pong()
     o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
     ostringstream os;
     write_formatted( o, os );
-    async_send(broadcast_endpoint_, os.str());
+    async_send(sender_endpoint, os.str());
 }
 
+/// called when we shutdown - uses a blocking send due to shutdown mechanics.
 void
 lan::send_pang()
 {
@@ -325,7 +334,40 @@ lan::send_pang()
     o.push_back( Pair("from_name", conf()->name()) );
     ostringstream os;
     write_formatted( o, os );
-    async_send(broadcast_endpoint_, os.str());
+    socket_->send_to(boost::asio::buffer(o.str().c_str(), o.str().length()), *broadcast_endpoint_);
+    //async_send(broadcast_endpoint_, os.str());
+}
+
+void
+lan::receive_ping(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint)
+{
+    if(om.find("from_name")==om.end() ||
+       om["from_name"].type()!=str_type)
+    {
+        cout << "Malformed UDP PING dropped." << endl;
+        return;
+    }
+    if(om.find("http_port")==om.end() ||
+       om["http_port"].type()!=int_type)
+    {
+        cout << "Malformed UDP PING dropped." << endl;
+        return;
+    }
+    string from_name = om["from_name"].get_str();
+    cout << "Received UDP PING from '" << from_name 
+         << "' @ " << sender_endpoint.address().to_string()
+         << endl;
+    ostringstream hbase;
+    hbase   << "http://" << sender_endpoint.address().to_string() 
+            << ":" << om["http_port"].get_int();
+    lannode node;
+    time(&node.lastdate);
+    node.name = from_name;
+    node.http_base = hbase.str();
+    node.udp_ep = sender_endpoint;
+    m_lannodes[from_name] = node;
+    send_pong( sender_endpoint );
 }
 
 void
@@ -365,6 +407,23 @@ lan::receive_pong(map<string,Value> & om,
         cout << p.first << ": " << p.second.lastdate << ", ";
     }
     cout << endl;
+}
+
+void
+lan::receive_pang(map<string,Value> & om,
+                  const boost::asio::ip::udp::endpoint &  sender_endpoint)
+{
+    if(om.find("from_name")==om.end() ||
+       om["from_name"].type()!=str_type)
+    {
+        cout << "Malformed UDP PANG dropped." << endl;
+        return;
+    }
+    string from_name = om["from_name"].get_str();
+    cout << "Received UDP PANG from '" << from_name 
+         << "' @ " << sender_endpoint.address().to_string()
+         << endl;
+    m_lannodes.erase(from_name);
 }
 
 string 

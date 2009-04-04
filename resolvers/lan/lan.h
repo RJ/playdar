@@ -93,6 +93,10 @@ private:
     void send_pang();
     void receive_pong(map<string,Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
+    void receive_ping(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
+    void receive_pang(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
 };
 
 EXPORT_DYNAMIC_CLASS( lan )
