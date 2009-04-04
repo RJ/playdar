@@ -19,6 +19,7 @@
 
 #include "scrobsub.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
@@ -32,10 +33,10 @@ static char* np_url = 0;
 static char* submit_url = 0;
 
 
-static const char* artist;
-static const char* track;
-static const char* album;
-static const char* mbid;
+static char* artist;
+static char* track;
+static char* album;
+static char* mbid;
 static unsigned int duration;
 static unsigned int track_number;
 
@@ -55,6 +56,7 @@ static bool use_the_moose()
     return true;
 #endif
 }
+
 
 static time_t now()
 {
@@ -98,6 +100,12 @@ static char* handshake_response_strdup(char** p)
 }
 
 
+static bool ok(char* response)
+{
+    return response[0] == 'O' && response[1] == 'K' && response[2] == '\n';
+}
+
+
 static void handshake()
 {
     const char* session_key = scrobsub_session_key();
@@ -125,14 +133,12 @@ static void handshake()
     char* response = responses;
     scrobsub_get(responses, url);
 
-    if (response[0] == 'O' && response[1] == 'K' && response[2] == '\n')
-    {
+    if(ok(response)){
         response += 3;
         session_id = handshake_response_strdup(&response);
         np_url = handshake_response_strdup(&response);
         submit_url = handshake_response_strdup(&response);
-    }
-    else
+    }else
         //TODO better
         (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, response);
 }
@@ -148,17 +154,20 @@ static unsigned int scrobble_time(unsigned int duration)
 
 static void submit()
 {
+    if(!enabled) return;    
+    
     //TODO check track is valid to submit
     
     if(state == SCROBSUB_PAUSED)
         scrobsub_resume(); //sets pause time correctly
+    //FIXME the second resolution issue can introduce rounding errors
     if(now() - (start_time + pause_time) < scrobble_time(duration))
         return;
     
-    int n = 32+N+10+1 +2+9*5;
+    int n = 32+N+4+2+10+1 +2+9*6;
     char post_data[n];
     
-    n = snprintf(post_data, n, 
+    n = snprintf(post_data, n,
                      "s=%s"
                  "&a[0]=%s"
                  "&t[0]=%s"
@@ -169,16 +178,16 @@ static void submit()
                  "&i[0]=%d"
                  "&o[0]=%c"
                  "&r[0]=",
-                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P' );
+                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P');
     
     for (int x=0; x<2; ++x){    
         char response[128];
         scrobsub_post(response, submit_url, post_data);
-        if(strcmp(response, "BADSESSION\n") == 0)
-            handshake();
-        if(response[0] != 'O' && response[1] != 'K' && response[2] != '\n')
-            (scrobsub_callback(SCROBSUB_ERROR_RESPONSE, response);
-        break;
+        
+        if(ok(response)) break;
+        printf("E: %s: %s%s", __FUNCTION__, response, post_data);
+        if(strcmp(response, "BADSESSION\n") != 0) break;
+        handshake();
     }
 }
 
@@ -187,16 +196,15 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
 {
     if (!session_id)
         handshake();
-    
     if (state != SCROBSUB_STOPPED)
         submit();
     
     state = SCROBSUB_PLAYING;
     
-    artist = _artist;
-    track = _track;
-    album = _album;
-    mbid = _mbid;
+    artist = strdup(_artist);
+    track = strdup(_track);
+    album = strdup(_album);
+    mbid = strdup(_mbid);
     duration = _duration;
     track_number = _track_number;
 
@@ -209,13 +217,15 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
 
     start_time = now();
 
-    //TODO
+    if(!enabled)return;
+    
+    //TODO, don't emit np if user is skipping fast, then you need a timer
     //    static time_t previous_np = 0;
     //    time_t time = now();
     //    if(time - previous_np < 4)   
     
-    if (duration>9999) duration = 9999;
-    if (track_number>99) track_number = 99;
+    if(duration>9999) duration = 9999;
+    if(track_number>99) track_number = 99;
     
     N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
     int n = 32+4+2+N +2+6*3;
@@ -238,7 +248,7 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     for(int x = 0; x < 2; ++x){
         char response[256];
         scrobsub_post(response, np_url, post_data);
-        if(response[0] == 'O' && response[1] == 'K' && response[2] == '\n')
+        if(ok(response))
             break;
         handshake();
     }
@@ -271,6 +281,7 @@ void scrobsub_stop()
         submit();
     state = SCROBSUB_STOPPED;
     
+    free( artist ); free( track ); free( album ); free( mbid );
     artist = track = album = mbid = "";
     duration = track_number = 0;
 }
