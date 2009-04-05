@@ -21,13 +21,14 @@
 #include <CommonCrypto/CommonDigest.h>
 #include <Cocoa/Cocoa.h>
 
+//TODO should be per application, not per machine
 #define KEYCHAIN_NAME "fm.last.Audioscrobbler"
 
 static NSString* token;
 static NSString* session_key;
 static NSString* username;
 extern void(*scrobsub_callback)(int event, const char* message);
-bool scrobsub_finish_auth();
+static bool scrobsub_finish_auth();
 
 void scrobsub_md5(char out[33], const char* in)
 {
@@ -103,19 +104,19 @@ void scrobsub_post(char response[256], const char* url, const char* post_data)
     [data getBytes:response length:256];
 }
 
-void scrobsub_auth()
+void scrobsub_auth(char out_url[110])
 {
-    if (token) return;
-    
-    NSURL* url = [NSURL URLWithString:@"http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=" SCROBSUB_API_KEY ];
-    NSXMLDocument* xml = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:nil];
-    token = [[[[xml rootElement] elementsForName:@"token"] lastObject] stringValue];
-    [token retain];
-    url = [NSURL URLWithString:[NSString stringWithFormat:@"http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=%@", token]];
-    [[NSWorkspace sharedWorkspace] openURL:url];
-    [xml release];
-}
+    if(token == nil){
+        NSURL* url = [NSURL URLWithString:@"http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=" SCROBSUB_API_KEY ];
+        NSXMLDocument* xml = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:nil];
+        token = [[[[xml rootElement] elementsForName:@"token"] lastObject] stringValue];
+        [token retain];
+        [xml release];
+    }
 
+    strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
+    strcpy(&out_url[38+32+7], [token UTF8String]);
+}
 
 //TODO localise and get webservice error
 //TODO error handling

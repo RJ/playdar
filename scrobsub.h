@@ -17,8 +17,8 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-#ifndef __SCROBSUB_PLUGIN_H__
-#define __SCROBSUB_PLUGIN_H__
+#ifndef __SCROBSUB_H__
+#define __SCROBSUB_H__
 
 #include <stdbool.h>
 
@@ -39,14 +39,12 @@ void scrobsub_init(void(*callback)(int event, const char* message));
 void scrobsub_set_enabled(bool enabled);
 
 
-/** this will auth your application with Last.fm via the users web browser 
-  * any submissions in the mean time will be queued */
-void scrobsub_auth();
+/** the user needs to visit @p url within one hour for authentication to succeed */
+void scrobsub_auth(char url[110]);
 
 
-/** A new track started.
-  * You are responsible for the memory of these pointers, it must exist until 
-  * the next scrobsub_start or scrobsub_stop */
+/** A new track started. scrobsub takes copies of the strings. All strings must
+  * be UTF8. */
 void scrobsub_start(const char* artist, const char* track, const char* album, const char* mbid, unsigned int duration, unsigned int track_number);
 void scrobsub_pause();
 void scrobsub_resume();
@@ -62,17 +60,13 @@ void scrobsub_stop();
 int scrobsub_state();
 
 
-/** can be useful sometimes, has no effect if the official Auidioscrobbler is
-  * calling the shots */
-void scrobsub_force_submit();
-
-
-/** return 0 if none yet allocated, you may need to auth */ 
+/** returns 0 if you need to auth, or the user still hasn't allowed the auth 
+  * attempt */
 const char* scrobsub_session_key();
 const char* scrobsub_username();
 
 
-/** for your convenience, we use it, so maybe you need to as well */
+/** for your convenience, we need it, so maybe you can use it too */
 void scrobsub_md5(char out[33], const char* in);
 
 #endif
