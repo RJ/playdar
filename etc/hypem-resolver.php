@@ -83,5 +83,5 @@ class HypeMachineResolver extends PlaydarResolver
 }
 
 $resolver = new HypeMachineResolver();
-$resolver->sendReply($resolver->getSettings());
+$resolver->sendResponse($resolver->getSettings());
 $resolver->handleRequest(fopen("php://STDIN",'r'));

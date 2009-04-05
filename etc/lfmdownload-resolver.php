@@ -16,19 +16,19 @@ class LastfmDownloadResolver extends PlaydarResolver
         preg_match('/http:\/\/freedownloads.last.fm\/.*?.mp3/s', $html, $matches);
         
         if ($matches) {
-            $result = array(
+            $result = (Object) array(
                 'artist' => $request->artist,
                 'track' => $request->track,
                 'score' => 100,
                 'url' => $matches[0],
                 'bitrate' => 128,
             );
-            return array((Object) $result);
+            return array($result);
         }
         return array();
     }
 }
 
 $resolver = new LastfmDownloadResolver();
-$resolver->sendReply($resolver->getSettings());
+$resolver->sendResponse($resolver->getSettings());
 $resolver->handleRequest(fopen("php://STDIN",'r'));

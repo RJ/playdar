@@ -11,33 +11,38 @@ abstract class PlaydarResolver
     protected $targetTime; // Lower is better
     protected $weight; // 1-100. higher means preferable.
     
-    protected $resultFields = array('artist', 'track', 'source', 'size', 'bitrate', 'duration', 'url', 'score');
-    
     /**
      * 
      */
-    public function handleRequest($in)
+    public function handleRequest($fh)
     {
-        while(!feof($in)){
+        while (!feof($fh)) {
             // get the length of the payload from the first 4 bytes:
-            $len = 0;
-            $lenA = unpack('N', fread($in, 4));
-            $len = $lenA[1];
-            if($len == 0) continue;
+            $len = current(unpack('N', fread($fh, 4)));
+            
+            // bail on empty request.
+            if($len == 0) {
+                continue;
+            }
+            
             // read $len bytes for the actual payload and assume it's a JSON object.
-            $msg = fread($in, $len);
-            $rq = json_decode($msg);
-            // TODO validation - was it valid json?
-            $pis = $this->resolve($rq);
-            // don't reply with anything if there were no matches:
-            if(count($pis)==0) continue;
-            $res = new stdclass;
-            $res->_msgtype = "results";
-            $res->qid = $rq->qid;
-            $res->results = array();
-            $res->results = $pis;
-
-            $this->sendReply($res);
+            $request = json_decode(fread($fh, $len));
+            
+            // Let's resolve this bitch
+            $results = $this->resolve($request);
+            
+            // No results, bail
+            if (!$results) {
+                continue;
+            }
+            
+            // Build response and send
+            $response = (Object) array(
+                '_msgtype' => 'results',
+                'qid' => $request->qid,
+                'results' => $results,
+            );
+            $this->sendResponse($response);
             
             // After finding results this continues reading and chokes on the input. Could 
             // be a flaw in my test script that generates the playdar requst, fuck knows, bail.
@@ -54,7 +59,7 @@ abstract class PlaydarResolver
      * Output reply
      * Puts a 4-byte big-endian int first, denoting length of message
      */
-    public function sendReply($response)
+    public function sendResponse($response)
     {
         // i think json_spirit rejects \/ even tho it's valid json. doh.
         $str = str_replace('\/','/',json_encode($response));
@@ -67,24 +72,13 @@ abstract class PlaydarResolver
      */
     public function getSettings()
     {
-        $settings = array(
+        $settings = (Object) array(
             '_msgtype' => 'settings',
             'name' => $this->name,
             'targettime' => $this->targetTime,
             'weight' => $this->weight,
         );
-        return (Object) $settings;
-    }
-    
-    function getEmptyResult()
-    {
-        $emptyResult = array();
-        foreach($this->resultFields as $field) {
-            $emptyResult[$field] = null;
-        }
-        
-        
-        return $emptyResult;
+        return $settings;
     }
 }
 
