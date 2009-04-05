@@ -28,7 +28,7 @@ abstract class PlaydarResolver
             $msg = fread($in, $len);
             $rq = json_decode($msg);
             // TODO validation - was it valid json?
-            $pis = $resolver->resolveFor($rq);
+            $pis = $this->resolve($rq);
             // don't reply with anything if there were no matches:
             if(count($pis)==0) continue;
             $res = new stdclass;
@@ -37,7 +37,11 @@ abstract class PlaydarResolver
             $res->results = array();
             $res->results = $pis;
 
-            $resolver->sendReply($res);
+            $this->sendReply($res);
+            
+            // After finding results this continues reading and chokes on the input. Could 
+            // be a flaw in my test script that generates the playdar requst, fuck knows, bail.
+            break; 
         }
     }
     
