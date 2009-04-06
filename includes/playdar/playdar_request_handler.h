@@ -49,7 +49,7 @@ private:
     void handle_api( const playdar_request&, moost::http::reply& );
     void handle_pluginurl( const playdar_request&, moost::http::reply& );
 
-    string handle_queries_root();
+    string handle_queries_root(const playdar_request& req);
     MyApplication * m_app;
    
     typedef std::map< const string, boost::function<void( const moost::http::request&, moost::http::reply&)> > HandlerMap;

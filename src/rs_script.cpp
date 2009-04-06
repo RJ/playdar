@@ -97,6 +97,7 @@ rs_script::start_resolving(rq_ptr rq)
         return;
     }
     //cout << "gateway dispatch enqueue: " << rq->str() << endl;
+    if(!rq->cancelled())
     {
         boost::mutex::scoped_lock lk(m_mutex);
         m_pending.push_front( rq );
@@ -110,9 +111,9 @@ rs_script::run()
 {
     try
     {
-        rq_ptr rq;
         while(true)
         {
+            rq_ptr rq;
             {
                 //cout << "Waiting on something" << endl;
                 boost::mutex::scoped_lock lk(m_mutex);
@@ -122,6 +123,7 @@ rs_script::run()
                 m_pending.pop_back();
             }
             // dispatch query to script:
+            if(rq && !rq->cancelled())
             {
                 //cout << "Got " << rq->str() << endl;
                 ostringstream os;

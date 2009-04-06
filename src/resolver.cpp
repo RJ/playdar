@@ -208,7 +208,7 @@ Resolver::load_resolver_plugins()
             }
             
             m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
-
+            cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
             loaded_rs cr;
             cr.script = false;
             cr.rs = instance;
@@ -235,19 +235,14 @@ Resolver::load_resolver_plugins()
 query_uid 
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq)
 {
-    rq_callback_t null_cb;
-    return dispatch(rq, null_cb);
+    return dispatch(rq, 0);
 }
 
 query_uid 
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
                     rq_callback_t cb) 
 {
-    if(!rq->valid())
-    {
-        // probably malformed, eg no track name specified.
-        throw;
-    }
+    assert( rq->valid() );
     boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
     {
@@ -267,9 +262,9 @@ Resolver::dispatch_runner()
 {
     try
     {
-        pair<rq_ptr, unsigned short> p;
         while(true)
         {
+            pair<rq_ptr, unsigned short> p;
             {
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
@@ -367,7 +362,7 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
         // unless a non-zero score was specified by resolver.
         //if(pip->score() < 0.1)
         //{
-            float score = calculate_score( m_queries[qid], pip, reason );
+            float score = m_queries[qid]->calculate_score( pip, reason );
             if(score == 0.0) continue;
             pip->set_score( score );
         //}
@@ -376,6 +371,35 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
         m_pis[pip->id()] = pip;
     } 
     return true;
+}
+/// Cancel a query, delete any results and free the memory. QID will no longer exist.
+void 
+Resolver::cancel_query(const query_uid & qid)
+{
+    cout << "Cancelling query: " << qid << endl;
+    // send cancel to all resolvers, in case they have cleanup to do:
+    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    {
+        lrs.rs->cancel_query( qid );
+    }
+    rq_ptr cq;
+    {
+        // removing from m_queries map means no-one can find and get a new shared_ptr given a qid:
+        boost::mutex::scoped_lock lock(m_mut_results);
+        if(!query_exists(qid)) return;
+        cq = rq(qid);
+        if(!cq || cq->cancelled()) return;
+        // this disables callbacks and marks it as cancelled:
+        cq->cancel();
+        m_queries.erase(qid);
+        vector< pi_ptr > results = cq->results();
+        BOOST_FOREACH( pi_ptr pip, results )
+        {
+            m_pis.erase( pip->id() );
+        }
+    }
+    // the RQ should not be referenced anywhere and will destruct now.
+    // a resolverservice may still be processing it, in which case it will destruct once done.
 }
 
 // gets all the current results for a query
@@ -387,13 +411,6 @@ Resolver::get_results(query_uid qid)
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return ret; // query was deleted
     return m_queries[qid]->results();
-}
-
-void
-Resolver::end_query(query_uid qid)
-{
-    //boost::mutex::scoped_lock lock(m_mut);
-    //m_queries.erase(qid);
 }
 
 // check how many results we found for this query id
@@ -429,7 +446,7 @@ Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 }
 
 boost::shared_ptr<ResolverQuery>
-Resolver::rq(query_uid qid)
+Resolver::rq(const query_uid & qid)
 {
     return m_queries[qid];
 }
@@ -441,77 +458,8 @@ Resolver::num_seen_queries()
 }
 
 boost::shared_ptr<PlayableItem> 
-Resolver::get_pi(source_uid sid)
+Resolver::get_pi(const source_uid & sid)
 {
     return m_pis[sid];
 }
-
-/// caluclate score 0-1 based on how similar the names are.
-/// string similarity algo that combines art,alb,trk from the original
-/// query (rq) against a potential match (pi).
-/// this is mostly just edit-distance, with some extra checks.
-/// TODO albums are ignored atm.
-float 
-Resolver::calculate_score( const rq_ptr & rq, // query
-                           const pi_ptr & pi, // candidate
-                           string & reason )  // fail reason
-{
-    using namespace boost;
-    // original names from the query:
-    string o_art    = trim_copy(to_lower_copy(rq->artist()));
-    string o_trk    = trim_copy(to_lower_copy(rq->track()));
-    string o_alb    = trim_copy(to_lower_copy(rq->album()));
-    // names from candidate result:
-    string art      = trim_copy(to_lower_copy(pi->artist()));
-    string trk      = trim_copy(to_lower_copy(pi->track()));
-    string alb      = trim_copy(to_lower_copy(pi->album()));
-    // short-circuit for exact match
-    if(o_art == art && o_trk == trk) return 1.0;
-    // the real deal, with edit distances:
-    unsigned int trked = playdar::utils::levenshtein( 
-                            Library::sortname(trk),
-                            Library::sortname(o_trk));
-    unsigned int arted = playdar::utils::levenshtein( 
-                            Library::sortname(art),
-                            Library::sortname(o_art));
-    // tolerances:
-    float tol_art = 1.5;
-    float tol_trk = 1.5;
-    //float tol_alb = 1.5; // album rating unsed atm.
-    
-    // names less than this many chars aren't dismissed based on % edit-dist:
-    unsigned int grace_len = 6; 
-    
-    // if % edit distance is greater than tolerance, fail them outright:
-    if( o_art.length() > grace_len &&
-        arted > o_art.length()/tol_art )
-    {
-        reason = "artist name tolerance";
-        return 0.0;
-    }
-    if( o_trk.length() > grace_len &&
-        trked > o_trk.length()/tol_trk )
-    {
-        reason = "track name tolerance";
-        return 0.0;
-    }
-    // if edit distance longer than original name, fail them outright:
-    if( arted >= o_art.length() )
-    {
-        reason = "artist name editdist >= length";
-        return 0.0;
-    }
-    if( trked >= o_trk.length() )
-    {
-        reason = "track name editdist >= length";
-        return 0.0;
-    }
-    
-    // combine the edit distance of artist & track into a final score:
-    float artdist_pc = (o_art.length()-arted) / (float) o_art.length();
-    float trkdist_pc = (o_trk.length()-trked) / (float) o_trk.length();
-    return artdist_pc * trkdist_pc;
-}
-
-
 
