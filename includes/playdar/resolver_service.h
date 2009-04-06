@@ -55,12 +55,6 @@ public:
 
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
 
-    /** thread-safe */
-    virtual bool report_results(query_uid qid, 
-        vector< boost::shared_ptr<PlayableItem> > results,
-        string via);
-    
-    
     // handler for HTTP reqs we are registerd for:
     virtual string http_handler( const playdar_request& ,
                                  playdar::auth * pauth)
@@ -69,7 +63,11 @@ public:
     }
     
 protected:
-
+    /** thread-safe */
+    bool report_results(query_uid qid, 
+                        vector< boost::shared_ptr<PlayableItem> > results,
+                        string via);
+    
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;

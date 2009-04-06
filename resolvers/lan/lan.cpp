@@ -34,6 +34,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     using namespace json_spirit;
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
+    cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
     async_send(broadcast_endpoint_, querystr.str());
 }
 

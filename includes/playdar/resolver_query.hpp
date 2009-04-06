@@ -21,39 +21,45 @@ using namespace std;
 class ResolverQuery
 {
 public:
-    ResolverQuery(string art, string alb, string trk)
-        : m_artist(art), m_album(alb), m_track(trk), m_mode("normal"), m_solved(false)
+    ResolverQuery()
+        : m_solved(false)
     {
-        boost::trim(m_artist);
-        boost::trim(m_album);
-        boost::trim(m_track);
     }
+
     
-    // is this a valid / well formed query?
-    bool valid() const
-    {
-        return m_artist.length()>0 && m_track.length()>0;
-    }
-
-    ResolverQuery(){}
-
-    ~ResolverQuery()
+    virtual ~ResolverQuery()
     {
         //cout << "dtor, resolver query: " << id() << endl;
     }
     
+    virtual bool valid() const { return false; }
     
+    /// caluclate score 0-1 based on how similar the similarity
+    /// between playable item and the original request.
+    /// @return score between 0-1 or == 0 if there's an error
+    /// @param reason will be set to the fail reason.
+    virtual float calculate_score( const pi_ptr & pi,
+                                  string & reason )
+    {
+        return 1.0f;
+    }
     
-    json_spirit::Object get_json() const
+    virtual json_spirit::Object get_json() const
     {
         using namespace json_spirit;
         Object j;
         j.push_back( Pair("_msgtype", "rq")   );
         j.push_back( Pair("qid",    id())     );
-        j.push_back( Pair("artist", artist()) );
-        j.push_back( Pair("album",  album())  );
-        j.push_back( Pair("track",  track())  );
-        j.push_back( Pair("mode",  mode())  );
+
+        for( map<string,Value>::const_iterator i = m_qryobj_map.begin();
+            i != m_qryobj_map.end(); i++ )
+        {
+            if( i->first != "_msgtype" &&
+                i->first != "qid" &&
+                i->first != "from_name" )
+                j.push_back( Pair( i->first, i->second.get_str() ));
+        }
+        
         j.push_back( Pair("solved",  solved())  );
         j.push_back( Pair("from_name",  from_name())  );
         return j;
@@ -61,31 +67,22 @@ public:
     
     static boost::shared_ptr<ResolverQuery> from_json(json_spirit::Object qryobj)
     {
-        string qid, artist, album, track, mode, from_name;
+        string qid, from_name;
         
         using namespace json_spirit;
         map<string,Value> qryobj_map;
         obj_to_map(qryobj, qryobj_map);
         
-        if(qryobj_map.find("artist")!=qryobj_map.end()) 
-            artist = qryobj_map["artist"].get_str();
-        if(qryobj_map.find("track")!=qryobj_map.end()) 
-            track = qryobj_map["track"].get_str();
-        if(qryobj_map.find("album")!=qryobj_map.end()) 
-            album = qryobj_map["album"].get_str();
-        
         if(qryobj_map.find("qid")!=qryobj_map.end()) 
             qid = qryobj_map["qid"].get_str();
-        if(qryobj_map.find("mode")!=qryobj_map.end()) 
-            mode = qryobj_map["mode"].get_str();
         if(qryobj_map.find("from_name")!=qryobj_map.end()) 
             from_name = qryobj_map["from_name"].get_str();
                     
-        if(artist.length()==0 || track.length()==0) throw;
-        
         boost::shared_ptr<ResolverQuery>    
-            rq(new ResolverQuery(artist, album, track));
-        if(mode.length()) rq->set_mode(mode);
+            rq(new ResolverQuery);
+
+        rq->m_qryobj_map = qryobj_map;
+        
         if(qid.length())  rq->set_id(qid);
         if(from_name.length())  rq->set_from_name(from_name);
         return rq;
@@ -98,8 +95,6 @@ public:
     
     void set_from_name(string s) { m_from_name = s; }
     
-    void set_mode(string s){ m_mode = s; }
-    
     // create uuid on demand if one wasn't specified by now:
     const query_uid & id() const
     { 
@@ -108,16 +103,6 @@ public:
             m_uuid = playdar::Config::gen_uuid();
         }
         return m_uuid; 
-    }
-    
-    string str() const
-    {
-        string s = artist();
-        s+=" - ";
-        s+=album();
-        s+=" - ";
-        s+=track();
-        return s;
     }
 
     size_t num_results() const
@@ -179,25 +164,20 @@ public:
     }
     
     bool solved()   const { return m_solved; }
-    string artist() const { return m_artist; }
-    string album()  const { return m_album; }
-    string track()  const { return m_track; }
-    string mode()   const { return m_mode;  }
     string from_name() const { return m_from_name;  }
 
+    bool param_exists( string param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
+    const string& param( string param ) const { return m_qryobj_map.find( param )->second.get_str(); }
     
-    
-    
+protected:
+    map<string,json_spirit::Value> m_qryobj_map;
+
 private:
     vector< boost::shared_ptr<PlayableItem> > m_results;
-    string      m_artist;
-    string      m_album;
-    string      m_track;
     string      m_from_name;
     
     // list of functors to fire on new result:
     vector<rq_callback_t> m_callbacks;
-    string      m_mode; // only other options here is "spamme" atm.
     // mutable because created on-demand the first time it's needed
     mutable query_uid   m_uuid;
     boost::mutex m_mut;

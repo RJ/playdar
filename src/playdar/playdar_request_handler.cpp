@@ -15,6 +15,7 @@
 #include "playdar/playdar_request.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
+#include "playdar/track_resolver_query.hpp"
 
 /*
 
@@ -43,8 +44,11 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "serve" ] = boost::bind( &playdar_request_handler::handle_serve, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
+    
+    //Local Collection / Main API plugin callbacks:
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
+    
     // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
     BOOST_FOREACH( loaded_rs & lrs, *m_app->resolver()->resolvers() )
     {
@@ -67,6 +71,8 @@ playdar_request_handler::sid_to_url(source_uid sid)
 void 
 playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
 {
+    //TODO: Handle % encodings
+    
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
@@ -236,6 +242,7 @@ void
 playdar_request_handler::handle_pluginurl( const playdar_request& req,
                                            moost::http::reply& rep )
 {
+    //TODO: handle script resolver urls?
     cout << "pluginhandler: " << req.parts()[0] << endl;
     ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
 
@@ -360,9 +367,9 @@ playdar_request_handler::handle_queries_root()
                 << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
-                << "<td>" << rq->artist() << "</td>"
-                << "<td>" << rq->album() << "</td>"
-                << "<td>" << rq->track() << "</td>"
+                << "<td>" << rq->param( "artist" ) << "</td>"
+                << "<td>" << rq->param( "album" ) << "</td>"
+                << "<td>" << rq->param( "track" ) << "</td>"
                 << "<td>" << rq->from_name() << "</td>"
                 << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
@@ -402,11 +409,11 @@ playdar_request_handler::handle_queries( const playdar_request& req,
            os  << "<h2>Query: " << qid << "</h2>"
                << "<table>"
                << "<tr><td>Artist</td>"
-               << "<td>" << rq->artist() << "</td></tr>"
+               << "<td>" << rq->param( "artist" ) << "</td></tr>"
                << "<tr><td>Album</td>"
-               << "<td>" << rq->album() << "</td></tr>"
+               << "<td>" << rq->param( "album" ) << "</td></tr>"
                << "<tr><td>Track</td>"
-               << "<td>" << rq->track() << "</td></tr>"
+               << "<td>" << rq->param( "track" ) << "</td></tr>"
                << "</table>"
 
                << "<h3>Results (" << results.size() << ")</h3>"
@@ -501,7 +508,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     string artist   = playdar_request::unescape(req.parts()[1]);
     string album    = req.parts()[2].length()?playdar_request::unescape(req.parts()[2]):"";
     string track    = playdar_request::unescape(req.parts()[3]);
-    boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+    boost::shared_ptr<ResolverQuery> rq(new TrackResolverQuery(artist, album, track));
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);
     // wait a couple of seconds for results
@@ -601,8 +608,8 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             string album  = req.getvar("album");
             string track  = req.getvar("track");
             // create a new query and start resolving it:
-            boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
-            if(req.getvar_exists("mode")) rq->set_mode(req.getvar("mode"));
+            boost::shared_ptr<ResolverQuery> rq(new TrackResolverQuery(artist, album, track));
+
             // was a QID specified? if so, use it:
             if(req.getvar_exists("qid"))
             {
@@ -680,10 +687,10 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             jq.push_back( Pair("results", qresults) );
             write_formatted( jq, response );
         }
-        else if(req.getvar("method") == "list_artist_tracks")
+        else if(req.getvar("method") == "list_artist_tracks" &&
+                req.getvar_exists("artistname"))
         {
             Array qresults;
-            //FIXME: check that artistname param exists - will crash otherwise
             artist_ptr artist = app()->library()->load_artist( req.getvar("artistname") );
             if(artist)
             {
