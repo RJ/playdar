@@ -55,6 +55,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 TARGET_LINK_LIBRARIES(scanner 
+                      uriparser
                       ${SQLITE3_LIBRARIES}
                       ${Boost_FILESYSTEM_LIBRARY}
                       ${Boost_SYSTEM_LIBRARY}

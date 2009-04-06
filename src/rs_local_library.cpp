@@ -44,9 +44,9 @@ RS_local_library::run()
 {
     try
     {
-        rq_ptr rq;
         while(true)
         {
+            rq_ptr rq;
             {
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
@@ -54,7 +54,10 @@ RS_local_library::run()
                 rq = m_pending.back();
                 m_pending.pop_back();
             }
-            process( rq );
+            if(rq && !rq->cancelled())
+            {
+                process( rq );
+            }
         }
     }
     catch(...)

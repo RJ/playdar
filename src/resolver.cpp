@@ -235,19 +235,14 @@ Resolver::load_resolver_plugins()
 query_uid 
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq)
 {
-    rq_callback_t null_cb;
-    return dispatch(rq, null_cb);
+    return dispatch(rq, 0);
 }
 
 query_uid 
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
                     rq_callback_t cb) 
 {
-    if(!rq->valid())
-    {
-        // probably malformed, eg no track name specified.
-        throw;
-    }
+    assert( rq->valid() );
     boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
     {
@@ -267,9 +262,9 @@ Resolver::dispatch_runner()
 {
     try
     {
-        pair<rq_ptr, unsigned short> p;
         while(true)
         {
+            pair<rq_ptr, unsigned short> p;
             {
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
@@ -377,6 +372,35 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     } 
     return true;
 }
+/// Cancel a query, delete any results and free the memory. QID will no longer exist.
+void 
+Resolver::cancel_query(const query_uid & qid)
+{
+    cout << "Cancelling query: " << qid << endl;
+    // send cancel to all resolvers, in case they have cleanup to do:
+    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    {
+        lrs.rs->cancel_query( qid );
+    }
+    rq_ptr cq;
+    {
+        // removing from m_queries map means no-one can find and get a new shared_ptr given a qid:
+        boost::mutex::scoped_lock lock(m_mut_results);
+        if(!query_exists(qid)) return;
+        cq = rq(qid);
+        if(!cq || cq->cancelled()) return;
+        // this disables callbacks and marks it as cancelled:
+        cq->cancel();
+        m_queries.erase(qid);
+        vector< pi_ptr > results = cq->results();
+        BOOST_FOREACH( pi_ptr pip, results )
+        {
+            m_pis.erase( pip->id() );
+        }
+    }
+    // the RQ should not be referenced anywhere and will destruct now.
+    // a resolverservice may still be processing it, in which case it will destruct once done.
+}
 
 // gets all the current results for a query
 // but leaves query active. (ie, results may change later)
@@ -387,13 +411,6 @@ Resolver::get_results(query_uid qid)
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return ret; // query was deleted
     return m_queries[qid]->results();
-}
-
-void
-Resolver::end_query(query_uid qid)
-{
-    //boost::mutex::scoped_lock lock(m_mut);
-    //m_queries.erase(qid);
 }
 
 // check how many results we found for this query id
@@ -429,7 +446,7 @@ Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 }
 
 boost::shared_ptr<ResolverQuery>
-Resolver::rq(query_uid qid)
+Resolver::rq(const query_uid & qid)
 {
     return m_queries[qid];
 }
@@ -441,7 +458,7 @@ Resolver::num_seen_queries()
 }
 
 boost::shared_ptr<PlayableItem> 
-Resolver::get_pi(source_uid sid)
+Resolver::get_pi(const source_uid & sid)
 {
     return m_pis[sid];
 }

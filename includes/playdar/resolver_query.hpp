@@ -22,7 +22,8 @@ class ResolverQuery
 {
 public:
     ResolverQuery(string art, string alb, string trk)
-        : m_artist(art), m_album(alb), m_track(trk), m_mode("normal"), m_solved(false)
+        : m_artist(art), m_album(alb), m_track(trk), m_mode("normal"), 
+          m_solved(false), m_cancelled(false)
     {
         boost::trim(m_artist);
         boost::trim(m_album);
@@ -39,10 +40,20 @@ public:
 
     ~ResolverQuery()
     {
-        //cout << "dtor, resolver query: " << id() << endl;
+        cout << "DTOR, resolver query: " << id() << " - " << str() << endl;
     }
     
+    /// performs cleanup, query not needed any more.
+    /// object should destruct soon after this is called, once any lingering references are released.
+    void cancel()
+    {
+        m_cancelled = true;
+        m_callbacks.clear();
+        cout << "RQ::cancel() for " << id() << endl;
+    }
     
+    /// returns true if query cancelled and pending destruction. (hint, release your ptr)
+    bool cancelled() const { return m_cancelled; }
     
     json_spirit::Object get_json() const
     {
@@ -203,6 +214,7 @@ private:
     boost::mutex m_mut;
     // set to true once we get a decent result
     bool m_solved;
+    bool m_cancelled;
 
 };
 

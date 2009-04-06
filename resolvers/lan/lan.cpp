@@ -38,6 +38,21 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 }
 
 void 
+lan::cancel_query(query_uid qid)
+{
+    /*
+       Our options include:
+        1) broadcast the cancel to all, so everyone can clean up
+        2) send cancel to people we initially sent it to (would mean keeping track, meh)
+        3) do nothing, let their reaper jobs clean up after a timeout. 
+           at least we cleaned up ourselves, but remote nodes will just have to timeout->cleanup.
+       
+       Going with (3) for now, until I see proof that memory consumption by stale queries is 
+       causing a significant problem.
+    */ 
+}
+
+void 
 lan::run()
 {
     m_io_service = new boost::asio::io_service;

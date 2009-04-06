@@ -39,7 +39,7 @@ public:
     
     ~PlayableItem()
     {
-        //cout << "dtor, playableitem" << endl;
+        cout << "dtor, playableitem: " << id() << endl;
     }
     
     static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
