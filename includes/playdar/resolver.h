@@ -95,7 +95,6 @@ public:
                            const pi_ptr & pi, // candidate
                            string & reason ); // fail reason
 
-    
 private:
     void load_library_resolver();
     

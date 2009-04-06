@@ -93,6 +93,10 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
                 ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
                 ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
+
+                # Our own misc utils:
+                ${SRC}/utils/base64.cpp
+                ${SRC}/utils/levenshtein.cpp
               )
 
 TARGET_LINK_LIBRARIES( playdar 

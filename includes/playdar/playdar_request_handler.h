@@ -38,6 +38,7 @@ private:
 
     void handle_auth1( const playdar_request&, moost::http::reply& );
     void handle_auth2( const playdar_request&, moost::http::reply& );
+    void handle_crossdomain( const playdar_request& req, moost::http::reply& rep);
     void handle_root( const playdar_request&, moost::http::reply& );
     void handle_shutdown( const playdar_request&, moost::http::reply& );
     void handle_settings( const playdar_request&, moost::http::reply& );

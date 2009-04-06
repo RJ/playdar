@@ -65,7 +65,8 @@ function get_matches($rq){
     $pi->bitrate= 160;
     $pi->duration = 248;
     // NB this url should be url encoded properly:
-    $pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
+    $pi->url    = "http://playdar:password@www.playdar.org/secret/hiding.mp3";
+    //$pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
     $pi->score  = (float)1.00;
     return array($pi);
 }

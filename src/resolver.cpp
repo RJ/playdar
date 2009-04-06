@@ -4,12 +4,15 @@
 #include <boost/foreach.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "playdar/resolver.h"
 
 #include "playdar/rs_local_library.h"
 #include "playdar/rs_script.h"
 #include "playdar/library.h"
+
+#include "playdar/utils/levenshtein.h"
 
 // PDL stuff:
 #include <DynamicLoader.hpp>
@@ -49,6 +52,13 @@ Resolver::Resolver(MyApplication * app)
     {
         cout << "Error loading resolver plugins." << endl;
     }
+    typedef std::pair<string,ResolverService*> pairx;
+    BOOST_FOREACH( pairx px, m_pluginNameMap )
+    {
+        cout << px.first << ", " ;
+    }
+    cout << endl;
+    
     // sort the list of resolvers by weight, descending:
     boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
         boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
@@ -167,6 +177,12 @@ Resolver::load_resolver_plugins()
             continue;
         }
         string classname = bfs::basename(pluginfile);
+        if(m_pluginNameMap.find(boost::to_lower_copy(classname)) != m_pluginNameMap.end())
+        {
+            cerr << "ERROR: Plugin class '"<< classname << "' already in use. "
+                 << "Case-insensitivity applies." << endl;
+            continue;
+        }
         string confopt = "resolvers.";
         confopt += classname;
         confopt += ".enabled";
@@ -191,7 +207,7 @@ Resolver::load_resolver_plugins()
                 continue;
             }
             
-            m_pluginNameMap[ classname ] = instance;
+            m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
 
             loaded_rs cr;
             cr.script = false;
@@ -349,12 +365,12 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     {
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        if(pip->score() < 0.1)
-        {
+        //if(pip->score() < 0.1)
+        //{
             float score = calculate_score( m_queries[qid], pip, reason );
             if(score == 0.0) continue;
             pip->set_score( score );
-        }
+        //}
         m_queries[qid]->add_result(pip);
         // update map of source id -> playable item
         m_pis[pip->id()] = pip;
@@ -452,10 +468,10 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     // short-circuit for exact match
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
-    unsigned int trked = MyApplication::levenshtein( 
+    unsigned int trked = playdar::utils::levenshtein( 
                             Library::sortname(trk),
                             Library::sortname(o_trk));
-    unsigned int arted = MyApplication::levenshtein( 
+    unsigned int arted = playdar::utils::levenshtein( 
                             Library::sortname(art),
                             Library::sortname(o_art));
     // tolerances:
@@ -492,8 +508,8 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     }
     
     // combine the edit distance of artist & track into a final score:
-    float artdist_pc = (o_art.length()-arted) / o_art.length();
-    float trkdist_pc = (o_trk.length()-trked) / o_trk.length();
+    float artdist_pc = (o_art.length()-arted) / (float) o_art.length();
+    float trkdist_pc = (o_trk.length()-trked) / (float) o_trk.length();
     return artdist_pc * trkdist_pc;
 }
 

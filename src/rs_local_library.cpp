@@ -7,6 +7,8 @@
 /*
     I want to integrate the ngram2/l implementation done by erikf
     in moost here. This is a bit hacky, but gets the job done 99% for now.
+    Specifically it currently doesnt know about words.. 
+    so "title" and "title (LIVE)" aren't very similar due to large edit-dist.
 */
 
     

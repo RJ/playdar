@@ -115,16 +115,17 @@ public:
     {
         using namespace json_spirit;
         Object j;
-        j.push_back( Pair("sid", id()) );
-        j.push_back( Pair("artist", artist()) );
-        j.push_back( Pair("album",  album()) );
-        j.push_back( Pair("track", track()) );
-        j.push_back( Pair("source", source()) );
-        j.push_back( Pair("size", size()) );
-        j.push_back( Pair("mimetype", mimetype()) );
-        j.push_back( Pair("bitrate", bitrate()) );
-        j.push_back( Pair("duration", duration()) );
-        j.push_back( Pair("url", url()) );
+        j.push_back( Pair("_msgtype", "pi")         );
+        j.push_back( Pair("sid", id())              );
+        j.push_back( Pair("artist", artist())       );
+        j.push_back( Pair("album",  album())        );
+        j.push_back( Pair("track", track())         );
+        j.push_back( Pair("source", source())       );
+        j.push_back( Pair("size", size())           );
+        j.push_back( Pair("mimetype", mimetype())   );
+        j.push_back( Pair("bitrate", bitrate())     );
+        j.push_back( Pair("duration", duration())   );
+        j.push_back( Pair("url", url())             );
         j.push_back( Pair("score", (double)score()) );
         return j;
     }

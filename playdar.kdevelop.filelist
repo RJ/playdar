@@ -11,7 +11,6 @@ includes/playdar/application.h
 includes/playdar/artist.h
 includes/playdar/auth.hpp
 includes/playdar/config.hpp
-includes/playdar/config2.hpp
 includes/playdar/library.h
 includes/playdar/playable_item.hpp
 includes/playdar/playdar_plugin_include.h
@@ -25,6 +24,8 @@ includes/playdar/ss_localfile.hpp
 includes/playdar/streaming_strategy.h
 includes/playdar/track.h
 includes/playdar/types.h
+includes/playdar/utils
+includes/playdar/utils/levenshtein.h
 resolvers
 resolvers/darknet
 resolvers/darknet/CMakeLists.txt
@@ -39,10 +40,6 @@ resolvers/demo
 resolvers/demo/CMakeLists.txt
 resolvers/demo/demo.cpp
 resolvers/demo/demo.h
-resolvers/gateway_script
-resolvers/gateway_script/CMakeLists.txt
-resolvers/gateway_script/gateway_script.cpp
-resolvers/gateway_script/gateway_script.h
 resolvers/lan
 resolvers/lan/CMakeLists.txt
 resolvers/lan/lan_udp.cpp
@@ -51,10 +48,7 @@ src
 src/playdar
 src/playdar/main.cpp
 src/playdar/playdar_request_handler.cpp
-src/playdar/playdar_request_handler.h
 src/scanner
 src/scanner/scanner.cpp
-win32-playdar
-win32-playdar/resource.h
-win32-scanner
-win32-scanner/resource.h
+src/utils
+src/utils/levenshtein.cpp
