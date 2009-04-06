@@ -1,19 +1,34 @@
-#include "playdar/application.h"
 #include <iostream>
 #include <stdio.h>
 #include <sstream>
-#include "playdar/library.h"
 #include <boost/foreach.hpp>
 #include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "playdar/library.h"
+#include "playdar/playable_item.hpp"
+#include "playdar/streaming_strategy.h"
+#include "playdar/ss_localfile.hpp"
 
 
 using namespace std;
 
 
+Library::Library(string dbfilepath, MyApplication * a)
+: m_db(dbfilepath.c_str())
+{
+    m_app = a;
+    m_dbfilepath = dbfilepath;
+}
+
+Library::~Library()
+{
+    cout << "DTOR library" << endl;
+}
+
+
 bool
-Library::remove_file( string path )
+Library::remove_file( const string& path )
 {
     boost::mutex::scoped_lock lock(m_mut);
     sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE path = ?");
@@ -34,7 +49,7 @@ Library::remove_file( string path )
 }
 
 int 
-Library::add_dir(string path, int mtime)
+Library::add_dir(const string& path, int mtime)
 {
     boost::mutex::scoped_lock lock(m_mut);
     remove_file( path );
@@ -46,9 +61,9 @@ Library::add_dir(string path, int mtime)
 
 
 int 
-Library::add_file(  string path, int mtime, int size, string md5, string mimetype,
+Library::add_file(  const string& path, int mtime, int size, const string& md5, const string& mimetype,
                     int duration, int bitrate,
-                    string artist, string album, string track, int tracknum)
+                    const string& artist, const string& album, const string& track, int tracknum)
 {
     int fileid = 0;
     remove_file(path);
@@ -90,7 +105,7 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
 }
 
 int
-Library::get_artist_id(string name_orig)
+Library::get_artist_id(const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -122,7 +137,7 @@ Library::get_artist_id(string name_orig)
 }
 
 int
-Library::get_track_id(int artistid, string name_orig)
+Library::get_track_id(int artistid, const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -156,7 +171,7 @@ Library::get_track_id(int artistid, string name_orig)
 }
 
 int
-Library::get_album_id(int artistid, string name_orig)
+Library::get_album_id(int artistid, const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -361,7 +376,7 @@ Library::build_index(string table)
 
 // horribly inefficient:
 map<string,int> 
-Library::ngrams(string str_orig)
+Library::ngrams(const string& str_orig)
 {
     int n=3;
     map<string,int> m;
@@ -495,7 +510,7 @@ Library::get_field(string table, int id, string field)
 }
 
 string
-Library::sortname(string name)
+Library::sortname(const string& name)
 {
     string data(name);
     std::transform(data.begin(), data.end(), data.begin(), ::tolower);
@@ -589,6 +604,4 @@ Library::load_album(int n)
     }
     return ptr;
 }
-
-
 

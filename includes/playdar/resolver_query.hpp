@@ -18,6 +18,24 @@
 // Contains results, as they are found
 using namespace std;
 
+class Query
+{
+    map<string, json_spirit::Value> m_map;
+
+public:
+    Query()
+    {
+    }
+
+    static boost::shared_ptr<Query> from_json(json_spirit::Object qryobj)
+    {
+        boost::shared_ptr<Query> p( new Query );
+        obj_to_map(qryobj, p->m_map);
+        return p;
+    }
+};
+
+
 class ResolverQuery
 {
 public:
@@ -29,6 +47,7 @@ public:
         boost::trim(m_track);
     }
     
+
     // is this a valid / well formed query?
     bool valid() const
     {
@@ -41,8 +60,6 @@ public:
     {
         //cout << "dtor, resolver query: " << id() << endl;
     }
-    
-    
     
     json_spirit::Object get_json() const
     {

@@ -17,7 +17,6 @@ ENDIF(APPLE)
 
 TARGET_LINK_LIBRARIES( demo
                        ${OSSPUUID_LIBRARIES}
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_THREAD_LIBRARY}
+                       ${Boost_LIBRARIES}
                        ${APPLE_PLUGIN_LDFLAGS}
                      )
