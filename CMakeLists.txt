@@ -81,6 +81,10 @@ ADD_LIBRARY( playdarlib STATIC
 			${DEPS}/pdl-0.3.0/src/LoaderException.cpp
 		
 			${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
+			
+			${SRC}/utils/base64.cpp
+			${SRC}/utils/levenshtein.cpp
+			
 			)
 			
 TARGET_LINK_LIBRARIES( playdarlib 
