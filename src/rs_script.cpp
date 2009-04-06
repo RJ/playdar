@@ -2,6 +2,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/algorithm/string.hpp>
 /*
 This resolver spawns an external process, typically a python/ruby script
 which will do the actual resolving. Messages are passed to the script down
@@ -263,7 +264,26 @@ rs_script::process_output()
                 obj_to_map(po, po_map);
                 string url   = po_map["url"].get_str();  
                 cout << "url=" << url << endl;
-                boost::shared_ptr<StreamingStrategy> s(new HTTPStreamingStrategy(url));
+                // we don't give this to the shared_ptr yet, because
+                // we need to call a method specific to httpss, not
+                // in the parent ss (to set headers):
+                HTTPStreamingStrategy * httpss = new HTTPStreamingStrategy(url);
+                try
+                {
+                    if( po_map.find("extra_headers")!=po_map.end() &&
+                        po_map["extra_headers"].type() == array_type )
+                    {
+                        Array a = po_map["extra_headers"].get_array();
+                        BOOST_FOREACH( Value &eh, a )
+                        {
+                            if(eh.type() != str_type) continue;
+                            httpss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
+                        }
+                    
+                    }
+                } 
+                catch(...) { delete httpss; continue; }
+                boost::shared_ptr<StreamingStrategy> s(httpss);
                 pip->set_streaming_strategy(s);
                 v.push_back(pip);
             }

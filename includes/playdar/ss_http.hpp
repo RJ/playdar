@@ -56,9 +56,10 @@ public:
                     password = authbit.substr(colpos+1, authbit.length()-colpos-2);
                 }
                 // construct basic auth header
-                m_authheader = "Authorization: Basic " +
+                string h = "Authorization: Basic " +
                                 playdar::utils::base64_encode
                                        (username + ":" + password);
+                extra_headers().push_back(h);
             }
             m_port = matches[3]==""
                 ? 80 // default when port not specified
@@ -74,10 +75,9 @@ public:
         }
     }
 
-
-    
     ~HTTPStreamingStrategy(){  }
     
+    vector<string> & extra_headers() { return m_extra_headers; }
 
     int read_bytes(char * buf, int size)
     {
@@ -185,11 +185,18 @@ private:
             << "Host: " <<m_host<<":"<<m_port<<"\r\n"
             << "Accept: */*\r\n"
             << "Connection: close\r\n";
-        if(m_authheader.length() && m_numredirects == 0)
+        // don't send extra headers if we are redirected, to avoid leaking
+        // auth details or cookies to other domains.
+        if(m_numredirects==0)
         {
-            rs << m_authheader << "\r\n";
+            BOOST_FOREACH(string & extra_header, m_extra_headers)
+            {
+                rs << extra_header << "\r\n";
+            }
         }
         rs  << "\r\n";
+        
+        
         boost::asio::write(*m_socket, boost::asio::buffer(rs.str()), boost::asio::transfer_all(), werror);
         if(werror)
         {
@@ -301,7 +308,7 @@ private:
     unsigned short m_port;
     int m_numredirects;
     size_t m_bytesreceived;
-    string m_authheader;
+    vector<string> m_extra_headers;
 };
 
 #endif
