@@ -18,7 +18,7 @@ public:
         cout << "Unloading " << name() << endl;
     }
     
-    // called once at startup. returning false disables this resolver.
+    /// called once at startup. returning false disables this resolver.
     virtual bool init(playdar::Config * c, Resolver * r)
     {
         m_resolver = r;
@@ -53,11 +53,15 @@ public:
         return 100;
     }
 
+    /// start searching for matches for this query
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
+    
+    /// implement cancel if there are any resources you can free when a query is no longer needed.
+    /// this is important if you are holding any state, or a copy of the RQ pointer.
+    virtual void cancel_query(query_uid qid){ /* no-op */ }
 
-    // handler for HTTP reqs we are registerd for:
-    virtual string http_handler( const playdar_request& ,
-                                 playdar::auth * pauth)
+    /// handler for HTTP reqs we are registered for:
+    virtual string http_handler( const playdar_request&, playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
     }
@@ -73,7 +77,7 @@ protected:
     Resolver * m_resolver;
 };
 
-// this is what the dynamically loaded resolver plugins extend:
+/// this is what the dynamically loaded resolver plugins extend:
 class ResolverServicePlugin 
  : public PDL::DynamicClass,
    public ResolverService

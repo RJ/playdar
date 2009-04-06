@@ -22,14 +22,14 @@ class ResolverQuery
 {
 public:
     ResolverQuery()
-        : m_solved(false)
+        : m_solved(false), m_cancelled(false)
     {
     }
 
     
     virtual ~ResolverQuery()
     {
-        //cout << "dtor, resolver query: " << id() << endl;
+        cout << "DTOR, resolver query: " << id() << " - " << str() << endl;
     }
     
     virtual bool valid() const { return false; }
@@ -43,6 +43,17 @@ public:
     {
         return 1.0f;
     }
+    /// performs cleanup, query not needed any more.
+    /// object should destruct soon after this is called, once any lingering references are released.
+    void cancel()
+    {
+        m_cancelled = true;
+        m_callbacks.clear();
+        cout << "RQ::cancel() for " << id() << endl;
+    }
+    
+    /// returns true if query cancelled and pending destruction. (hint, release your ptr)
+    bool cancelled() const { return m_cancelled; }
     
     virtual json_spirit::Object get_json() const
     {
@@ -169,6 +180,11 @@ public:
     bool param_exists( string param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
     const string& param( string param ) const { return m_qryobj_map.find( param )->second.get_str(); }
     
+    virtual string str() const
+    {
+        return "Unknown Query";
+    }
+    
 protected:
     map<string,json_spirit::Value> m_qryobj_map;
 
@@ -183,6 +199,7 @@ private:
     boost::mutex m_mut;
     // set to true once we get a decent result
     bool m_solved;
+    bool m_cancelled;
 
 };
 

@@ -335,8 +335,13 @@ playdar_request_handler::handle_settings( const playdar_request& req,
 }
 
 string 
-playdar_request_handler::handle_queries_root()
+playdar_request_handler::handle_queries_root(const playdar_request& req)
 {
+    if(req.postvar("cancel_query").length() && req.postvar("qid").length())
+    {
+        app()->resolver()->cancel_query( req.postvar("qid") );
+    }
+
     size_t numqueries = app()->resolver()->qids().size();
     ostringstream os;
     os  << "<h2>Current Queries ("
@@ -345,6 +350,7 @@ playdar_request_handler::handle_queries_root()
         << "<table>"
         << "<tr style=\"font-weight:bold;\">"
         << "<td>QID</td>"
+        << "<td>Options</td>"
         << "<td>Artist</td>"
         << "<td>Album</td>"
         << "<td>Track</td>"
@@ -363,18 +369,30 @@ playdar_request_handler::handle_queries_root()
         { 
             rq = app()->resolver()->rq(*it); 
             bgc = (++i%2) ? "lightgrey" : "";
-            os  << "<tr style=\"background-color: "<< bgc << "\">"
-                << "<td style=\"font-size:60%;\">" 
+            os  << "<tr style=\"background-color: "<< bgc << "\">";
+            if(!rq)
+            {
+             os << "<td colspan=\"7\"><i>cancelled query</i></td>";
+            }
+            else
+            {
+             os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
+                << "<td style=\"align:center;\">"
+                << "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                << "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                << "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                << "</td>"
                 << "<td>" << rq->param( "artist" ) << "</td>"
                 << "<td>" << rq->param( "album" ) << "</td>"
                 << "<td>" << rq->param( "track" ) << "</td>"
                 << "<td>" << rq->from_name() << "</td>"
                 << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
-                << "</tr>"
                 ; 
+            }
+            os << "</tr>";
         } catch(...) { }
         it++;
     }  
@@ -390,7 +408,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
     {
         if( req.parts().size() == 1 )
         {
-            const string& s = handle_queries_root();
+            const string& s = handle_queries_root(req);
             serve_body( s, rep );
             break;
         }
@@ -407,6 +425,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
 
            ostringstream os;
            os  << "<h2>Query: " << qid << "</h2>"
+               
                << "<table>"
                << "<tr><td>Artist</td>"
                << "<td>" << rq->param( "artist" ) << "</td></tr>"
@@ -633,6 +652,13 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             r.push_back( Pair("qid", qid) );
             write_formatted( r, response );
         }
+        else if(req.getvar("method") == "cancel")
+        {
+            query_uid qid = req.getvar("qid");
+            app()->resolver()->cancel_query(qid);
+            // return something.. typically not checked, but easier to debug like this:
+            response << "{ \"status\" : \"OK\" }";
+        }
         else if(req.getvar("method") =="get_results" && req.getvar_exists("qid"))
         {
             Object r;
@@ -661,6 +687,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
                 { 
                     Object obj;
                     rq = app()->resolver()->rq(*it);
+                    if(!rq) continue;
                     obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
                     obj.push_back( Pair("query", rq->get_json()) );
                     qlist.push_back( obj );

@@ -55,14 +55,14 @@ public:
                      vector< boost::shared_ptr<PlayableItem> > results,
                      string via);
     vector< boost::shared_ptr<PlayableItem> > get_results(query_uid qid);
-    void end_query(query_uid qid);
     int num_results(query_uid qid);
     
     bool query_exists(const query_uid & qid);
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
+    void cancel_query(const query_uid & qid);
 
-    boost::shared_ptr<ResolverQuery> rq(query_uid qid);
-    boost::shared_ptr<PlayableItem> get_pi(source_uid sid);
+    rq_ptr rq(const query_uid & qid);
+    pi_ptr get_pi(const source_uid & sid);
     
     size_t num_seen_queries();
     
