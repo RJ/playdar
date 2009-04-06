@@ -15,7 +15,7 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
-using namespace playdar::resolvers;
+using playdar::resolvers::darknet;
 
 bool
 darknet::init(playdar::Config * c, Resolver * r)

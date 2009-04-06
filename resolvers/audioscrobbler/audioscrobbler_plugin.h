@@ -2,9 +2,6 @@
   * @brief Scrobbling support for playdar clients 
   */
 
-#ifndef __PLAYDAR_AUDIOSCROBBLER_PLUGIN_H__
-#define __PLAYDAR_AUDIOSCROBBLER_PLUGIN_H__
-
 #include "playdar/playdar_plugin_include.h"
 
 namespace playdar
@@ -14,6 +11,9 @@ namespace playdar
         class audioscrobbler : public ResolverServicePlugin
         {
         public:
+            audioscrobbler() 
+            {}
+            
             virtual bool init(playdar::Config*, Resolver*);
             virtual void Destroy();
             virtual string name() const { return "Audioscrobbler"; }
@@ -24,8 +24,5 @@ namespace playdar
             void start_resolving(boost::shared_ptr<ResolverQuery> rq)
             {}
         };
-
-        EXPORT_DYNAMIC_CLASS( audioscrobbler )
     }
 }
-#endif

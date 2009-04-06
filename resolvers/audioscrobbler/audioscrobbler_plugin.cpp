@@ -4,7 +4,8 @@
 using playdar::resolvers::audioscrobbler;
 
 
-static void scrobsub_callback(int, const char*);
+static void scrobsub_callback(int, const char*)
+{}
 
 
 bool
@@ -38,10 +39,15 @@ static void start(const playdar_request& rq)
 string
 audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
 {
-    if(rq.parts().count()<2) return;
-    string& action = rq.parts()[1];
-    if(action == "start")  { start(rq); return; }
-    if(action == "pause")  { scrobsub_pause(); return; }
-    if(action == "resume") { scrobsub_resume(); return; }
-    if(action == "stop")   { scrobsub_stop(); return; }
+    if(rq.parts().size()<2) return "Hi index!";
+    string action = rq.parts()[1];
+    if(action == "start")  { start(rq); return "OK"; }
+    if(action == "pause")  { scrobsub_pause(); return "OK"; }
+    if(action == "resume") { scrobsub_resume(); return "OK"; }
+    if(action == "stop")   { scrobsub_stop(); return "OK"; }
+    
+    return "Unhandled"; // --warning
 }
+
+
+EXPORT_DYNAMIC_CLASS( audioscrobbler )

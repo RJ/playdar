@@ -180,7 +180,7 @@ static void submit()
                  "&r[0]=",
                  session_id, artist, track, album, duration, track_number, mbid, start_time, 'P');
     
-    for (int x=0; x<2; ++x){    
+    for (int x=0; x<2; ++x){
         char response[128];
         scrobsub_post(response, submit_url, post_data);
         
@@ -208,11 +208,13 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     duration = _duration;
     track_number = _track_number;
 
+#if 0
 #if !SCROBSUB_NO_RELAY
     if(use_the_moose()){
         moose_push(artist, track, album, mbid, duration, track_number);
         return;
     }
+#endif
 #endif
 
     start_time = now();

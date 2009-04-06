@@ -56,6 +56,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
               )
 TARGET_LINK_LIBRARIES(scanner 
                       uriparser
+                      ${OSSPUUID_LIBRARIES} 
                       ${SQLITE3_LIBRARIES}
                       ${Boost_FILESYSTEM_LIBRARY}
                       ${Boost_SYSTEM_LIBRARY}
@@ -120,6 +121,10 @@ INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
 # Resolver Plugins
 #
 SET(LIBRARY_OUTPUT_PATH "${PLAYDAR_PATH}/plugins")
+
+IF(APPLE)
+    SET(PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
+ENDIF(APPLE)
 
 FILE(GLOB PLUGINDIRS "${RESOLVERS_DIR}/*")
 FOREACH(PLUGDIR ${PLUGINDIRS})
