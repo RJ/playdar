@@ -192,7 +192,7 @@ static void submit()
 }
 
 
-void scrobsub_start(const char* _artist, const char* _track, const char* _album, const char* _mbid, unsigned int _duration, unsigned int _track_number)
+void scrobsub_start(const char* _artist, const char* _track, const char* _album, unsigned int _duration, unsigned int _track_number, const char* _mbid)
 {
     if (!session_id)
         handshake();

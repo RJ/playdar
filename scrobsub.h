@@ -45,7 +45,7 @@ void scrobsub_auth(char url[110]);
 
 /** A new track started. scrobsub takes copies of the strings. All strings must
   * be UTF8. */
-void scrobsub_start(const char* artist, const char* track, const char* album, const char* mbid, unsigned int duration, unsigned int track_number);
+void scrobsub_start(const char* artist, const char* track, const char* album, unsigned int duration, unsigned int track_number, const char* mbid);
 void scrobsub_pause();
 void scrobsub_resume();
 /** only call this when playback stops, if a new track is about to start, call
