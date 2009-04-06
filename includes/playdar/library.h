@@ -53,14 +53,6 @@ public:
     track_ptr   load_track(artist_ptr artp, std::string n);
     track_ptr   load_track(int n);
 
-    // tags:
-    typedef std::vector< boost::tuple<std::string, float, int> > TagCloudVec;   // tagname, total weight, track count
-    typedef std::vector< std::pair<int, float> > TagVec;                     // tag_id, weight
-    typedef std::map<int, TagVec> ArtistTagMap;
-
-    boost::shared_ptr<TagCloudVec> get_tag_cloud();
-    void get_all_artist_tags(ArtistTagMap& out);
-
     // browsing:
     std::vector< boost::shared_ptr<Artist> > list_artists();
     std::vector< boost::shared_ptr<Track> > list_artist_tracks(boost::shared_ptr<Artist>);

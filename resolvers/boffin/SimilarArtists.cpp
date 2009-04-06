@@ -27,7 +27,7 @@
 
 using namespace std;
 
-// Returns a Library::ArtistTags containing tags for the artist.
+// Returns a BoffinDb::TagVec containing tags for the artist.
 // Calls the last.fm webservice to get the tags and blocks
 // for up to 10 seconds while waiting for the response.
 // 
@@ -37,10 +37,10 @@ using namespace std;
 //
 // a return containing an empty tagVec could be considered failure
 //
-Library::TagVec
-dlArtistTags(Library& library, const string& artist, int artistId)
+BoffinDb::TagVec
+dlArtistTags(BoffinDb& library, const string& artist, int artistId)
 {
-    Library::TagVec result;
+    BoffinDb::TagVec result;
 #if 0 // TODO!
     result.artistId = artistId;
 
@@ -75,7 +75,7 @@ dlArtistTags(Library& library, const string& artist, int artistId)
 
 //static
 void
-SimilarArtists::resultCb(list<SimilarArtists::SimilarArtist>& results, const Library::ArtistTagMap::const_iterator& it, float score)
+SimilarArtists::resultCb(list<SimilarArtists::SimilarArtist>& results, const BoffinDb::ArtistTagMap::const_iterator& it, float score)
 {
     if (score > 0.1) {
         results.push_back(make_pair(it->first, score));
@@ -83,12 +83,12 @@ SimilarArtists::resultCb(list<SimilarArtists::SimilarArtist>& results, const Lib
 }
 
 void
-SimilarArtists::getSimilarArtists(Library& library, const string& artist, int artistId, list<SimilarArtists::SimilarArtist>& out)
+SimilarArtists::getSimilarArtists(BoffinDb& library, const string& artist, int artistId, list<SimilarArtists::SimilarArtist>& out)
 {
     m_dataset.load(library);
 
     bool found = false;
-    Library::ArtistTagMap::const_iterator pArtist = m_dataset.findArtist(artistId, &found);
+    BoffinDb::ArtistTagMap::const_iterator pArtist = m_dataset.findArtist(artistId, &found);
 
     if (!found) {
         // todo
@@ -115,7 +115,7 @@ SimilarArtists::artistList_orderByWeightDesc(const SimilarArtist& a, const Simil
 }
 
 void
-SimilarArtists::buildArtistFilter(Library& library, int artistId, set<int>& out)
+SimilarArtists::buildArtistFilter(BoffinDb& library, int artistId, set<int>& out)
 {
     // These artists are too random, so we exclude them from sim-art.
     // Maybe when track tags are actually track tags (and not artist 
@@ -137,7 +137,7 @@ SimilarArtists::buildArtistFilter(Library& library, int artistId, set<int>& out)
 }
 
 ResultSetPtr
-SimilarArtists::filesBySimilarArtist(Library& library, const char* artist)
+SimilarArtists::filesBySimilarArtist(BoffinDb& library, const char* artist)
 {
     ResultSetPtr result( new ResultSet() );
 

@@ -81,12 +81,6 @@ ADD_LIBRARY( playdarlib STATIC
 			${DEPS}/pdl-0.3.0/src/LoaderException.cpp
 		
 			${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
-
-			${SRC}/rql/ResultSet.cpp
-			${SRC}/rql/RqlQuery.cpp
-			${SRC}/rql/RqlOpProcessor.cpp
-			${SRC}/rql/parser/parser.cpp
-			${SRC}/rql/SimilarArtists.cpp
 			)
 			
 TARGET_LINK_LIBRARIES( playdarlib 
