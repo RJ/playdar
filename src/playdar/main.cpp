@@ -38,14 +38,35 @@ static string default_config_path()
     using boost::filesystem::path;
 
 #if __APPLE__
-    path home = getenv("HOME");
-    return (home/"Library/Preferences/org.playdar.json").string();
+    if(getenv("HOME"))
+    {
+        path home = getenv("HOME");
+        return (home/"Library/Preferences/org.playdar.json").string();
+    }
+    else
+    {
+        cerr << "Error, $HOME not set." << endl;
+        throw;
+    }
 #elif __WIN32__
     return ""; //TODO refer to Qt documentation to get code to do this
 #else
-    path config_base = getenv("XDG_CONFIG_HOME");
-    if (config_base.empty()) config_base = path(getenv("HOME")) / ".config");
-    return (config_base/"/playdar/playdar.json").string();
+    string p;
+    if(getenv("XDG_CONFIG_HOME"))
+    {
+        p = getenv("XDG_CONFIG_HOME");
+    }
+    else if(getenv("HOME"))
+    {
+        p = string(getenv("HOME")) + "/.config";
+    }
+    else
+    {
+        cerr << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
+        throw;
+    }
+    path config_base = p;
+    return (config_base/"playdar/playdar.json").string();
 #endif
 }
 
