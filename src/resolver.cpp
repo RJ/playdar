@@ -113,46 +113,49 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
 void 
 Resolver::load_resolver_scripts()
 {
-    cout << "Loading resolver scripts:" << endl;
-    typedef map<string,string> st;
-    vector< st > scripts = app()->conf()->get_scriptlist();
-    BOOST_FOREACH( st & p, scripts )
-    {
-        cout << "-> Loading: " << p["path"] << endl;
-        try
-        {
+    using namespace boost::filesystem;
+    
+    path const etc = "etc"; //FIXME don't depend on working directory
+    cout << "Loading resolver scripts from: " << etc << endl;
+    
+    directory_iterator const end;
+    string name;
+    for(directory_iterator i(etc); i != end; ++i) {
+        try {
+            string name = i->path().filename();
+            string conf = "plugins." + i->path().stem() + '.';
+            
+            if (is_directory(i->status()) || is_other(i->status()))
+                continue;
+            //FIXME more sensible place to put resolving scripts
+            if (name=="playdar.conf" || name=="schema.sql" || name=="mock-input.pl")
+                continue;
+            if (app()->conf()->get<bool>(conf+"enabled", true) == false){
+                cout << "-> Skipping '"+name+"' - disabled in config file";
+                continue;
+            }
+
+            cout << "-> Loading: " << name << endl;
+            
             loaded_rs cr;
             cr.script = true;
             cr.rs = new playdar::resolvers::rs_script();
-            bool init = ((playdar::resolvers::rs_script *) cr.rs)
-                        ->init(app()->conf(), this, p["path"]);
-            if(!init)
-            {
-                cerr << "-> ERROR couldn't initialize." << endl;
-                continue;
-            }
+            bool init = ((playdar::resolvers::rs_script*) cr.rs)->init(app()->conf(), this, i->path().string());
+            if(!init) throw 1;
+
+            cr.targettime = app()->conf()->get<int>(conf+"targettime", cr.rs->target_time());            
+            cr.weight = app()->conf()->get<int>(conf+"weight", cr.rs->weight());
             
-            if(p.find("targettime")!=p.end())
-                cr.targettime = boost::lexical_cast<int>(p["targettime"]);
-            else
-                cr.targettime = cr.rs->target_time();
-                
-            if(p.find("weight")!=p.end())
-                cr.weight = boost::lexical_cast<int>(p["weight"]);
-            else
-                cr.weight = cr.rs->weight();
-            
-            if(cr.weight > 0)
-            {
+            if(cr.weight > 0) {
                 m_resolvers.push_back( cr );
-                cout << "-> OK [w:" << cr.weight 
-                     << " t:" << cr.targettime
+                cout << "-> OK [weight:" << cr.weight 
+                     <<  " target-time:" << cr.targettime
                      << "] " << cr.rs->name() << endl;
-            }
+             }
         }
         catch(...)
         {
-            cout << "Error initializing script" << endl;
+            cerr << "-> ERROR initializing script at: " << *i << endl;
         }
     }
 }
@@ -186,10 +189,10 @@ Resolver::load_resolver_plugins()
         string confopt = "resolvers.";
         confopt += classname;
         confopt += ".enabled";
-        if(app()->conf()->get<string>(confopt, "yes") == "no")
+        if(app()->conf()->get<bool>(confopt, true) == false)
         {
             cout << "Skipping '" << classname
-                 <<"' - disabled in config file." << endl;
+                 <<"' - disabled in config file" << endl;
             continue;
         }
         try
@@ -212,8 +215,7 @@ Resolver::load_resolver_plugins()
             loaded_rs cr;
             cr.script = false;
             cr.rs = instance;
-            string rsopt = "resolvers.";
-            confopt += classname;
+            string rsopt = "resolvers."+classname;
             cr.weight = app()->conf()->get<int>(rsopt + ".weight", 
                                                 instance->weight());
             cr.targettime = app()->conf()->get<int>(rsopt + ".targettime", 
