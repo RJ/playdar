@@ -55,8 +55,8 @@ def resolve(artist, track):
             t["artist"] = element_value(e, 'creator')
             t["track"]  = element_value(e, 'title')
             t["album"]  = element_value(e, 'album')
-            t["url"]    = percent_encode(element_value(e, 'location'), True)
-            t["source"] = 'SeeqPod X'
+            t["url"]    = percent_encode(element_value(e, 'location', True))
+            t["source"] = 'SeeqPod'
             tracks.append(t)
         except:
             pass
@@ -65,7 +65,7 @@ def resolve(artist, track):
 ####################################################################### settings
 settings = dict()
 settings["_msgtype"] = "settings"
-settings["name"] = "SeeqPod Resolver X"
+settings["name"] = "SeeqPod Resolver"
 settings["targettime"] = 1000 # millseconds
 settings["weight"] = 50 # seeqpod results aren't as good as friend's results
 print_json( settings )
@@ -87,7 +87,7 @@ while 1:
             request = json.loads(msg)
             tracks = resolve(request['artist'], request['track'])
             if len(tracks) > 0:
-                response = { 'qid':request['qid'], 'results':tracks }
+                response = { 'qid':request['qid'], 'results':tracks, '_msgtype':'results' }
                 print_json(response)
         except:
             # safe to continue, skipping this msg, because at least
