@@ -362,9 +362,10 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
         // unless a non-zero score was specified by resolver.
         //if(pip->score() < 0.1)
         //{
-            float score = m_queries[qid]->calculate_score( pip, reason );
-            if(score == 0.0) continue;
-            pip->set_score( score );
+        cout << "pip->score() == " << pip->score() << endl;
+//            float score = m_queries[qid]->calculate_score( pip, reason );
+            if(pip->score() == 0.0) continue;
+//            pip->set_score( score );
         //}
         m_queries[qid]->add_result(pip);
         // update map of source id -> playable item
