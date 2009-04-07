@@ -52,7 +52,7 @@ public:
     static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
     {
         string artist, album, track, sid, source, mimetype, url;
-        int size, bitrate, duration = 0;
+        int size = 0, bitrate = 0, duration = 0;
         float score = -1;
         
         using namespace json_spirit;
