@@ -60,6 +60,7 @@ public:
     bool query_exists(const query_uid & qid);
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(const query_uid & qid);
+    void cancel_query_timeout(query_uid qid);
 
     rq_ptr rq(const query_uid & qid);
     pi_ptr get_pi(const source_uid & sid);
@@ -79,6 +80,13 @@ public:
     const deque< query_uid > & qids() const
     {
         return m_qidlist;
+    }
+    
+    /// number of seconds queries should survive for since last being used/accessed.
+    /// when this time expires, queries and associated results will be deleted to free memory.
+    const time_t max_query_lifetime() const
+    {
+        return 21600; // 6 hours.
     }
     
     bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
@@ -101,7 +109,6 @@ private:
     boost::asio::io_service::work * m_work;
     boost::asio::io_service * m_io_service;
     
-    
     query_uid generate_qid();
     source_uid generate_sid();
     
@@ -109,6 +116,9 @@ private:
     
     map< query_uid, boost::shared_ptr<ResolverQuery> > m_queries;
     map< source_uid, boost::shared_ptr<PlayableItem> > m_pis;
+    // timers used to auto-cancel queries that are inactive for long enough:
+    map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
+    
     // newest-first list of dispatched qids:
     deque< query_uid > m_qidlist;
     

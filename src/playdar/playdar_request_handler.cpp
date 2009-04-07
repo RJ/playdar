@@ -661,9 +661,15 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         }
         else if(req.getvar("method") =="get_results" && req.getvar_exists("qid"))
         {
+            if( !app()->resolver()->query_exists( req.getvar("qid") ) )
+            {
+                cerr << "Error get_results(" << req.getvar("qid") << ") - qid went away." << endl;
+                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+                return;
+            }
             Object r;
             Array qresults;
-            vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(req.getvar("qid"));
+            vector< pi_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
             BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
             {
                 qresults.push_back( pip->get_json() );

@@ -12,7 +12,7 @@
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
-
+#include "time.h"
 
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
@@ -24,6 +24,24 @@ public:
     ResolverQuery()
         : m_solved(false), m_cancelled(false)
     {
+        boost::trim(m_artist);
+        boost::trim(m_album);
+        boost::trim(m_track);
+        // set initial "last access" time:
+        time(&m_atime);
+    }
+    
+    // is this a valid / well formed query?
+    bool valid() const
+    {
+        time(&m_atime);
+        return m_artist.length()>0 && m_track.length()>0;
+    }
+    
+    /// when was this query last "used"
+    time_t atime() const
+    {
+        return m_atime;
     }
 
     
@@ -57,6 +75,7 @@ public:
     
     virtual json_spirit::Object get_json() const
     {
+        time(&m_atime);
         using namespace json_spirit;
         Object j;
         j.push_back( Pair("_msgtype", "rq")   );
@@ -123,6 +142,7 @@ public:
 
     vector< boost::shared_ptr<PlayableItem> > results()
     {
+        time(&m_atime);
         // sort results on score/preference.
         boost::function
                     < bool 
@@ -130,13 +150,11 @@ public:
                         const boost::shared_ptr<PlayableItem> &
                     ) > sortfun = 
                     boost::bind(&ResolverQuery::sorter, this, _1, _2);
-                    
+        
         boost::mutex::scoped_lock lock(m_mut);
         sort(m_results.begin(), m_results.end(), sortfun);
         return m_results; 
     }
-
-    
 
     bool sorter(const boost::shared_ptr<PlayableItem> & lhs, const boost::shared_ptr<PlayableItem> & rhs)
     {
@@ -157,7 +175,7 @@ public:
         }
         // decide if this result "solves" the query:
         // for now just assume score of 1 means solved.
-        if(pip->score() == 1) 
+        if(pip->score() == 1.0) 
         {
 //            cout << "SOLVED " << id() << endl;   
             m_solved = true;
@@ -191,7 +209,7 @@ protected:
 private:
     vector< boost::shared_ptr<PlayableItem> > m_results;
     string      m_from_name;
-    
+        
     // list of functors to fire on new result:
     vector<rq_callback_t> m_callbacks;
     // mutable because created on-demand the first time it's needed
@@ -199,7 +217,11 @@ private:
     boost::mutex m_mut;
     // set to true once we get a decent result
     bool m_solved;
+    // set to true if trying to cancel/delete this query (if so, don't bother working with it)
     bool m_cancelled;
+    // last access time (used to know if this query is stale and can be deleted)
+    // mutable: it's auto-updated to mark the atime in various places.
+    mutable time_t m_atime; 
 
 };
 

@@ -162,14 +162,14 @@ public:
     // getters
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
-        // TODO (make this mutable and call set_ss on first call?) 
+        // memoized auto-upgrade from an url param -> httpstreamingstrategy:
         if(m_ss) return m_ss; 
         if(!m_ss && m_url.length())
         {
-            return boost::shared_ptr<StreamingStrategy>
-                    (new HTTPStreamingStrategy(m_url));
+            m_ss = boost::shared_ptr<StreamingStrategy>
+                            (new HTTPStreamingStrategy(m_url));
         }
-        return m_ss; // would be null if not given.
+        return m_ss; // could be null if not specified.
     }
     
     void set_id(string s) { m_uuid = s; }
@@ -187,7 +187,7 @@ public:
     const int size() const          { return m_size; }
     
 private:
-    boost::shared_ptr<StreamingStrategy> m_ss;
+    mutable boost::shared_ptr<StreamingStrategy> m_ss;
     mutable source_uid m_uuid;
     string m_artist;
     string m_album;
