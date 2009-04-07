@@ -12,7 +12,7 @@
 #include <boost/foreach.hpp>
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
-
+#include "time.h"
 
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
@@ -24,6 +24,14 @@ public:
     ResolverQuery()
         : m_solved(false), m_cancelled(false)
     {
+        // set initial "last access" time:
+        time(&m_atime);
+    }
+    
+    /// when was this query last "used"
+    time_t atime() const
+    {
+        return m_atime;
     }
 
     
@@ -57,6 +65,7 @@ public:
     
     virtual json_spirit::Object get_json() const
     {
+        time(&m_atime);
         using namespace json_spirit;
         Object j;
         j.push_back( Pair("_msgtype", "rq")   );
@@ -123,6 +132,7 @@ public:
 
     vector< boost::shared_ptr<PlayableItem> > results()
     {
+        time(&m_atime);
         // sort results on score/preference.
         boost::function
                     < bool 
@@ -130,13 +140,11 @@ public:
                         const boost::shared_ptr<PlayableItem> &
                     ) > sortfun = 
                     boost::bind(&ResolverQuery::sorter, this, _1, _2);
-                    
+        
         boost::mutex::scoped_lock lock(m_mut);
         sort(m_results.begin(), m_results.end(), sortfun);
         return m_results; 
     }
-
-    
 
     bool sorter(const boost::shared_ptr<PlayableItem> & lhs, const boost::shared_ptr<PlayableItem> & rhs)
     {
@@ -157,7 +165,7 @@ public:
         }
         // decide if this result "solves" the query:
         // for now just assume score of 1 means solved.
-        if(pip->score() == 1) 
+        if(pip->score() == 1.0) 
         {
 //            cout << "SOLVED " << id() << endl;   
             m_solved = true;
@@ -177,12 +185,39 @@ public:
     bool solved()   const { return m_solved; }
     string from_name() const { return m_from_name;  }
 
-    bool param_exists( string param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
-    const string& param( string param ) const { return m_qryobj_map.find( param )->second.get_str(); }
+    bool param_exists( const string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
+    const json_spirit::Value& param( const string& param ) const { return m_qryobj_map.find( param )->second; }
+    const json_spirit::Value_type param_type( const string& param ) const { return m_qryobj_map.find( param )->second.type(); }
     
-    virtual string str() const
+    void set_param( const string& param, const string& value ){ m_qryobj_map[param] = value; }
+    
+    string str() const
     {
-        return "Unknown Query";
+        ostringstream os;
+        os << "{ ";
+        
+        pair<string,json_spirit::Value> i;
+        BOOST_FOREACH( i, m_qryobj_map )
+        {
+            // This should return a pretty string
+            // so discard internal data.
+            if( i.first == "qid" ||
+                i.first == "_msgtype" ||
+                i.first == "from_name" ) continue;
+            
+            if( i.second.type() == json_spirit::str_type )
+                os << i.first << ": " << i.second.get_str();
+            else if( i.second.type() == json_spirit::real_type )
+                os << i.first << ": " << i.second.get_real();
+            else if( i.second.type() == json_spirit::int_type )
+                os << i.first << ": " << i.second.get_int();
+            else 
+                continue;
+
+            os << ", ";
+        }
+        os << " }";
+        return os.str();
     }
     
 protected:
@@ -191,7 +226,7 @@ protected:
 private:
     vector< boost::shared_ptr<PlayableItem> > m_results;
     string      m_from_name;
-    
+        
     // list of functors to fire on new result:
     vector<rq_callback_t> m_callbacks;
     // mutable because created on-demand the first time it's needed
@@ -199,7 +234,11 @@ private:
     boost::mutex m_mut;
     // set to true once we get a decent result
     bool m_solved;
+    // set to true if trying to cancel/delete this query (if so, don't bother working with it)
     bool m_cancelled;
+    // last access time (used to know if this query is stale and can be deleted)
+    // mutable: it's auto-updated to mark the atime in various places.
+    mutable time_t m_atime; 
 
 };
 

@@ -1,10 +1,12 @@
 #include "playdar/application.h"
 
 #include <sstream>
+#include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "playdar/resolver.h"
 
@@ -12,6 +14,8 @@
 #include "playdar/rs_script.h"
 #include "playdar/library.h"
 
+// Generic track calculation stuff:
+#include "playdar/track_rq_builder.hpp"
 #include "playdar/utils/levenshtein.h"
 
 // PDL stuff:
@@ -113,46 +117,49 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
 void 
 Resolver::load_resolver_scripts()
 {
-    cout << "Loading resolver scripts:" << endl;
-    typedef map<string,string> st;
-    vector< st > scripts = app()->conf()->get_scriptlist();
-    BOOST_FOREACH( st & p, scripts )
-    {
-        cout << "-> Loading: " << p["path"] << endl;
-        try
-        {
+    using namespace boost::filesystem;
+    
+    path const etc = "etc"; //FIXME don't depend on working directory
+    cout << "Loading resolver scripts from: " << etc << endl;
+    
+    directory_iterator const end;
+    string name;
+    for(directory_iterator i(etc); i != end; ++i) {
+        try {
+            string name = i->path().filename();
+            string conf = "plugins." + i->path().stem() + '.';
+            
+            if (is_directory(i->status()) || is_other(i->status()))
+                continue;
+            //FIXME more sensible place to put resolving scripts
+            if (name=="playdar.conf" || name=="schema.sql" || name=="mock-input.pl")
+                continue;
+            if (app()->conf()->get<bool>(conf+"enabled", true) == false){
+                cout << "-> Skipping '"+name+"' - disabled in config file";
+                continue;
+            }
+
+            cout << "-> Loading: " << name << endl;
+            
             loaded_rs cr;
             cr.script = true;
             cr.rs = new playdar::resolvers::rs_script();
-            bool init = ((playdar::resolvers::rs_script *) cr.rs)
-                        ->init(app()->conf(), this, p["path"]);
-            if(!init)
-            {
-                cerr << "-> ERROR couldn't initialize." << endl;
-                continue;
-            }
+            bool init = ((playdar::resolvers::rs_script*) cr.rs)->init(app()->conf(), this, i->path().string());
+            if(!init) throw 1;
+
+            cr.targettime = app()->conf()->get<int>(conf+"targettime", cr.rs->target_time());            
+            cr.weight = app()->conf()->get<int>(conf+"weight", cr.rs->weight());
             
-            if(p.find("targettime")!=p.end())
-                cr.targettime = boost::lexical_cast<int>(p["targettime"]);
-            else
-                cr.targettime = cr.rs->target_time();
-                
-            if(p.find("weight")!=p.end())
-                cr.weight = boost::lexical_cast<int>(p["weight"]);
-            else
-                cr.weight = cr.rs->weight();
-            
-            if(cr.weight > 0)
-            {
+            if(cr.weight > 0) {
                 m_resolvers.push_back( cr );
-                cout << "-> OK [w:" << cr.weight 
-                     << " t:" << cr.targettime
+                cout << "-> OK [weight:" << cr.weight 
+                     <<  " target-time:" << cr.targettime
                      << "] " << cr.rs->name() << endl;
-            }
+             }
         }
         catch(...)
         {
-            cout << "Error initializing script" << endl;
+            cerr << "-> ERROR initializing script at: " << *i << endl;
         }
     }
 }
@@ -186,10 +193,10 @@ Resolver::load_resolver_plugins()
         string confopt = "resolvers.";
         confopt += classname;
         confopt += ".enabled";
-        if(app()->conf()->get<string>(confopt, "yes") == "no")
+        if(app()->conf()->get<bool>(confopt, true) == false)
         {
             cout << "Skipping '" << classname
-                 <<"' - disabled in config file." << endl;
+                 <<"' - disabled in config file" << endl;
             continue;
         }
         try
@@ -212,8 +219,7 @@ Resolver::load_resolver_plugins()
             loaded_rs cr;
             cr.script = false;
             cr.rs = instance;
-            string rsopt = "resolvers.";
-            confopt += classname;
+            string rsopt = "resolvers."+classname;
             cr.weight = app()->conf()->get<int>(rsopt + ".weight", 
                                                 instance->weight());
             cr.targettime = app()->conf()->get<int>(rsopt + ".targettime", 
@@ -252,7 +258,13 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
     if(cb) rq->register_callback(cb);
     m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
     m_cond.notify_one();
-    
+    // set up timer to auto-cancel this query after a while:
+    boost::asio::deadline_timer * t = new boost::asio::deadline_timer(*m_io_service);
+    // give 5 mins additional time to allow setup/results, otherwise it would never be stale
+    // at max_query_lifetime, because the first result updates the atime:
+    t->expires_from_now(boost::posix_time::seconds(max_query_lifetime()+300));
+    t->async_wait(boost::bind(&Resolver::cancel_query_timeout, this, rq->id()));
+    m_qidtimers[rq->id()] = t;
     return rq->id();
 }
 
@@ -342,9 +354,9 @@ Resolver::run_pipeline_cont( rq_ptr rq,
     }
 }
 
-// a resolver will report results here
-// false means give up on this query, it's over
-// true means carry on as normal
+/// a resolver will report results here
+/// false means give up on this query, it's over
+/// true means carry on as normal
 bool
 Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
 {
@@ -358,20 +370,94 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
     {
+        rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        //if(pip->score() < 0.1)
-        //{
-            float score = m_queries[qid]->calculate_score( pip, reason );
-            if(score == 0.0) continue;
+        if(pip->score() < 0 &&
+           TrackRQBuilder::valid( rq ))
+        {
+            float score = calculate_score( rq, pip, reason );
+            if( score == 0.0) continue;
             pip->set_score( score );
-        //}
+        }
+        
         m_queries[qid]->add_result(pip);
         // update map of source id -> playable item
         m_pis[pip->id()] = pip;
     } 
     return true;
 }
+
+
+/// caluclate score 0-1 based on how similar the names are.
+/// string similarity algo that combines art,alb,trk from the original
+/// query (rq) against a potential match (pi).
+/// this is mostly just edit-distance, with some extra checks.
+/// TODO albums are ignored atm.
+float 
+Resolver::calculate_score( const rq_ptr & rq, // query
+                                  const pi_ptr & pi, // candidate
+                                  string & reason )  // fail reason
+{
+    using namespace boost;
+    // original names from the query:
+    string o_art    = trim_copy(to_lower_copy(rq->param( "artist" ).get_str()));
+    string o_trk    = trim_copy(to_lower_copy(rq->param( "track" ).get_str()));
+    string o_alb    = trim_copy(to_lower_copy(rq->param( "album" ).get_str()));
+
+    // names from candidate result:
+    string art      = trim_copy(to_lower_copy(pi->artist()));
+    string trk      = trim_copy(to_lower_copy(pi->track()));
+    string alb      = trim_copy(to_lower_copy(pi->album()));
+    // short-circuit for exact match
+    if(o_art == art && o_trk == trk) return 1.0;
+    // the real deal, with edit distances:
+    unsigned int trked = playdar::utils::levenshtein( 
+                                                     Library::sortname(trk),
+                                                     Library::sortname(o_trk));
+    unsigned int arted = playdar::utils::levenshtein( 
+                                                     Library::sortname(art),
+                                                     Library::sortname(o_art));
+    // tolerances:
+    float tol_art = 1.5;
+    float tol_trk = 1.5;
+    //float tol_alb = 1.5; // album rating unsed atm.
+    
+    // names less than this many chars aren't dismissed based on % edit-dist:
+    unsigned int grace_len = 6; 
+    
+    // if % edit distance is greater than tolerance, fail them outright:
+    if( o_art.length() > grace_len &&
+       arted > o_art.length()/tol_art )
+    {
+        reason = "artist name tolerance";
+        return 0.0;
+    }
+    if( o_trk.length() > grace_len &&
+       trked > o_trk.length()/tol_trk )
+    {
+        reason = "track name tolerance";
+        return 0.0;
+    }
+    // if edit distance longer than original name, fail them outright:
+    if( arted >= o_art.length() )
+    {
+        reason = "artist name editdist >= length";
+        return 0.0;
+    }
+    if( trked >= o_trk.length() )
+    {
+        reason = "track name editdist >= length";
+        return 0.0;
+    }
+    
+    // combine the edit distance of artist & track into a final score:
+    float artdist_pc = (o_art.length()-arted) / (float) o_art.length();
+    float trkdist_pc = (o_trk.length()-trked) / (float) o_trk.length();
+    return artdist_pc * trkdist_pc;
+}
+
+
 /// Cancel a query, delete any results and free the memory. QID will no longer exist.
 void 
 Resolver::cancel_query(const query_uid & qid)
@@ -392,6 +478,15 @@ Resolver::cancel_query(const query_uid & qid)
         // this disables callbacks and marks it as cancelled:
         cq->cancel();
         m_queries.erase(qid);
+        // stop and cleanup timer:
+        boost::asio::deadline_timer * t = m_qidtimers[qid];
+        if(t)
+        {
+            t->cancel();
+            delete(t);
+            m_qidtimers.erase(qid);
+        }
+        // cleanup registered source ids -> playable items:
         vector< pi_ptr > results = cq->results();
         BOOST_FOREACH( pi_ptr pip, results )
         {
@@ -402,18 +497,46 @@ Resolver::cancel_query(const query_uid & qid)
     // a resolverservice may still be processing it, in which case it will destruct once done.
 }
 
-// gets all the current results for a query
-// but leaves query active. (ie, results may change later)
+/// called when timer expires, so we can delete stale queries
+void
+Resolver::cancel_query_timeout(query_uid qid)
+{
+    cout << "Stale timeout reached for QID: " << qid << endl;
+    rq_ptr rq;
+    {
+        boost::mutex::scoped_lock lock(m_mut_results);
+        if(!query_exists(qid)) return;
+        rq = this->rq(qid);
+        if(rq->cancelled()) return;
+    }
+    // check if it's stale enough to warrant cleaning up
+    time_t now;
+    time(&now);
+    time_t diff = now - rq->atime();
+    if( diff >= max_query_lifetime() ) // stale, clean it up
+    {
+        cancel_query( qid );
+    }
+    else if( m_qidtimers.find(qid) != m_qidtimers.end() ) // not stale, reset timer
+    {
+        cout << "Not stale, resetting timer." << endl;
+        m_qidtimers[qid]->expires_from_now(boost::posix_time::seconds(max_query_lifetime()-diff));
+        m_qidtimers[qid]->async_wait(boost::bind(&Resolver::cancel_query_timeout, this, qid));
+    }
+}
+
+/// gets all the current results for a query
+/// but leaves query active. (ie, results may change later)
 vector< pi_ptr >
 Resolver::get_results(query_uid qid)
 {
     vector< pi_ptr > ret;
     boost::mutex::scoped_lock lock(m_mut_results);
-    if(!query_exists(qid)) return ret; // query was deleted
+    if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
 }
 
-// check how many results we found for this query id
+/// check how many results we found for this query id
 int 
 Resolver::num_results(query_uid qid)
 {
@@ -428,14 +551,14 @@ Resolver::num_results(query_uid qid)
     return 0;
 }
 
-// does this qid still exist?
+/// does this qid still exist?
 bool 
 Resolver::query_exists(const query_uid & qid)
 {
     return (m_queries.find(qid) != m_queries.end());
 }
 
-// true on success, false if it already exists.
+/// true on success, false if it already exists.
 bool 
 Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {

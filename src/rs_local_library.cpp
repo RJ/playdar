@@ -2,7 +2,7 @@
 #include "playdar/rs_local_library.h"
 #include "playdar/library.h"
 #include <boost/foreach.hpp>
-
+#include "playdar/utils/levenshtein.h"
 
 /*
     I want to integrate the ngram2/l implementation done by erikf
@@ -85,9 +85,6 @@ RS_local_library::process( rq_ptr rq )
         BOOST_FOREACH(int fid, fids)
         {
             pi_ptr pip = app()->library()->playable_item_from_fid(fid);
-            float finalscore = rq->calculate_score(pip, reason);
-            if(finalscore < 0.1) continue;
-            pip->set_score(finalscore);
             pip->set_source(conf()->name());
             final_results.push_back( pip );
         }
@@ -116,7 +113,7 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         return candidates;
     
     vector<scorepair> artistresults =
-        app()->library()->search_catalogue("artist", rq->param( "artist" ));
+        app()->library()->search_catalogue("artist", rq->param( "artist" ).get_str());
     BOOST_FOREACH( scorepair & sp, artistresults )
     {
         if(maxartscore==0) maxartscore = sp.score;
@@ -125,7 +122,7 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         vector<scorepair> trackresults = 
             app()->library()->search_catalogue_for_artist(sp.id, 
                                                           "track",
-                                                          rq->param( "track" ));
+                                                          rq->param( "track" ).get_str());
         BOOST_FOREACH( scorepair & sptrk, trackresults )
         {
             if(maxtrkscore==0) maxtrkscore = sptrk.score;
@@ -143,6 +140,3 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
 }
-
-
-

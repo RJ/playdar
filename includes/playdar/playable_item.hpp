@@ -19,10 +19,10 @@ class PlayableItem
 {
 public:
     PlayableItem()
+    :m_score( -1.0f )
     {
         set_duration(0);
         set_tracknum(0);
-        set_score(0);
         set_size(0);
         set_bitrate(0);
         set_mimetype("text/plain");
@@ -30,11 +30,18 @@ public:
     }
     
     PlayableItem(string art, string alb, string trk)
+    :m_score( -1.0f )
     {
-        PlayableItem();
         set_artist(art);
         set_album(alb);
         set_track(trk);
+        
+        set_duration(0);
+        set_tracknum(0);
+        set_size(0);
+        set_bitrate(0);
+        set_mimetype("text/plain");
+        set_source("unspecified");
     }
     
     ~PlayableItem()
@@ -46,7 +53,7 @@ public:
     {
         string artist, album, track, sid, source, mimetype, url;
         int size, bitrate, duration = 0;
-        float score = 0;
+        float score = -1;
         
         using namespace json_spirit;
         map<string,Value> resobj_map;
@@ -91,7 +98,7 @@ public:
             if (resobj_map["score"].type() == real_type)
                 score = (float) (resobj_map["score"].get_real());
             else
-                score = (float) 0.0;
+                score = (float) -1;
         }
         
         if(!artist.length() && !track.length()) throw;
@@ -105,7 +112,7 @@ public:
         if(size)                pip->set_size(size);
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
-        if(score)               pip->set_score(score);
+        if(score >= 0)          pip->set_score(score);
         if(url.length())        pip->set_url(url);
                         
         return pip;
@@ -162,14 +169,14 @@ public:
     // getters
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
-        // TODO (make this mutable and call set_ss on first call?) 
+        // memoized auto-upgrade from an url param -> httpstreamingstrategy:
         if(m_ss) return m_ss; 
         if(!m_ss && m_url.length())
         {
-            return boost::shared_ptr<StreamingStrategy>
-                    (new HTTPStreamingStrategy(m_url));
+            m_ss = boost::shared_ptr<StreamingStrategy>
+                            (new HTTPStreamingStrategy(m_url));
         }
-        return m_ss; // would be null if not given.
+        return m_ss; // could be null if not specified.
     }
     
     void set_id(string s) { m_uuid = s; }
@@ -187,7 +194,7 @@ public:
     const int size() const          { return m_size; }
     
 private:
-    boost::shared_ptr<StreamingStrategy> m_ss;
+    mutable boost::shared_ptr<StreamingStrategy> m_ss;
     mutable source_uid m_uuid;
     string m_artist;
     string m_album;
