@@ -28,3 +28,13 @@ TARGET_LINK_LIBRARIES( Boffin
 					${SQLITE3_LIBRARIES}
 					playdarlib
 					)
+					
+ADD_EXECUTABLE(tagger
+	Tagger.cpp
+	BoffinDb.cpp
+	${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp )
+
+TARGET_LINK_LIBRARIES(tagger
+	${SQLITE3_LIBRARIES}
+	${Boost_LIBRARIES} )
+ 

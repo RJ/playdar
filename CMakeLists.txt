@@ -56,11 +56,12 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/library.cpp
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
+			  
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
 					  ${Boost_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
-
+					  
 ADD_LIBRARY( playdarlib STATIC
 			${SRC}/application.cpp
 			${SRC}/resolver.cpp
@@ -87,9 +88,9 @@ ADD_LIBRARY( playdarlib STATIC
 			
 			)
 			
-TARGET_LINK_LIBRARIES( playdarlib 
-			${SQLITE3_LIBRARIES}
-			)
+#TARGET_LINK_LIBRARIES( playdarlib 
+#			${SQLITE3_LIBRARIES}
+#			)
 	
 					  
 ADD_EXECUTABLE( playdar
