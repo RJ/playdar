@@ -24,18 +24,8 @@ public:
     ResolverQuery()
         : m_solved(false), m_cancelled(false)
     {
-        boost::trim(m_artist);
-        boost::trim(m_album);
-        boost::trim(m_track);
         // set initial "last access" time:
         time(&m_atime);
-    }
-    
-    // is this a valid / well formed query?
-    bool valid() const
-    {
-        time(&m_atime);
-        return m_artist.length()>0 && m_track.length()>0;
     }
     
     /// when was this query last "used"
@@ -195,8 +185,8 @@ public:
     bool solved()   const { return m_solved; }
     string from_name() const { return m_from_name;  }
 
-    bool param_exists( string param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
-    const string& param( string param ) const { return m_qryobj_map.find( param )->second.get_str(); }
+    bool param_exists( const string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
+    string param( const string& param ) const { string s =  m_qryobj_map.find( param )->second.get_str(); boost::trim( s ); return s; }
     
     virtual string str() const
     {
