@@ -61,6 +61,7 @@ TARGET_LINK_LIBRARIES(scanner
                       ${Boost_SYSTEM_LIBRARY}
                       ${Boost_REGEX_LIBRARY}
                       ${Boost_THREAD_LIBRARY}
+                      ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 
 ADD_EXECUTABLE( playdar
