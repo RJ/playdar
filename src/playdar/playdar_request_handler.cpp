@@ -337,7 +337,8 @@ playdar_request_handler::handle_settings( const playdar_request& req,
 string 
 playdar_request_handler::handle_queries_root(const playdar_request& req)
 {
-    if(req.postvar("cancel_query").length() && req.postvar("qid").length())
+    if(req.postvar_exists( "cancel_query" ) && req.postvar("cancel_query").length() && 
+       req.postvar_exists( "qid" ) && req.postvar("qid").length())
     {
         app()->resolver()->cancel_query( req.postvar("qid") );
     }

@@ -404,6 +404,7 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     string o_art    = trim_copy(to_lower_copy(rq->param( "artist" )));
     string o_trk    = trim_copy(to_lower_copy(rq->param( "track" )));
     string o_alb    = trim_copy(to_lower_copy(rq->param( "album" )));
+
     // names from candidate result:
     string art      = trim_copy(to_lower_copy(pi->artist()));
     string trk      = trim_copy(to_lower_copy(pi->track()));
