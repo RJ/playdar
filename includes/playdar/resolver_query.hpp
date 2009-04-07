@@ -186,7 +186,8 @@ public:
     string from_name() const { return m_from_name;  }
 
     bool param_exists( const string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
-    string param( const string& param ) const { string s =  m_qryobj_map.find( param )->second.get_str(); boost::trim( s ); return s; }
+    const json_spirit::Value& param( const string& param ) const { return m_qryobj_map.find( param )->second; }
+    const json_spirit::Value_type param_type( const string& param ) const { return m_qryobj_map.find( param )->second.type(); }
     
     void set_param( const string& param, const string& value ){ m_qryobj_map[param] = value; }
     
@@ -205,7 +206,15 @@ public:
                 i.first == "from_name" ) continue;
             
             if( i.second.type() == json_spirit::str_type )
-                os << i.first << ": " << i.second.get_str() << ", ";
+                os << i.first << ": " << i.second.get_str();
+            else if( i.second.type() == json_spirit::real_type )
+                os << i.first << ": " << i.second.get_real();
+            else if( i.second.type() == json_spirit::int_type )
+                os << i.first << ": " << i.second.get_int();
+            else 
+                continue;
+
+            os << ", ";
         }
         os << " }";
         return os.str();

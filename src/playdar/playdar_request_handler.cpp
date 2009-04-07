@@ -368,6 +368,9 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
         rq_ptr rq;
         try
         { 
+            if( !TrackRQBuilder::valid( rq ))
+                continue;
+            
             rq = app()->resolver()->rq(*it); 
             bgc = (++i%2) ? "lightgrey" : "";
             os  << "<tr style=\"background-color: "<< bgc << "\">";
@@ -385,9 +388,9 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
                 << "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
                 << "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
                 << "</td>"
-                << "<td>" << rq->param( "artist" ) << "</td>"
-                << "<td>" << rq->param( "album" ) << "</td>"
-                << "<td>" << rq->param( "track" ) << "</td>"
+                << "<td>" << rq->param( "artist" ).get_str() << "</td>"
+                << "<td>" << rq->param( "album" ).get_str() << "</td>"
+                << "<td>" << rq->param( "track" ).get_str() << "</td>"
                 << "<td>" << rq->from_name() << "</td>"
                 << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
@@ -417,7 +420,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         {
            query_uid qid = req.parts()[1];
            rq_ptr rq = app()->resolver()->rq(qid);
-           if(!rq)
+            if(!rq || !TrackRQBuilder::valid( rq ))
            {
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
                return;
@@ -429,11 +432,11 @@ playdar_request_handler::handle_queries( const playdar_request& req,
                
                << "<table>"
                << "<tr><td>Artist</td>"
-               << "<td>" << rq->param( "artist" ) << "</td></tr>"
+               << "<td>" << rq->param( "artist" ).get_str() << "</td></tr>"
                << "<tr><td>Album</td>"
-               << "<td>" << rq->param( "album" ) << "</td></tr>"
+               << "<td>" << rq->param( "album" ).get_str() << "</td></tr>"
                << "<tr><td>Track</td>"
-               << "<td>" << rq->param( "track" ) << "</td></tr>"
+               << "<td>" << rq->param( "track" ).get_str() << "</td></tr>"
                << "</table>"
 
                << "<h3>Results (" << results.size() << ")</h3>"

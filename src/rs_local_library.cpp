@@ -113,7 +113,7 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         return candidates;
     
     vector<scorepair> artistresults =
-        app()->library()->search_catalogue("artist", rq->param( "artist" ));
+        app()->library()->search_catalogue("artist", rq->param( "artist" ).get_str());
     BOOST_FOREACH( scorepair & sp, artistresults )
     {
         if(maxartscore==0) maxartscore = sp.score;
@@ -122,7 +122,7 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         vector<scorepair> trackresults = 
             app()->library()->search_catalogue_for_artist(sp.id, 
                                                           "track",
-                                                          rq->param( "track" ));
+                                                          rq->param( "track" ).get_str());
         BOOST_FOREACH( scorepair & sptrk, trackresults )
         {
             if(maxtrkscore==0) maxtrkscore = sptrk.score;

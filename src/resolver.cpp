@@ -14,6 +14,8 @@
 #include "playdar/rs_script.h"
 #include "playdar/library.h"
 
+// Generic track calculation stuff:
+#include "playdar/track_rq_builder.hpp"
 #include "playdar/utils/levenshtein.h"
 
 // PDL stuff:
@@ -372,9 +374,7 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
         if(pip->score() < 0 &&
-            rq->param_exists( "artist" ) &&
-            rq->param_exists( "track" ) &&
-            rq->param_exists( "album" ))
+           TrackRQBuilder::valid( rq ))
         {
             float score = calculate_score( rq, pip, reason );
             if( score == 0.0) continue;
@@ -401,9 +401,9 @@ Resolver::calculate_score( const rq_ptr & rq, // query
 {
     using namespace boost;
     // original names from the query:
-    string o_art    = trim_copy(to_lower_copy(rq->param( "artist" )));
-    string o_trk    = trim_copy(to_lower_copy(rq->param( "track" )));
-    string o_alb    = trim_copy(to_lower_copy(rq->param( "album" )));
+    string o_art    = trim_copy(to_lower_copy(rq->param( "artist" ).get_str()));
+    string o_trk    = trim_copy(to_lower_copy(rq->param( "track" ).get_str()));
+    string o_alb    = trim_copy(to_lower_copy(rq->param( "album" ).get_str()));
 
     // names from candidate result:
     string art      = trim_copy(to_lower_copy(pi->artist()));
