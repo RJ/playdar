@@ -1,10 +1,12 @@
 #include "playdar/application.h"
 
 #include <sstream>
+#include <boost/asio.hpp>
 #include <boost/foreach.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 #include "playdar/resolver.h"
 
@@ -252,7 +254,13 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
     if(cb) rq->register_callback(cb);
     m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
     m_cond.notify_one();
-    
+    // set up timer to auto-cancel this query after a while:
+    boost::asio::deadline_timer * t = new boost::asio::deadline_timer(*m_io_service);
+    // give 5 mins additional time to allow setup/results, otherwise it would never be stale
+    // at max_query_lifetime, because the first result updates the atime:
+    t->expires_from_now(boost::posix_time::seconds(max_query_lifetime()+300));
+    t->async_wait(boost::bind(&Resolver::cancel_query_timeout, this, rq->id()));
+    m_qidtimers[rq->id()] = t;
     return rq->id();
 }
 
@@ -342,9 +350,9 @@ Resolver::run_pipeline_cont( rq_ptr rq,
     }
 }
 
-// a resolver will report results here
-// false means give up on this query, it's over
-// true means carry on as normal
+/// a resolver will report results here
+/// false means give up on this query, it's over
+/// true means carry on as normal
 bool
 Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
 {
@@ -392,6 +400,15 @@ Resolver::cancel_query(const query_uid & qid)
         // this disables callbacks and marks it as cancelled:
         cq->cancel();
         m_queries.erase(qid);
+        // stop and cleanup timer:
+        boost::asio::deadline_timer * t = m_qidtimers[qid];
+        if(t)
+        {
+            t->cancel();
+            delete(t);
+            m_qidtimers.erase(qid);
+        }
+        // cleanup registered source ids -> playable items:
         vector< pi_ptr > results = cq->results();
         BOOST_FOREACH( pi_ptr pip, results )
         {
@@ -402,18 +419,46 @@ Resolver::cancel_query(const query_uid & qid)
     // a resolverservice may still be processing it, in which case it will destruct once done.
 }
 
-// gets all the current results for a query
-// but leaves query active. (ie, results may change later)
+/// called when timer expires, so we can delete stale queries
+void
+Resolver::cancel_query_timeout(query_uid qid)
+{
+    cout << "Stale timeout reached for QID: " << qid << endl;
+    rq_ptr rq;
+    {
+        boost::mutex::scoped_lock lock(m_mut_results);
+        if(!query_exists(qid)) return;
+        rq = this->rq(qid);
+        if(rq->cancelled()) return;
+    }
+    // check if it's stale enough to warrant cleaning up
+    time_t now;
+    time(&now);
+    time_t diff = now - rq->atime();
+    if( diff >= max_query_lifetime() ) // stale, clean it up
+    {
+        cancel_query( qid );
+    }
+    else if( m_qidtimers.find(qid) != m_qidtimers.end() ) // not stale, reset timer
+    {
+        cout << "Not stale, resetting timer." << endl;
+        m_qidtimers[qid]->expires_from_now(boost::posix_time::seconds(max_query_lifetime()-diff));
+        m_qidtimers[qid]->async_wait(boost::bind(&Resolver::cancel_query_timeout, this, qid));
+    }
+}
+
+/// gets all the current results for a query
+/// but leaves query active. (ie, results may change later)
 vector< pi_ptr >
 Resolver::get_results(query_uid qid)
 {
     vector< pi_ptr > ret;
     boost::mutex::scoped_lock lock(m_mut_results);
-    if(!query_exists(qid)) return ret; // query was deleted
+    if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
 }
 
-// check how many results we found for this query id
+/// check how many results we found for this query id
 int 
 Resolver::num_results(query_uid qid)
 {
@@ -428,14 +473,14 @@ Resolver::num_results(query_uid qid)
     return 0;
 }
 
-// does this qid still exist?
+/// does this qid still exist?
 bool 
 Resolver::query_exists(const query_uid & qid)
 {
     return (m_queries.find(qid) != m_queries.end());
 }
 
-// true on success, false if it already exists.
+/// true on success, false if it already exists.
 bool 
 Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {
