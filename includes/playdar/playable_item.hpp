@@ -19,10 +19,10 @@ class PlayableItem
 {
 public:
     PlayableItem()
+    :m_score( -1.0f )
     {
         set_duration(0);
         set_tracknum(0);
-        set_score(0);
         set_size(0);
         set_bitrate(0);
         set_mimetype("text/plain");

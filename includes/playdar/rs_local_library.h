@@ -37,11 +37,6 @@ class RS_local_library : public ResolverService
         return 100;
     }
     
-    float calculate_score( const rq_ptr & rq,  // query
-                           const pi_ptr & pi,  // candidate
-                           string & reason );  // fail reason
-
-    
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;

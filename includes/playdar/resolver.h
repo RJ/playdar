@@ -90,6 +90,11 @@ public:
     
     void dispatch_runner();
 
+protected:
+    float calculate_score( const rq_ptr & rq,  // query
+                          const pi_ptr & pi,  // candidate
+                          string & reason );  // fail reason
+
 private:
     void load_library_resolver();
     
