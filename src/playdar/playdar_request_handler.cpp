@@ -15,7 +15,7 @@
 #include "playdar/playdar_request.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
-#include "playdar/track_resolver_query.hpp"
+#include "playdar/track_rq_builder.hpp"
 
 /*
 
@@ -528,7 +528,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     string artist   = playdar_request::unescape(req.parts()[1]);
     string album    = req.parts()[2].length()?playdar_request::unescape(req.parts()[2]):"";
     string track    = playdar_request::unescape(req.parts()[3]);
-    boost::shared_ptr<ResolverQuery> rq(new TrackResolverQuery(artist, album, track));
+    boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);
     // wait a couple of seconds for results
@@ -628,7 +628,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             string album  = req.getvar("album");
             string track  = req.getvar("track");
             // create a new query and start resolving it:
-            boost::shared_ptr<ResolverQuery> rq(new TrackResolverQuery(artist, album, track));
+            boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
 
             // was a QID specified? if so, use it:
             if(req.getvar_exists("qid"))

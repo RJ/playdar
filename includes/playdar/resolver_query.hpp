@@ -188,9 +188,27 @@ public:
     bool param_exists( const string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
     string param( const string& param ) const { string s =  m_qryobj_map.find( param )->second.get_str(); boost::trim( s ); return s; }
     
-    virtual string str() const
+    void set_param( const string& param, const string& value ){ m_qryobj_map[param] = value; }
+    
+    string str() const
     {
-        return "Unknown Query";
+        ostringstream os;
+        os << "{ ";
+        
+        pair<string,json_spirit::Value> i;
+        BOOST_FOREACH( i, m_qryobj_map )
+        {
+            // This should return a pretty string
+            // so discard internal data.
+            if( i.first == "qid" ||
+                i.first == "_msgtype" ||
+                i.first == "from_name" ) continue;
+            
+            if( i.second.type() == json_spirit::str_type )
+                os << i.first << ": " << i.second.get_str() << ", ";
+        }
+        os << " }";
+        return os.str();
     }
     
 protected:
