@@ -68,7 +68,7 @@ public:
             if( i->first != "_msgtype" &&
                 i->first != "qid" &&
                 i->first != "from_name" )
-                j.push_back( Pair( i->first, i->second.get_str() ));
+                j.push_back( Pair( i->first, i->second ));
         }
         
         j.push_back( Pair("solved",  solved())  );
