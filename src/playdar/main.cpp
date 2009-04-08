@@ -48,7 +48,7 @@ static string default_config_path()
         cerr << "Error, $HOME not set." << endl;
         throw;
     }
-#elif __WIN32__
+#elif WIN32
     return ""; //TODO refer to Qt documentation to get code to do this
 #else
     string p;
