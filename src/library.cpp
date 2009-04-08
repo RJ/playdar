@@ -1,3 +1,6 @@
+//include first otherwise face uuid fail on OSX!
+#include "playdar/config.hpp"
+
 #include <iostream>
 #include <stdio.h>
 #include <sstream>
