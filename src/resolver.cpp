@@ -113,6 +113,23 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
     return lhs.weight > rhs.weight;
 }
 
+// work-around lack of basic_path::stem()
+//
+// Returns: if p.filename() contains a dot, returns the substring of p.filename() 
+// starting at its beginning and ending at the last dot (the dot is not included). 
+// Otherwise, returns p.filename().
+template<typename Path>
+typename Path::string_type 
+stem(const Path & p)
+{
+    int pos = p.leaf().find_last_of('.');
+    if (pos != Path::string_type::npos) {
+        return p.leaf().substr(0, pos);
+    } 
+    return p.leaf();
+}
+
+
 /// spawn resolver scripts:
 void 
 Resolver::load_resolver_scripts()
@@ -126,8 +143,11 @@ Resolver::load_resolver_scripts()
     string name;
     for(directory_iterator i(etc); i != end; ++i) {
         try {
-            string name = i->path().filename();
-            string conf = "plugins." + i->path().stem() + '.';
+            // basic_path::leaf() understandably renamed to filename() in boost 1.36
+            // (leaf method marked as deprecated in boost > 1.35)
+            // basic_path::stem() added in boost 1.36
+            string name = i->path().leaf();
+            string conf = "plugins." + stem( i->path() ) + '.';     
             
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
