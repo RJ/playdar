@@ -35,7 +35,7 @@ bool parse_line(istream& in, int& id, std::vector <std::pair<std::string, float>
                             boost::lexical_cast<float>( splitVec[i+1] ) ) );
                 return true;
             } catch(...) {
-                // lexical_cast failures, try next line
+                cerr << "dodgy line warning: [" << line << "]\n";
             }
         }
     }

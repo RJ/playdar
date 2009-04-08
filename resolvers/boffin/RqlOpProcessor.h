@@ -42,7 +42,7 @@ class RqlOpProcessor
     void normalise(float weight, ResultSetPtr rs);
 
 public:
-    static ResultSetPtr process(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists);
+    static ResultSetPtr process(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
 
 };
 
