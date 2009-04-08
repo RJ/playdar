@@ -70,13 +70,13 @@ BoffinDb::get_tag_id(const std::string& tag)
 {
     std::string tag_sortname(sortname(tag));
 
-    sqlite3pp::query qry(m_db, "SELECT id FROM tag WHERE name = ?");
+    sqlite3pp::query qry(m_db, "SELECT rowid FROM tag WHERE name = ?");
     qry.bind(1, tag_sortname.data());
     sqlite3pp::query::iterator it = qry.begin();
     if (it != qry.end())
         return it->get<int>(0);
 
-    sqlite3pp::command cmd(m_db, "INSERT INTO tag SET name = ?");
+    sqlite3pp::command cmd(m_db, "INSERT INTO tag (name) VALUES (?)");
     cmd.bind(1, tag_sortname.data());
     int result = cmd.execute();
     if (SQLITE_OK == result)

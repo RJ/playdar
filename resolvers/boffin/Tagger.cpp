@@ -1,8 +1,8 @@
 #include <fstream>
 #include <iostream>
 #include <boost/bind.hpp>
-#include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include "BoffinDb.h"
 
 using namespace std;
@@ -17,24 +17,24 @@ bool track_out(int id, const string& artist, const string& album, const string& 
 // [id]\tTag\tWeight...\n
 bool parse_line(istream& in, int& id, std::vector <std::pair<std::string, float> >& tags)
 {
-    using namespace boost;
-    static const regex e("([[:digit:]]+)\\t(?:([^\\t]+)\\t([0-9\\.]+))*");
-
     while (in.good()) {
         string line;
-        std::getline( in, line );
-        cmatch m;
-        if (line.length() && regex_search( line.data(), m, e )) {
-// todo:            m.captures();
-// fixme:
-            if (m.size() >= 3 && (m.size() & 1)) {
-                id = lexical_cast<int>( m[0].first );
-                for (size_t i = 1; i < m.size(); i += 2)
+        getline( in, line );
+
+        vector<string> splitVec;
+        boost::split(splitVec, line, boost::is_any_of("\t"));
+        
+        if (splitVec.size() >= 3 && (splitVec.size() & 1)) {
+            try {
+                id = boost::lexical_cast<int>( splitVec[0] );
+                for (size_t i = 1; i < splitVec.size(); i += 2)
                     tags.push_back(
                         std::make_pair(
-                            std::string( m[i].first, m[i].second ),
-                            lexical_cast<float>( m[i+1].first ) ) );
+                            splitVec[i],
+                            boost::lexical_cast<float>( splitVec[i+1] ) ) );
                 return true;
+            } catch(...) {
+                // lexical_cast failures, try next line
             }
         }
     }

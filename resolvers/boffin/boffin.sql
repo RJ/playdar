@@ -13,5 +13,5 @@ CREATE TABLE IF NOT EXISTS file_tag (
 	weight FLOAT NOT NULL
 );
 
-CREATE UNIQUE INDEX file_tag_track_idx ON file_tag(file);
-CREATE UNIQUE INDEX file_tag_tag_idx ON file_tag(tag);
+CREATE INDEX file_tag_track_idx ON file_tag(file);
+CREATE INDEX file_tag_tag_idx ON file_tag(tag);

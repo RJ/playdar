@@ -54,10 +54,10 @@ public:
             std::vector<Tag> tags;
             while (parseResultLine( fileId, tags )) {
                 BOOST_FOREACH(Tag& tag, tags) {
-                    sqlite3pp::command cmd( m_db, "INSERT INTO file_tag (file, tag, weight) VALUES (?, ?, ?)" );
-                    cmd.binder() << fileId;
-                    int tagId = get_tag_id( tag.first );
-                    cmd.binder() << tagId << tag.second;
+                    sqlite3pp::command cmd( m_db, "INSERT INTO file_tag (rowid, file, tag, weight) VALUES (null, ?, ?, ?)" );
+                    cmd.bind(1, fileId);
+                    cmd.bind(2, get_tag_id( tag.first ));
+                    cmd.bind(3, tag.second);
                     cmd.execute();
                 }
                 tags.clear();
