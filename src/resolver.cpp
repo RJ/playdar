@@ -270,7 +270,6 @@ query_uid
 Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
                     rq_callback_t cb) 
 {
-    assert( rq->valid() );
     boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
     {
