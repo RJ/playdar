@@ -138,7 +138,9 @@ Resolver::load_resolver_scripts()
     
     path const etc = "etc"; //FIXME don't depend on working directory
     cout << "Loading resolver scripts from: " << etc << endl;
-    
+
+    if (!exists(etc) || !is_directory(etc)) return;     // avoid the throw
+
     directory_iterator const end;
     string name;
     for(directory_iterator i(etc); i != end; ++i) {
