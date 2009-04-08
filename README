@@ -7,6 +7,31 @@ independently.
 Max Howell <max@last.fm>
 
 
-Dependencies
-============
-Just what came with the system.
+Usage
+=====
+This does not compile to a dynamic library. You need to compile it into your
+application. Indeed, (on Linux) this is duplication, but it's a very small
+amount of code, and we provide many options for which libraries it uses.
+
+You need to compile in scrobsub.c and one of the scrobsub-options.*
+
+So pick whichever suits you, or write a new one (there's only a few functions to
+reimplement) and submit it.
+
+You also will need to define a number of preprocessor constants:
+
+SCROBSUB_CLIENT_VERSION
+SCROBSUB_CLIENT_ID
+SCROBSUB_API_KEY
+SCROBSUB_SHARED_SECRET
+
+What these represent should be apparent once you have read: http://last.fm/api
+
+
+Practical concerns
+==================
+The library is synchronous. If you don't want to block the thread that calls 
+them, you will need to call these functions in a separate thread. Or you can
+rely on the user installing the official Last.fm Audioscrobbler application:
+
+#define SCROBSUB_ALWAYS_RELAY 1
