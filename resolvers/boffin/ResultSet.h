@@ -23,7 +23,7 @@
 
 #include <set>
 #include <boost/shared_ptr.hpp>
-
+#include <boost/bind.hpp>
 
 struct TrackResult
 {
@@ -85,13 +85,14 @@ void and_not(std::set<T>& a, const std::set<T>& b)
 template<typename T>
 void or(std::set<T>& a, const std::set<T>& b, float intersection_boost)
 {
-    for (std::set<T>::const_iterator pb = b.begin(); pb != b.end(); pb++) {
-        std::set<T>::iterator pa( a.find(*pb) );
+    for (typename std::set<T>::const_iterator pb = b.begin(); pb != b.end(); ) {
+        typename std::set<T>::iterator pa( a.find(*pb) );
         if (pa == a.end()) {
             a.insert(*pb);
         } else {
             pa->weight = intersection_boost * (pb->weight + pa->weight);
         }
+        pb++;
     }
 }
 

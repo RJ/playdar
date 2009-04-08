@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <boost/algorithm/string.hpp>
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
@@ -50,10 +51,11 @@ int main(int argc, char *argv[])
 
     try {
         BoffinDb db(argv[3], argv[2]);
-        
-        if (stricmp(argv[1], "out") == 0) {
+        std::string arg1 = argv[1];
+        boost::to_lower( arg1 );
+        if ( arg1 == "out") {
             db.map_files_without_tags(track_out);
-        } else if (stricmp(argv[1], "in") == 0) {
+        } else if ( arg1 == "in") {
             if (argc > 4) {
                 ifstream file( argv[4] );
                 db.update_tags( boost::bind( parse_line, boost::ref(file), _1, _2 ) );

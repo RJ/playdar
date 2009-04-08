@@ -35,6 +35,9 @@ public:
                                  map<string,string> postvars,
                                 playdar::auth * pauth);
 
+protected:
+    virtual ~Boffin() throw() {}
+
 private:
     void resolve(boost::shared_ptr<ResolverQuery> rq);
 

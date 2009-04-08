@@ -51,6 +51,10 @@ IF(APPLE)
     ADD_DEFINITIONS(-Dunix)
 ENDIF(APPLE)
 
+IF(NOT WIN32)
+    ADD_DEFINITIONS(-fno-operator-names)
+ENDIF(NOT WIN32)
+
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/scanner/scanner.cpp
                ${SRC}/library.cpp
@@ -60,6 +64,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
 					  ${Boost_LIBRARIES}
+                      ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 					  
 ADD_LIBRARY( playdarlib STATIC
