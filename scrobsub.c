@@ -49,7 +49,7 @@ void scrobsub_parse_ok_handshake_response(char* response);
 
 static bool use_the_moose()
 {
-#if SCROBSUB_NO_RELAY    
+#if SCROBSUB_NO_RELAY
     // we are the moose
     return false;
 #else
@@ -110,6 +110,10 @@ static void handshake()
 {
     const char* session_key = scrobsub_session_key();
     const char* username = scrobsub_username();
+    
+    if (!session_key || !username)
+        return; //TODO auth required
+    
     time_t time = now();
     char auth[33];
     get_auth(auth, time);
@@ -222,7 +226,7 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     //TODO, don't emit np if user is skipping fast, then you need a timer
     //    static time_t previous_np = 0;
     //    time_t time = now();
-    //    if(time - previous_np < 4)   
+    //    if(time - previous_np < 4)
     
     if(duration>9999) duration = 9999;
     if(track_number>99) track_number = 99;

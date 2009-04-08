@@ -24,15 +24,17 @@
 //TODO user-agent
 
 #include "scrobsub.h"
+#include <string.h>
 #include <curl/curl.h>
 #include <openssl/md5.h>
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 
 extern void(*scrobsub_callback)(int event, const char* message);
-static char* username = "";
-static char* session_key = "";
-static char* token = "";
+static bool scrobsub_finish_auth();
+static char* username = 0;
+static char* session_key = 0;
+static char* token = 0;
 
 
 void scrobsub_md5(char out[33], const char* in)
@@ -77,10 +79,11 @@ static size_t curl_writer(void* in, size_t size, size_t N, void* out)
 {
     size_t x;
     N *= size;
-    for (x=0; x<N; ++x){
+    for(x=0; x<N; ++x){
         if (n-- <= 0) break;
-        *out++ = *in++;
+        *(char*)out++ = *(char*)in++;
     }
+    
     return x;
 }
 
@@ -95,7 +98,7 @@ void scrobsub_get(char response[256], const char* url)
     CURLcode result = curl_easy_perform(h);
     curl_easy_cleanup(h);
     
-    response[255] = '\0'; // curl_writer won't null terminate if >= 256 chars
+    response[255-n] = '\0'; // curl_writer won't null terminate
 }
 
 void scrobsub_post(char response[256], const char* url, const char* post_data)
@@ -105,7 +108,7 @@ void scrobsub_post(char response[256], const char* url, const char* post_data)
     curl_easy_setopt(h, CURLOPT_URL, url);
     curl_easy_perform(h);
     curl_easy_cleanup(h);
-    stdcpy(response, "OK\n"); //TODO
+    strcpy(response, "OK\n"); //TODO
 }
 
 void scrobsub_auth(char out_url[110])
@@ -113,32 +116,33 @@ void scrobsub_auth(char out_url[110])
     char url[] = "http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=" SCROBSUB_API_KEY;
     char response[256];
     scrobsub_get(response, url);
-    
+
     xmlInitParser(); //TODO can't tell if safe to call more than once, but don't want to call unless auth is done to save initialisations
-    xmlDocPtr doc = xmlParseMemory(response, 1024); //TODO can return NULL
+    xmlDocPtr doc = xmlParseMemory(response, strlen(response)); //TODO can return NULL
     xmlXPathContextPtr ctx = xmlXPathNewContext(doc);
     xmlXPathObjectPtr obj = xmlXPathEvalExpression("/lfm/token/text()", ctx);
     
-    token = strdup(obj->stringval);
+    if(!obj) return; // leak, but I don't care, this is an unlikely route
+
+    token = strdup(obj->nodesetval->nodeTab[0]->content);
+    strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
+    strcpy(&out_url[38+32+6], token);
     
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctx);
     xmlFreeDoc(doc);
-    
-    strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
-    strcpy(&out_url[38+32+7], token);
 }
 
 //TODO localise and get webservice error
 //TODO error handling
 bool scrobsub_finish_auth()
 {
-    char sig[9+32+27+32+1] = "api_key" SCROBSUB_API_KEY "methodauth.getSessiontoken%s" SCROBSUB_SHARED_SECRET;
-    snprintf(sig, sizeof(sig), sig, token);
+    char sig[7+32+26+32+32+1];
+    snprintf(sig, sizeof(sig), "api_key" SCROBSUB_API_KEY "methodauth.getSessiontoken%s" SCROBSUB_SHARED_SECRET, token);
     scrobsub_md5(sig, sig);
 
-    char url[66+32+8+32+9+32+1] = "http://ws.audioscrobbler.com/2.0/?method=auth.getSession&api_key=" SCROBSUB_API_KEY "&token=%s&api_sig=%s";
-    snprintf(url, sizeof(url), url, token, sig);
+    char url[65+32+7+32+9+32+1];
+    snprintf(url, sizeof(url), "http://ws.audioscrobbler.com/2.0/?method=auth.getSession&api_key=" SCROBSUB_API_KEY "&token=%s&api_sig=%s", token, sig);
 
     char response[256];
     scrobsub_get(response, url);
@@ -148,8 +152,8 @@ bool scrobsub_finish_auth()
     xmlXPathObjectPtr obj_key = xmlXPathEvalExpression("/lfm/session/key/text()", ctx);
     xmlXPathObjectPtr obj_name = xmlXPathEvalExpression("/lfm/session/name/text()", ctx);
 
-    session_key = strdup(obj_key->stringval);
-    username = strdup(obj_name->stringval);
+    if(obj_key) session_key = strdup(obj_key->nodesetval->nodeTab[0]->content);
+    if(obj_name) username = strdup(obj_name->nodesetval->nodeTab[0]->content);
 
     xmlXPathFreeObject(obj_key);
     xmlXPathFreeObject(obj_name);
