@@ -3,7 +3,6 @@
 #include "playdar/config.hpp"
 #include "playdar/streaming_strategy.h"
 #include "playdar/types.h"
-#include "playdar/ss_http.hpp"
 #include "json_spirit/json_spirit.h"
 #include <cassert>
 /*
@@ -169,13 +168,6 @@ public:
     // getters
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
-        // memoized auto-upgrade from an url param -> httpstreamingstrategy:
-        if(m_ss) return m_ss; 
-        if(!m_ss && m_url.length())
-        {
-            m_ss = boost::shared_ptr<StreamingStrategy>
-                            (new HTTPStreamingStrategy(m_url));
-        }
         return m_ss; // could be null if not specified.
     }
     

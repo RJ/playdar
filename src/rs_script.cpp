@@ -267,9 +267,9 @@ rs_script::process_output()
                 string url   = po_map["url"].get_str();  
                 cout << "url=" << url << endl;
                 // we don't give this to the shared_ptr yet, because
-                // we need to call a method specific to httpss, not
+                // we need to call a method specific to curlss, not
                 // in the parent ss (to set headers):
-                HTTPStreamingStrategy * httpss = new HTTPStreamingStrategy(url);
+                CurlStreamingStrategy * curlss = new CurlStreamingStrategy(url);
                 try
                 {
                     if( po_map.find("extra_headers")!=po_map.end() &&
@@ -279,13 +279,13 @@ rs_script::process_output()
                         BOOST_FOREACH( Value &eh, a )
                         {
                             if(eh.type() != str_type) continue;
-                            httpss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
+                            // not implemented in curl strat yet
+                            //curlss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
                         }
-                    
                     }
                 } 
-                catch(...) { delete httpss; continue; }
-                boost::shared_ptr<StreamingStrategy> s(httpss);
+                catch(...) { delete curlss; continue; }
+                boost::shared_ptr<StreamingStrategy> s(curlss);
                 pip->set_streaming_strategy(s);
                 v.push_back(pip);
             }

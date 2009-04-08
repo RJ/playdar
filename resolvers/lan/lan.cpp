@@ -244,7 +244,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 url += "/sid/";
                 url += pip->id();
                 boost::shared_ptr<StreamingStrategy> 
-                    s(new HTTPStreamingStrategy(url));
+                    s(new CurlStreamingStrategy(url));
                 pip->set_streaming_strategy(s);
                 vector< boost::shared_ptr<PlayableItem> > v;
                 v.push_back(pip);

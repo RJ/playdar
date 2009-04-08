@@ -59,7 +59,7 @@ got(int id, const string& data)
     pip->set_size(3401187); // filesize
     pip->set_duration(203); // play duration, seconds
 
-    boost::shared_ptr<StreamingStrategy> strategy(new HTTPStreamingStrategy(url));
+    boost::shared_ptr<StreamingStrategy> strategy(new CurlStreamingStrategy(url));
     // Attach streamingstrat to the playable item:
     pip->set_streaming_strategy(strategy);
     // Results are a list of playableitems:

@@ -10,7 +10,7 @@ class StreamingStrategy
 public:
     StreamingStrategy(){}
     virtual ~StreamingStrategy(){}
-    virtual int read_bytes(char * buffer, int size) = 0;
+    virtual int read_bytes(char * buffer, size_t size) = 0;
     virtual std::string debug() = 0;
     virtual void reset() = 0;
 };
