@@ -190,6 +190,7 @@ int main(int ac, char *av[])
 
         try
         {
+            curl_global_init( CURL_GLOBAL_ALL );
             print_curl_info();
         }
         catch(...)

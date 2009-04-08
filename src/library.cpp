@@ -13,11 +13,11 @@ using namespace std;
 
 
 bool
-Library::remove_file( string path )
+Library::remove_file( string url )
 {
     boost::mutex::scoped_lock lock(m_mut);
-    sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE path = ?");
-    qry.bind(1, path.c_str(), true);
+    sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE url = ?");
+    qry.bind(1, url.c_str(), true);
     int fileid = 0;
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         fileid = (*i).get<int>(0);
@@ -34,27 +34,27 @@ Library::remove_file( string path )
 }
 
 int 
-Library::add_dir(string path, int mtime)
+Library::add_dir(string url, int mtime)
 {
     boost::mutex::scoped_lock lock(m_mut);
-    remove_file( path );
-    sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime) VALUES (?, 0, ?)");
-    cmd.bind(1, path.c_str(), true);
+    remove_file( url );
+    sqlite3pp::command cmd(m_db, "INSERT INTO file(url, size, mtime) VALUES (?, 0, ?)");
+    cmd.bind(1, url.c_str(), true);
     cmd.bind(2, mtime);
     return cmd.execute();        
 }
 
 
 int 
-Library::add_file(  string path, int mtime, int size, string md5, string mimetype,
+Library::add_file(  string url, int mtime, int size, string md5, string mimetype,
                     int duration, int bitrate,
                     string artist, string album, string track, int tracknum)
 {
     int fileid = 0;
-    remove_file(path);
+    remove_file(url);
 
-    sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    cmd.bind(1, path.c_str(), true);
+    sqlite3pp::command cmd(m_db, "INSERT INTO file(url, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    cmd.bind(1, url.c_str(), true);
     cmd.bind(2, size);
     cmd.bind(3, mtime);
     cmd.bind(4, md5.c_str(), true);
@@ -398,20 +398,22 @@ Library::num_tracks()
     return db_get_one(string("SELECT count(*) FROM track"), 0);
 }
 
+/// NB: this doesn't attach a streaming strategy, but it does set_url().
+///     so the caller should create an appropriate SS (probably a curl strat)
 boost::shared_ptr<PlayableItem>
 Library::playable_item_from_fid(int fid)
 {
     boost::mutex::scoped_lock lock(m_mut);
     boost::shared_ptr<PlayableItem> pip(new PlayableItem());
     ostringstream sql;
-    sql << "SELECT file.path, file.size, file.mimetype, file.duration, file.bitrate, "
+    sql << "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
         << "file_join.artist, file_join.album, file_join.track "
         << "FROM file, file_join "
         << "WHERE file.id = file_join.file "
         << "AND file.id = " << fid;
     sqlite3pp::query qry(m_db, sql.str().c_str() );
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        string path = string((*i).get<const char *>(0));
+        string url = string((*i).get<const char *>(0));
         int size = (*i).get<int>(1);
         string mimetype = string((*i).get<const char *>(2));
         int duration = (*i).get<int>(3);
@@ -431,8 +433,7 @@ Library::playable_item_from_fid(int fid)
             album_ptr albobj  = load_album(pialbid);
             pip->set_album(albobj->name());
         }
-        boost::shared_ptr<StreamingStrategy> ss(new LocalFileStreamingStrategy(path));
-        pip->set_streaming_strategy(ss);
+        pip->set_url(url);
         pip->set_mimetype(mimetype);
         pip->set_size(size);
         pip->set_duration(duration);
@@ -452,7 +453,7 @@ Library::file_mtimes()
 {
     boost::mutex::scoped_lock lock(m_mut);
     map<string, int> ret;
-    sqlite3pp::query qry(m_db, "SELECT path, mtime FROM file");
+    sqlite3pp::query qry(m_db, "SELECT url, mtime FROM file");
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         ret[ string((*i).get<const char *>(0)) ] = (*i).get<int>(1);
     }

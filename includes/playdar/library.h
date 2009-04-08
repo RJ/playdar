@@ -15,7 +15,6 @@ using namespace std;
 #include "playdar/track.h"
 
 #include "playdar/streaming_strategy.h"
-#include "playdar/ss_localfile.hpp"
 
 class MyApplication;
 

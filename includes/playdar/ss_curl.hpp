@@ -73,7 +73,6 @@ public:
     void reset()
     {
         m_connected = false;
-        m_bufoffset = 0;
         m_bytesreceived = 0;
         m_curl_finished = false;
         if( m_curl ) curl_easy_cleanup( m_curl );
@@ -155,7 +154,6 @@ protected:
     bool m_connected;
     string m_url;
     deque< char > m_buffers; // received data
-    size_t m_bufoffset;
     boost::mutex m_mut;
     boost::condition m_cond;
     bool m_curl_finished;
