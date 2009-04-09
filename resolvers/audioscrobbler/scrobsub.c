@@ -23,6 +23,8 @@
 #include <string.h>
 #include <time.h>
 
+#define SCROBSUB_NO_RELAY 1
+
 static bool enabled = true;
 static time_t start_time = 0;
 static time_t pause_time = 0;
@@ -212,13 +214,11 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     duration = _duration;
     track_number = _track_number;
 
-#if 0
 #if !SCROBSUB_NO_RELAY
     if(use_the_moose()){
         moose_push(artist, track, album, mbid, duration, track_number);
         return;
     }
-#endif
 #endif
 
     start_time = now();
