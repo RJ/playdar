@@ -160,6 +160,10 @@ Boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     queue_work( boost::bind( &Boffin::resolve, this, rq ) );
 }
 
+class TagCloudItem : public ResolvedItem
+{
+};
+
 //static
 //boost::shared_ptr<TagItem> 
 //makeTagItem(const boost::tuple<std::string, float, int>& in)
@@ -211,7 +215,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         vector< shared_ptr<ResolvedItem> > results;
         typedef tuple<std::string, float, int> Item;
         BOOST_FOREACH(const Item& tag, *tv) {
-//            results.push_back( makeResolvedItem(tag) );
+            results.push_back( makeResolvedItem(tag) );
         }
         report_results(rq->id(), results, "Boffin");
     }

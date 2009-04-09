@@ -62,6 +62,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
               )
 			  
 TARGET_LINK_LIBRARIES(scanner 
+                        playdarlib
                       ${SQLITE3_LIBRARIES}
 					  ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
