@@ -1,4 +1,46 @@
 #include "Boffin.h"
+#include "BoffinDb.h"
+#include "RqlOpProcessor.h"
+#include "parser/parser.h"
+#include "RqlOp.h"
+
+
+using namespace fm::last::query_parser;
+
+
+static RqlOp root2op( const querynode_data& node )
+{
+   RqlOp op;
+   op.isRoot = true;
+   op.name = node.name;
+   op.type = node.type;
+   op.weight = node.weight;
+
+   return op;
+}
+
+
+static RqlOp leaf2op( const querynode_data& node )
+{
+   RqlOp op;
+   op.isRoot = false;
+
+   if ( node.ID < 0 )
+      op.name = node.name;
+   else
+   {
+      ostringstream oss;
+      oss << '<' << node.ID << '>';
+      op.name = oss.str();
+   }
+   op.type = node.type;
+   op.weight = node.weight;
+
+   return op;
+}
+
+
+/////
 
 
 Boffin::Boffin()
@@ -108,10 +150,54 @@ Boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     queue_work( boost::bind( &Boffin::resolve, this, rq ) );
 }
 
+static
+boost::shared_ptr<PlayableItem> 
+makePlayableItem(const boost::tuple<std::string, float, int>& in)
+{
+    PlayableItem *r = new PlayableItem();
+    boost::shared_ptr<PlayableItem> result(r);
+    assert(!"todo");    // todo. PlayableItem needs generalisation!
+    return result;
+}
+
 void
 Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
-    int i = 0;
+    // optional int value to limit the results, otherwise, default is 100
+    int limit = (rq->param_type("boffin_limit") == json_spirit::int_type) ? rq->param("boffin_limit").get_int() : 100;
+
+    if (rq->param_exists("boffin_rql") && rq->param_type("boffin_rql") == json_spirit::str_type) {
+        parser p;
+        if (p.parse(rq->param("boffin_rql").get_str())) {
+            std::vector<RqlOp> ops;
+            p.getOperations<RqlOp>(
+                boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
+                &root2op, 
+                &leaf2op);
+            
+            ResultSetPtr results( RqlOpProcessor<std::vector<RqlOp>::iterator>::process(
+                ops.begin(), ops.end(), *m_db, *m_sa) );
+            // todo: handle results
+        } 
+        parseFail(p.getErrorLine(), p.getErrorOffset());
+    } else if (rq->param_exists("boffin_tags")) {
+        using namespace boost;
+
+        shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
+        vector< shared_ptr<PlayableItem> > results;
+        typedef tuple<std::string, float, int> Item;
+        BOOST_FOREACH(const Item& tag, *tv) {
+            results.push_back( makePlayableItem(tag) );
+        }
+        report_results(rq->id(), results, "Boffin");
+    }
+}
+
+
+void
+Boffin::parseFail(std::string line, int error_offset)
+{
+    std::cout << "rql parse error at column " << error_offset << " of '" << line << "'\n";
 }
 
 

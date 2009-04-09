@@ -21,7 +21,7 @@ public:
 
     static std::string sortname(const std::string& name);
 
-    boost::shared_ptr<TagCloudVec> get_tag_cloud();
+    boost::shared_ptr<TagCloudVec> get_tag_cloud(int limit);
     void get_all_artist_tags(ArtistTagMap& out);
     int get_tag_id(const std::string& tag);
     int get_artist_id(const std::string& artist);

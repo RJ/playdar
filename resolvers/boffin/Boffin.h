@@ -3,6 +3,7 @@
 
 #include "playdar/playdar_plugin_include.h"
 #include <queue>
+#include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/thread.hpp>
 
@@ -40,6 +41,9 @@ protected:
 
 private:
     void resolve(boost::shared_ptr<ResolverQuery> rq);
+    void parseFail(std::string line, int error_offset);
+
+    /// thread work queue stuff [
 
     void thread_run();
     void queue_work(boost::function< void() > work);
@@ -52,6 +56,11 @@ private:
     boost::mutex m_queue_mutex;
     boost::condition_variable m_queue_wake;
     std::queue< boost::function< void() > > m_queue;
+
+    /// ] todo: put into its own class
+
+    boost::shared_ptr<class SimilarArtists> m_sa;
+    boost::shared_ptr<class BoffinDb> m_db;
 };
 
 EXPORT_DYNAMIC_CLASS( Boffin )
