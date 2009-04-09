@@ -208,7 +208,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         using namespace boost;
 
         shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
-        vector< shared_ptr<PlayableItem> > results;
+        vector< shared_ptr<ResolvedItem> > results;
         typedef tuple<std::string, float, int> Item;
         BOOST_FOREACH(const Item& tag, *tv) {
             results.push_back( makePlayableItem(tag) );

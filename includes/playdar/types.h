@@ -19,14 +19,16 @@ typedef boost::shared_ptr<Artist>   artist_ptr;
 typedef boost::shared_ptr<Track>    track_ptr;
 typedef boost::shared_ptr<Album>    album_ptr;
 
+class ResolvedItem;
 class PlayableItem;
 class ResolverQuery;
 typedef boost::shared_ptr<PlayableItem>    pi_ptr;
+typedef boost::shared_ptr<ResolvedItem>    ri_ptr;
 typedef boost::shared_ptr<ResolverQuery>   rq_ptr;
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
-typedef boost::function< void (query_uid qid, boost::shared_ptr<PlayableItem> pip)> rq_callback_t;
+typedef boost::function< void (query_uid qid, ri_ptr pip)> rq_callback_t;
 
 /// Handlers for web requests:
 typedef boost::function< void  (const std::string url,

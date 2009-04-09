@@ -2,7 +2,6 @@ ADD_LIBRARY(    Boffin SHARED
                 Boffin.cpp
 				BoffinDb.cpp
                 ResultSet.cpp
-				RqlOpProcessor.cpp
 				SimilarArtists.cpp
 				parser/parser.cpp
             )

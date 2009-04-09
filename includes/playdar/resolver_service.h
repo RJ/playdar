@@ -69,7 +69,7 @@ public:
 protected:
     /** thread-safe */
     bool report_results(query_uid qid, 
-                        vector< boost::shared_ptr<PlayableItem> > results,
+                        vector< ri_ptr > results,
                         string via);
     
     virtual ~ResolverService() throw() {  }
