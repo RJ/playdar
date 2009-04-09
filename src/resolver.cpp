@@ -83,6 +83,10 @@ Resolver::load_library_resolver()
 {
     loaded_rs cr;
     cr.rs = new RS_local_library();
+    
+    register_resolved_item( boost::bind( &PlayableItem::is_valid_json, _1 ),
+                            boost::bind( &PlayableItem::from_json, _1 ));
+    
     // local library resolver is special, it gets a handle to app:
     ((RS_local_library *)cr.rs)->set_app(m_app);
     cr.weight = cr.rs->weight();
@@ -608,3 +612,22 @@ Resolver::get_ri(const source_uid & sid)
     return m_ris[sid];
 }
 
+
+void 
+Resolver::register_resolved_item( const ri_validator& val, const ri_generator& gen)
+{
+    m_riList.push_back( std::pair<ri_validator, ri_generator>( val, gen ));
+}
+
+ri_ptr
+Resolver::ri_from_json( const json_spirit::Object& j ) const
+{
+    std::pair< ri_validator , ri_generator> pair;
+    
+    BOOST_FOREACH( pair, m_riList )
+    {
+        if( pair.first( j ) )
+            return pair.second( j );
+    }
+    return ri_ptr();
+}

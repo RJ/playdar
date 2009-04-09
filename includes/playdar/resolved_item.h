@@ -14,10 +14,12 @@
 
 #include <string>
 #include "playdar/types.h"
+#include <boost/function.hpp>
 
 class ResolvedItem
 {
 public:
+
     ResolvedItem():m_score( -1.0f )
     {
         
@@ -35,6 +37,7 @@ public:
         create_json( j );
         return j;
     }
+    
 
     
     const source_uid & id() const
@@ -48,6 +51,7 @@ public:
     
     void set_id(std::string s) { m_uuid = s; }
     const float score() const       { return m_score; }
+    const std::string & source() const   { return m_source; }
     
     void set_score(float s)
     { 
@@ -55,7 +59,15 @@ public:
         assert(s >= 0);
         m_score  = s; 
     }
-
+    void set_source(std::string s)   { m_source = s; }
+    
+    //TODO: move this into PlayableItem somehow
+    virtual void set_streaming_strategy(boost::shared_ptr<class StreamingStrategy> s){}
+    virtual boost::shared_ptr<class StreamingStrategy> streaming_strategy() const 
+    {
+        return boost::shared_ptr<class StreamingStrategy>();
+    }
+    
 protected:
     virtual void create_json( json_spirit::Object& ) const = 0;
 
@@ -63,7 +75,7 @@ protected:
 private:
     float m_score;
     std::string m_source;
-    
+ 
     mutable source_uid m_uuid;
 
 };
