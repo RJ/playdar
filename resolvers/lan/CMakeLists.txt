@@ -10,13 +10,9 @@ SET_TARGET_PROPERTIES( lan PROPERTIES
                        PREFIX "" 
                        SUFFIX ".resolver" )
 
-IF(APPLE)
-    SET(APPLE_PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
-ENDIF(APPLE)
-
 TARGET_LINK_LIBRARIES( lan
                        ${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_THREAD_LIBRARY}
-                       ${APPLE_PLUGIN_LDFLAGS}
+                       ${PLAYDAR_PLUGIN_LDFLAGS}
                      )

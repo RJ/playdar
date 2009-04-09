@@ -1,27 +1,22 @@
-IF(APPLE)
-    SET(SCROBSUB_SOURCES scrobsub-cocoa.m)
-    SET(SCROBSUB_LDFLAGS -framework\ Security -framework\ Cocoa -framework\ CoreData)
-ELSE(APPLE)
-    SET(SCROBSUB_SOURCES scrobsub-curl.c)
-    SET(SCROBSUB_LDFLAGS -lxml -lopenssl -lcurl)
-ENDIF(APPLE)
+IF(NOT WIN32)
+    FIND_PACKAGE(LibXml2 REQUIRED)
 
-ADD_LIBRARY( audioscrobbler SHARED audioscrobbler_plugin.cpp scrobsub.c ${SCROBSUB_SOURCES} )
+    ADD_LIBRARY( audioscrobbler SHARED audioscrobbler_plugin.cpp scrobsub.c scrobsub-curl.c)
+    ADD_DEFINITIONS( -w -std=c99 -DSCROBSUB_SHARED_SECRET="e800f85bb46beeca0af4175724e97b2e" -DSCROBSUB_API_KEY="7a90f6672a04b809ee309af169f34b8b" -DSCROBSUB_CLIENT_ID="pld" -DSCROBSUB_CLIENT_VERSION="0.1" )
 
-ADD_DEFINITIONS(-w -std=c99 -DSCROBSUB_SHARED_SECRET="73582dfc9e556d307aead069af110ab8" -DSCROBSUB_API_KEY="c8c7b163b11f92ef2d33ba6cd3c2c3c3" -DSCROBSUB_CLIENT_ID="ass" -DSCROBSUB_CLIENT_VERSION="0.1")
+    # The lib must be named ^audioscrobbler.resolver$ for it to be loaded by playdar
+    SET_TARGET_PROPERTIES( audioscrobbler PROPERTIES 
+                           PREFIX "" 
+                           SUFFIX ".resolver" )
 
-#
-# Ensure the shared library file is called <CLASS NAME>.resolver
-# Playdar looks for a class with the same name as the file, minus suffix
-#
-SET_TARGET_PROPERTIES( audioscrobbler PROPERTIES 
-                       PREFIX "" 
-                       SUFFIX ".resolver" )
+    INCLUDE_DIRECTORIES( ${LIBXML2_INCLUDE_DIR} )
 
-TARGET_LINK_LIBRARIES( audioscrobbler
-                       ${OSSPUUID_LIBRARIES}
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_THREAD_LIBRARY}
-                       ${PLUGIN_LDFLAGS}
-                       ${SCROBSUB_LDFLAGS}
-                     )
+    TARGET_LINK_LIBRARIES( audioscrobbler
+                           ${OSSPUUID_LIBRARIES}
+                           ${Boost_SYSTEM_LIBRARY}
+                           ${Boost_THREAD_LIBRARY}
+                           ${PLAYDAR_PLUGIN_LDFLAGS}
+                           ${LIBXML2_LIBRARIES}
+                           -lcrypto
+                           -lcurl )
+ENDIF(WIN32)
