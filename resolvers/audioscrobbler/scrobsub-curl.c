@@ -33,9 +33,33 @@
 extern void(*scrobsub_callback)(int event, const char* message);
 static bool scrobsub_finish_auth();
 static char* username = 0;
-static char* session_key = 0;
+static char session_key[33] = "";
 static char* token = 0;
 
+
+static FILE* fopen_session_file(const char* mode)
+{
+    char fn[FILENAME_MAX]; //FILENAME_MAX is as good as we can reasonably go
+#if WIN32
+    #error Please write the following Windows equivalent, thanks xx
+#else
+    // In theory, getenv could return NULL, in practice it a) never will, and
+    // b) if it does something more serious is already afoot. I prefer more
+    // readable code, thanks xx
+    strcpy(fn, getenv("HOME"));
+#ifdef __APPLE__
+    strcat(fn, "/Library/Preferences/fm.last."SCROBSUB_CLIENT_ID".sk");
+#else
+    const char* xdg = getenv("XDG_CONFIG_PATH");
+    if(xdg)
+        strcpy(fn, xdg);
+    else
+        strcat("/.config");
+    strcat(fn, "/Last.fm/"SCROBSUB_CLIENT_ID".sk");
+#endif
+#endif
+    return fopen(fn, mode);
+}
 
 void scrobsub_md5(char out[33], const char* in)
 {
@@ -56,18 +80,30 @@ const char* scrobsub_username()
 
 const char* scrobsub_session_key()
 {
-    if (!session_key){
+    if (!session_key[0]){
         if (token && !scrobsub_finish_auth()){
-            (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, "Couldn't auth with Last.fm");
-            return "";
+            (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, "Could not finish authorization with Last.fm");
+            return 0;
         }
 
         if (!username){
             (scrobsub_callback)(SCROBSUB_AUTH_REQUIRED, "");
-            return "";
+            return 0;
         }
         
-        //TODO fetch stored session_key
+        FILE* fp = fopen_session_file("r");
+        if (!fp) return 0;
+
+        fread(session_key, sizeof(char), 32, fp);
+        fseek(fp, 0, SEEK_END);
+        long n = ftell(fp)-32; //determine length of username
+        fseek(fp, 32, SEEK_SET);
+        username = malloc(n+1);
+        fread(username, sizeof(char), n, fp);
+        fclose(fp);
+
+        session_key[32] = '\0';
+        username[n] = '\0';
     }
 
     return session_key;
@@ -126,7 +162,7 @@ void scrobsub_auth(char out_url[110])
 
     token = strdup(obj->nodesetval->nodeTab[0]->content);
     strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
-    strcpy(&out_url[38+32+6], token);
+    strcat(out_url, token);
     
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctx);
@@ -152,7 +188,7 @@ bool scrobsub_finish_auth()
     xmlXPathObjectPtr obj_key = xmlXPathEvalExpression("/lfm/session/key/text()", ctx);
     xmlXPathObjectPtr obj_name = xmlXPathEvalExpression("/lfm/session/name/text()", ctx);
 
-    if(obj_key) session_key = strdup(obj_key->nodesetval->nodeTab[0]->content);
+    if(obj_key) strncpy(session_key, obj_key->nodesetval->nodeTab[0]->content, sizeof(session_key));
     if(obj_name) username = strdup(obj_name->nodesetval->nodeTab[0]->content);
 
     xmlXPathFreeObject(obj_key);
@@ -160,5 +196,10 @@ bool scrobsub_finish_auth()
     xmlXPathFreeContext(ctx);
     xmlFreeDoc(doc);
 
-    return true;
+    FILE* fp = fopen_session_file("w");
+    if(!fp) return false;
+    fwrite(session_key, sizeof(char), 32, fp);
+    fwrite(username, sizeof(char), strlen(username), fp);
+    fclose(fp);
+    return session_key && username;
 }

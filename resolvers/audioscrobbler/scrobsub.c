@@ -263,11 +263,16 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
 
 void scrobsub_pause()
 {
-    if(state == SCROBSUB_PLAYING){
-        state = SCROBSUB_PAUSED;
-        // we subtract pause_time so we continue to keep a record of the amount
-        // of time paused so far
-        pause_time = now() - pause_time;
+    switch(state){
+        case SCROBSUB_PAUSED:
+             scrobsub_resume();
+            break;
+        case SCROBSUB_PLAYING:
+            state = SCROBSUB_PAUSED;
+            // we subtract pause_time so we continue to keep a record of the amount
+            // of time paused so far
+            pause_time = now() - pause_time;
+            break;
     }
 }
 
