@@ -9,9 +9,6 @@
 #include <iostream>
 #include <string>
 
-//namespace playdar {
-//namespace resolvers {
-
 namespace playdar { 
 namespace resolvers { 
 
@@ -159,7 +156,6 @@ private:
     
 };
 
-
-}}
+}} //namespaces
 
 #endif

@@ -1,6 +1,5 @@
 #include "playdar/application.h"
-#include <iostream>
-#include <cstdio>
+#include "playdar/library.h"
 
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
@@ -9,7 +8,10 @@
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
-#include "playdar/library.h"
+
+#include <iostream>
+#include <cstdio>
+
 
 using namespace std;
 using namespace boost;

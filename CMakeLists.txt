@@ -52,23 +52,25 @@ IF(APPLE)
 ENDIF(APPLE)
 
 IF(NOT WIN32)
+    # removes operators like "and", "or" and "not"
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
-ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
+ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
                ${SRC}/scanner/scanner.cpp
-               ${SRC}/library.cpp
+               ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
+               ${SRC}/library.cpp         # because library.cpp uses HTTPStreamingStrategy
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 			  
 TARGET_LINK_LIBRARIES(scanner 
-                        playdarlib
+                      uriparser
                       ${SQLITE3_LIBRARIES}
 					  ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 					  
-ADD_LIBRARY( playdarlib STATIC
+ADD_LIBRARY(playdarcore STATIC
 			${SRC}/application.cpp
 			${SRC}/resolver.cpp
 			${SRC}/resolver_service.cpp
@@ -91,68 +93,35 @@ ADD_LIBRARY( playdarlib STATIC
 			
 			${SRC}/utils/base64.cpp
 			${SRC}/utils/levenshtein.cpp
-			
 			)
-			
-TARGET_LINK_LIBRARIES( playdarlib 
+
+TARGET_LINK_LIBRARIES( playdarcore 
 			${SQLITE3_LIBRARIES}
 			)
-	
+
 					  
 ADD_EXECUTABLE( playdar
 
-                #${SRC}/application.cpp
-                #${SRC}/resolver.cpp
-                #${SRC}/resolver_service.cpp
-                #${SRC}/rs_local_library.cpp
-                #${SRC}/rs_script.cpp
-                #${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
-
-                # sqlite wrapper:
-                #${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
-
-                # json parser:
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
 
                 # moost http:
                 ${DEPS}/moost_http/src/http/filesystem_request_handler.cpp
                 ${DEPS}/moost_http/src/http/mime_types.cpp
                 ${DEPS}/moost_http/src/http/reply.cpp
                 ${DEPS}/moost_http/src/http/request_parser.cpp
-
-                # Portable Dynamic Loader:
-                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
-
-                # Our own misc utils:
-                ${SRC}/utils/base64.cpp
-                ${SRC}/utils/levenshtein.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                #${DEPS}/pdl-0.3.0/src/LoaderException.cpp
               )
 
-TARGET_LINK_LIBRARIES( playdar 
+TARGET_LINK_LIBRARIES( playdar
+                       playdarcore
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
                        ${URIPARSER_LIBRARIES} # BSD
                        ${OSSPUUID_LIBRARIES}  # BSD-like
 					   ${Boost_LIBRARIES}	  # Boost license
-					   playdarlib
                      )
-					 
+
 INSTALL(TARGETS scanner RUNTIME DESTINATION bin)
 INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
 
@@ -161,10 +130,16 @@ INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
 #
 SET(LIBRARY_OUTPUT_PATH "${PLAYDAR_PATH}/plugins")
 
-FILE(GLOB PLUGINDIRS "${RESOLVERS_DIR}/*")
-FOREACH(PLUGDIR ${PLUGINDIRS})
-    IF(IS_DIRECTORY ${PLUGDIR})
+IF(APPLE)
+    SET( PLAYDAR_PLUGIN_LDFLAGS -undefined\ dynamic_lookup )
+ELSEIF(WIN32)
+    SET( PLAYDAR_PLUGIN_LDFLAGS playdarcore )
+ENDIF(APPLE)
+
+FILE( GLOB PLUGINDIRS "${RESOLVERS_DIR}/*" )
+FOREACH( PLUGDIR ${PLUGINDIRS} )
+    IF( IS_DIRECTORY ${PLUGDIR} )
         MESSAGE( STATUS "Adding plugin directory: ${PLUGDIR}" )
-        ADD_SUBDIRECTORY(${PLUGDIR})
-    ENDIF(IS_DIRECTORY ${PLUGDIR})
-ENDFOREACH(PLUGDIR)
+        ADD_SUBDIRECTORY( ${PLUGDIR} )
+    ENDIF( IS_DIRECTORY ${PLUGDIR} )
+ENDFOREACH( PLUGDIR )

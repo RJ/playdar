@@ -32,7 +32,6 @@ using namespace json_spirit;
 // instance of this is also passed to plugins.
 class Config
 {
-
 public:
     Config(string f) : m_filename(f)
     {
@@ -177,7 +176,7 @@ public:
         delete(uuid_str);
         return retval;
     }
-    
+
     string filename() { return m_filename; }
 
 

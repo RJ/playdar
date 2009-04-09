@@ -7,6 +7,7 @@
 #include "SampleAccumulator.h"
 #include "SimilarArtists.h"
 
+#include "playdar/resolved_item.h"
 #include "playdar/library.h"
 
 
@@ -45,7 +46,47 @@ static RqlOp leaf2op( const querynode_data& node )
 }
 
 
-/////
+////////////////////////////////////////////////////////
+
+
+class TagCloudItem : public ResolvedItem
+{
+public:
+    TagCloudItem(const std::string& name, float weight, int trackCount)
+        :m_name(name)
+        ,m_weight(weight)
+        ,m_trackCount(trackCount)
+    {
+        set_score(m_weight);
+    }
+
+    void create_json(json_spirit::Object &o) const
+    {
+        o.push_back( Pair("name", m_name) );
+        o.push_back( Pair("count", m_trackCount) );        
+    }
+
+    static bool validator(const json_spirit::Object& o)
+    {
+        // todo
+        return false;
+    }
+
+    static ri_ptr generator(const json_spirit::Object& o)
+    {
+        // todo
+        return ri_ptr((ResolvedItem*) 0);
+    }
+
+
+private:
+    std::string m_name;
+    float m_weight;
+    int m_trackCount;
+};
+
+
+////////////////////////////////////////////////////////
 
 
 Boffin::Boffin()
@@ -73,8 +114,11 @@ Boffin::init(playdar::Config* c, Resolver* r)
 
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
+
+    r->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
     return true;
 }
+
 
 void
 Boffin::queue_work(boost::function< void() > work)
@@ -160,18 +204,15 @@ Boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     queue_work( boost::bind( &Boffin::resolve, this, rq ) );
 }
 
-class TagCloudItem : public ResolvedItem
-{
-};
 
-//static
-//boost::shared_ptr<TagItem> 
-//makeTagItem(const boost::tuple<std::string, float, int>& in)
-//{
-//    boost::shared_ptr<TagItem> result(new TagItem());
-//    return result;
-//}
-//
+static
+boost::shared_ptr<TagCloudItem> 
+makeTagCloudItem(const boost::tuple<std::string, float, int>& in)
+{
+    return boost::shared_ptr<TagCloudItem>(
+        new TagCloudItem(in.get<0>(), in.get<1>(), in.get<2>()) );
+}
+
 
 void
 Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
@@ -215,7 +256,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         vector< shared_ptr<ResolvedItem> > results;
         typedef tuple<std::string, float, int> Item;
         BOOST_FOREACH(const Item& tag, *tv) {
-            results.push_back( makeResolvedItem(tag) );
+            results.push_back( makeTagCloudItem(tag) );
         }
         report_results(rq->id(), results, "Boffin");
     }
