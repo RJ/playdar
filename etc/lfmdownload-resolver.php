@@ -1,3 +1,4 @@
+#!/usr/local/php5/bin/php
 <?php
 
 require_once dirname(__FILE__) . '/phpresolver/playdarresolver.php';
@@ -6,7 +7,7 @@ class LastfmDownloadResolver extends PlaydarResolver
 {
     protected $name = 'Last.fm Free Download';
     protected $targetTime = 15; // fast atm, it's all hardcoded.
-    protected $weight = 80; // 1-100. higher means preferable.
+    protected $weight = 85; // 1-100. higher means preferable.
     
     public function resolve($request)
     {
@@ -16,12 +17,24 @@ class LastfmDownloadResolver extends PlaydarResolver
         preg_match('/http:\/\/freedownloads.last.fm\/.*?.mp3/s', $html, $matches);
         
         if ($matches) {
+            
+            $url = $matches[0];
+            // re-match artist/track from title
+            // get duration
+            
+            preg_match('/\((.:..)\)/', $html, $matches);
+            
+            list($m, $s) = explode(":", $matches[1]);
+            $duration = ($m * 60) + $s;
+            
             $result = (Object) array(
                 'artist' => $request->artist,
                 'track' => $request->track,
-                'score' => 100,
-                'url' => $matches[0],
+                'score' => 1,
+                'source' => 'Last.fm Free Downloads',
+                'url' => $url,
                 'bitrate' => 128,
+                'duration' => $duration,
             );
             return array($result);
         }
