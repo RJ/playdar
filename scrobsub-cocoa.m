@@ -28,7 +28,6 @@ static NSString* token;
 static NSString* session_key;
 static NSString* username;
 extern void(*scrobsub_callback)(int event, const char* message);
-static bool scrobsub_finish_auth();
 
 void scrobsub_md5(char out[33], const char* in)
 {
@@ -122,6 +121,9 @@ void scrobsub_auth(char out_url[110])
 //TODO error handling
 bool scrobsub_finish_auth()
 {
+    if(!token) return false;
+    if(session_key) return true;
+    
     char sig[33];
     NSString* format = @"api_key" SCROBSUB_API_KEY "methodauth.getSessiontoken%@" SCROBSUB_SHARED_SECRET;
     scrobsub_md5(sig, [[NSString stringWithFormat:format, token] UTF8String]);

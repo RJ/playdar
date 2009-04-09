@@ -26,7 +26,7 @@
   * SCROBSUB_ values. */
 void scrobsub_init(void(*callback)(int event, const char* message));
 
-/** you need to call scrobsub_auth, but you can do it whenever you want, 
+/** you need to call scrobsub_auth, but you can do it whenever you want,
   * although, no scrobbling will happen until then */
 #define SCROBSUB_AUTH_REQUIRED 0
 /** the char* paramater will be the error string */
@@ -41,6 +41,12 @@ void scrobsub_set_enabled(bool enabled);
 
 /** the user needs to visit @p url within one hour for authentication to succeed */
 void scrobsub_auth(char url[110]);
+
+/** once the user has visited the above page, we need to request their session
+  * key, you can either do this yourself, or scrobsub will do it as required,
+  * mostly you won't need to call this function
+  * @returns true if authentication was successful */
+bool scrobsub_finish_auth();
 
 
 /** A new track started. scrobsub takes copies of the strings. All strings must
