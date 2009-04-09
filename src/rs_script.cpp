@@ -254,7 +254,7 @@ rs_script::process_output()
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
             cout << "Got " << resultsA.size() << " results from script" << endl;
-            vector< boost::shared_ptr<PlayableItem> > v;
+            vector< ri_ptr > v;
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();

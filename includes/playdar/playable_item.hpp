@@ -1,5 +1,6 @@
 #ifndef __PLAYABLE_ITEM_H__
 #define __PLAYABLE_ITEM_H__
+#include "playdar/resolved_item.h"
 #include "playdar/config.hpp"
 #include "playdar/streaming_strategy.h"
 #include "playdar/types.h"
@@ -15,11 +16,10 @@
 */
 using namespace std;
 
-class PlayableItem
+class PlayableItem : public ResolvedItem
 {
 public:
     PlayableItem()
-    :m_score( -1.0f )
     {
         set_duration(0);
         set_tracknum(0);
@@ -47,6 +47,20 @@ public:
     ~PlayableItem()
     {
         cout << "dtor, playableitem: " << id() << endl;
+    }
+    
+    static bool is_valid_json( const json_spirit::Object& obj )
+    {
+        map<string, json_spirit::Value> objMap;
+        obj_to_map( obj, objMap );
+        if( objMap.find( "artist" ) == objMap.end())
+            return false;
+        if( objMap.find( "track" ) == objMap.end())
+            return false;
+        if( objMap.find( "url" ) == objMap.end())
+            return false;
+        
+        return true;
     }
     
     static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
@@ -118,11 +132,9 @@ public:
         return pip;
     }
     
-    json_spirit::Object get_json() const
+    void create_json( json_spirit::Object& j ) const
     {
         using namespace json_spirit;
-        Object j;
-        j.push_back( Pair("_msgtype", "pi")         );
         j.push_back( Pair("sid", id())              );
         j.push_back( Pair("artist", artist())       );
         j.push_back( Pair("album",  album())        );
@@ -133,17 +145,6 @@ public:
         j.push_back( Pair("bitrate", bitrate())     );
         j.push_back( Pair("duration", duration())   );
         j.push_back( Pair("url", url())             );
-        j.push_back( Pair("score", (double)score()) );
-        return j;
-    }
-
-    const source_uid & id() const
-    {
-        if(m_uuid.length()==0) // generate it if not already specified
-        {
-            m_uuid = playdar::Config::gen_uuid();
-        }
-        return m_uuid; 
     }
     
     // setters
@@ -159,12 +160,6 @@ public:
     void set_tracknum(int s)    { m_tracknum = s; }
     void set_size(int s)        { m_size = s; }
     void set_bitrate(int s)     { m_bitrate = s; }
-    void set_score(float s)
-    { 
-        assert(s <= 1.0);
-        assert(s >= 0);
-        m_score  = s; 
-    }
     
     // getters
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
@@ -179,15 +174,12 @@ public:
         return m_ss; // could be null if not specified.
     }
     
-    void set_id(string s) { m_uuid = s; }
-
     const string & artist() const   { return m_artist; }
     const string & album() const    { return m_album; }
     const string & track() const    { return m_track; }
     const string & source() const   { return m_source; }
     const string & mimetype() const { return m_mimetype; }
     const string & url() const      { return m_url; }
-    const float score() const       { return m_score; }
     const int duration() const      { return m_duration; }
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
@@ -195,7 +187,6 @@ public:
     
 private:
     mutable boost::shared_ptr<StreamingStrategy> m_ss;
-    mutable source_uid m_uuid;
     string m_artist;
     string m_album;
     string m_track;

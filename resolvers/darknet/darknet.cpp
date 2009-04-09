@@ -275,7 +275,7 @@ darknet::fwd_search(const boost::system::error_code& e,
 // fired when a new result is available for a running query:
 void
 darknet::send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip)
+                        boost::shared_ptr<ResolvedItem> rip)
 {
     connection_ptr origin_conn = get_query_origin(qid);
     // relay result if the originating connection still active:
@@ -285,7 +285,7 @@ darknet::send_response( query_uid qid,
              << origin_conn->username() << endl;
         Object response;
         response.push_back( Pair("qid", qid) );
-        response.push_back( Pair("result", pip->get_json()) );
+        response.push_back( Pair("result", rip->get_json()) );
         ostringstream ss;
         write_formatted( response, ss );
         msg_ptr resp(new LameMsg(ss.str(), SEARCHRESULT));
@@ -329,7 +329,7 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     boost::shared_ptr<StreamingStrategy> s(
                             new DarknetStreamingStrategy( this, conn, pip->id() ));
     pip->set_streaming_strategy(s);
-    vector< boost::shared_ptr<PlayableItem> > vr;
+    vector< boost::shared_ptr<ResolvedItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr, name());
     // we've already setup a callback, which will be fired when we call report_results.    
@@ -352,7 +352,11 @@ darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
     source_uid sid = msg->payload();
     cout << "Darknet request for sid: " << sid << endl;
-    boost::shared_ptr<PlayableItem> pip = resolver()->get_pi(sid);
+    boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
+    
+    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
+    if( !pip )
+        return false;
     
     // We send SIDDATA msgs, where the payload is a sid_header followed
     // by the audio data.
