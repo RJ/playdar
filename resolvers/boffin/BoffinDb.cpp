@@ -63,10 +63,10 @@ BoffinDb::get_all_artist_tags(BoffinDb::ArtistTagMap& out)
 }
 
 // get the id of the tag
-// creates the tag if it doesn't exist
+// optionally create the tag if it doesn't exist
 // returns tag id > 0 on success
 int
-BoffinDb::get_tag_id(const std::string& tag)
+BoffinDb::get_tag_id(const std::string& tag, BoffinDb::CreateFlag create /* = BoffinDb::Create */)
 {
     std::string tag_sortname(sortname(tag));
 
@@ -76,12 +76,13 @@ BoffinDb::get_tag_id(const std::string& tag)
     if (it != qry.end())
         return it->get<int>(0);
 
-    sqlite3pp::command cmd(m_db, "INSERT INTO tag (name) VALUES (?)");
-    cmd.bind(1, tag_sortname.data());
-    int result = cmd.execute();
-    if (SQLITE_OK == result)
-        return (int) m_db.last_insert_rowid();
-
+    if (create == BoffinDb::Create) {
+        sqlite3pp::command cmd(m_db, "INSERT INTO tag (name) VALUES (?)");
+        cmd.bind(1, tag_sortname.data());
+        int result = cmd.execute();
+        if (SQLITE_OK == result)
+            return (int) m_db.last_insert_rowid();
+    }
     return 0;
 }
 
