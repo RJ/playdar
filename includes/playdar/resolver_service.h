@@ -4,10 +4,11 @@
 #include "playdar/application.h"
 #include "playdar/resolver.h"
 #include "playdar/auth.hpp"
+
 #include <DynamicClass.hpp>
 
-
-class ResolverService : public PDL::DynamicClass, std::exception
+class playdar_request;
+class ResolverService
 {
 public:
     ResolverService(){}
@@ -17,10 +18,12 @@ public:
         cout << "Unloading " << name() << endl;
     }
     
-    virtual void init(playdar::Config * c, Resolver * r)
+    /// called once at startup. returning false disables this resolver.
+    virtual bool init(playdar::Config * c, Resolver * r)
     {
         m_resolver = r;
         m_conf = c;
+        return true;
     }
     
     virtual const playdar::Config * conf() const
@@ -50,36 +53,38 @@ public:
         return 100;
     }
 
+    /// start searching for matches for this query
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
+    
+    /// implement cancel if there are any resources you can free when a query is no longer needed.
+    /// this is important if you are holding any state, or a copy of the RQ pointer.
+    virtual void cancel_query(query_uid qid){ /* no-op */ }
 
-    /** thread-safe */
-    virtual bool report_results(query_uid qid, 
-        vector< boost::shared_ptr<PlayableItem> > results,
-        string via);
-    
-    // default is empty, ie no http urls handle
-    virtual vector<string> get_http_handlers()
-    {
-        vector<string> h;
-        return h;
-    }
-    
-    // handler for HTTP reqs we are registerd for:
-    virtual string http_handler( string url,
-                                 vector<string> parts,
-                                 map<string,string> getvars,
-                                 map<string,string> postvars,
-                                playdar::auth * pauth)
+    /// handler for HTTP reqs we are registered for:
+    virtual string http_handler( const playdar_request&, playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
     }
     
-    DECLARE_DYNAMIC_CLASS( ResolverService )
-    
 protected:
-
+    /** thread-safe */
+    bool report_results(query_uid qid, 
+                        vector< boost::shared_ptr<PlayableItem> > results,
+                        string via);
+    
     virtual ~ResolverService() throw() {  }
     playdar::Config * m_conf;
     Resolver * m_resolver;
 };
+
+/// this is what the dynamically loaded resolver plugins extend:
+class ResolverServicePlugin 
+ : public PDL::DynamicClass,
+   public ResolverService
+{
+public:
+    DECLARE_DYNAMIC_CLASS( ResolverServicePlugin )
+};
+
+
 #endif

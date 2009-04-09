@@ -28,7 +28,7 @@
 #ifndef __PDL_LOADER_EXCEPTION_HPP__
 #define __PDL_LOADER_EXCEPTION_HPP__
 
-#include <platform.h>
+#include "./platform.h"
 #include <exception>
 #include <string>
 

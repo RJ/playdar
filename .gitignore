@@ -5,3 +5,6 @@ build/Makefile
 build/resolvers
 bin
 .DS_Store
+*.pyc
+*~
+*.swp

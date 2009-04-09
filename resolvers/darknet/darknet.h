@@ -17,13 +17,13 @@ namespace resolvers {
 
 class Servent; //fwd decl
 
-class darknet : public ResolverService
+class darknet : public ResolverServicePlugin
 {
 
 public:
     darknet(){};
     
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     
@@ -131,10 +131,7 @@ public:
         { return conn; }
     }
     
-    string http_handler( string url,
-                         vector<string> parts,
-                         map<string,string> getvars,
-                         map<string,string> postvars,
+    string http_handler( const playdar_request& req,
                         playdar::auth * pauth);
                            
     vector<string> get_http_handlers()

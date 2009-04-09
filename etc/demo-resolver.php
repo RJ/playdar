@@ -36,6 +36,7 @@ while(!feof($in)){
     // don't reply with anything if there were no matches:
     if(count($pis)==0) continue;
     $res = new stdclass;
+    $res->_msgtype = "results";
     $res->qid = $rq->qid;
     $res->results = array();
     $res->results = $pis;
@@ -63,8 +64,10 @@ function get_matches($rq){
     $pi->size   = 4971780;
     $pi->bitrate= 160;
     $pi->duration = 248;
+    $pi->extra_headers = array("X-Something: foo", "X-WTF: bar");
     // NB this url should be url encoded properly:
-    $pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
+    $pi->url    = "http://playdar:password@www.playdar.org/secret/hiding.mp3";
+    //$pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
     $pi->score  = (float)1.00;
     return array($pi);
 }
@@ -72,7 +75,7 @@ function get_matches($rq){
 // settings for this resolver, reported when we start:
 function get_settings(){
     $s = new stdclass;
-    $s->settings = true;
+    $s->_msgtype = "settings";
     $s->name = "php resolver script";
     $s->targettime = 15; // fast atm, it's all hardcoded.
     $s->weight = 80; // 1-100. higher means preferable.

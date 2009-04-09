@@ -55,11 +55,13 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 TARGET_LINK_LIBRARIES(scanner 
+                      uriparser
                       ${SQLITE3_LIBRARIES}
                       ${Boost_FILESYSTEM_LIBRARY}
                       ${Boost_SYSTEM_LIBRARY}
                       ${Boost_REGEX_LIBRARY}
                       ${Boost_THREAD_LIBRARY}
+                      ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 
 ADD_EXECUTABLE( playdar
@@ -71,6 +73,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_script.cpp
                 ${SRC}/library.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
+                ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
 
                 # sqlite wrapper:
@@ -92,6 +95,10 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
                 ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
                 ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
+
+                # Our own misc utils:
+                ${SRC}/utils/base64.cpp
+                ${SRC}/utils/levenshtein.cpp
               )
 
 TARGET_LINK_LIBRARIES( playdar 

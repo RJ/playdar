@@ -55,24 +55,38 @@ public:
                      vector< boost::shared_ptr<PlayableItem> > results,
                      string via);
     vector< boost::shared_ptr<PlayableItem> > get_results(query_uid qid);
-    void end_query(query_uid qid);
     int num_results(query_uid qid);
     
     bool query_exists(const query_uid & qid);
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
+    void cancel_query(const query_uid & qid);
+    void cancel_query_timeout(query_uid qid);
 
-    boost::shared_ptr<ResolverQuery> rq(query_uid qid);
-    boost::shared_ptr<PlayableItem> get_pi(source_uid sid);
+    rq_ptr rq(const query_uid & qid);
+    pi_ptr get_pi(const source_uid & sid);
     
     size_t num_seen_queries();
     
     vector<loaded_rs> * resolvers() { return &m_resolvers; }
 
-    ResolverService * get_url_handler(string url);
+    ResolverService * get_resolver(string name)
+    {
+        if( m_pluginNameMap.find( name ) == m_pluginNameMap.end())
+            return 0;
+
+        return m_pluginNameMap[ name ];
+    }
 
     const deque< query_uid > & qids() const
     {
         return m_qidlist;
+    }
+    
+    /// number of seconds queries should survive for since last being used/accessed.
+    /// when this time expires, queries and associated results will be deleted to free memory.
+    const time_t max_query_lifetime() const
+    {
+        return 21600; // 6 hours.
     }
     
     bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
@@ -84,16 +98,16 @@ public:
     
     void dispatch_runner();
 
-    
+protected:
+    float calculate_score( const rq_ptr & rq,  // query
+                          const pi_ptr & pi,  // candidate
+                          string & reason );  // fail reason
+
 private:
     void load_library_resolver();
     
     boost::asio::io_service::work * m_work;
     boost::asio::io_service * m_io_service;
-    
-    
-    // maps URLs to plugins that handle them:
-    map<string, ResolverService *> m_http_handlers;
     
     query_uid generate_qid();
     source_uid generate_sid();
@@ -102,6 +116,9 @@ private:
     
     map< query_uid, boost::shared_ptr<ResolverQuery> > m_queries;
     map< source_uid, boost::shared_ptr<PlayableItem> > m_pis;
+    // timers used to auto-cancel queries that are inactive for long enough:
+    map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
+    
     // newest-first list of dispatched qids:
     deque< query_uid > m_qidlist;
     
@@ -112,6 +129,8 @@ private:
 
     // resolver plugin pipeline:
     vector<loaded_rs> m_resolvers;
+
+    map< string, ResolverService* > m_pluginNameMap;
     
     boost::mutex m_mut_results; // when adding results
     

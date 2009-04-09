@@ -17,7 +17,7 @@
 
 using namespace playdar::resolvers;
 
-void
+bool
 darknet::init(playdar::Config * c, Resolver * r)
 {
     m_resolver = r;
@@ -51,6 +51,7 @@ darknet::init(playdar::Config * c, Resolver * r)
         boost::asio::ip::tcp::endpoint ep(ipaddr, remote_port);
         m_servent->connect_to_remote(ep);
     }
+    return true;
 }
 
 darknet::~darknet() throw()
@@ -328,7 +329,6 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     boost::shared_ptr<StreamingStrategy> s(
                             new DarknetStreamingStrategy( this, conn, pip->id() ));
     pip->set_streaming_strategy(s);
-    //pip->set_preference((float)0.6); 
     vector< boost::shared_ptr<PlayableItem> > vr;
     vr.push_back(pip);
     report_results(qid, vr, name());
@@ -462,20 +462,17 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 
 // web interface:
 string 
-darknet::http_handler(string url,
-                      vector<string> parts,
-                      map<string,string> getvars,
-                      map<string,string> postvars,
+darknet::http_handler(const playdar_request& req,
                       playdar::auth * pauth)
 {
     cout << "http_handler called on darknet. pauth = " << pauth << endl;
-    if( postvars.find("formtoken") != postvars.end() &&
-        postvars.find("newaddr") != postvars.end() &&
-        postvars.find("newport") != postvars.end() &&
-        pauth->consume_formtoken(postvars["formtoken"]) )
+    if( req.postvar_exists("formtoken") &&
+        req.postvar_exists("newaddr") &&
+        req.postvar_exists("newport") &&
+        pauth->consume_formtoken(req.postvar("formtoken")) )
     {
-        string addr = postvars["newaddr"];
-        unsigned short port = boost::lexical_cast<unsigned short>(postvars["newport"]);
+        string addr = req.postvar("newaddr");
+        unsigned short port = boost::lexical_cast<unsigned short>(req.postvar("newport"));
         boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(addr);
         boost::asio::ip::tcp::endpoint ep(ip, port);
         servent()->connect_to_remote(ep);

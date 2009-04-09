@@ -11,7 +11,7 @@ class RS_local_library : public ResolverService
 {
     public:
     RS_local_library(){}
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     void set_app(MyApplication * a)
     {
         m_app = a;
@@ -37,7 +37,6 @@ class RS_local_library : public ResolverService
         return 100;
     }
     
-    
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;
@@ -54,6 +53,8 @@ class RS_local_library : public ResolverService
         deque<rq_ptr> m_pending;
         boost::mutex m_mutex;
         boost::condition m_cond;
+        
+        vector<scorepair> find_candidates(rq_ptr rq, unsigned int limit = 0);
     
 ;
 };

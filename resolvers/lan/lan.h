@@ -1,5 +1,5 @@
-#ifndef __RS_LAN_UDP_DL_H__
-#define __RS_LAN_UDP_DL_H__
+#ifndef __RS_lan_DL_H__
+#define __RS_lan_DL_H__
 
 #include "playdar/playdar_plugin_include.h"
 #include "json_spirit/json_spirit.h"
@@ -23,15 +23,17 @@
 namespace playdar {
 namespace resolvers {
 
-class lan_udp : public ResolverService
+class lan : public ResolverServicePlugin
 {
     public:
-    lan_udp(){}
+    lan(){}
     
-    void init(playdar::Config * c, Resolver * r);
+    bool init(playdar::Config * c, Resolver * r);
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    std::string name() const { return "LAN/UDP"; }
+    void cancel_query(query_uid qid);
+    
+    std::string name() const { return "LAN"; }
     
     void handle_receive_from(const boost::system::error_code& error, size_t bytes_recvd);
     void start_listening(boost::asio::io_service& io_service,
@@ -54,9 +56,12 @@ class lan_udp : public ResolverService
     {
         return 99;
     }
-                        
+        
+    string http_handler( const playdar_request& req,
+                         playdar::auth * pauth);
+    
 protected:    
-    ~lan_udp() throw();
+    ~lan() throw();
     
 private:
     boost::asio::io_service * m_io_service;
@@ -73,9 +78,30 @@ private:
     boost::asio::ip::udp::endpoint * broadcast_endpoint_;
     enum { max_length = 1024 };
     char data_[max_length];
+    
+    // a lan node we got a ping from:
+    typedef struct 
+    { 
+        string name;
+        time_t lastdate; 
+        string http_base;
+        boost::asio::ip::udp::endpoint udp_ep;
+    } lannode;
+    // nodes we've seen:
+    map<string,lannode> m_lannodes;
+    // lan discovery:
+    void send_ping();
+    void send_pong( boost::asio::ip::udp::endpoint sender_endpoint);
+    void send_pang();
+    void receive_pong(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
+    void receive_ping(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
+    void receive_pang(map<string,Value> & om,
+                      const boost::asio::ip::udp::endpoint &  sender_endpoint);
 };
 
-EXPORT_DYNAMIC_CLASS( lan_udp )
+EXPORT_DYNAMIC_CLASS( lan )
 
 
 }}

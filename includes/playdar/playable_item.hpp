@@ -1,8 +1,9 @@
 #ifndef __PLAYABLE_ITEM_H__
 #define __PLAYABLE_ITEM_H__
-#include "playdar/application.h"
+#include "playdar/config.hpp"
 #include "playdar/streaming_strategy.h"
 #include "playdar/types.h"
+#include "playdar/ss_http.hpp"
 #include "json_spirit/json_spirit.h"
 #include <cassert>
 /*
@@ -18,35 +19,41 @@ class PlayableItem
 {
 public:
     PlayableItem()
+    :m_score( -1.0f )
     {
+        set_duration(0);
+        set_tracknum(0);
+        set_size(0);
+        set_bitrate(0);
+        set_mimetype("text/plain");
+        set_source("unspecified");
     }
     
     PlayableItem(string art, string alb, string trk)
+    :m_score( -1.0f )
     {
         set_artist(art);
         set_album(alb);
         set_track(trk);
+        
         set_duration(0);
         set_tracknum(0);
-        set_score(0);
         set_size(0);
         set_bitrate(0);
         set_mimetype("text/plain");
-        set_preference(1.0);
         set_source("unspecified");
-        //set_url("NO_URL");
     }
     
     ~PlayableItem()
     {
-        //cout << "dtor, playableitem" << endl;
+        cout << "dtor, playableitem: " << id() << endl;
     }
     
     static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
     {
-        string artist, album, track, sid, source, mimetype;
+        string artist, album, track, sid, source, mimetype, url;
         int size, bitrate, duration = 0;
-        float score = 0;
+        float score = -1;
         
         using namespace json_spirit;
         map<string,Value> resobj_map;
@@ -63,6 +70,9 @@ public:
             
         if(resobj_map.find("sid")!=resobj_map.end())
             sid     = resobj_map["sid"].get_str();
+            
+        if(resobj_map.find("url")!=resobj_map.end())
+            url     = resobj_map["url"].get_str();
             
         if(resobj_map.find("source")!=resobj_map.end())
             source  = resobj_map["source"].get_str();
@@ -88,7 +98,7 @@ public:
             if (resobj_map["score"].type() == real_type)
                 score = (float) (resobj_map["score"].get_real());
             else
-                score = (float) 0.0;
+                score = (float) -1;
         }
         
         if(!artist.length() && !track.length()) throw;
@@ -102,7 +112,8 @@ public:
         if(size)                pip->set_size(size);
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
-        if(score)               pip->set_score(score);
+        if(score >= 0)          pip->set_score(score);
+        if(url.length())        pip->set_url(url);
                         
         return pip;
     }
@@ -111,18 +122,18 @@ public:
     {
         using namespace json_spirit;
         Object j;
-        j.push_back( Pair("sid", id()) );
-        j.push_back( Pair("artist", artist()) );
-        j.push_back( Pair("album",  album()) );
-        j.push_back( Pair("track", track()) );
-        j.push_back( Pair("source", source()) );
-        j.push_back( Pair("size", size()) );
-        j.push_back( Pair("mimetype", mimetype()) );
-        j.push_back( Pair("bitrate", bitrate()) );
-        j.push_back( Pair("duration", duration()) );
-        //j.push_back( Pair("url", sid_to_url(id())) );
+        j.push_back( Pair("_msgtype", "pi")         );
+        j.push_back( Pair("sid", id())              );
+        j.push_back( Pair("artist", artist())       );
+        j.push_back( Pair("album",  album())        );
+        j.push_back( Pair("track", track())         );
+        j.push_back( Pair("source", source())       );
+        j.push_back( Pair("size", size())           );
+        j.push_back( Pair("mimetype", mimetype())   );
+        j.push_back( Pair("bitrate", bitrate())     );
+        j.push_back( Pair("duration", duration())   );
+        j.push_back( Pair("url", url())             );
         j.push_back( Pair("score", (double)score()) );
-        j.push_back( Pair("preference", (double)preference()) );
         return j;
     }
 
@@ -141,28 +152,32 @@ public:
     void set_artist(string s)   { m_artist = s; }
     void set_album(string s)    { m_album  = s; }
     void set_track(string s)    { m_track  = s; }
-    //void set_url(string s)      { m_url    = s; }
+    void set_url(string s)      { m_url    = s; }
     void set_source(string s)   { m_source = s; }
-    void set_mimetype(string s)   { m_mimetype = s; }
+    void set_mimetype(string s) { m_mimetype = s; }
     void set_duration(int s)    { m_duration = s; }
     void set_tracknum(int s)    { m_tracknum = s; }
-    void set_size(int s)    { m_size = s; }
-    void set_bitrate(int s)    { m_bitrate = s; }
-    void set_score(float s)     
+    void set_size(int s)        { m_size = s; }
+    void set_bitrate(int s)     { m_bitrate = s; }
+    void set_score(float s)
     { 
         assert(s <= 1.0);
         assert(s >= 0);
         m_score  = s; 
     }
-    void set_preference(float s)   // bigger = faster network
-    { 
-        assert(s <= 1.0);
-        assert(s >= 0);
-        m_preference = s; 
-    } 
     
     // getters
-    boost::shared_ptr<StreamingStrategy> streaming_strategy() const { return m_ss; }
+    boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
+    {
+        // memoized auto-upgrade from an url param -> httpstreamingstrategy:
+        if(m_ss) return m_ss; 
+        if(!m_ss && m_url.length())
+        {
+            m_ss = boost::shared_ptr<StreamingStrategy>
+                            (new HTTPStreamingStrategy(m_url));
+        }
+        return m_ss; // could be null if not specified.
+    }
     
     void set_id(string s) { m_uuid = s; }
 
@@ -171,25 +186,25 @@ public:
     const string & track() const    { return m_track; }
     const string & source() const   { return m_source; }
     const string & mimetype() const { return m_mimetype; }
+    const string & url() const      { return m_url; }
     const float score() const       { return m_score; }
     const int duration() const      { return m_duration; }
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
     const int size() const          { return m_size; }
-    const float preference() const  { return 1.0 ; }
     
 private:
-    boost::shared_ptr<StreamingStrategy> m_ss;
+    mutable boost::shared_ptr<StreamingStrategy> m_ss;
     mutable source_uid m_uuid;
     string m_artist;
     string m_album;
     string m_track;
     string m_mimetype;
+    string m_url;
     int m_size;
     int m_duration;
     int m_bitrate;
     int m_tracknum;
-    float m_preference;
     float m_score;
     string m_source;
 };
