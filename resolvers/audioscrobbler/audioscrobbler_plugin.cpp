@@ -1,18 +1,28 @@
 #include "audioscrobbler_plugin.h"
 #include "scrobsub.h"
 
-using playdar::resolvers::audioscrobbler;
+using playdar::plugin::audioscrobbler;
+static audioscrobbler* instance = 0;
 
 
-static void scrobsub_callback(int, const char*)
-{}
-
+void
+audioscrobbler::scrobsub_callback(int e, const char*s)
+{
+    if (e == SCROBSUB_AUTH_REQUIRED && !instance->auth_required)
+    {
+        instance->auth_required = true;
+        cout << "You need to authenticate scrobbling, visit http://localhost:8888/audioscrobbler/config/" << endl;
+    }
+}
 
 bool
 audioscrobbler::init(playdar::Config* c, Resolver* r)
 {
+    instance = this;
+    
     ResolverService::init(c, r);
     scrobsub_init(scrobsub_callback);
+    return true;
 }
 
 void
@@ -36,6 +46,20 @@ static void start(const playdar_request& rq)
     scrobsub_start(artist, track, album, duration, track_number, mbid);
 }
 
+#include <sstream>
+static string config(bool auth_required)
+{
+    if (!auth_required || scrobsub_finish_auth())
+        return "<p>Playdar is authorized to <a href='http://www.last.fm/help/faq?category=Scrobbling'>scrobble</a>. "
+               "To revoke, visit <a href='http://www.last.fm/settings/applications'>Last.fm</a>.</p>";
+    
+    char url[110];
+    scrobsub_auth(url);
+    ostringstream oss;
+    oss << "<p>You need to <a href='" << url << "'>authenticate</a> in order to scrobble.</p>";
+    return oss.str();    
+}
+
 string
 audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
 {
@@ -45,6 +69,8 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(action == "pause")  { scrobsub_pause(); return "OK"; }
     if(action == "resume") { scrobsub_resume(); return "OK"; }
     if(action == "stop")   { scrobsub_stop(); return "OK"; }
+    
+    if(action == "config") return config(auth_required);
     
     return "Unhandled"; // --warning
 }

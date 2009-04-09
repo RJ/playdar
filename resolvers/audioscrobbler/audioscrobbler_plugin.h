@@ -1,4 +1,4 @@
-/** @author <max@methylblue.com> 
+/** @author Max Howell <max@methylblue.com> 
   * @brief Scrobbling support for playdar clients 
   */
 
@@ -6,12 +6,16 @@
 
 namespace playdar
 {
-    namespace resolvers //TODO not a resolver
+    namespace plugin //TODO not a resolver
     {
         class audioscrobbler : public ResolverServicePlugin
         {
+            bool auth_required;
+            
+            static void scrobsub_callback(int, const char*);
+            
         public:
-            audioscrobbler() 
+            audioscrobbler() : auth_required(false)
             {}
             
             virtual bool init(playdar::Config*, Resolver*);
