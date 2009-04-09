@@ -83,6 +83,10 @@ Resolver::load_library_resolver()
 {
     loaded_rs cr;
     cr.rs = new RS_local_library();
+    
+    register_resolved_item( boost::bind( &PlayableItem::is_valid_json, _1 ),
+                            boost::bind( &PlayableItem::from_json, _1 ));
+    
     // local library resolver is special, it gets a handle to app:
     ((RS_local_library *)cr.rs)->set_app(m_app);
     cr.weight = cr.rs->weight();
@@ -113,6 +117,23 @@ Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
     return lhs.weight > rhs.weight;
 }
 
+// work-around lack of basic_path::stem()
+//
+// Returns: if p.filename() contains a dot, returns the substring of p.filename() 
+// starting at its beginning and ending at the last dot (the dot is not included). 
+// Otherwise, returns p.filename().
+template<typename Path>
+typename Path::string_type 
+stem(const Path & p)
+{
+    int pos = p.leaf().find_last_of('.');
+    if (pos != Path::string_type::npos) {
+        return p.leaf().substr(0, pos);
+    } 
+    return p.leaf();
+}
+
+
 /// spawn resolver scripts:
 void 
 Resolver::load_resolver_scripts()
@@ -121,13 +142,18 @@ Resolver::load_resolver_scripts()
     
     path const etc = "etc"; //FIXME don't depend on working directory
     cout << "Loading resolver scripts from: " << etc << endl;
-    
+
+    if (!exists(etc) || !is_directory(etc)) return;     // avoid the throw
+
     directory_iterator const end;
     string name;
     for(directory_iterator i(etc); i != end; ++i) {
         try {
-            string name = i->path().filename();
-            string conf = "plugins." + i->path().stem() + '.';
+            // basic_path::leaf() understandably renamed to filename() in boost 1.36
+            // (leaf method marked as deprecated in boost > 1.35)
+            // basic_path::stem() added in boost 1.36
+            string name = i->path().leaf();
+            string conf = "plugins." + stem( i->path() ) + '.';     
             
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
@@ -357,7 +383,7 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 /// false means give up on this query, it's over
 /// true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
+Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
 {
     if(results.size()==0)
     {
@@ -367,22 +393,24 @@ Resolver::add_results(query_uid qid, vector< pi_ptr > results, string via)
     if(!query_exists(qid)) return false; // query was deleted
     string reason;
     // add these new results to the ResolverQuery object
-    BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
+    BOOST_FOREACH(ri_ptr rip, results)
     {
         rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        if(pip->score() < 0 &&
-           TrackRQBuilder::valid( rq ))
+        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
+        if(rip->score() < 0 &&
+           TrackRQBuilder::valid( rq ) &&
+           pip)
         {
             float score = calculate_score( rq, pip, reason );
             if( score == 0.0) continue;
             pip->set_score( score );
         }
         
-        m_queries[qid]->add_result(pip);
+        m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
-        m_pis[pip->id()] = pip;
+        m_ris[rip->id()] = rip;
     } 
     return true;
 }
@@ -486,10 +514,10 @@ Resolver::cancel_query(const query_uid & qid)
             m_qidtimers.erase(qid);
         }
         // cleanup registered source ids -> playable items:
-        vector< pi_ptr > results = cq->results();
-        BOOST_FOREACH( pi_ptr pip, results )
+        vector< ri_ptr > results = cq->results();
+        BOOST_FOREACH( ri_ptr rip, results )
         {
-            m_pis.erase( pip->id() );
+            m_ris.erase( rip->id() );
         }
     }
     // the RQ should not be referenced anywhere and will destruct now.
@@ -526,10 +554,9 @@ Resolver::cancel_query_timeout(query_uid qid)
 
 /// gets all the current results for a query
 /// but leaves query active. (ie, results may change later)
-vector< pi_ptr >
+vector< ri_ptr >
 Resolver::get_results(query_uid qid)
 {
-    vector< pi_ptr > ret;
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
@@ -579,9 +606,28 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-boost::shared_ptr<PlayableItem> 
-Resolver::get_pi(const source_uid & sid)
+ri_ptr 
+Resolver::get_ri(const source_uid & sid)
 {
-    return m_pis[sid];
+    return m_ris[sid];
 }
 
+
+void 
+Resolver::register_resolved_item( const ri_validator& val, const ri_generator& gen)
+{
+    m_riList.push_back( std::pair<ri_validator, ri_generator>( val, gen ));
+}
+
+ri_ptr
+Resolver::ri_from_json( const json_spirit::Object& j ) const
+{
+    std::pair< ri_validator , ri_generator> pair;
+    
+    BOOST_FOREACH( pair, m_riList )
+    {
+        if( pair.first( j ) )
+            return pair.second( j );
+    }
+    return ri_ptr();
+}

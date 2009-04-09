@@ -425,7 +425,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
                return;
            }
-           vector< pi_ptr > results = rq->results();
+           vector< ri_ptr > results = rq->results();
 
            ostringstream os;
            os  << "<h2>Query: " << qid << "</h2>"
@@ -455,8 +455,11 @@ playdar_request_handler::handle_queries( const playdar_request& req,
                ;
            string bgc="";
            int i = 0;
-           BOOST_FOREACH(pi_ptr pi, results)
+           BOOST_FOREACH(ri_ptr ri, results)
            {
+               pi_ptr pi = boost::dynamic_pointer_cast<PlayableItem>(ri);
+               if( !pi ) continue;
+               
                bgc = ++i%2 ? "lightgrey" : "";
                os  << "<tr style=\"background-color:" << bgc << "\">"
                    << "<td style=\"font-size:60%\">"
@@ -539,23 +542,27 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     boost::xtime_get(&time,boost::TIME_UTC); 
     time.sec += 2;
     boost::thread::sleep(time);
-    vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qid);
-    if(results.size())
-    {
-        json_spirit::Object ro = results[0]->get_json();
-        cout << "Top result:" <<endl;
-        json_spirit::write_formatted( ro, cout );
-        cout << endl;
-        string url = "/sid/";
-        url += results[0]->id();
-        rep.headers.resize(3);
-        rep.status = moost::http::reply::moved_temporarily;
-        moost::http::header h;
-        h.name = "Location";
-        h.value = url;
-        rep.headers[2] = h;
-        rep.content = "";
-    }
+    vector< ri_ptr > results = app()->resolver()->get_results(qid);
+    
+    if( !results.size() ) return;
+    
+    pi_ptr result = boost::dynamic_pointer_cast<PlayableItem>(results[0]);
+
+    if( !result) return;
+
+    json_spirit::Object ro = results[0]->get_json();
+    cout << "Top result:" <<endl;
+    json_spirit::write_formatted( ro, cout );
+    cout << endl;
+    string url = "/sid/";
+    url += result->id();
+    rep.headers.resize(3);
+    rep.status = moost::http::reply::moved_temporarily;
+    moost::http::header h;
+    h.name = "Location";
+    h.value = url;
+    rep.headers[2] = h;
+    rep.content = "";
 }
 
 void
@@ -673,10 +680,10 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             }
             Object r;
             Array qresults;
-            vector< pi_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
-            BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
+            vector< ri_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
+            BOOST_FOREACH(ri_ptr rip, results)
             {
-                qresults.push_back( pip->get_json() );
+                qresults.push_back( rip->get_json());
             }   
             r.push_back( Pair("qid", req.getvar("qid")) );
             r.push_back( Pair("refresh_interval", 1000) ); //TODO move to ResolveQuery
@@ -863,10 +870,12 @@ void
 playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
 {
     cout << "Serving SID " << sid << endl;
-    boost::shared_ptr<PlayableItem> pip = app()->resolver()->get_pi(sid);
+    ri_ptr rip = app()->resolver()->get_ri(sid);
+    
+    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
     if(!pip)
     {
-        cerr << "This SID does not exist." << endl;
+        cerr << "This SID does not exist or does not resolve to a playable item." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found );
         return;
     }

@@ -13,10 +13,7 @@ SET_TARGET_PROPERTIES(  darknet PROPERTIES
                      )
 
 TARGET_LINK_LIBRARIES( darknet
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_REGEX_LIBRARY} # Boost license
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_FILESYSTEM_LIBRARY} 
-                       ${Boost_THREAD_LIBRARY}
+                       ${OSSPUUID_LIBRARIES} # BSD-like
+                       ${Boost_LIBRARIES}    # Boost license
                        ${PLAYDAR_PLUGIN_LDFLAGS}
                      )

@@ -52,18 +52,23 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     vector< boost::shared_ptr<PlayableItem> > results,
+                     vector< ri_ptr > results,
                      string via);
-    vector< boost::shared_ptr<PlayableItem> > get_results(query_uid qid);
+    vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
     
     bool query_exists(const query_uid & qid);
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
+    
+    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
+    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
+    void register_resolved_item( const ri_validator&, const ri_generator& );
+    ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
-    pi_ptr get_pi(const source_uid & sid);
+    ri_ptr get_ri(const source_uid & sid);
     
     size_t num_seen_queries();
     
@@ -114,8 +119,8 @@ private:
     
     MyApplication * m_app;
     
-    map< query_uid, boost::shared_ptr<ResolverQuery> > m_queries;
-    map< source_uid, boost::shared_ptr<PlayableItem> > m_pis;
+    map< query_uid, rq_ptr > m_queries;
+    map< source_uid, ri_ptr > m_ris;
     // timers used to auto-cancel queries that are inactive for long enough:
     map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     
@@ -138,6 +143,9 @@ private:
     deque< pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
+    
+    
+    std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
 };
 

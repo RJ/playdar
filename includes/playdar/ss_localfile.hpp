@@ -7,7 +7,7 @@ class LocalFileStreamingStrategy : public StreamingStrategy
 {
 public:
 
-    LocalFileStreamingStrategy(string p)
+    LocalFileStreamingStrategy(std::string p)
         : m_uri(p)
     {
         m_connected=false;
@@ -27,9 +27,9 @@ public:
         return m_is.gcount();
     }
     
-    string debug()
+    std::string debug()
     { 
-        ostringstream s;
+        std::ostringstream s;
         s<< "LocalFileStreamingStrategy(" << m_uri << ")";
         return s.str();
     }
@@ -49,13 +49,13 @@ private:
         m_is.open(m_uri.c_str(), std::ios::in | std::ios::binary);
         if(!m_is.is_open())
         {
-            cout << "Failed to open file: " << m_uri << endl;
+            std::cout << "Failed to open file: " << m_uri << std::endl;
             return;
         }
         m_connected = true;
     }
     
-    string m_uri;
+    std::string m_uri;
     std::ifstream m_is;
     bool m_connected;
 };

@@ -96,4 +96,3 @@ CREATE TABLE IF NOT EXISTS playdar_settings (
 );
 CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
 
-

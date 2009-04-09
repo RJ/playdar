@@ -1,6 +1,5 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
-
 // must be first because ossp uuid.h is stubborn and name-conflicts with
 // the uuid_t in unistd.h. It gets round this with preprocessor magic. But
 // this causes PAIN and HEARTACHE for everyone else in the world, so well done

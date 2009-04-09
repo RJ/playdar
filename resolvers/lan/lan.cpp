@@ -225,10 +225,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     break;
                 }
                 //cout << "lan: Got udp response." <<endl;
-                boost::shared_ptr<PlayableItem> pip;
+                ri_ptr rip;
                 try
                 {
-                    pip = PlayableItem::from_json(resobj);
+                    rip = resolver()->ri_from_json(resobj);
                 }
                 catch (...)
                 {
@@ -242,16 +242,15 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     << sender_endpoint_.port();
                 string url = rbs.str();
                 url += "/sid/";
-                url += pip->id();
+                url += rip->id();
                 boost::shared_ptr<StreamingStrategy> 
                     s(new HTTPStreamingStrategy(url));
-                pip->set_streaming_strategy(s);
-                vector< boost::shared_ptr<PlayableItem> > v;
-                v.push_back(pip);
+                rip->set_streaming_strategy(s);
+                vector< ri_ptr > v;
+                v.push_back(rip);
                 report_results(qid, v, name());
-                cout    << "INFO Result from '" << pip->source()
-                        <<"' for '"<< pip->artist() <<"' - '"
-                        << pip->track() << "' [score: "<< pip->score() <<"]" 
+                cout    << "INFO Result from '" << rip->source()
+                        <<"' for '"<< write_formatted( rip->get_json())
                         << endl;
             }
             else if(msgtype == "ping")
@@ -284,18 +283,18 @@ lan::handle_receive_from(const boost::system::error_code& error,
 // fired when a new result is available for a running query:
 void
 lan::send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip,
+                        ri_ptr rip,
                         boost::asio::ip::udp::endpoint sep )
 {
     cout << "lan responding for " << qid << " to: " 
          << sep.address().to_string() 
-         << " score: " << pip->score()
+         << " score: " << rip->score()
          << endl;
     using namespace json_spirit;
     Object response;
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
-    Object result = pip->get_json();
+    Object result = rip->get_json();
     response.push_back( Pair("result", result) );
     ostringstream ss;
     write_formatted( response, ss );
