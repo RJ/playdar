@@ -33,7 +33,7 @@
 extern void(*scrobsub_callback)(int event, const char* message);
 static bool scrobsub_finish_auth();
 static char* username = 0;
-char session_key[33] = "";
+static char session_key[33] = "";
 static char* token = 0;
 
 
@@ -93,14 +93,15 @@ const char* scrobsub_session_key()
         
         FILE* fp = fopen_session_file("r");
         if (!fp) return 0;
-        
+
         fread(session_key, sizeof(char), 32, fp);
-        size_t n;
-        fread(&n, sizeof(size_t), 1, fp);
+        fseek(fp, 0, SEEK_END);
+        long n = ftell(fp)-32; //determine length of username
+        fseek(fp, 32, SEEK_SET);
         username = malloc(n+1);
         fread(username, sizeof(char), n, fp);
         fclose(fp);
-        
+
         session_key[32] = '\0';
         username[n] = '\0';
     }
@@ -198,7 +199,6 @@ bool scrobsub_finish_auth()
     FILE* fp = fopen_session_file("w");
     if(!fp) return false;
     fwrite(session_key, sizeof(char), 32, fp);
-    fwrite(strlen(username), sizeof(size_t), 1, fp);
     fwrite(username, sizeof(char), strlen(username), fp);
     fclose(fp);
     return session_key && username;
