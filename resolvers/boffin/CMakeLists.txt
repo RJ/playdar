@@ -4,6 +4,7 @@ ADD_LIBRARY(    Boffin SHARED
                 ResultSet.cpp
 				SimilarArtists.cpp
 				parser/parser.cpp
+				RqlOpProcessor.cpp
             )
 #
 # Ensure the shared library file is called <CLASS NAME>.resolver
