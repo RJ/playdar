@@ -3,7 +3,8 @@
 #include "RqlOpProcessor.h"
 #include "parser/parser.h"
 #include "RqlOp.h"
-
+#include "BoffinSample.h"
+#include "SampleAccumulator.h"
 
 using namespace fm::last::query_parser;
 
@@ -160,6 +161,17 @@ makePlayableItem(const boost::tuple<std::string, float, int>& in)
     return result;
 }
 
+static
+boost::shared_ptr<PlayableItem> 
+makePlayableItem(BoffinDb& m_db, const TrackResult& t) 
+{
+    PlayableItem *r = new PlayableItem();
+    boost::shared_ptr<PlayableItem> result(r);
+    assert(!"todo");    // todo. PlayableItem needs generalisation!
+    return result;
+}
+
+
 void
 Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
@@ -174,9 +186,22 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
                 &root2op, 
                 &leaf2op);
-            
-            ResultSetPtr results( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
-            // todo: handle results
+            ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
+
+            // sample from the rqlResults into our SampleAccumulator:
+            const int pushdown_memory = 4;
+            SampleAccumulator sa(pushdown_memory);
+            boffinSample(limit, *rqlResults, 
+                boost::bind(&SampleAccumulator::pushdown, &sa, _1),
+                boost::bind(&SampleAccumulator::result, &sa, _1));
+
+            // look up results, turn them into PlayableItems
+            std::vector< boost::shared_ptr<PlayableItem> > playables;
+            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+                playables.push_back( makePlayableItem(*m_db, t) );
+            }
+
+            report_results(rq->id(), playables, "Boffin");
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
     } else if (rq->param_exists("boffin_tags")) {

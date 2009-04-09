@@ -17,11 +17,10 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
 
-#include <QVector>
-#include "../ResultSet.h"
+#include "ResultSet.h"
 #include <boost/function.hpp>
 
-#include "SampleFromDistribution.h"
+#include "sample/SampleFromDistribution.h"
 
 
 using namespace fm::last::algo;
@@ -31,7 +30,7 @@ struct AccessPolicy
 {
   template <typename IT>
   float operator()(const IT& el) const
-  { return el->weight; }
+  { return el->second; }
 };
 
 
@@ -57,41 +56,61 @@ struct CopyPolicy
 };
 
 
-bool orderByWeightDesc(const TrackResult& a, const TrackResult& b)
+// a trackresult and the 'working-weight'
+typedef std::pair<const TrackResult*, float> Entry;       
+
+bool orderByWeightDesc(const Entry& a, const Entry& b)
 {
-    return a.weight > b.weight;
+    return a.second > b.second;
 }
 
-// Returns a weighted sampling from the ResultSet.
+
+// Returns a number of weighted samples from the ResultSet.
 // The weight of each entry in the ResultSet is first multiplied
-// by the pushdownFactor(artistId, trackId) function
-TrackResult
-sample(const ResultSet& rs, boost::function<float(uint,uint)> pushdownFactor)
+// by the pushdownFactor(const TrackResult&) function
+//
+// PushdownFactorFunctor is: float(int artist, int track)
+// ResultFunctor is: void(TrackResult track)
+//
+template<typename PushdownFactorFunctor, typename ResultFunctor>
+void
+boffinSample(int count, const ResultSet& rs, PushdownFactorFunctor pushdown, ResultFunctor result)
 {
     // convert the ResultSet to a vector for sorting
-    std::vector<TrackResult> tracks;
-    tracks.reserve(rs.size());
-
-    float totalWeight = 0;
-    foreach (TrackResult tr, rs) {
-        tr.weight *= pushdownFactor( tr.artistId, tr.trackId );
-        tracks.push_back(tr);
-        totalWeight += tr.weight;
-    }
-
-    std::vector<TrackResult>::iterator pBegin = tracks.begin();
-    std::vector<TrackResult>::iterator pEnd = tracks.end();
-
-    std::sort(pBegin, pEnd, orderByWeightDesc);
-
-    // normalise weights, sum to 1
-    std::vector<TrackResult>::iterator pIt = tracks.begin();
-    for (; pIt != pEnd; pIt++) {
-        pIt->weight /= totalWeight;
+    int trackCount = rs.size();
+    std::vector<Entry> tracks;
+    tracks.reserve(trackCount);
+    for (ResultSet::const_iterator it = rs.begin(); it != rs.end(); it++) {
+        tracks.push_back(std::make_pair(&(*it), it->weight));
     }
 
     // pull out a single sample
     ListBasedSampler<AccessPolicy, CopyPolicy> sampler;
-    return sampler.singleSample(pBegin, pEnd, true);
+
+    for (; count && trackCount; count--, trackCount--) {
+        std::vector<Entry>::iterator pBegin = tracks.begin();
+        std::vector<Entry>::iterator pEnd = tracks.begin() + trackCount;
+        std::vector<Entry>::iterator it;
+
+        // reweight:
+        float totalWeight = 0;
+        for (it = pBegin; it != pEnd; it++) {
+            it->second = it->first->weight * pushdown( *it->first );
+            totalWeight += it->second;
+        }
+        // normalise weights, sum to 1
+        for (it = pBegin; it != pEnd; it++) {
+            it->second /= totalWeight;
+        }
+        std::sort(pBegin, pEnd, orderByWeightDesc);
+
+        std::vector<Entry>::iterator pSample = sampler.singleSample(pBegin, pEnd, true);
+        result( *(pSample->first) );
+
+        // swap it with the bottom entry (so it gets ignored next time through)
+        Entry temp = *pSample;
+        *pSample = *(pEnd-1);
+        *(pEnd-1) = temp;
+    }
 }
 
