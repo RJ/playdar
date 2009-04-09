@@ -93,9 +93,9 @@ ADD_LIBRARY( playdarlib STATIC
 			
 			)
 			
-#TARGET_LINK_LIBRARIES( playdarlib 
-#			${SQLITE3_LIBRARIES}
-#			)
+TARGET_LINK_LIBRARIES( playdarlib 
+			${SQLITE3_LIBRARIES}
+			)
 	
 					  
 ADD_EXECUTABLE( playdar
