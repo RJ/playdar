@@ -17,8 +17,14 @@ abstract class PlaydarResolver
     public function handleRequest($fh)
     {
         while (!feof($fh)) {
+
+            // Makes the handler compatable with command line testing and playdar resolver pipeline usage
+            if (!$content = fread($fh, 4)) {
+                break;
+            }
+            
             // get the length of the payload from the first 4 bytes:
-            $len = current(unpack('N', fread($fh, 4)));
+            $len = current(unpack('N', $content));
             
             // bail on empty request.
             if($len == 0) {
