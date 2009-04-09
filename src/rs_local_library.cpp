@@ -2,7 +2,7 @@
 #include "playdar/rs_local_library.h"
 #include "playdar/library.h"
 #include <boost/foreach.hpp>
-
+#include "playdar/utils/levenshtein.h"
 
 /*
     I want to integrate the ngram2/l implementation done by erikf
@@ -44,9 +44,9 @@ RS_local_library::run()
 {
     try
     {
-        rq_ptr rq;
         while(true)
         {
+            rq_ptr rq;
             {
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
@@ -54,7 +54,10 @@ RS_local_library::run()
                 rq = m_pending.back();
                 m_pending.pop_back();
             }
-            process( rq );
+            if(rq && !rq->cancelled())
+            {
+                process( rq );
+            }
         }
     }
     catch(...)
@@ -82,9 +85,6 @@ RS_local_library::process( rq_ptr rq )
         BOOST_FOREACH(int fid, fids)
         {
             pi_ptr pip = app()->library()->playable_item_from_fid(fid);
-            float finalscore = m_resolver->calculate_score(rq, pip, reason);
-            if(finalscore < 0.1) continue;
-            pip->set_score(finalscore);
             pip->set_source(conf()->name());
             final_results.push_back( pip );
         }
@@ -106,8 +106,14 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
 { 
     vector<scorepair> candidates;
     float maxartscore = 0;
+    
+    //Ignore this request_query - nothing that this can resolve from.
+    if( !rq->param_exists( "artist" ) ||
+        !rq->param_exists( "track" ))
+        return candidates;
+    
     vector<scorepair> artistresults =
-        app()->library()->search_catalogue("artist", rq->artist());
+        app()->library()->search_catalogue("artist", rq->param( "artist" ).get_str());
     BOOST_FOREACH( scorepair & sp, artistresults )
     {
         if(maxartscore==0) maxartscore = sp.score;
@@ -116,7 +122,7 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         vector<scorepair> trackresults = 
             app()->library()->search_catalogue_for_artist(sp.id, 
                                                           "track",
-                                                          rq->track());
+                                                          rq->param( "track" ).get_str());
         BOOST_FOREACH( scorepair & sptrk, trackresults )
         {
             if(maxtrkscore==0) maxtrkscore = sptrk.score;
@@ -134,6 +140,3 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
 }
-
-
-

@@ -64,6 +64,7 @@ function get_matches($rq){
     $pi->size   = 4971780;
     $pi->bitrate= 160;
     $pi->duration = 248;
+    $pi->extra_headers = array("X-Something: foo", "X-WTF: bar");
     // NB this url should be url encoded properly:
     $pi->url    = "http://playdar:password@www.playdar.org/secret/hiding.mp3";
     //$pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";

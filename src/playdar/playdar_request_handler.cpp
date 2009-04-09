@@ -15,6 +15,7 @@
 #include "playdar/playdar_request.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
+#include "playdar/track_rq_builder.hpp"
 
 /*
 
@@ -43,8 +44,11 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "serve" ] = boost::bind( &playdar_request_handler::handle_serve, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
+    
+    //Local Collection / Main API plugin callbacks:
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
+    
     // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
     BOOST_FOREACH( loaded_rs & lrs, *m_app->resolver()->resolvers() )
     {
@@ -67,6 +71,8 @@ playdar_request_handler::sid_to_url(source_uid sid)
 void 
 playdar_request_handler::handle_request(const moost::http::request& req, moost::http::reply& rep)
 {
+    //TODO: Handle % encodings
+    
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
@@ -236,6 +242,7 @@ void
 playdar_request_handler::handle_pluginurl( const playdar_request& req,
                                            moost::http::reply& rep )
 {
+    //TODO: handle script resolver urls?
     cout << "pluginhandler: " << req.parts()[0] << endl;
     ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
 
@@ -328,8 +335,14 @@ playdar_request_handler::handle_settings( const playdar_request& req,
 }
 
 string 
-playdar_request_handler::handle_queries_root()
+playdar_request_handler::handle_queries_root(const playdar_request& req)
 {
+    if(req.postvar_exists( "cancel_query" ) && req.postvar("cancel_query").length() && 
+       req.postvar_exists( "qid" ) && req.postvar("qid").length())
+    {
+        app()->resolver()->cancel_query( req.postvar("qid") );
+    }
+
     size_t numqueries = app()->resolver()->qids().size();
     ostringstream os;
     os  << "<h2>Current Queries ("
@@ -338,6 +351,7 @@ playdar_request_handler::handle_queries_root()
         << "<table>"
         << "<tr style=\"font-weight:bold;\">"
         << "<td>QID</td>"
+        << "<td>Options</td>"
         << "<td>Artist</td>"
         << "<td>Album</td>"
         << "<td>Track</td>"
@@ -354,20 +368,35 @@ playdar_request_handler::handle_queries_root()
         rq_ptr rq;
         try
         { 
+            if( !TrackRQBuilder::valid( rq ))
+                continue;
+            
             rq = app()->resolver()->rq(*it); 
             bgc = (++i%2) ? "lightgrey" : "";
-            os  << "<tr style=\"background-color: "<< bgc << "\">"
-                << "<td style=\"font-size:60%;\">" 
+            os  << "<tr style=\"background-color: "<< bgc << "\">";
+            if(!rq)
+            {
+             os << "<td colspan=\"7\"><i>cancelled query</i></td>";
+            }
+            else
+            {
+             os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
-                << "<td>" << rq->artist() << "</td>"
-                << "<td>" << rq->album() << "</td>"
-                << "<td>" << rq->track() << "</td>"
+                << "<td style=\"align:center;\">"
+                << "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                << "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                << "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                << "</td>"
+                << "<td>" << rq->param( "artist" ).get_str() << "</td>"
+                << "<td>" << rq->param( "album" ).get_str() << "</td>"
+                << "<td>" << rq->param( "track" ).get_str() << "</td>"
                 << "<td>" << rq->from_name() << "</td>"
                 << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
-                << "</tr>"
                 ; 
+            }
+            os << "</tr>";
         } catch(...) { }
         it++;
     }  
@@ -383,7 +412,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
     {
         if( req.parts().size() == 1 )
         {
-            const string& s = handle_queries_root();
+            const string& s = handle_queries_root(req);
             serve_body( s, rep );
             break;
         }
@@ -391,7 +420,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         {
            query_uid qid = req.parts()[1];
            rq_ptr rq = app()->resolver()->rq(qid);
-           if(!rq)
+            if(!rq || !TrackRQBuilder::valid( rq ))
            {
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
                return;
@@ -400,13 +429,14 @@ playdar_request_handler::handle_queries( const playdar_request& req,
 
            ostringstream os;
            os  << "<h2>Query: " << qid << "</h2>"
+               
                << "<table>"
                << "<tr><td>Artist</td>"
-               << "<td>" << rq->artist() << "</td></tr>"
+               << "<td>" << rq->param( "artist" ).get_str() << "</td></tr>"
                << "<tr><td>Album</td>"
-               << "<td>" << rq->album() << "</td></tr>"
+               << "<td>" << rq->param( "album" ).get_str() << "</td></tr>"
                << "<tr><td>Track</td>"
-               << "<td>" << rq->track() << "</td></tr>"
+               << "<td>" << rq->param( "track" ).get_str() << "</td></tr>"
                << "</table>"
 
                << "<h3>Results (" << results.size() << ")</h3>"
@@ -501,7 +531,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     string artist   = playdar_request::unescape(req.parts()[1]);
     string album    = req.parts()[2].length()?playdar_request::unescape(req.parts()[2]):"";
     string track    = playdar_request::unescape(req.parts()[3]);
-    boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
+    boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);
     // wait a couple of seconds for results
@@ -601,8 +631,8 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             string album  = req.getvar("album");
             string track  = req.getvar("track");
             // create a new query and start resolving it:
-            boost::shared_ptr<ResolverQuery> rq(new ResolverQuery(artist, album, track));
-            if(req.getvar_exists("mode")) rq->set_mode(req.getvar("mode"));
+            boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
+
             // was a QID specified? if so, use it:
             if(req.getvar_exists("qid"))
             {
@@ -626,11 +656,24 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             r.push_back( Pair("qid", qid) );
             write_formatted( r, response );
         }
+        else if(req.getvar("method") == "cancel")
+        {
+            query_uid qid = req.getvar("qid");
+            app()->resolver()->cancel_query(qid);
+            // return something.. typically not checked, but easier to debug like this:
+            response << "{ \"status\" : \"OK\" }";
+        }
         else if(req.getvar("method") =="get_results" && req.getvar_exists("qid"))
         {
+            if( !app()->resolver()->query_exists( req.getvar("qid") ) )
+            {
+                cerr << "Error get_results(" << req.getvar("qid") << ") - qid went away." << endl;
+                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+                return;
+            }
             Object r;
             Array qresults;
-            vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(req.getvar("qid"));
+            vector< pi_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
             BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
             {
                 qresults.push_back( pip->get_json() );
@@ -654,6 +697,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
                 { 
                     Object obj;
                     rq = app()->resolver()->rq(*it);
+                    if(!rq) continue;
                     obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
                     obj.push_back( Pair("query", rq->get_json()) );
                     qlist.push_back( obj );
@@ -680,10 +724,10 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             jq.push_back( Pair("results", qresults) );
             write_formatted( jq, response );
         }
-        else if(req.getvar("method") == "list_artist_tracks")
+        else if(req.getvar("method") == "list_artist_tracks" &&
+                req.getvar_exists("artistname"))
         {
             Array qresults;
-            //FIXME: check that artistname param exists - will crash otherwise
             artist_ptr artist = app()->library()->load_artist( req.getvar("artistname") );
             if(artist)
             {

@@ -1,25 +1,25 @@
 #include "playdar/application.h"
+#include "playdar/playdar_request_handler.h"
+
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/foreach.hpp>
+#include <boost/program_options.hpp>
+#include <boost/thread.hpp>
+
 #include <iostream>
 #include <stdio.h>
 #include <fstream>
 #include <iterator>
 
-#include <boost/thread.hpp>
-#include <boost/program_options.hpp>
-#include <boost/foreach.hpp>
-#include "playdar/playdar_request_handler.h"
-
-#include <boost/algorithm/string.hpp>
-
-
-
 using namespace std;
 namespace po = boost::program_options;
+
 
 // global !
 MyApplication * app = 0;
 
-void sigfunc(int sig)
+static void sigfunc(int sig)
 {
     cout << "Signal handler." << endl;
     if(app) app->shutdown(sig);
@@ -27,15 +27,50 @@ void sigfunc(int sig)
 
 // A helper function to simplify the main part.
 template<class T>
-ostream& operator<<(ostream& os, const vector<T>& v)
+static ostream& operator<<(ostream& os, const vector<T>& v)
 {
     copy(v.begin(), v.end(), ostream_iterator<T>(cout, " "));
     return os;
 }
 
+static string default_config_path()
+{
+    using boost::filesystem::path;
 
+#if __APPLE__
+    if(getenv("HOME"))
+    {
+        path home = getenv("HOME");
+        return (home/"Library/Preferences/org.playdar.json").string();
+    }
+    else
+    {
+        cerr << "Error, $HOME not set." << endl;
+        throw;
+    }
+#elif __WIN32__
+    return ""; //TODO refer to Qt documentation to get code to do this
+#else
+    string p;
+    if(getenv("XDG_CONFIG_HOME"))
+    {
+        p = getenv("XDG_CONFIG_HOME");
+    }
+    else if(getenv("HOME"))
+    {
+        p = string(getenv("HOME")) + "/.config";
+    }
+    else
+    {
+        cerr << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
+        throw;
+    }
+    path config_base = p;
+    return (config_base/"playdar/playdar.json").string();
+#endif
+}
 
-void start_http_server(string ip, int port, int conc, MyApplication *app)
+static void start_http_server(string ip, int port, int conc, MyApplication *app)
 {
     cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
     moost::http::server<playdar_request_handler> 
@@ -48,15 +83,14 @@ void start_http_server(string ip, int port, int conc, MyApplication *app)
     cout << "http_server thread exiting." << endl; 
 }
 
+
 int main(int ac, char *av[])
 {
-
     po::options_description generic("Generic options");
     generic.add_options()
-        ("config,c",    po::value<string>(),
-                        "path to config file")
-        ("version,v",   "print version string")
-        ("help,h",      "print this message")
+        ("config,c",  po::value<string>()->default_value(default_config_path()), "path to config file")
+        ("version,v", "print version string")
+        ("help,h",    "print this message")
         ;
 /*
             ("name",        po::value<string>(),

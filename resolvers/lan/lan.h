@@ -31,6 +31,8 @@ class lan : public ResolverServicePlugin
     bool init(playdar::Config * c, Resolver * r);
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
+    void cancel_query(query_uid qid);
+    
     std::string name() const { return "LAN"; }
     
     void handle_receive_from(const boost::system::error_code& error, size_t bytes_recvd);

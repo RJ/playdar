@@ -9,7 +9,6 @@
 
 playdar_request::playdar_request( const moost::http::request& req )
 {
-    cout << "constructing playdar_request( " << req.uri << " ) " << endl;
     // Parse params from querystring:
     if( collect_params( req.uri, m_getvars ) == -1 )
     {
