@@ -67,7 +67,7 @@ public:
         }
         do{
             boost::mutex::scoped_lock lk(m_mut);
-            if( m_buffers.size()==0 && !m_curl_finished )
+            while( m_buffers.size()==0 && !m_curl_finished )
             {
                 //cout << "Waiting on curl.." << endl;
                 m_cond.wait(lk);
@@ -119,7 +119,7 @@ public:
                 inst->m_buffers.push_front( c );
             }
         }
-        inst->m_cond.notify_one();
+        inst->m_cond.notify_all();
         return len;
     }
     
@@ -138,7 +138,7 @@ public:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
         cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << endl;
-        m_cond.notify_one();
+        m_cond.notify_all();
         if(m_curlres != 0) cout << "Curl error: " << m_curlerror << endl;
         curl_easy_cleanup( m_curl );
     }
