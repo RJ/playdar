@@ -165,10 +165,14 @@ public:
         m_score  = s; 
     }
     
-    // getters
+    /// This returns what ss->get_instance() returns, which in some cases is a 
+    /// shared_ptr to the same SS as is attached, if the SS is threadsafe.
+    /// in the case of curlSS, it's a copy, because curlSS is not threadsafe.
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
-        return m_ss; // could be null if not specified.
+        if(m_ss) return m_ss->get_instance();
+        // this returns a null shared_ptr:
+        return m_ss;
     }
     
     void set_id(string s) { m_uuid = s; }

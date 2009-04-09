@@ -14,19 +14,44 @@
 
 using namespace boost::asio::ip;
 /*
-    Can stream from anything cURL can.. kinda.
+    Can stream from anything cURL can.. 
+    
+    TODO handle failure/slow streams better.
 */
 class CurlStreamingStrategy : public StreamingStrategy
 {
 public:
-
     CurlStreamingStrategy(string url)
         : m_curl(0), m_url(url)
-    {   
+    {
         reset();
+        m_thread = 0;
     }
 
-    ~CurlStreamingStrategy(){ reset(); }
+    ~CurlStreamingStrategy()
+    { 
+        if(m_thread)
+        {
+            // kill any running downloads from curl:
+            m_thread->interrupt();
+        }
+        reset(); 
+    }
+    
+    /// copy constructor, used by get_instance()
+    CurlStreamingStrategy(CurlStreamingStrategy* const inst)
+    {
+        m_curl = 0;
+        m_url  = inst->url();
+        m_thread = 0;
+    }
+    
+    /// this returns a shr_ptr to a copy, because it's not threadsafe 
+    virtual boost::shared_ptr<StreamingStrategy> get_instance()
+    {
+        // make a copy:
+        return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(this));
+    }
     
     vector<string> & extra_headers() { return m_extra_headers; }
 
@@ -75,7 +100,6 @@ public:
         m_connected = false;
         m_bytesreceived = 0;
         m_curl_finished = false;
-        if( m_curl ) curl_easy_cleanup( m_curl );
         m_buffers.clear();
     }
     
@@ -116,12 +140,19 @@ public:
         cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << endl;
         m_cond.notify_one();
         if(m_curlres != 0) cout << "Curl error: " << m_curlerror << endl;
+        curl_easy_cleanup( m_curl );
     }
+    
+    const string url() const { return m_url; }
     
 protected:
 
     void do_connect()
     {
+        if(m_thread)
+        {
+            m_thread->join();
+        }
         cout << debug() << endl; 
         reset();
         m_curl = curl_easy_init();
@@ -145,7 +176,7 @@ protected:
         //curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
         m_connected = true; 
         // do the blocking-fetch in a thread:
-        boost::thread t( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
+        m_thread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
     }
     
     CURL *m_curl;
@@ -159,6 +190,7 @@ protected:
     bool m_curl_finished;
     size_t m_bytesreceived;
     char m_curlerror[CURL_ERROR_SIZE];
+    boost::thread * m_thread;
 };
 
 #endif
