@@ -37,7 +37,6 @@ class RS_local_library : public ResolverService
         return 100;
     }
     
-    
     protected:
         MyApplication * app() { return m_app; }
         MyApplication * m_app;

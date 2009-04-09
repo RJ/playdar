@@ -34,9 +34,14 @@ demo::init(playdar::Config * c, Resolver * r)
 void
 demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
+    //Only resolve if we have an artist and track to resolve against.
+    if( rq->param_type("artist") != json_spirit::str_type || !rq->param_exists("artist") ||
+        rq->param_type("track") != json_spirit::str_type || !rq->param_exists("track"))
+        return;
+        
     // we'll only resolve an exact match to one song.
-    if( boost::to_lower_copy(rq->artist())  == "big bad sun" &&
-        boost::to_lower_copy(rq->track())   == "sweet melissa" )
+    if( boost::to_lower_copy(rq->param("artist").get_str())  == "big bad sun" &&
+        boost::to_lower_copy(rq->param("track").get_str())   == "sweet melissa" )
     {
         // PlayableItems represent results - they hold metadata
         // for the track we resolved the search to, and extra data
