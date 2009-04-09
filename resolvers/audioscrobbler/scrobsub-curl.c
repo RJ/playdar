@@ -31,7 +31,6 @@
 #include <libxml/xpath.h>
 
 extern void(*scrobsub_callback)(int event, const char* message);
-static bool scrobsub_finish_auth();
 static char* username = 0;
 static char session_key[33] = "";
 static char* token = 0;
@@ -80,19 +79,17 @@ const char* scrobsub_username()
 
 const char* scrobsub_session_key()
 {
-    if (!session_key[0]){
-        if (token && !scrobsub_finish_auth()){
+    if(!session_key[0]){
+        if(token && !scrobsub_finish_auth()){
             (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, "Could not finish authorization with Last.fm");
             return 0;
         }
-
-        if (!username){
+    
+        FILE* fp = fopen_session_file("r");
+        if(!fp){
             (scrobsub_callback)(SCROBSUB_AUTH_REQUIRED, "");
             return 0;
-        }
-        
-        FILE* fp = fopen_session_file("r");
-        if (!fp) return 0;
+        }        
 
         fread(session_key, sizeof(char), 32, fp);
         fseek(fp, 0, SEEK_END);
@@ -104,6 +101,7 @@ const char* scrobsub_session_key()
 
         session_key[32] = '\0';
         username[n] = '\0';
+
     }
 
     return session_key;
@@ -173,6 +171,9 @@ void scrobsub_auth(char out_url[110])
 //TODO error handling
 bool scrobsub_finish_auth()
 {
+    if(!token) return false; // developer needs to call scrobsub_auth() first
+    if(session_key[0]) return true; // auth already complete
+    
     char sig[7+32+26+32+32+1];
     snprintf(sig, sizeof(sig), "api_key" SCROBSUB_API_KEY "methodauth.getSessiontoken%s" SCROBSUB_SHARED_SECRET, token);
     scrobsub_md5(sig, sig);
