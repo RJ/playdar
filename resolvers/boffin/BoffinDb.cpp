@@ -12,7 +12,7 @@ BoffinDb::BoffinDb(const std::string& boffinDbFilePath, const std::string& playd
 }
 
 boost::shared_ptr<BoffinDb::TagCloudVec> 
-BoffinDb::get_tag_cloud()
+BoffinDb::get_tag_cloud(int limit)
 {
     sqlite3pp::query qry(m_db, 
         "SELECT name, sum(weight), count(weight) FROM track_tag "

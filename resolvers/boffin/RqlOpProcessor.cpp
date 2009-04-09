@@ -27,8 +27,8 @@
 
 using namespace fm::last::query_parser;
 
-template<typename Iterator>
-RqlOpProcessor<Iterator>::RqlOpProcessor(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists)
+
+RqlOpProcessor::RqlOpProcessor(RqlOpProcessor::Iterator begin, RqlOpProcessor::Iterator end, BoffinDb& library, SimilarArtists& similarArtists)
     : m_library(library)
     , m_similarArtists(similarArtists)
     , m_it(begin)
@@ -36,18 +36,16 @@ RqlOpProcessor<Iterator>::RqlOpProcessor(Iterator begin, Iterator end, Library& 
 {
 }
 
-template<typename Iterator>
 void 
-RqlOpProcessor<Iterator>::next()
+RqlOpProcessor::next()
 {
     if (++m_it == m_end) {
         throw "unterminated query. how could the parser do this to us??"; // it's an outrage
     }
 }
 
-template<typename Iterator>
 ResultSetPtr 
-RqlOpProcessor<Iterator>::process()
+RqlOpProcessor::process()
 {
     if (m_it->isRoot) {
         // note the operator type, then move on and get the operands
@@ -60,7 +58,7 @@ RqlOpProcessor<Iterator>::process()
                 return a;
 
             case OT_OR:
-                setop::or(*a, *b);
+                setop::or(*a, *b, 100);
                 return a;
 
             case OT_AND_NOT:
@@ -97,34 +95,11 @@ RqlOpProcessor<Iterator>::process()
     throw "unknown field";
 }
 
-template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor<Iterator>::unsupported()
+RqlOpProcessor::unsupported()
 {
     ResultSetPtr r(new ResultSet());
     return r;
-}
-
-template<typename Iterator>
-ResultSetPtr
-RqlOpProcessor<Iterator>::globalTag()
-{
-    ResultSetPtr rs( new ResultSet() );
-    m_library.filesWithTag(
-        m_it->name.data(), 
-        LocalCollection::AvailableSources, 
-        boost::bind( &ResultSet::insertTrackResult, rs.get(), _1, _2, _3 ) );
-    normalise(m_it->weight, rs);
-    return rs;
-}
-
-
-template<typename Iterator>
-ResultSetPtr
-RqlOpProcessor<Iterator>::userTag()
-{
-    // todo: we have no user tags yet
-    return globalTag();
 }
 
 void insertTrackResult(ResultSet* rs, int track, int artist, float weight)
@@ -132,39 +107,52 @@ void insertTrackResult(ResultSet* rs, int track, int artist, float weight)
     rs->insert(TrackResult(track, artist, weight));
 }
 
-template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor<Iterator>::artist()
+RqlOpProcessor::globalTag()
 {
-    ResultSetPtr rs( new ResultSet() ):
-    m_collection.filesByArtist( 
-        m_it->name.data(), 
-        LocalCollection::AvailableSources,
+    ResultSetPtr rs( new ResultSet() );
+    m_library.files_with_tag(
+        m_it->name, 
+        boost::bind( &insertTrackResult, rs.get(), _1, _2, _3 ) );
+    normalise(m_it->weight, rs);
+    return rs;
+}
+
+ResultSetPtr
+RqlOpProcessor::userTag()
+{
+    // todo: we have no user tags yet
+    return globalTag();
+}
+
+ResultSetPtr
+RqlOpProcessor::artist()
+{
+    ResultSetPtr rs( new ResultSet() );
+    m_library.files_by_artist( 
+        m_it->name, 
         boost::bind( &insertTrackResult, rs.get(), _1, _2, 1.0f) );
     normalise(m_it->weight, rs); 
     return rs;
 }
 
-template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor<Iterator>::similarArtist()
+RqlOpProcessor::similarArtist()
 {
-    ResultSetPtr rs( m_similarArtists.filesBySimilarArtist(m_collection, m_it->name.data()) );
+    ResultSetPtr rs( m_similarArtists.filesBySimilarArtist(m_library, m_it->name.data()) );
     normalise(m_it->weight, rs);
     return rs;
 }
 
 // static
-template<typename Iterator>
 ResultSetPtr
-RqlOpProcessor<Iterator>::process(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists)
+RqlOpProcessor::process(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists)
 {
-    return RqlOpProcessor(begin, end, collection, similarArtists).process();
+    return RqlOpProcessor(begin, end, library, similarArtists).process();
 }
 
-template<typename Iterator>
 void
-RqlOpProcessor<Iterator>::normalise(float weight, ResultSetPtr rs)
+RqlOpProcessor::normalise(float weight, ResultSetPtr rs)
 {
     if (weight < 0.0001) return;
 

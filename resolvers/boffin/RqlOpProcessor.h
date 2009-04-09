@@ -22,15 +22,24 @@
 
 #include "RqlOp.h"
 #include "ResultSet.h"
+#include <vector>
 
-template<typename Iterator>
+class BoffinDb;
+class SimilarArtists;
+
 class RqlOpProcessor
 {
-    Iterator m_it, m_end;
-    class Library& m_library;
-    class SimilarArtists& m_similarArtists;
+public:
+    typedef std::vector<RqlOp>::const_iterator Iterator;
 
-    RqlOpProcessor(Iterator begin, Iterator end, Library& library, SimilarArtists& similarArtists);
+    static ResultSetPtr process(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
+
+private:
+    Iterator m_it, m_end;
+    BoffinDb& m_library;
+    SimilarArtists& m_similarArtists;
+
+    RqlOpProcessor(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
     void next();
     ResultSetPtr process();
     ResultSetPtr unsupported();
@@ -40,10 +49,6 @@ class RqlOpProcessor
     ResultSetPtr similarArtist();
 
     void normalise(float weight, ResultSetPtr rs);
-
-public:
-    static ResultSetPtr process(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
-
 };
 
 #endif
