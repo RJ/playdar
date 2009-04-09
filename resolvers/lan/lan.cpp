@@ -225,10 +225,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     break;
                 }
                 //cout << "lan: Got udp response." <<endl;
-                boost::shared_ptr<PlayableItem> pip;
+                ri_ptr rip;
                 try
                 {
-                    pip = PlayableItem::from_json(resobj);
+                    rip = resolver()->ri_from_json(resobj);
                 }
                 catch (...)
                 {
@@ -242,16 +242,15 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     << sender_endpoint_.port();
                 string url = rbs.str();
                 url += "/sid/";
-                url += pip->id();
+                url += rip->id();
                 boost::shared_ptr<StreamingStrategy> 
                     s(new HTTPStreamingStrategy(url));
-                pip->set_streaming_strategy(s);
+                rip->set_streaming_strategy(s);
                 vector< ri_ptr > v;
-                v.push_back(pip);
+                v.push_back(rip);
                 report_results(qid, v, name());
-                cout    << "INFO Result from '" << pip->source()
-                        <<"' for '"<< pip->artist() <<"' - '"
-                        << pip->track() << "' [score: "<< pip->score() <<"]" 
+                cout    << "INFO Result from '" << rip->source()
+                        <<"' for '"<< write_formatted( rip->get_json())
                         << endl;
             }
             else if(msgtype == "ping")

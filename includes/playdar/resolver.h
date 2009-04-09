@@ -61,6 +61,11 @@ public:
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
+    
+    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
+    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
+    void register_resolved_item( const ri_validator&, const ri_generator& );
+    ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
     ri_ptr get_ri(const source_uid & sid);
@@ -138,6 +143,9 @@ private:
     deque< pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
+    
+    
+    std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
 };
 

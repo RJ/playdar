@@ -2,7 +2,6 @@
 #define __PLAYABLE_ITEM_H__
 #include "playdar/resolved_item.h"
 #include "playdar/config.hpp"
-#include "playdar/streaming_strategy.h"
 #include "playdar/types.h"
 #include "playdar/ss_http.hpp"
 #include "json_spirit/json_spirit.h"
@@ -63,7 +62,7 @@ public:
         return true;
     }
     
-    static boost::shared_ptr<PlayableItem> from_json(json_spirit::Object resobj)
+    static boost::shared_ptr<PlayableItem> from_json( const json_spirit::Object& resobj )
     {
         string artist, album, track, sid, source, mimetype, url;
         int size = 0, bitrate = 0, duration = 0;
@@ -147,21 +146,26 @@ public:
         j.push_back( Pair("url", url())             );
     }
     
-    // setters
-    void set_streaming_strategy(boost::shared_ptr<StreamingStrategy> s)   { m_ss = s; }
-    
     void set_artist(string s)   { m_artist = s; }
     void set_album(string s)    { m_album  = s; }
     void set_track(string s)    { m_track  = s; }
     void set_url(string s)      { m_url    = s; }
-    void set_source(string s)   { m_source = s; }
     void set_mimetype(string s) { m_mimetype = s; }
     void set_duration(int s)    { m_duration = s; }
     void set_tracknum(int s)    { m_tracknum = s; }
     void set_size(int s)        { m_size = s; }
     void set_bitrate(int s)     { m_bitrate = s; }
+    void set_streaming_strategy(boost::shared_ptr<StreamingStrategy> s)   { m_ss = s; }
     
-    // getters
+    const string & artist() const   { return m_artist; }
+    const string & album() const    { return m_album; }
+    const string & track() const    { return m_track; }
+    const string & mimetype() const { return m_mimetype; }
+    const string & url() const      { return m_url; }
+    const int duration() const      { return m_duration; }
+    const int bitrate() const       { return m_bitrate; }
+    const int tracknum() const      { return m_tracknum; }
+    const int size() const          { return m_size; }
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
         // memoized auto-upgrade from an url param -> httpstreamingstrategy:
@@ -169,24 +173,12 @@ public:
         if(!m_ss && m_url.length())
         {
             m_ss = boost::shared_ptr<StreamingStrategy>
-                            (new HTTPStreamingStrategy(m_url));
+            (new HTTPStreamingStrategy(m_url));
         }
         return m_ss; // could be null if not specified.
     }
     
-    const string & artist() const   { return m_artist; }
-    const string & album() const    { return m_album; }
-    const string & track() const    { return m_track; }
-    const string & source() const   { return m_source; }
-    const string & mimetype() const { return m_mimetype; }
-    const string & url() const      { return m_url; }
-    const int duration() const      { return m_duration; }
-    const int bitrate() const       { return m_bitrate; }
-    const int tracknum() const      { return m_tracknum; }
-    const int size() const          { return m_size; }
-    
 private:
-    mutable boost::shared_ptr<StreamingStrategy> m_ss;
     string m_artist;
     string m_album;
     string m_track;
@@ -198,6 +190,8 @@ private:
     int m_tracknum;
     float m_score;
     string m_source;
+    
+    mutable boost::shared_ptr<StreamingStrategy> m_ss;
 };
 #endif
 

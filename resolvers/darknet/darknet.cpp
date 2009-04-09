@@ -315,10 +315,10 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     }
     query_uid qid = r["qid"].get_str();
     Object resobj = r["result"].get_obj();
-    boost::shared_ptr<PlayableItem> pip;
+    ri_ptr rip;
     try
     {
-        pip = PlayableItem::from_json(resobj);
+        rip = resolver()->ri_from_json(resobj);
         
     }
     catch (...)
@@ -327,10 +327,10 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
         return true; // could just be incompatible version, not too bad. don't disconnect.
     }
     boost::shared_ptr<StreamingStrategy> s(
-                            new DarknetStreamingStrategy( this, conn, pip->id() ));
-    pip->set_streaming_strategy(s);
+                            new DarknetStreamingStrategy( this, conn, rip->id() ));
+    rip->set_streaming_strategy(s);
     vector< boost::shared_ptr<ResolvedItem> > vr;
-    vr.push_back(pip);
+    vr.push_back(rip);
     report_results(qid, vr, name());
     // we've already setup a callback, which will be fired when we call report_results.    
     return true;
