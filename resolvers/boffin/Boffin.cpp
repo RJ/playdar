@@ -175,8 +175,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &root2op, 
                 &leaf2op);
             
-            ResultSetPtr results( RqlOpProcessor<std::vector<RqlOp>::iterator>::process(
-                ops.begin(), ops.end(), *m_db, *m_sa) );
+            ResultSetPtr results( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
             // todo: handle results
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());

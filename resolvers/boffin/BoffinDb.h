@@ -43,6 +43,7 @@ public:
         }
     }
 
+    // Functor is: bool parseResultLine(int& fileId, std::vector<Tag>& tags)
     template<typename Functor>
     void update_tags(Functor parseResultLine)
     {
@@ -64,6 +65,18 @@ public:
             }
         }
         xct.commit();
+    }
+
+    // Functor is: void onFile(int track, int artist, float weight)
+    template<typename Functor>
+    void files_with_tag(const std::string& tag, Functor callback)
+    {
+    }
+
+    // Functor is: void onFile(int track, int artist)
+    template<typename Functor>
+    void files_by_artist(const std::string& artist, Functor callback)
+    {
     }
 
 private:
