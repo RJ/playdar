@@ -5,6 +5,10 @@
 #include "RqlOp.h"
 #include "BoffinSample.h"
 #include "SampleAccumulator.h"
+#include "SimilarArtists.h"
+
+#include "playdar/library.h"
+
 
 using namespace fm::last::query_parser;
 
@@ -60,10 +64,15 @@ Boffin::name() const
 bool 
 Boffin::init(playdar::Config* c, Resolver* r)
 {
-    if (!ResolverServicePlugin::init(c, r))
-        return false;
-
+    m_config = c;
+    m_resolver = r;
     m_thread = new boost::thread( boost::bind(&Boffin::thread_run, this) );
+
+    std::string playdarDb = r->app()->library()->dbfilepath();
+    std::string boffinDb = "boffin.db";
+
+    m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
+    m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
     return true;
 }
 
@@ -151,26 +160,14 @@ Boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     queue_work( boost::bind( &Boffin::resolve, this, rq ) );
 }
 
-static
-boost::shared_ptr<PlayableItem> 
-makePlayableItem(const boost::tuple<std::string, float, int>& in)
-{
-    PlayableItem *r = new PlayableItem();
-    boost::shared_ptr<PlayableItem> result(r);
-    assert(!"todo");    // todo. PlayableItem needs generalisation!
-    return result;
-}
-
-static
-boost::shared_ptr<PlayableItem> 
-makePlayableItem(BoffinDb& m_db, const TrackResult& t) 
-{
-    PlayableItem *r = new PlayableItem();
-    boost::shared_ptr<PlayableItem> result(r);
-    assert(!"todo");    // todo. PlayableItem needs generalisation!
-    return result;
-}
-
+//static
+//boost::shared_ptr<TagItem> 
+//makeTagItem(const boost::tuple<std::string, float, int>& in)
+//{
+//    boost::shared_ptr<TagItem> result(new TagItem());
+//    return result;
+//}
+//
 
 void
 Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
@@ -189,16 +186,19 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
             // sample from the rqlResults into our SampleAccumulator:
-            const int pushdown_memory = 4;
-            SampleAccumulator sa(pushdown_memory);
+            const int artist_memory = 4;
+            SampleAccumulator sa(artist_memory);
             boffinSample(limit, *rqlResults, 
                 boost::bind(&SampleAccumulator::pushdown, &sa, _1),
                 boost::bind(&SampleAccumulator::result, &sa, _1));
 
-            // look up results, turn them into PlayableItems
-            std::vector< boost::shared_ptr<PlayableItem> > playables;
+            // look up results, turn them into PlayableItems:
+            std::vector< boost::shared_ptr<ResolvedItem> > playables;
+            Library *library = m_resolver->app()->library();
+            assert(library);
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                playables.push_back( makePlayableItem(*m_db, t) );
+                pi_ptr pip = library->playable_item_from_fid( t.trackId );
+                playables.push_back( pip );
             }
 
             report_results(rq->id(), playables, "Boffin");
@@ -211,7 +211,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         vector< shared_ptr<ResolvedItem> > results;
         typedef tuple<std::string, float, int> Item;
         BOOST_FOREACH(const Item& tag, *tv) {
-            results.push_back( makePlayableItem(tag) );
+//            results.push_back( makeResolvedItem(tag) );
         }
         report_results(rq->id(), results, "Boffin");
     }

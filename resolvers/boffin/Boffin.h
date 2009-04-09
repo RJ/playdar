@@ -59,6 +59,8 @@ private:
 
     /// ] todo: put into its own class
 
+    class playdar::Config* m_config;
+    class Resolver* m_resolver;
     boost::shared_ptr<class SimilarArtists> m_sa;
     boost::shared_ptr<class BoffinDb> m_db;
 };
