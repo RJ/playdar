@@ -56,9 +56,10 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
-ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
+ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
                ${SRC}/scanner/scanner.cpp
-               ${SRC}/library.cpp
+               ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
+               ${SRC}/library.cpp         # because library.cpp uses HTTPStreamingStrategy
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 			  
@@ -69,7 +70,7 @@ TARGET_LINK_LIBRARIES(scanner
                       ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 					  
-ADD_LIBRARY( playdarcore STATIC
+ADD_LIBRARY(playdarcore STATIC
 			${SRC}/application.cpp
 			${SRC}/resolver.cpp
 			${SRC}/resolver_service.cpp
@@ -100,37 +101,11 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
 
-                # sqlite wrapper:
-                #${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
-
-                # json parser:
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
-                #${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
-
                 # moost http:
                 ${DEPS}/moost_http/src/http/filesystem_request_handler.cpp
                 ${DEPS}/moost_http/src/http/mime_types.cpp
                 ${DEPS}/moost_http/src/http/reply.cpp
                 ${DEPS}/moost_http/src/http/request_parser.cpp
-
-                # Portable Dynamic Loader:
-                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
-
-                # Our own misc utils:
-                ${SRC}/utils/base64.cpp
-                ${SRC}/utils/levenshtein.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-                #${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-                #${DEPS}/pdl-0.3.0/src/LoaderException.cpp
               )
 
 TARGET_LINK_LIBRARIES( playdar
@@ -152,7 +127,7 @@ SET(LIBRARY_OUTPUT_PATH "${PLAYDAR_PATH}/plugins")
 
 IF(APPLE)
     SET( PLAYDAR_PLUGIN_LDFLAGS -undefined\ dynamic_lookup )
-ELSE IF(WIN32)
+ELSEIF(WIN32)
     SET( PLAYDAR_PLUGIN_LDFLAGS playdarcore )
 ENDIF(APPLE)
 
