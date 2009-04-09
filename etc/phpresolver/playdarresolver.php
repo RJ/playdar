@@ -43,10 +43,6 @@ abstract class PlaydarResolver
                 'results' => $results,
             );
             $this->sendResponse($response);
-            
-            // After finding results this continues reading and chokes on the input. Could 
-            // be a flaw in my test script that generates the playdar requst, fuck knows, bail.
-            break; 
         }
     }
     
