@@ -18,6 +18,7 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
 bool
 audioscrobbler::init(playdar::Config* c, Resolver* r)
 {
+    if(instance) return false; //loading more than one scrobbling plugin is stupid
     instance = this;
     
     ResolverService::init(c, r);
@@ -29,6 +30,7 @@ void
 audioscrobbler::Destroy()
 {
     scrobsub_stop();
+    instance = 0;
 }
 
 static void start(const playdar_request& rq)
@@ -46,7 +48,6 @@ static void start(const playdar_request& rq)
     scrobsub_start(artist, track, album, duration, track_number, mbid);
 }
 
-#include <sstream>
 static string config(bool auth_required)
 {
     if (!auth_required || scrobsub_finish_auth())
@@ -55,9 +56,7 @@ static string config(bool auth_required)
     
     char url[110];
     scrobsub_auth(url);
-    ostringstream oss;
-    oss << "<p>You need to <a href='" << url << "'>authenticate</a> in order to scrobble.</p>";
-    return oss.str();    
+    return string("<p>You need to <a href='") + url + "'>authenticate</a> in order to scrobble.</p>";
 }
 
 string
