@@ -1,7 +1,6 @@
 #ifndef _PLAYDAR_DARKNET_SERVENT_H_
 #define _PLAYDAR_DARKNET_SERVENT_H_
 
-#include "servent.h"
 #include "darknet.h"
 #include "msgs.h"
 #include "connection.hpp"

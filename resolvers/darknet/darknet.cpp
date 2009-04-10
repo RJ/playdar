@@ -16,6 +16,7 @@
 #include <cassert>
 
 using namespace playdar::resolvers;
+using namespace json_spirit;
 
 bool
 darknet::init(playdar::Config * c, Resolver * r)
