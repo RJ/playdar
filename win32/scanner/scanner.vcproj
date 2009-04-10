@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="scanner"
+	Name="playdar-scanner"
 	ProjectGUID="{0788484F-E6F4-4EED-973F-864896B4F09C}"
 	RootNamespace="scanner"
 	Keyword="Win32Proj"
