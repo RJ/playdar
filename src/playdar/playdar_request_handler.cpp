@@ -1,8 +1,6 @@
-#include "playdar/application.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "json_spirit/json_spirit.h"
 
 #include <boost/foreach.hpp>
 #include <moost/http/filesystem_request_handler.hpp>
@@ -10,6 +8,9 @@
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+
+#include "json_spirit/json_spirit.h"
+#include "playdar/application.h"
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"

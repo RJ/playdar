@@ -1,12 +1,11 @@
 #include "moost/http/filesystem_request_handler.hpp"
+
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <boost/lexical_cast.hpp>
 
 #include "moost/http/mime_types.hpp"
-#include "moost/http/reply.hpp"
-#include "moost/http/request.hpp"
 
 using namespace moost::http;
 

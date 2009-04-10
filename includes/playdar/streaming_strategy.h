@@ -1,5 +1,6 @@
 #ifndef __DELIVERY_STRATEGY_H__
 #define __DELIVERY_STRATEGY_H__
+
 #include <string>
 // Resolvers attach streaming strategies to playable items.
 // they are responsible for getting the bytes from the audio file, which

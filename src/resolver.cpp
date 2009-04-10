@@ -7,6 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/version.hpp>
 
 #include "playdar/resolver.h"
 
@@ -126,9 +127,13 @@ Resolver::load_resolver_scripts()
     string name;
     for(directory_iterator i(etc); i != end; ++i) {
         try {
+#if BOOST_VERSION >= 103600
             string name = i->path().filename();
             string conf = "plugins." + i->path().stem() + '.';
-            
+#else
+            string name = i->path().leaf();
+            string conf = "plugins." + basename(i->path()) + '.';
+#endif
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
             //FIXME more sensible place to put resolving scripts

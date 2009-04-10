@@ -1,16 +1,13 @@
 #ifndef __MYAPPLICATION_H__
 #define __MYAPPLICATION_H__
-// for windows:
-#define NOMINMAX
 
-#include "playdar/config.hpp"
+//#include <boost/asio.hpp>
+//#include <boost/program_options.hpp>
+//#include <boost/thread.hpp>
+
+#include "playdar/config.h"
 #include "playdar/types.h"
 #include "playdar/playable_item.hpp"
-#include <boost/asio.hpp>
-#include <boost/program_options.hpp>
-#include <boost/thread.hpp>
-
-
 //:::
 //#include "playdar/playdar_request_handler.h"
 

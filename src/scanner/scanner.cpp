@@ -1,4 +1,3 @@
-#include "playdar/application.h"
 #include <iostream>
 #include <cstdio>
 
@@ -9,6 +8,8 @@
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
+
+#include "playdar/application.h"
 #include "playdar/library.h"
 
 using namespace std;
@@ -22,7 +23,6 @@ string ext2mime(string ext);
 Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
-
 
 bool scan(const bfs::path &p, map<string,int> & mtimes)
 {
@@ -134,14 +134,13 @@ bool add_file(const bfs::path &p, int mtime)
 }
 
 string ext2mime(string ext)
-{
-    
+{ 
     if(ext==".mp3") return "audio/mpeg";
     if(ext==".aac") return "audio/mp4";
     if(ext==".mp4") return "audio/mp4";
     if(ext==".m4a") return "audio/mp4"; 
     cerr << "Warning, unhandled file extension. Don't know mimetype for " << ext << endl;
-    // generic:
+     //generic:
     return "application/octet-stream";
 }
 
@@ -204,4 +203,3 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
-

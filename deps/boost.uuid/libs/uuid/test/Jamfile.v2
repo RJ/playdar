@@ -1,0 +1,37 @@
+# Copyright 2007 Andy Tompkins.
+# Distributed under the Boost Software License, Version 1.0. (See
+# accompanying file LICENSE_1_0.txt or copy at
+# http://www.boost.org/LICENSE_1_0.txt)
+
+import testing ;
+
+project
+    : requirements 
+      <include>../../..
+    ;
+
+test-suite "uuid"
+    : # make sure uuid.hpp is self-contained
+      [ compile compile_uuid_header.cpp ]
+
+      # I want to look for issues when multiple translation units include uuid.hpp
+      # for example missing inline on non-template functions
+      #[ link test_uuid.cpp compile_uuid_header.cpp : : multiple_translation_units ]
+
+      # main test - added compile_uuid_header.cpp in lue of above test
+      [ unit-test test_uuid : test_uuid.cpp compile_uuid_header.cpp ]
+
+      # test serializing uuids
+      [ unit-test test_serialization
+        : test_serialization.cpp ../../serialization/build//boost_serialization
+      ]
+      [ unit-test test_wserialization
+        : test_wserialization.cpp
+          ../../serialization/build//boost_serialization
+          ../../serialization/build//boost_wserialization
+        : <dependency>../../config/test/all//BOOST_NO_STD_WSTREAMBUF
+      ]
+
+      # test sha1 hash function
+      [ unit-test test_sha1 : test_sha1.cpp ]
+    ;

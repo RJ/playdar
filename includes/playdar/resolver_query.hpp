@@ -3,7 +3,7 @@
 
 //#include "playdar/application.h"
 #include "playdar/types.h"
-#include "playdar/config.hpp"
+#include "playdar/config.h"
 #include "playdar/playable_item.hpp"
 
 #include "json_spirit/json_spirit.h"

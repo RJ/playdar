@@ -13,8 +13,6 @@
 #include <vector>
 #include <iostream>
 
-
-
 namespace playdar {
 namespace resolvers {
 
@@ -79,7 +77,6 @@ class rs_script : public ResolverService
         boost::condition m_cond_settings;
 };
 
-
-
 }}
-#endif
+
+#endif // __RS_HTTP_rs_script_H__

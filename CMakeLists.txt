@@ -52,6 +52,7 @@ ENDIF(APPLE)
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL
                ${SRC}/scanner/scanner.cpp
                ${SRC}/library.cpp
+               ${SRC}/config.cpp               
                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
               )
 TARGET_LINK_LIBRARIES(scanner 
@@ -72,6 +73,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_local_library.cpp
                 ${SRC}/rs_script.cpp
                 ${SRC}/library.cpp
+                ${SRC}/config.cpp
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
@@ -106,7 +108,7 @@ TARGET_LINK_LIBRARIES( playdar
                        ${SQLITE3_LIBRARIES}   # public domain
                        #${URIPARSER_LIBRARIES} # BSD
                        uriparser
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
+                       #${OSSPUUID_LIBRARIES}  # BSD-like
                        ${Boost_REGEX_LIBRARY} # Boost license
                        ${Boost_SYSTEM_LIBRARY}
                        ${Boost_FILESYSTEM_LIBRARY} 

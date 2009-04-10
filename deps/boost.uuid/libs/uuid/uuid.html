@@ -1,0 +1,509 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<title>Uuid Library</title>
+</head>
+<body>
+<h1><img src="../../boost.png" alt="boost.png (6897 bytes)"
+     align="center" WIDTH="277" HEIGHT="86">
+Uuid</h1>
+
+<h2><a name="Contents">Contents</h2>
+
+<ol>
+    <li><a href="#Library uuid synopsis">Library uuid synopsis</a></li>
+    <ul>
+        <li><a href="#uuid">boost/uuid/uuid.hpp</a></li>
+        <li><a href="#uuid_namespaces">boost/uuid/uuid_namespaces.hpp</a></li>
+        <li><a href="#uuid_io">boost/uuid/uuid_io.hpp</a></li>
+        <li><a href="#random_generator">boost/uuid/random_generator.hpp</a></li>
+        <li><a href="#sha1_generator">boost/uuid/sha1_generator.hpp</a></li>
+        <li><a href="#e2fsprogs_generator">boost/uuid/e2fsprogs_generator.hpp</a></li>
+        <li><a href="#windows_generator">boost/uuid/windows_generator.hpp</a></li>
+    </ul>
+    <li><a href="#Rationale">Rationale</a></li>
+    <li><a href="#Interface">Interface</a></li>
+    <ul>
+        <li><a href="#POD">Plain Old Data</a></li>
+        <li><a href="#Operators">Operators</a></li>
+        <li><a href="#Input and Output">Input and Output</a></li>
+        <li><a href="#Representation">Representation</a></li>
+        <li><a href="#Nullness">Nullness</a></li>
+        <li><a href="#ByteExtraction">Byte Extraction</a></li>
+        <li><a href="#Hash">Hash Function</a></li>
+        <li><a href="#StreamManipulators">Stream Manipulators</a></li>
+        <li><a href="#Creation">Creation</a></li>
+    </ul>
+    <li><a href="#Serialization">Serialization</a></li>
+    <li><a href="#Exceptions">Exceptions</a></li>
+    <li><a href="#Design notes">Design notes</a></li>
+    <li><a href="#References">References</a></li>
+    <li><a href="#History and Acknowledgements">History and Acknowledgements</a></li>
+</ol>
+
+<h2><a name="Library uuid synopsis">Library uuid synopsis</h2>
+
+<h3><a name="">boost/uuid.hpp</h3>
+<pre>
+
+#include &lt;boost/uuid/uuid.hpp&gt;
+#include &lt;boost/uuid/uuid_io.hpp&gt;
+#include &lt;boost/uuid/random_generator.hpp&gt;
+#include &lt;boost/uuid/sha1_generator.hpp&gt;
+#ifdef BOOST_HAS_E2FSPROGS // FIXME
+#include &lt;boost/uuid/e2fsprogs_generator.hpp&gt;
+#endif
+#ifdef BOOST_HAS_WINDOWS // FIXME
+#include &lt;boost/uuid/windows_generator.hpp&gt;
+#endif
+
+</pre>
+
+<h3><a name="uuid">boost/uuid/uuid.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+class uuid {
+public:
+    typedef uint8_t value_type;
+    typedef <i>unspecified</i> iterator;
+    typedef <i>unspecified</i> const_iterator;
+    typedef <i>unspecified</i> difference_type;
+    typedef <i>unspecified</i> size_type;
+
+    // POD, so only default constructors and such
+    
+    // Nullness
+    operator unspecified_bool_type() const;
+    bool operator!() const;
+    
+    // Subtype Information
+    enum variant_type {variant_ncs = 0,
+                       variant_dce = 1, 
+                       variant_rfc_4122 = variant_dce,
+                       variant_microsoft = 2, 
+                       variant_other = 3}; 
+    variant_type variant() const;
+    enum version_type {version_wrong_variant = -1,
+                       version_unknown = 0,
+                       version_1 = 1,
+                       version_time_based = version_1,
+                       version_2 = 2,
+                       version_dce_security = version_2,
+                       version_3 = 3,
+                       version_name_based_md5 = version_3,
+                       version_4 = 4,
+                       version_random = version_4,
+                       version_5 = 5,
+                       version_name_based_sha1 = version_5};
+    version_type version() const;
+    
+    // Byte Extractioin
+    static size_type size();
+    const_iterator begin() const;
+    const_iterator end() const;
+
+    // Byte Editing        
+    iterator begin();
+    iterator end();
+    template <typename ByteInputIterator>
+    ByteInputIterator assign(ByteInputIterator first, ByteInputIterator last); // MUST have 16 bytes available
+
+    // Swap function
+    void swap(uuid &rhs);
+
+};
+
+// Swap function
+void swap(uuid &x, uuid &y);
+
+// Comparison Operators
+bool operator==(uuid const& lhs, uuid const& rhs); /* throw() */
+bool operator!=(uuid const& lhs, uuid const& rhs); /* throw() */
+
+bool operator<(uuid const& lhs, uuid const& rhs); /* throw() */
+bool operator>(uuid const& lhs, uuid const& rhs); /* throw() */
+bool operator<=(uuid const& lhs, uuid const& rhs); /* throw() */
+bool operator>=(uuid const& lhs, uuid const& rhs); /* throw() */
+
+// Hash function
+std::size_t hash_value(uuid const& u);
+
+// As named in RFC 4122, 4.1.7 
+uuid nil() {
+    uuid u = uuid();
+    return u;
+}
+
+} // namespace uuids
+
+using uuids::uuid;
+
+} // namespace boost
+
+</pre>
+
+<h3><a name="uuid_namespaces">boost/uuid/uuid_namespaces.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+// Predefined UUIDs
+
+// RFC 4122, Appendix C
+namespace namespaces {
+
+    /* Name string is a fully-qualified domain name */
+    uuid dns();
+
+    /* Name string is a URL */
+    uuid url();
+
+    /* Name string is an ISO OID */
+    uuid oid();
+
+    /* Name string is an X.500 DN (in DER or a text output format) */
+    uuid x500();
+
+} //namespace namespaces
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h3><a name="uuid_io">boost/uuid/uuid_io.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+// Formatting
+inline bool get_showbraces(std::ios_base & iosbase);
+inline void set_showbraces(std::ios_base & iosbase, bool showbraces);
+
+// Stream Manipulators
+inline std::ios_base& showbraces(std::ios_base& iosbase);
+inline std::ios_base& noshowbraces(std::ios_base& iosbase);
+
+// Stream Insertion and Extraction
+template &lt;typename ch, typename char_traits&gt;
+    std::basic_ostream&lt;ch, char_traits&gt;& operator&lt;&lt;(std::basic_ostream&lt;ch, char_traits&gt; &os, uuid const& u);
+
+template &lt;typename ch, typename char_traits&gt;
+    std::basic_istream&lt;ch, char_traits&gt;& operator&gt;&gt;(std::basic_istream&lt;ch, char_traits&gt; &is, uuid &u);
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h3><a name="random_generator">boost/uuid/random_generator.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+template &lt;typename UniformRandomNumberGenerator = mt19937>
+class random_generator
+{
+public:
+    typedef uuid result_type;
+
+    random_generator(); // Auto-seed
+
+    explicit random_generator(UniformRandomNumberGenerator rng);
+
+    // Information about generated UUIDs
+    static uuid::variant_type variant() { return uuid::variant_rfc_4122; }
+    static uuid::version_type version() { return uuid::version_random; }
+
+    // Generate
+    uuid operator()();
+
+};
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h3><a name="sha1_generator">boost/uuid/sha1_generator.hpp</a></h3>
+<pre>
+
+#include &lt;boost/uuid/uuid_namespaces.hpp>
+
+namespace boost {
+namespace uuids {
+
+class sha1_generator
+{
+public:
+    typedef uuid result_type;
+
+    // Construct with a namespace -- often from boost::uuids::namespaces
+    explicit sha1_generator(uuid namespace_uuid);
+
+    // Information about generated UUIDs
+    static uuid::variant_type variant() { return uuid::variant_rfc_4122; }
+    static uuid::version_type version() { return uuid::version_name_based_sha1; }
+
+    // Generate, for the specified name
+    template &lt;typename ByteInputIterator>
+    uuid operator()(ByteInputIterator begin, ByteInputIterator end);
+    uuid operator()(char const *data, std::size_t data_length);
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h3><a name="e2fsprogs_generator">boost/uuid/e2fsprogs_generator.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+struct e2fsprogs_default;
+struct e2fsprogs_random;
+struct e2fsprogs_time;
+
+// If you use (not just include) this, then you need to link with libuuid
+
+template &lt;typename Strategy = e2fsprogs_default>
+class e2fsprogs_generator : Strategy
+{
+public:
+    typedef uuid result_type;
+
+    uuid operator()()
+    {
+        uuid u;
+        Strategy::generate(&*u.begin());
+        return u;
+    }
+};
+
+#ifndef BOOST_UUID_NATIVE_GENERATOR_DEFINED
+#define BOOST_UUID_NATIVE_GENERATOR_DEFINED
+typedef e2fsprogs_generator&lt;> native_generator;
+#endif
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h3><a name="windows_generator">boost/uuid/windows_generator.hpp</a></h3>
+<pre>
+
+namespace boost {
+namespace uuids {
+
+class windows_generator
+{
+public:
+    typedef uuid result_type;
+
+    // Generate with ::UuidCreate
+    uuid operator()();
+};
+
+#ifndef BOOST_UUID_NATIVE_GENERATOR_DEFINED
+#define BOOST_UUID_NATIVE_GENERATOR_DEFINED
+typedef windows_generator<> native_generator;
+#endif
+
+}} // namespace boost::uuids
+
+</pre>
+
+<h2><a name="Rationale">Rationale</h2>
+
+A UUID, or Universally unique identifier, is indended to uniquely identify 
+information in a distributed environment without significant central 
+coordination.  It can be used to tag objects with very short lifetimes, or 
+to reliably identify very persistent objects across a network.
+<p>
+UUIDs have many applications.  Some examples follow:  Databases may use UUIDs 
+to identify rows or records in order to ensure that they are unique across 
+different databases, or for publication/subscription services.  Network messages 
+may be identified with a UUID to ensure that different parts of a message are put 
+back together again.  Distributed computing may use UUIDs to identify a remote 
+procedure call.  Transactions and classes involved in serialization may be 
+identified by UUIDs.  Microsoft's component object model (COM) uses UUIDs to 
+distinguish different software component interfaces.  UUIDs are inserted into 
+documents from Microsoft Office programs.  UUIDs identify audio or 
+video streams in the Advanced Systems Format (ASF).  UUIDs are also a basis 
+for OIDs (object identifiers), and URNs (uniform resource name).
+
+<p>
+An attractive feature of UUIDs when compared to alternatives is their relative 
+small size, of 128-bits, or 16-bytes.  Another is that the creation of UUIDs 
+does not require a centralized authority.
+
+<h2><a name="Interface">Interface</h2>
+
+<h3><a name="POD">Plain Old Data</h3>
+<b>Uuid</b>s are POD types, so they have no user-defined constructors.
+
+<p>This implies that the following statements are valid:
+
+<pre>
+    boost::uuids::uuid u1;
+    boost::uuids::uuid u2(u1);
+    boost::uuids::uuid u3 = boost::uuids::uuid();
+    boost::uuids::uuid u4 = {0x12, 0x23, 0x45, 0x67, 
+                             0x89, 0xAB, 0xCD, 0xEF,
+                             0x01, 0x23, 0x45, 0x67, 
+                             0x89, 0xAB, 0xCD, 0xEF};
+</pre>
+
+<h3><a name="Operators">Operators</h3>
+All of the standard numeric operators are defined for the <b>uuid</b>
+class:
+<br>
+
+<pre>
+    ==   !=
+    &lt;    &gt;
+    &lt;=   &gt;=
+</pre>
+
+<h3><a name="Input and Output">Input and Output</h3>
+Input and output operators <tt>&lt;&lt;</tt> and <tt>&gt;&gt;</tt>
+are provided. The external representation of a <b>uuid</b> is a string of 
+hexidecimal digits of the following forms:
+<br>
+hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh
+<br>
+{hhhhhhhh-hhhh-hhhh-hhhh-hhhhhhhhhhhh}
+
+<p>For input, either is accepted regardless of manipulator setting.  As such, <tt>boost::lexical_cast</tt> can be used from either form, if you wish to initialize from strings:
+<pre>
+boost::uuid u1 = boost::lexical_cast&lt;boost::uuid&gt;("01234567-89ab-cdef-0123-456789abcdef");
+boost::uuid u2 = boost::lexical_cast&lt;boost::uuid&gt;("{01234567-89ab-cdef-0123-456789abcdef}");
+// u1 == u2
+</pre>
+
+<h3><a name="Representation">Representation</h3>
+The internal representation follows <a href="http://www.faqs.org/rfcs/rfc4122.html">RFC 4122</a>, section 4.1.2, Layout and Byte Order.  As the uuid type is a POD, you can portably dump them straight to and from files and used them out of memory mapped files.
+
+<h3><a name="Nullness">Nullness</h3>
+The <tt>boost::uuids::uuid::operator!()</tt> returns true if and 
+only if the <b>uuid</b> is equal to {00000000-0000-0000-0000-000000000000}. 
+The <tt>boost::uuids::uuid::operator <i>unspecified_bool_type</i>()</tt> returns the opposite.
+
+<h3><a name="ByteExtraction">Byte Extraction & Editing</h3>
+These functions are useful to get at the 16 bytes of a <b>uuid</b>.
+
+<p>Note that the <tt>assign</tt> function <i>requires</i> that the iterator range have a size of at least 16.
+
+<p>Note: <tt>boost::uuids::uuid::size()</tt> always returns 16.
+
+<h3><a name="Hash">Hash Function</h3>
+This function allows <b>uuid</b>s to be used with 
+<a href="http://www.boost.org/doc/html/hash.html"><b>boost::hash</b></a>
+
+<pre>
+boost::hash&lt;boost::uuids::uuid&gt; uuid_hasher;
+std::size_t uuid_hash_value = uuid_hasher(boost::uuids::uuid());
+</pre>
+
+<h3><a name="StreamManipulators">Stream Manipulators</h3>
+
+These functions manipulate the flag to delimit the <b>uuid</b> with braces.  The default 
+is not to delimit the <b>uuid</b> with braces, (<tt>boost::uuids::noshowbraces</tt>).
+
+<pre>
+boost::uuids::uuid u;
+std::cout << boost::uuids::showbraces << u;
+// output "{00000000-0000-0000-0000-000000000000}"
+</pre>
+
+<h3><a name="Creation">Creation</h3>
+Four types of <b>uuid</b>s can be created: predefined, random number based, 
+name based, and native.
+
+<p>Predefined UUIDs are created with the functions in <tt>boost::uuids::namespaces</tt>, as well as with <tt>boost::uuids::nil()</tt> for the Nil UUID (RFC 4122, section 4.1.7).
+
+<p>Random number based <b>uuid</b>s are created with a generator function object, 
+<tt>boost::uuids::random_generator&lt;RNG&gt;</tt>.  It uses a random number generator 
+(one that conforms to the <a href="http://www.boost.org/libs/random/random-concepts.html#uniform-rng">UniformRandomNumberGenerator</a>
+concept to produce the random numbers it needs to create the <b>uuid</b>.
+If you do not pass an instance of the chosen (P)RNG to the generator's constructor,
+it is seeded with a SHA-1 hash of a number of different values including
+<tt>std::time(0)</tt>, <tt>std::clock()</tt>, uninitialized data, value return from 
+<tt>new unsigned int</tt>, etc..
+
+<pre>
+boost::uuids::random_generator&lt;&gt; gen1;
+boost::uuids::uuid u1 = gen1();
+
+boost::lagged_fibonacci44497 rng;
+boost::uuids::random_generator&lt;boost::lagged_fibonacci44497&> gen2(rng);
+boost::uuids::uuid u2 = gen2();
+</pre>
+
+<p>Name based <b>uuid</b>s are created with a generator function object,
+<tt>boost::uuids::sha1_generator</tt>.  Each instance must be constructed with a namespace UUID (such as those in <tt>boost::uuids::namespaces</tt>), and then the name is given as a range of byte input iterators.
+
+<pre>
+boost::uuids::sha1_generator gen(namespaces::dns());
+std::string name = "www.widgets.com";
+boost::uuids::uuid u = gen(name.begin(), name.end());
+assert(u == boost::lexical_cast&lt;boost::uuids::uuid&gt;("21f7f8de-8051-5b89-8680-0195ef798b6a"));
+</pre>
+
+<p>Native UUIDs are created bwith generator function objects that call external library functions.  Currently there are 2 provided: For Linux, <tt>e2fsprogs_generator</tt> uses the libuuid library provided with the ext2 filesystem toolkit; For Windows, <tt>windows_generator</tt> uses the <tt>UuidCreate</tt> function from <tt>rpc.h</tt>. The <tt>e2fsprogs_generator</tt> allows you to specify a policy to of <tt>uuids::e2fsprogs_time</tt> or <tt>uuids::e2fsprogs_random</tt> to override the default (<tt>uuids::e2fsprogs_default</tt>) which chooses one at runtime based on available randomness sources. <tt>uuids::e2fsprogs_generator&lt;uuids::e2fsprogs_time&gt;</tt> is currently the only generator that will produce time-based, version 1 UUIDs.
+
+<pre>
+boost::uuids::e2fsprogs_generator&lt;boost::uuids::e2fsprogs_time&gt; gen1;
+uuid u1 = gen1();
+
+boost::uuids::windows_generator gen2;
+uuid u2 = gen2();
+</pre>
+
+<h2><a name="Serialization">Serialization</h2>
+Serialization is accomplished with the <a href="http://www.boost.org/libs/serialization/doc/index.html">
+Boost Serialization</a> library.  A <b>uuid</b> is serialized as a 
+<a href="http://www.boost.org/libs/serialization/doc/serialization.html#primitiveoperators">
+primitive type</a>, thus only the <b>uuid</b> value will be saved to/loaded from an archive.
+<p>
+Include <a href="../../boost/uuid/uuid_serialize.hpp"><tt>boost/uuid/uuid_serialize.hpp</tt></a> to enable serialization for <b>uuid</b>s.
+
+<h2><a name="Exceptions">Exceptions</h2>
+An exception may be thrown 
+from the stream operators if an error occurs and the stream is set up to throw 
+exceptions.  All other functions never throw exceptions.
+
+<h2><a name="Design notes">Design notes</h2>
+The document,<a href=http://www.itu.int/ITU-T/studygroups/com17/oid/X.667-E.pdf>
+http://www.itu.int/ITU-T/studygroups/com17/oid/X.667-E.pdf</a>, was used to design 
+and implement the <b>boost::uuids::uuid</b> class.
+
+<p>All functions are re-entrant.  Classes are as thread-safe as an int; An 
+instance can not be shared between threads without proper synchronization.
+
+<h2><a name="References">References</h2>
+<ul>
+<li>The uuid headers: <a href="../../boost/uuid/">boost/uuid/</a>
+<li>The test code: <a href="./test/test_uuid.cpp">test_uuid.cpp</a>, 
+<a href="./test/test_serialization.cpp">test_serialization.cpp</a>,
+<a href="./test/test_sha1.cpp">test_sha1.cpp</a>
+</ul>
+
+<h2><a name="History and Acknowledgements">History and Acknowledgements</h2>
+
+A number of people on the <a href="http://www.boost.org/">boost.org</a> 
+mailing list provided useful comments.
+
+<p>Revised&nbsp; October 12, 2008</p>
+
+<hr>
+<p>© Copyright Andy Tompkins, 2006</p>
+<p>© Copyright Scott McMurray, 2008</p>
+<p> Distributed under the Boost Software 
+License, Version 1.0. (See accompanying file <a href="../../LICENSE_1_0.txt">LICENSE_1_0.txt</a> or copy at <a href="http://www.boost.org/LICENSE_1_0.txt">
+www.boost.org/LICENSE_1_0.txt</a>)</p>
+</body>
+</html>

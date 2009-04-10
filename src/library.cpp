@@ -1,16 +1,23 @@
-#include "playdar/application.h"
-#include <iostream>
-#include <stdio.h>
-#include <sstream>
 #include "playdar/library.h"
+
+//#include <boost/asio.hpp>
+
+#include <iostream>
+#include <cstdio>
+#include <sstream>
+
 #include <boost/foreach.hpp>
-#include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
-
+#include "playdar/application.h"
+#include "playdar/playable_item.hpp"
 
 using namespace std;
 
+Library::~Library()
+{
+    cout << "DTOR library" << endl;
+}
 
 bool
 Library::remove_file( string path )
@@ -44,7 +51,6 @@ Library::add_dir(string path, int mtime)
     return cmd.execute();        
 }
 
-
 int 
 Library::add_file(  string path, int mtime, int size, string md5, string mimetype,
                     int duration, int bitrate,
@@ -65,7 +71,7 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
         cerr<<"Error inserting into file table"<<endl;
         return 0;
     }
-    fileid = m_db.last_insert_rowid();
+    fileid = static_cast<int>( m_db.last_insert_rowid() );
     int artid = get_artist_id(artist);
     if(artid<1){
         return 0;
@@ -115,7 +121,7 @@ Library::get_artist_id(string name_orig)
         cerr << "Failed to insert artist: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_artistcache[sortname]=id;
     return id;
@@ -149,7 +155,7 @@ Library::get_track_id(int artistid, string name_orig)
         cerr << "Failed to insert track: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_trackcache[artistid][sortname]=id;
     return id;
@@ -183,7 +189,7 @@ Library::get_album_id(int artistid, string name_orig)
         cerr << "Failed to insert album: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_albumcache[artistid][sortname]=id;
     return id;
@@ -293,11 +299,6 @@ Library::list_artist_tracks(artist_ptr artist)
     return results;
 }
 
-
-
-
-
-
 vector<int>
 Library::get_fids_for_tid(int tid)
 {
@@ -367,9 +368,9 @@ Library::ngrams(string str_orig)
     map<string,int> m;
     //TODO trim etc
     string str = " " +sortname(str_orig) +" ";
-    int num = str.length() - (n-1);
+    size_t num = str.length() - (n-1);
     string ngram;
-    for(int j = 0; j<num; j++){
+    for(size_t j = 0; j < num; j++){
          ngram = str.substr(j, n);
          if(m[ngram]) m[ngram]++;
          else m[ngram]=1;
@@ -443,9 +444,6 @@ Library::playable_item_from_fid(int fid)
     return pip;
 }
             
-            
-            
-
 // get mtimes of all filesnames scanned
 map<string, int>
 Library::file_mtimes()
@@ -472,7 +470,6 @@ Library::db_get_one(string sql, T def)
     }
     return def;
 }
-
 
 string
 Library::get_name(string table, int id)
@@ -503,7 +500,6 @@ Library::sortname(string name)
     return data;
 }
 
-
 // CATALOGUE LOADING (TODO) some factory of singletons->shared pointers, so only one lookup
 // and one instance of each artist, album, track exists at any one time. boost pool maybe.
 
@@ -520,6 +516,7 @@ Library::load_artist(string n)
     }
     return ptr;
 }
+
 artist_ptr
 Library::load_artist(int n)
 {
@@ -532,7 +529,6 @@ Library::load_artist(int n)
     }
     return ptr;
 }
-
 
 track_ptr
 Library::load_track(artist_ptr artp, string n)
@@ -548,6 +544,7 @@ Library::load_track(artist_ptr artp, string n)
     }
     return ptr;
 }
+
 track_ptr
 Library::load_track(int n)
 {
@@ -560,7 +557,6 @@ Library::load_track(int n)
     }
     return ptr;
 }
-
 
 album_ptr
 Library::load_album(artist_ptr artp, string n)
@@ -589,6 +585,3 @@ Library::load_album(int n)
     }
     return ptr;
 }
-
-
-

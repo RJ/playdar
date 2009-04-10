@@ -1,10 +1,12 @@
 #ifndef __HTTP_STRAT_H__
 #define __HTTP_STRAT_H__
+
 #include <boost/asio.hpp>
-#include "playdar/streaming_strategy.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 
 #include "playdar/utils/base64.h"
+#include "playdar/streaming_strategy.h"
 
 using namespace boost::asio::ip;
 /*
@@ -19,31 +21,31 @@ class HTTPStreamingStrategy : public StreamingStrategy
 {
 public:
 
-    HTTPStreamingStrategy(string url)
+    HTTPStreamingStrategy(std::string url)
     {   
         reset();
         if(!parse_url(url)) throw;
     }
     
-    HTTPStreamingStrategy(string host, unsigned short port, string url)
+    HTTPStreamingStrategy(std::string host, unsigned short port, std::string url)
         : m_host(host), m_url(url), m_port(port)
     {
         reset();
     }
     
-    bool parse_url(string url)
+    bool parse_url(std::string url)
     {
         boost::regex re("http://(.*@)?(.[^/^:]*)\\:?([0-9]*)/(.*)");
         boost::cmatch matches;
         if(boost::regex_match(url.c_str(), matches, re))
         {
             m_host = matches[2];
-            unsigned int colpos;
+            size_t colpos;
             // does it start with user:pass@ (ie, http basic auth)
             if( matches[1] != "" )
             {
-                string authbit = matches[1]; // user:pass@
-                string username, password;
+                std::string authbit = matches[1]; // user:pass@
+                std::string username, password;
                 colpos = authbit.find(':');
                 if(colpos == authbit.npos)
                 {
@@ -56,7 +58,7 @@ public:
                     password = authbit.substr(colpos+1, authbit.length()-colpos-2);
                 }
                 // construct basic auth header
-                string h = "Authorization: Basic " +
+                std::string h = "Authorization: Basic " +
                                 playdar::utils::base64_encode
                                        (username + ":" + password);
                 extra_headers().push_back(h);
@@ -65,30 +67,32 @@ public:
                 ? 80 // default when port not specified
                 : boost::lexical_cast<int>(matches[3]);
             m_url = "/" + matches[4];
-            cout << "URL: " << m_host << ":" << m_port << " " << m_url << endl;
+            std::cout << "URL: " << m_host << ":" << m_port << " " << m_url << std::endl;
             return true;
         }
         else
         {
-            cerr << "Invalid URL: " << url << endl;
+            std::cerr << "Invalid URL: " << url << std::endl;
             return false;
         }
     }
 
     ~HTTPStreamingStrategy(){  }
     
-    vector<string> & extra_headers() { return m_extra_headers; }
+    std::vector<std::string>& extra_headers() { return m_extra_headers; }
 
+    // this should return size_t, really (as well as having size of the same type).. 
     int read_bytes(char * buf, int size)
     {
         if(!m_connected) do_connect();
         if(!m_connected)
         {
-            cout << "Failed to fetch over http" << endl;
+            std::cout << "Failed to fetch over http" << std::endl;
             reset();
             return 0;
         }
-        int p = m_partial.length();
+
+        int p = static_cast<int>( m_partial.length() );
         if(p)
         {
             if(p <= size)
@@ -99,7 +103,7 @@ public:
                 return p;
             }else{
                 memcpy(buf, m_partial.c_str(), size);
-                m_partial = m_partial.substr(size-1, string::npos);
+                m_partial = m_partial.substr(size-1, std::string::npos);
                 m_bytesreceived+=size;
                 return size;
             }
@@ -110,25 +114,25 @@ public:
         if (error == boost::asio::error::eof)
         {
             m_bytesreceived+=len;
-            cout << "Clean shutdown, bytes recvd: " << m_bytesreceived << endl;
+            std::cout << "Clean shutdown, bytes recvd: " << m_bytesreceived << std::endl;
             reset();
-            return len; // Connection closed cleanly by peer.
+            return static_cast<int>(len); // Connection closed cleanly by peer.
         }
         else if (error)
         {
             m_bytesreceived+=len;
-            cout << "Unclean shutdown, bytes recvd: " << m_bytesreceived << endl;
+            std::cout << "Unclean shutdown, bytes recvd: " << m_bytesreceived << std::endl;
             reset();
             throw boost::system::system_error(error); // Some other error.
         }   
-        return len;
+        return static_cast<int>(len);
     }
 
     
-    string debug()
+    std::string debug()
     { 
-        ostringstream s;
-        s<< "HTTPStreamingStrategy( host='"<<m_host<<"' port='"<<m_port<<"' url='"<<m_url<<"')";
+        std::ostringstream s;
+        s << "HTTPStreamingStrategy( host='" << m_host << "' port='" << m_port << "' url='" << m_url << "')";
         return s.str();
     }
     
@@ -147,7 +151,7 @@ private:
 
     void do_connect()
     {
-        cout << debug() << endl; 
+        std::cout << debug() << std::endl; 
 
         tcp::resolver resolver(m_io_service);
         tcp::endpoint ep;
@@ -180,16 +184,16 @@ private:
 
         boost::system::error_code werror;
 
-        ostringstream rs;
+        std::ostringstream rs;
         rs  << "GET " << m_url << " HTTP/1.0\r\n"
-            << "Host: " <<m_host<<":"<<m_port<<"\r\n"
+            << "Host: " << m_host <<":"<< m_port <<"\r\n"
             << "Accept: */*\r\n"
             << "Connection: close\r\n";
         // don't send extra headers if we are redirected, to avoid leaking
         // auth details or cookies to other domains.
         if(m_numredirects==0)
         {
-            BOOST_FOREACH(string & extra_header, m_extra_headers)
+            BOOST_FOREACH( std::string& extra_header, m_extra_headers )
             {
                 rs << extra_header << "\r\n";
             }
@@ -200,7 +204,7 @@ private:
         boost::asio::write(*m_socket, boost::asio::buffer(rs.str()), boost::asio::transfer_all(), werror);
         if(werror)
         {
-            cerr << "Error making request" << endl;
+            std::cerr << "Error making request" << std::endl;
             throw boost::system::system_error(werror);
             return;
         }
@@ -224,18 +228,18 @@ private:
         // Read the response headers, which are terminated by a blank line.
         boost::asio::read_until(*m_socket, response, "\r\n\r\n");
 
-        cout << "Status code: " << status_code << endl
-             << "Status message: " << status_message << endl;
+        std::cout << "Status code: " << status_code << std::endl
+                  << "Status message: " << status_message << std::endl;
         // Process the response headers.
-        map<string,string> headers;
+        std::map<std::string, std::string> headers;
         std::string line;
         while (std::getline(response_stream, line) && line!= "\r")
         {
             size_t offset = line.find(':');
-            string key = boost::to_lower_copy(line.substr(0,offset));
-            string value = boost::trim_copy(line.substr(offset+1));
+            std::string key = boost::to_lower_copy(line.substr(0,offset));
+            std::string value = boost::trim_copy(line.substr(offset+1));
             headers[key]=value;
-            cout << "'"<< key <<"' = '" << value << "'" << "\n";
+            std::cout << "'"<< key <<"' = '" << value << "'" << "\n";
         }
         
         // was it a redirect?
@@ -243,27 +247,27 @@ private:
         {
             if(headers.find("location")==headers.end())
             {
-                cerr << "HTTP redirect given with no Location header!" 
-                     << endl;
+                std::cerr << "HTTP redirect given with no Location header!" 
+                          << std::endl;
                 return;
             }
             if(m_numredirects++==3)
             {
-                cerr << "HTTP Redirect limit of 3 reached. Failed." 
-                     << endl;
+                std::cerr << "HTTP Redirect limit of 3 reached. Failed." 
+                          << std::endl;
                 return;
             }
             
-            string newurl = headers["location"];
+            std::string newurl = headers["location"];
             if(newurl.at(0)=='/')
             {
                 // if it starts with / it's on same domain, rebuild full url
-                ostringstream oss;
+                std::ostringstream oss;
                 oss << "http://" << m_host << ":" << m_port 
                     << headers["location"];
                 newurl = oss.str();
             }
-            cout << "Following HTTP redirect to: " << newurl << endl;
+            std::cout << "Following HTTP redirect to: " << newurl << std::endl;
             // recurse - this resets connection and tries again.
             parse_url(newurl);
             do_connect();
@@ -275,8 +279,8 @@ private:
         {
             if(boost::to_lower_copy(headers["content-type"]) == "text/html")
             {
-                cout << "Page claims 200 OK but is HTML -> pretend it's 404." 
-                     << endl;
+                std::cout << "Page claims 200 OK but is HTML -> pretend it's 404." 
+                     << std::endl;
                 status_code = 404;
             }
         }
@@ -284,17 +288,17 @@ private:
         
         if (status_code != 200)
         {
-            cerr << "HTTP status code " << status_code << " was not OK\n";
+            std::cerr << "HTTP status code " << status_code << " was not OK\n" << std::endl;
             return;
         }
         
         // save whatever content we already have.
         if (response.size() > 0)
         {
-            ostringstream part;
+            std::ostringstream part;
             part << &response;
-            m_partial = string(part.str());
-            //cout << "partial size: " << m_partial.length() << " partial='"<< part.str() <<"'" << endl;
+            m_partial = std::string(part.str());
+            //cout << "partial size: " << m_partial.length() << " partial='"<< part.str() <<"'" << std::endl;
         }
         m_connected = true;
     }
@@ -302,13 +306,13 @@ private:
     boost::asio::io_service m_io_service;
     boost::shared_ptr<boost::asio::ip::tcp::socket> m_socket;
     bool m_connected;
-    string m_partial;
-    string m_host;
-    string m_url;
+    std::string m_partial;
+    std::string m_host;
+    std::string m_url;
     unsigned short m_port;
     int m_numredirects;
     size_t m_bytesreceived;
-    vector<string> m_extra_headers;
+    std::vector<std::string> m_extra_headers;
 };
 
 #endif
