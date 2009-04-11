@@ -6,6 +6,7 @@
 	ProjectGUID="{D2E0BB44-E9D6-4E08-8DB6-721C2EF605F6}"
 	RootNamespace="darknet"
 	Keyword="Win32Proj"
+	AssemblyReferenceSearchPaths="&quot;..\..\playdar\Debug&quot;"
 	>
 	<Platforms>
 		<Platform
