@@ -40,8 +40,6 @@ public:
         cout << "DTOR, resolver query: " << id() << " - " << str() << endl;
     }
     
-    virtual bool valid() const { return true; }
-    
     /// caluclate score 0-1 based on how similar the similarity
     /// between playable item and the original request.
     /// @return score between 0-1 or == 0 if there's an error
