@@ -16,12 +16,13 @@ using namespace std;
 namespace po = boost::program_options;
 
 // global !
-//MyApplication * app = 0;
+MyApplication * app = 0;
 
-static void sigfunc(MyApplication& app, int sig)
+static void sigfunc(int sig)
 {
     cout << "Signal handler." << endl;
-    app.shutdown(sig);
+    if ( app )
+        app->shutdown(sig);
 }
 
 // A helper function to simplify the main part.
@@ -70,13 +71,13 @@ string default_config_path()
 #endif
 }
 
-void start_http_server(string ip, int port, int conc, MyApplication& app)
+void start_http_server(string ip, int port, int conc, MyApplication* app)
 {
     cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
     moost::http::server<playdar_request_handler> s(ip, port, conc);
-    s.request_handler().init(&app);
+    s.request_handler().init(app);
     // tell app how to stop the http server:
-    app.set_http_stopper( 
+    app->set_http_stopper( 
         boost::bind(&moost::http::server<playdar_request_handler>::stop, &s));
     s.run();
     cout << "http_server thread exiting." << endl; 
@@ -146,7 +147,7 @@ int main(int ac, char *av[])
     
     try 
     {
-        MyApplication app(conf);
+        app = new MyApplication(conf);
         
 #ifndef WIN32
         /// this might not compile on windows?
@@ -162,15 +163,15 @@ int main(int ac, char *av[])
         string ip = "0.0.0.0"; 
         boost::thread http_thread(
             boost::bind( &start_http_server, 
-                         ip, app.conf()->get<int>("http_port", 0),
+                         ip, app->conf()->get<int>("http_port", 0),
                          boost::thread::hardware_concurrency()+1,
-                         boost::ref(app) )
+                         app )
             );
         
         http_thread.join();
         cout << "HTTP server finished, destructing app..." << endl;
-        //delete(app);
-        //cout << "App deleted." << endl;
+        delete app;
+        cout << "App deleted." << endl;
         return 0;
     }
     catch(exception& e)
