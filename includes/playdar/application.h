@@ -10,6 +10,7 @@
 #include <boost/program_options.hpp>
 #include <boost/thread.hpp>
 
+#define VERSION "0.1.0"
 
 //:::
 //#include "playdar/playdar_request_handler.h"

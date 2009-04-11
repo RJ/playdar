@@ -184,32 +184,32 @@ playdar_request_handler::handle_root( const playdar_request& req,
 {
     ostringstream os;
     os  << "<h2>" << app()->conf()->name() << "</h2>"
-        << "<p>"
-        << "Your Playdar server is running! Websites and applications that "
-        << "support Playdar will ask your permission, and then be able to "
-        << "access music you have on your machine."
-        << "</p>"
+           "<p>"
+           "Your Playdar server is running! Websites and applications that "
+           "support Playdar will ask your permission, and then be able to "
+           "access music you have on your machine."
+           "</p>"
 
-        << "<p>"
-        << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
-        << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
-        << "</p>"
+           "<p>"
+           "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+           "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+           "</p>"
 
-        << "<p>"
-        << "For the real demo that uses the JSON API, check "
-        << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
-        << "</p>"
+           "<p>"
+           "For the real demo that uses the JSON API, check "
+           "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+           "</p>"
 
-        << "<p>"
-        << "<h3>Resolver Pipeline</h3>"
-        << "<table>"
-        << "<tr style=\"font-weight: bold;\">"
-        << "<td>Plugin Name</td>"
-        << "<td>Weight</td>"
-        << "<td>Target Time</td>"
-        << "<td>Configuration</td>"
-        << "</tr>"
-        ;
+           "<p>"
+           "<h3>Resolver Pipeline</h3>"
+           "<table>"
+           "<tr style=\"font-weight: bold;\">"
+           "<td>Plugin Name</td>"
+           "<td>Weight</td>"
+           "<td>Target Time</td>"
+           "<td>Configuration</td>"
+           "</tr>"
+           ;
     unsigned short lw = 0;
     bool dupe = false;
     int i = 0;
@@ -610,7 +610,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         if(req.getvar("method") == "stat") {
             Object r;
             r.push_back( Pair("name", "playdar") );
-            r.push_back( Pair("version", "0.1.0") );
+            r.push_back( Pair("version", VERSION) );
             r.push_back( Pair("authenticated", permissions.length()>0 ) );
             //r.push_back( Pair("permissions", permissions) );
             //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later

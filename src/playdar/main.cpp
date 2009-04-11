@@ -122,11 +122,11 @@ int main(int ac, char *av[])
     notify(vm);
 
     if (error || vm.count("help")) {
-        cout << visible << "\n";
+        cout << visible << endl;
         return error ? 1 : 0;
     }
     if (vm.count("version")) {
-        cout << "TODO\n";
+        cout << VERSION << endl;
         return 0;
     }
     
