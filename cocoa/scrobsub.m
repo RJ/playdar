@@ -18,59 +18,47 @@
  ***************************************************************************/
 
 #include "scrobsub.h"
-#include <CommonCrypto/CommonDigest.h>
+
 #include <Cocoa/Cocoa.h>
 
 //TODO should be per application, not per machine
 #define KEYCHAIN_NAME "fm.last.Audioscrobbler"
 
 static NSString* token;
-static NSString* session_key;
-static NSString* username;
 extern void(*scrobsub_callback)(int event, const char* message);
+
+
+bool scrobsub_retrieve_credentials()
+{
+    NSString* username = [[NSUserDefaults standardUserDefaults] stringForKey:@"Username"];
+    if(!username) return false;
+    scrobsub_username = strdup([username UTF8String]);
+    
+    void* key;
+    UInt32 n;
+    OSStatus err = SecKeychainFindGenericPassword(NULL, //default keychain
+                                                  sizeof(KEYCHAIN_NAME),
+                                                  KEYCHAIN_NAME,
+                                                  strlen(scrobsub_username),
+                                                  scrobsub_username,
+                                                  &n,
+                                                  &key,
+                                                  NULL);
+    scrobsub_session_key = malloc(n+1);
+    memcpy(scrobsub_session_key, key, n);
+    scrobsub_session_key[n] = '\0';
+    
+    SecKeychainItemFreeContent(NULL, key);
+    (void)err; //TODO
+    
+    return true;
+} 
 
 void scrobsub_md5(char out[33], const char* in)
 {
     unsigned char d[CC_MD5_DIGEST_LENGTH];
 	CC_MD5(in, strlen(in), d);
     snprintf(out, 33, "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x", d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10], d[11], d[12], d[13], d[14], d[15]);
-}
-
-const char* scrobsub_username()
-{
-    return [username UTF8String];
-}
-
-const char* scrobsub_session_key()
-{
-    if (!session_key){
-        if (token && !scrobsub_finish_auth()){
-            (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, "Couldn't auth with Last.fm");
-            return 0;
-        }
-
-        username = [[NSUserDefaults standardUserDefaults] stringForKey:@"Username"];
-        const char* utf8_username = [username UTF8String];
-        if (!utf8_username){
-            (scrobsub_callback)(SCROBSUB_AUTH_REQUIRED, "");
-            return 0;
-        }
-        
-        void* key;
-        UInt32 n;
-        OSStatus err = SecKeychainFindGenericPassword(NULL, //default keychain
-                                                      sizeof(KEYCHAIN_NAME),
-                                                      KEYCHAIN_NAME,
-                                                      strlen(utf8_username),
-                                                      utf8_username,
-                                                      &n,
-                                                      &key,
-                                                      NULL);
-        session_key = [[NSString alloc] initWithBytes:key length:n encoding:NSASCIIStringEncoding];
-        SecKeychainItemFreeContent(NULL, key);
-        (void)err; //TODO
-    }
-    return [session_key UTF8String];
 }
 
 void scrobsub_get(char response[256], const char* url)
@@ -122,7 +110,7 @@ void scrobsub_auth(char out_url[110])
 bool scrobsub_finish_auth()
 {
     if(!token) return false;
-    if(session_key) return true;
+    if(scrobsub_session_key) return true;
     
     char sig[33];
     NSString* format = @"api_key" SCROBSUB_API_KEY "methodauth.getSessiontoken%@" SCROBSUB_SHARED_SECRET;
@@ -131,20 +119,20 @@ bool scrobsub_finish_auth()
 
     NSXMLDocument* xml = [[NSXMLDocument alloc] initWithContentsOfURL:url options:0 error:nil];
     NSXMLElement* session = [[[xml rootElement] elementsForName:@"session"] lastObject];
-    session_key = [[[session elementsForName:@"key"] lastObject] stringValue];
-    username = [[[session elementsForName:@"name"] lastObject] stringValue];
+    NSString* sk = [[[session elementsForName:@"key"] lastObject] stringValue];
+    NSString* username = [[[session elementsForName:@"name"] lastObject] stringValue];
     [xml release];
-    [session_key retain];
-    [username retain];
+
+    scrobsub_session_key = strdup([sk UTF8String]);
+    scrobsub_username = strdup([username UTF8String]);
     
-    const char* utf8_username = [username UTF8String];
     OSStatus err = SecKeychainAddGenericPassword(NULL, //default keychain
                                                  sizeof(KEYCHAIN_NAME),
                                                  KEYCHAIN_NAME,
-                                                 strlen(utf8_username),
-                                                 utf8_username,
+                                                 strlen(scrobsub_username),
+                                                 scrobsub_username,
                                                  32,
-                                                 [session_key UTF8String],
+                                                 scrobsub_session_key,
                                                  NULL);
     NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
     [defaults setObject:username forKey:@"Username"];

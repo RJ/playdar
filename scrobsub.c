@@ -17,6 +17,8 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
+// Created by Max Howell <max@last.fm>
+
 #include "scrobsub.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +34,6 @@ static unsigned int N = 0;
 static char* np_url = 0;
 static char* submit_url = 0;
 
-
 static char* artist;
 static char* track;
 static char* album;
@@ -40,22 +41,15 @@ static char* mbid;
 static unsigned int duration;
 static unsigned int track_number;
 
-
 void(*scrobsub_callback)(int event, const char* message);
 void scrobsub_get(char* response, const char* url);
 void scrobsub_post(char* response, const char* url, const char* post_data);
-void scrobsub_parse_ok_handshake_response(char* response);
+bool scrobsub_retrieve_credentials();
+bool relay = false;
 
+char* scrobsub_session_key = 0;
+char* scrobsub_username = 0;
 
-static bool use_the_moose()
-{
-#if SCROBSUB_NO_RELAY
-    // we are the moose
-    return false;
-#else
-    return true;
-#endif
-}
 
 
 static time_t now()
@@ -66,30 +60,28 @@ static time_t now()
     return t;
 }
 
-
 void scrobsub_init(void(*callback)(int, const char*))
 {
     scrobsub_callback = callback;
-    
-    if(!use_the_moose() && !scrobsub_session_key(NULL))
+   
+    if(!relay && !scrobsub_retrieve_credentials())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
-} 
-
+    else
+        scrobsub_start_scrobbler();
+}    
 
 void scrobsub_set_enabled(bool enabledp)
 {
     enabled = enabledp;
 }
 
-
-static void get_auth(char out[33], time_t time)
+static void get_handshake_auth(char out[33], time_t time)
 {
     char auth[32+10+1];
     strcpy(auth, SCROBSUB_SHARED_SECRET);
     snprintf(&auth[32], 11, "%d", time);
     scrobsub_md5(out, auth);
 }
-
 
 static char* handshake_response_strdup(char** p)
 {
@@ -99,25 +91,22 @@ static char* handshake_response_strdup(char** p)
     return strdup(start);
 }
 
-
 static bool ok(char* response)
 {
     return response[0] == 'O' && response[1] == 'K' && response[2] == '\n';
 }
 
-
 static void handshake()
 {
-    const char* session_key = scrobsub_session_key();
-    const char* username = scrobsub_username();
+    scrobsub_finish_auth();
     
-    if (!session_key || !username)
+    if (!scrobsub_session_key || !scrobsub_username)
         return; //TODO auth required
     
     time_t time = now();
     char auth[33];
-    get_auth(auth, time);
-    int n = 34+8+8+6+11+3+strlen(username)+13+32+9+32+4+32+1;
+    get_handshake_auth(auth, time);
+    int n = 34+8+8+6+11+3+strlen(scrobsub_username)+13+32+9+32+4+32+1;
     char url[n];
     
     n = snprintf(url, n, "http://post.audioscrobbler.com:80/"
@@ -130,7 +119,7 @@ static void handshake()
                  "&a=%s" // length 32
                  "&api_key=" SCROBSUB_API_KEY // length 32
                  "&sk=%s", // length 32
-                 username, time, auth, session_key);
+                 scrobsub_username, time, auth, scrobsub_session_key);
     if (n<0) return; //TODO error callback
 
     char responses[256];
@@ -147,14 +136,12 @@ static void handshake()
         (scrobsub_callback)(SCROBSUB_ERROR_RESPONSE, response);
 }
 
-
 static unsigned int scrobble_time(unsigned int duration)
 {
     if(duration>240*2) return 240;
     if(duration<30*2) return 30;
     return duration/2;
 }
-
 
 static void submit()
 {
@@ -195,15 +182,21 @@ static void submit()
     }
 }
 
-
 void scrobsub_start(const char* _artist, const char* _track, const char* _album, unsigned int _duration, unsigned int _track_number, const char* _mbid)
 {
+    state = SCROBSUB_PLAYING;
+    N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
+    
+    if(relay){
+        
+        scrobsub_relay("START", _artist, _track, _album, _duration, _track_number, _mbid);
+        return;
+    }
+    
     if (!session_id)
         handshake();
     if (state != SCROBSUB_STOPPED)
         submit();
-    
-    state = SCROBSUB_PLAYING;
     
     artist = strdup(_artist);
     track = strdup(_track);
@@ -211,13 +204,6 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     mbid = strdup(_mbid);
     duration = _duration;
     track_number = _track_number;
-
-#if !SCROBSUB_NO_RELAY
-    if(use_the_moose()){
-        moose_push(artist, track, album, mbid, duration, track_number);
-        return;
-    }
-#endif
 
     start_time = now();
 
@@ -231,7 +217,7 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     if(duration>9999) duration = 9999;
     if(track_number>99) track_number = 99;
     
-    N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
+    
     int n = 32+4+2+N +2+6*3;
     char post_data[n];
     snprintf(post_data, n, "s=%s"
@@ -258,41 +244,39 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     }
 }
 
-
 void scrobsub_pause()
 {
-    switch(state){
-        case SCROBSUB_PAUSED:
-             scrobsub_resume();
-            break;
-        case SCROBSUB_PLAYING:
-            state = SCROBSUB_PAUSED;
-            // we subtract pause_time so we continue to keep a record of the amount
-            // of time paused so far
-            pause_time = now() - pause_time;
-            break;
+    if(relay)
+        scrobsub_relay("PAUSE");
+    else if(state == SCROBSUB_PLAYING){
+        state = SCROBSUB_PAUSED;
+        // we subtract pause_time so we continue to keep a record of the amount
+        // of time paused so far
+        pause_time = now() - pause_time;
     }
 }
 
-
 void scrobsub_resume()
 {
-    if(state == SCROBSUB_PAUSED){
+    if(relay)
+        scrobsub_relay("RESUME");
+    else if(state == SCROBSUB_PAUSED){
         pause_time = now() - pause_time;
         state = SCROBSUB_PLAYING;
     }
 }
 
-
 void scrobsub_stop()
 {
-    if(state != SCROBSUB_STOPPED)
+    if(relay)
+        scrobsub_relay("STOP");
+    else if(state != SCROBSUB_STOPPED){
         submit();
-    state = SCROBSUB_STOPPED;
-    
-    free( artist ); free( track ); free( album ); free( mbid );
-    artist = track = album = mbid = "";
-    duration = track_number = 0;
+        state = SCROBSUB_STOPPED;
+        free( artist ); free( track ); free( album ); free( mbid );
+        artist = track = album = mbid = 0;
+        duration = track_number = 0;
+    }
 }
 
 

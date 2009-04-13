@@ -17,6 +17,8 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
+// Created by Max Howell <max@last.fm>
+
 #ifndef __SCROBSUB_H__
 #define __SCROBSUB_H__
 
@@ -52,9 +54,9 @@ bool scrobsub_finish_auth();
 /** A new track started. scrobsub takes copies of the strings. All strings must
   * be UTF8. */
 void scrobsub_start(const char* artist, const char* track, const char* album, unsigned int duration, unsigned int track_number, const char* mbid);
-
-/** the thing that we're scrobbling got paused. You can call this again to 
-  * unpause (which is the same as calling scrobsub_resume) if you like. */
+/** the thing that we're scrobbling got paused. This is not a toggle, when/if
+  * the track is unpaused, call resume. We insist on this distinction because
+  * we want you to be exact! */
 void scrobsub_pause();
 /** the thing that we're scrobbling was unpaused */
 void scrobsub_resume();
@@ -72,8 +74,8 @@ int scrobsub_state();
 
 /** returns 0 if you need to auth, or the user still hasn't allowed the auth 
   * attempt */
-const char* scrobsub_session_key();
-const char* scrobsub_username();
+extern char* scrobsub_session_key;
+extern char* scrobsub_username;
 
 
 /** for your convenience, we need it, so maybe you can use it too */

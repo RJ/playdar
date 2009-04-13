@@ -17,36 +17,56 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-#define SCROBSUB_NO_RELAY 1
-#define SCROBSUB_CLIENT_ID "ass"
+#include "scrobsub.h"
+#include <string.h>
+#include <curl/curl.h>
 
-#include "_configure.h"
-#include "scrobsub.c"
-#include "portable/auth-libxml2.c"
-#include "portable/http-curl.c"
-#include "portable/md5.c"
-#include "portable/persistence-simple.c"
-#include <unistd.h>
+//TODO user-agent
 
-
-static void callback(int e, const char* s)
+void scrobsub_relay(const char* string)
 {
-    if (e == SCROBSUB_AUTH_REQUIRED)
-    {
-        char url[110];
-        scrobsub_auth(url);
-        printf("Please visit\n%s\nto authorize scrobbling and then press enter to continue.\n", url);
-        char c = getc(stdin);
-    }
+#ifdef __APPLE__
+    #define STRING_BEGIN "open lastfm://scrobsub/" SCROBSUB_CLIENT_ID "/"
+    char sh[sizeof(STRING_BEGIN)+strlen(string)] = STRING_BEGIN;
+    strcat(sh, string);
+    system(sh);
+#endif
 }
 
+static int n;
 
-int main()
+static size_t curl_writer(void* in, size_t size, size_t N, void* out)
 {
-    scrobsub_init(callback);
-    scrobsub_start("Max Howell", "Is Fucking Awesome", "Audioscrobbler EXAMPLE", 60, 1, "");
-    printf("Fake track is playing for 60 seconds...\n");
-    sleep(60);
-    scrobsub_stop();
-    return 0;
+    size_t x;
+    N *= size;
+    for(x=0; x<N; ++x){
+        if (n-- <= 0) break;
+        *(char*)out++ = *(char*)in++;
+    }
+    
+    return x;
+}
+
+void scrobsub_get(char response[256], const char* url)
+{
+    n = 256;
+    
+    CURL* h = curl_easy_init(); //TODO may return NULL
+    curl_easy_setopt(h, CURLOPT_URL, url);
+    curl_easy_setopt(h, CURLOPT_WRITEFUNCTION, curl_writer);
+    curl_easy_setopt(h, CURLOPT_WRITEDATA, response);
+    CURLcode result = curl_easy_perform(h);
+    curl_easy_cleanup(h);
+    
+    response[255-n] = '\0'; // curl_writer won't null terminate
+}
+
+void scrobsub_post(char response[256], const char* url, const char* post_data)
+{   
+    CURL* h = curl_easy_init(); //TODO may return NULL
+    curl_easy_setopt(h, CURLOPT_POSTFIELDS, post_data);
+    curl_easy_setopt(h, CURLOPT_URL, url);
+    curl_easy_perform(h);
+    curl_easy_cleanup(h);
+    strcpy(response, "OK\n"); //TODO
 }
