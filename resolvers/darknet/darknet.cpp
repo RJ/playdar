@@ -15,7 +15,8 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
-using playdar::resolvers::darknet;
+namespace playdar {
+namespace resolvers {
 
 bool
 darknet::init(playdar::Config * c, Resolver * r)
@@ -516,5 +517,8 @@ darknet::http_handler(const playdar_request& req,
     return os.str();
 }
 
-
 EXPORT_DYNAMIC_CLASS( darknet )
+
+}
+}
+
