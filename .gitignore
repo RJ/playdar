@@ -4,3 +4,6 @@ cocoa/build
 cocoa/Audioscrobbler.xcodeproj/*.pbxuser
 cocoa/Audioscrobbler.xcodeproj/*.mode2v3
 audioscrobbled*
+iTunes/iTunes Plug-in.xcodeproj/*.pbxuser
+iTunes/iTunes Plug-in.xcodeproj/*.mode2v3
+iTunes/build

@@ -25,7 +25,6 @@
 #include <string.h>
 #include <time.h>
 
-static bool enabled = true;
 static time_t start_time = 0;
 static time_t pause_time = 0;
 static int state = SCROBSUB_STOPPED;
@@ -33,6 +32,7 @@ static char* session_id = 0;
 static unsigned int N = 0;
 static char* np_url = 0;
 static char* submit_url = 0;
+static bool relay = true;
 
 static char* artist;
 static char* track;
@@ -45,14 +45,11 @@ void(*scrobsub_callback)(int event, const char* message);
 void scrobsub_get(char* response, const char* url);
 void scrobsub_post(char* response, const char* url, const char* post_data);
 bool scrobsub_retrieve_credentials();
-bool relay = false;
+bool scrobsub_launch_audioscrobbler();
+void scrobsub_relay(int);
 
 char* scrobsub_session_key = 0;
 char* scrobsub_username = 0;
-
-
-static void scrobsub_relay(char* c)
-{}
 
 
 static time_t now()
@@ -66,17 +63,13 @@ static time_t now()
 void scrobsub_init(void(*callback)(int, const char*))
 {
     scrobsub_callback = callback;
-   
+
+    // will return true if audioscrobbler is installed
+    relay = scrobsub_launch_audioscrobbler();
+    
     if(!relay && !scrobsub_retrieve_credentials())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
-    else
-        ;//scrobsub_start_scrobbler();
 }    
-
-void scrobsub_set_enabled(bool enabledp)
-{
-    enabled = enabledp;
-}
 
 static void get_handshake_auth(char out[33], time_t time)
 {
@@ -147,9 +140,7 @@ static unsigned int scrobble_time(unsigned int duration)
 }
 
 static void submit()
-{
-    if(!enabled) return;    
-    
+{    
     //TODO check track is valid to submit
     
     if(state == SCROBSUB_PAUSED)
@@ -208,8 +199,6 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     track_number = _track_number;
 
     start_time = now();
-
-    if(!enabled)return;
     
     //TODO, don't emit np if user is skipping fast, then you need a timer
     //    static time_t previous_np = 0;
@@ -249,7 +238,7 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
 void scrobsub_pause()
 {
     if(relay)
-        scrobsub_relay("PAUSE");
+        scrobsub_relay(SCROBSUB_PAUSED);
     else if(state == SCROBSUB_PLAYING){
         state = SCROBSUB_PAUSED;
         // we subtract pause_time so we continue to keep a record of the amount
@@ -261,7 +250,7 @@ void scrobsub_pause()
 void scrobsub_resume()
 {
     if(relay)
-        scrobsub_relay("RESUME");
+        scrobsub_relay(SCROBSUB_PLAYING);
     else if(state == SCROBSUB_PAUSED){
         pause_time = now() - pause_time;
         state = SCROBSUB_PLAYING;
@@ -271,7 +260,7 @@ void scrobsub_resume()
 void scrobsub_stop()
 {
     if(relay)
-        scrobsub_relay("STOP");
+        scrobsub_relay(SCROBSUB_STOPPED);
     else if(state != SCROBSUB_STOPPED){
         submit();
         state = SCROBSUB_STOPPED;

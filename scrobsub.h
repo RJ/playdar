@@ -35,12 +35,6 @@ void scrobsub_init(void(*callback)(int event, const char* message));
 #define SCROBSUB_ERROR_RESPONSE 1
 
 
-/** calling false will disable submission to Last.fm. However it will not
-  * disable it if the official Last.fm Audioscrobbler client is running. This is
-  * because the user disables scrobbling centrally there in that case. */
-void scrobsub_set_enabled(bool enabled);
-
-
 /** the user needs to visit @p url within one hour for authentication to succeed */
 void scrobsub_auth(char url[110]);
 
@@ -80,5 +74,6 @@ extern char* scrobsub_username;
 
 /** for your convenience, we need it, so maybe you can use it too */
 void scrobsub_md5(char out[33], const char* in);
+
 
 #endif
