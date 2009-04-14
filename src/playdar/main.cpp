@@ -135,19 +135,20 @@ int main(int ac, char *av[])
         cerr << "You must use a config file." << endl;
         return 1;
     }
-    string configfile = vm["config"].as<string>();
-    cout << "Using config file: " << configfile << endl;
-            
-    playdar::Config conf(configfile);
-    if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
-    {
-        cerr << "Please edit " << configfile << endl;
-        cerr << "YOURNAMEHERE is not a valid name." << endl;
-		cout << "Autodetecting name: " << conf.name() << endl;
-    }
-    
+
     try 
     {
+        string configfile = vm["config"].as<string>();
+        cout << "Using config file: " << configfile << endl;
+                
+        playdar::Config conf(configfile);
+        if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
+        {
+            cerr << "Please edit " << configfile << endl;
+            cerr << "YOURNAMEHERE is not a valid name." << endl;
+		    cout << "Autodetecting name: " << conf.name() << endl;
+        }
+        
         app = new MyApplication(conf);
         
 #ifndef WIN32
@@ -178,6 +179,6 @@ int main(int ac, char *av[])
     {
         cout << "Playdar main exception: " << e.what() << "\n";
         return 1;
-    }    
+    }
 }
 
