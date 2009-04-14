@@ -407,19 +407,22 @@ void
 playdar_request_handler::handle_queries( const playdar_request& req,
                                          moost::http::reply& rep )
 {
-    cout << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
     do
     {
         if( req.parts().size() == 1 )
         {
+            cout << "Query handler, parts: " << req.parts()[0] << endl;
+
             const string& s = handle_queries_root(req);
             serve_body( s, rep );
             break;
         }
         else if( req.parts().size() == 2 )
         {
-           query_uid qid = req.parts()[1];
-           rq_ptr rq = app()->resolver()->rq(qid);
+            cout << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
+
+            query_uid qid = req.parts()[1];
+            rq_ptr rq = app()->resolver()->rq(qid);
             if(!rq || !TrackRQBuilder::valid( rq ))
            {
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
