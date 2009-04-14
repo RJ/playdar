@@ -22,7 +22,6 @@
 #include <boost/asio.hpp> // for hostname.
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
-
 namespace playdar {
 
 using namespace std;
@@ -185,6 +184,16 @@ private:
     string m_filename;
     Value m_mainval;
     map<string,Value> m_mainmap;
+    class exception: public std::exception {
+
+    public:
+        exception( const char* w ):m_w(w){}
+        const char* what() throw(){ return m_w; }
+
+    private:
+        const char* m_w;
+    };
+
 };
 
 } //namespace
