@@ -52,18 +52,37 @@ RqlOpProcessor::process()
         int op = m_it->type;
         ResultSetPtr a( (next(), process()) );
         ResultSetPtr b( (next(), process()) );
+
         switch (op) {
             case OT_AND:
-                setop::and(*a, *b);
-                return a;
+                {
+                    ResultSetPtr c( new ResultSet );
+                    setop::and(*a, *b, *c);
+                    return c;
+                }
 
             case OT_OR:
-                setop::or(*a, *b, 100);
+                // a = a union b (with intersection boost factor)
+                {
+                    const int intersection_boost = 100;
+                    for (ResultSet::const_iterator pb = b->begin(); pb != b->end(); pb++) {
+                        ResultSet::iterator pa( a->find(*pb) );
+                        if (pa == a->end()) {
+                            a->insert(*pb);
+                        } else {
+                            // this is safe (TrackResult::trackId is the set key)
+                            pa->weight = intersection_boost * (pb->weight + pa->weight);
+                        }
+                    }
+                }
                 return a;
 
             case OT_AND_NOT:
-                setop::and_not(*a, *b);
-                return a;
+                {
+                    ResultSetPtr c( new ResultSet );
+                    setop::and_not(*a, *b, *c);
+                    return c;
+                }
         }
         throw "unknown operation";
     }

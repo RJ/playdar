@@ -36,7 +36,7 @@ struct TrackResult
 
     int trackId;
     int artistId;
-    float weight;
+    mutable float weight;
 
     bool operator<(const TrackResult& that) const
     {
@@ -49,51 +49,20 @@ typedef boost::shared_ptr<ResultSet> ResultSetPtr;
 
 
 /// some set operation helper funcs:
-// todo: can further generalise template types
 namespace setop {
 
-// returns true when item is not in set
-template<typename T> 
-bool itemNotIn(const T& item, const std::set<T>& set)
-{
-    return set.find(item) == set.end();
-}
-
-// returns true when item is in set
-template<typename T> 
-bool itemIn(const T& item, const std::set<T>& set)
-{
-    return set.find(item) != set.end();
-}
-
-
-// a = a intersect b
+// c = a intersect b
 template<typename T>
-void and(std::set<T>& a, const std::set<T>& b)
+void and(const std::set<T>& a, const std::set<T>& b, std::set<T> &c)
 {
-    remove_if(a.begin(), a.end(), boost::bind(&itemNotIn<T>, _1, b));
+    std::set_intersection(a.begin(), a.end(), b.begin(), b.end(), std::inserter(c, c.begin()) );
 }
 
-// a = a subtract b
+// c = a subtract b
 template<typename T>
-void and_not(std::set<T>& a, const std::set<T>& b)
+void and_not(const std::set<T>& a, const std::set<T>& b, std::set<T> &c)
 {
-    remove_if(a.begin(), a.end(), boost::bind(&itemIn<T>, _1, b));
-}
-
-// a = a union b (with intersection boost factor)
-template<typename T>
-void or(std::set<T>& a, const std::set<T>& b, float intersection_boost)
-{
-    for (typename std::set<T>::const_iterator pb = b.begin(); pb != b.end(); ) {
-        typename std::set<T>::iterator pa( a.find(*pb) );
-        if (pa == a.end()) {
-            a.insert(*pb);
-        } else {
-            pa->weight = intersection_boost * (pb->weight + pa->weight);
-        }
-        pb++;
-    }
+    std::set_difference(a.begin(), a.end(), b.begin(), b.end(), std::inserter(c, c.begin()) );
 }
 
 }
