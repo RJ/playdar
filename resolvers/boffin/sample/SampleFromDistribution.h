@@ -75,7 +75,7 @@ public:
    // isPDF assumes that the passed data is a probability distribution
    // function, and therefore the sum of all it's elements is = 1
    template <typename IT>
-   typename IT
+   IT
       singleSample( IT first, IT last,
                     bool isPDF = false ) const
    {

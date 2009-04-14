@@ -62,6 +62,7 @@ public:
 
     void create_json(json_spirit::Object &o) const
     {
+        using namespace json_spirit;
         o.push_back( Pair("name", m_name) );
         o.push_back( Pair("count", m_trackCount) );        
     }
