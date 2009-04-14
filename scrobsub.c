@@ -51,6 +51,9 @@ char* scrobsub_session_key = 0;
 char* scrobsub_username = 0;
 
 
+static void scrobsub_relay(char* c)
+{}
+
 
 static time_t now()
 {
@@ -67,7 +70,7 @@ void scrobsub_init(void(*callback)(int, const char*))
     if(!relay && !scrobsub_retrieve_credentials())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
     else
-        scrobsub_start_scrobbler();
+        ;//scrobsub_start_scrobbler();
 }    
 
 void scrobsub_set_enabled(bool enabledp)
@@ -185,11 +188,10 @@ static void submit()
 void scrobsub_start(const char* _artist, const char* _track, const char* _album, unsigned int _duration, unsigned int _track_number, const char* _mbid)
 {
     state = SCROBSUB_PLAYING;
-    N = strlen(artist)+strlen(track)+strlen(album)+strlen(mbid);
+    N = strlen(_artist)+strlen(_track)+strlen(_album)+strlen(_mbid);
     
     if(relay){
-        
-        scrobsub_relay("START", _artist, _track, _album, _duration, _track_number, _mbid);
+        //scrobsub_relay("START", _artist, _track, _album, _duration, _track_number, _mbid);
         return;
     }
     
