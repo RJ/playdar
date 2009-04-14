@@ -70,14 +70,23 @@ public:
 
     static bool validator(const json_spirit::Object& o)
     {
-        // todo
-        return false;
+        try {
+            generator(o);
+        } catch (...) {
+            return false;
+        }
+        return true;
     }
 
     static ri_ptr generator(const json_spirit::Object& o)
     {
-        // todo
-        return ri_ptr((ResolvedItem*) 0);
+        map<string, json_spirit::Value> m;
+        obj_to_map(o, m);
+        
+        return ri_ptr(new TagCloudItem(
+            m.find("name")->second.get_str(), 
+            m.find("score")->second.get_real(), 
+            m.find("count")->second.get_int() ) );
     }
 
 

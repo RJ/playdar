@@ -1,4 +1,4 @@
-static const bool DISABLE_AUTH=false;
+static const bool DISABLE_AUTH=true;
 
 #include "playdar/application.h"
 #include <iostream>
@@ -362,19 +362,13 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
         << "</tr>"
         ;
     int i  = 0;
-    deque< query_uid>::const_iterator it =
-        app()->resolver()->qids().begin();
-    string bgc="";
-    while(it != app()->resolver()->qids().end())
+    deque< query_uid>::const_iterator it( app()->resolver()->qids().begin() );
+    for(; it != app()->resolver()->qids().end(); it++)
     {
-        rq_ptr rq;
         try
         { 
-            if( !TrackRQBuilder::valid( rq ))
-                continue;
-            
-            rq = app()->resolver()->rq(*it); 
-            bgc = (++i%2) ? "lightgrey" : "";
+            rq_ptr rq( app()->resolver()->rq(*it) );
+            string bgc( (++i%2) ? "lightgrey" : "" );
             os  << "<tr style=\"background-color: "<< bgc << "\">";
             if(!rq)
             {
@@ -382,6 +376,9 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
             }
             else
             {
+            if( !TrackRQBuilder::valid( rq ))
+                continue;
+
              os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
@@ -400,7 +397,6 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
             }
             os << "</tr>";
         } catch(...) { }
-        it++;
     }  
     return os.str();
 }
