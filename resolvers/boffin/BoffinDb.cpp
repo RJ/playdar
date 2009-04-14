@@ -15,13 +15,22 @@ boost::shared_ptr<BoffinDb::TagCloudVec>
 BoffinDb::get_tag_cloud(int limit)
 {
     sqlite3pp::query qry(m_db, 
-        "SELECT name, sum(weight), count(weight) FROM track_tag "
-        "INNER JOIN tag ON track_tag.tag = tag.id");
+        "SELECT name, sum(weight), count(weight) FROM file_tag "
+        "INNER JOIN tag ON file_tag.tag = tag.rowid group by tag.rowid");
     int count = qry.begin()->data_count();
     boost::shared_ptr<TagCloudVec> p( new TagCloudVec( count ) );
+    float maxWeight = 0;
     for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-        p->push_back( i->get_columns<string, float, int>(0, 1, 2) );
+        const TagCloudVec::value_type& tag = i->get_columns<string, float, int>(0, 1, 2);
+        maxWeight = max( maxWeight, tag.get<1>());
+        p->push_back( tag );
     }
+    
+    for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i )
+    {
+        *i = boost::tuple<string, float, int>( i->get<0>(), i->get<1>() / maxWeight, i->get<2>() );
+    }
+    
     return p;
 }
 

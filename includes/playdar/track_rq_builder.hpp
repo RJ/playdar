@@ -2,7 +2,7 @@
 #define __TRACK_RESOLVER_QUERY__
 
 #include "resolver_query.hpp"
-class TrackRQBuilder : public ResolverQuery {
+class TrackRQBuilder {
 public:
     static rq_ptr build( string artist, string album, string track )
     {

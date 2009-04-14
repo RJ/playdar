@@ -53,7 +53,7 @@ ENDIF(APPLE)
 
 IF(NOT WIN32)
     # removes operators like "and", "or" and "not"
-    ADD_DEFINITIONS(-fno-operator-names)
+    ADD_DEFINITIONS(-fno-operator-names -g)
 ENDIF(NOT WIN32)
 
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl

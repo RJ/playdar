@@ -9,6 +9,7 @@ ADD_LIBRARY( boffin SHARED
 SET_TARGET_PROPERTIES( boffin PROPERTIES
                        PREFIX ""
                        SUFFIX ".resolver"
+                       OUTPUT_NAME "Boffin"
                        CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_DIR}/plugins" )
 
 TARGET_LINK_LIBRARIES(boffin
