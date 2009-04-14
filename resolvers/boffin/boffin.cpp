@@ -1,4 +1,4 @@
-#include "Boffin.h"
+#include "boffin.h"
 #include "BoffinDb.h"
 #include "RqlOpProcessor.h"
 #include "parser/parser.h"
@@ -91,25 +91,25 @@ private:
 ////////////////////////////////////////////////////////
 
 
-Boffin::Boffin()
+boffin::boffin()
     : m_thread( 0 )
     , m_thread_stop( false )
 {
 }
 
 std::string 
-Boffin::name() const
+boffin::name() const
 {
     return "Boffin";
 }
 
 // return false to disable resolver
 bool 
-Boffin::init(playdar::Config* c, Resolver* r)
+boffin::init(playdar::Config* c, Resolver* r)
 {
     m_conf = c;
     m_resolver = r;
-    m_thread = new boost::thread( boost::bind(&Boffin::thread_run, this) );
+    m_thread = new boost::thread( boost::bind(&boffin::thread_run, this) );
 
     std::string playdarDb = r->app()->library()->dbfilepath();
     std::string boffinDb = conf()->get<string>( "plugins.boffin.db", "boffin.db" );
@@ -123,7 +123,7 @@ Boffin::init(playdar::Config* c, Resolver* r)
 
 
 void
-Boffin::queue_work(boost::function< void() > work)
+boffin::queue_work(boost::function< void() > work)
 {
     if (!m_thread_stop) 
     {
@@ -136,7 +136,7 @@ Boffin::queue_work(boost::function< void() > work)
 }
 
 boost::function< void() > 
-Boffin::get_work()
+boffin::get_work()
 {
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
     while (m_queue.empty()) {
@@ -148,7 +148,7 @@ Boffin::get_work()
 }
 
 void
-Boffin::drain_queue()
+boffin::drain_queue()
 {
     boost::lock_guard<boost::mutex> guard(m_queue_mutex);
     while (!m_queue.empty()) {
@@ -157,23 +157,25 @@ Boffin::drain_queue()
 }
 
 void
-Boffin::thread_run()
+boffin::thread_run()
 {
     try {
         while (!m_thread_stop) {
             get_work()();
         }
-    } catch (boost::thread_interrupted) {
-        std::cout << "Boffin::thread_run exiting normally";
-    } catch (...) {
-        std::cout << "Boffin::thread_run unhandled exception";
+    } 
+    catch (boost::thread_interrupted) {
+        std::cout << "boffin::thread_run exiting normally";
+    } 
+    catch (std::exception &e) {
+        std::cout << "boffin::thread_run exception " << e.what();
     }
 
     drain_queue();
 }
 
 void
-Boffin::stop()
+boffin::stop()
 {
     if (m_thread) {
         m_thread_stop = true;
@@ -186,7 +188,7 @@ Boffin::stop()
 
 /// max time in milliseconds we'd expect to have results in.
 unsigned int 
-Boffin::target_time() const
+boffin::target_time() const
 {
     // we may have zero results (if it's a query we can't handle), 
     // and we don't want to delay any other resolvers, so:
@@ -195,15 +197,15 @@ Boffin::target_time() const
 
 /// highest weighted resolverservices are queried first.
 unsigned short 
-Boffin::weight() const
+boffin::weight() const
 {
     return 80;
 }
 
 void 
-Boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
+boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
-    queue_work( boost::bind( &Boffin::resolve, this, rq ) );
+    queue_work( boost::bind( &boffin::resolve, this, rq ) );
 }
 
 
@@ -217,10 +219,10 @@ makeTagCloudItem(const boost::tuple<std::string, float, int>& in)
 
 
 void
-Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
+boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
     // optional int value to limit the results, otherwise, default is 100
-    int limit = (rq->param_type("boffin_limit") == json_spirit::int_type) ? rq->param("boffin_limit").get_int() : 100;
+    int limit = (rq->param_exists("boffin_limit") && rq->param_type("boffin_limit") == json_spirit::int_type) ? rq->param("boffin_limit").get_int() : 100;
 
     if (rq->param_exists("boffin_rql") && rq->param_type("boffin_rql") == json_spirit::str_type) {
         parser p;
@@ -266,7 +268,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 
 
 void
-Boffin::parseFail(std::string line, int error_offset)
+boffin::parseFail(std::string line, int error_offset)
 {
     std::cout << "rql parse error at column " << error_offset << " of '" << line << "'\n";
 }
@@ -274,7 +276,7 @@ Boffin::parseFail(std::string line, int error_offset)
 
 // default is empty, ie no http urls handle
 vector<string> 
-Boffin::get_http_handlers()
+boffin::get_http_handlers()
 {
     vector<string> h;
     h.push_back("boffin");
@@ -283,7 +285,7 @@ Boffin::get_http_handlers()
 
 // handler for HTTP reqs we are registerd for:
 string 
-Boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
+boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
 {
     if(req.parts().size() > 1 &&
        req.parts()[1] == "tagcloud" )

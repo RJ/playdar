@@ -8,10 +8,10 @@
 #include <boost/thread.hpp>
 
 
-class Boffin : public ResolverServicePlugin
+class boffin : public ResolverServicePlugin
 {
 public:
-    Boffin();
+    boffin();
 
     // return false to disable the plugin
     virtual bool init(playdar::Config*, Resolver*);
@@ -33,7 +33,7 @@ public:
     virtual string http_handler( const playdar_request&, playdar::auth * pauth);
 
 protected:
-    virtual ~Boffin() throw() {}
+    virtual ~boffin() throw() {}
 
 private:
     void resolve(boost::shared_ptr<ResolverQuery> rq);
@@ -59,7 +59,7 @@ private:
     boost::shared_ptr<class BoffinDb> m_db;
 };
 
-EXPORT_DYNAMIC_CLASS( Boffin )
+EXPORT_DYNAMIC_CLASS( boffin )
 
 
 #endif
