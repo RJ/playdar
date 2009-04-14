@@ -30,11 +30,7 @@ public:
     virtual vector<string> get_http_handlers();
 
     // handler for HTTP reqs we are registerd for:
-    virtual string http_handler( string url,
-                                 vector<string> parts,
-                                 map<string,string> getvars,
-                                 map<string,string> postvars,
-                                playdar::auth * pauth);
+    virtual string http_handler( const playdar_request&, playdar::auth * pauth);
 
 protected:
     virtual ~Boffin() throw() {}
@@ -59,8 +55,6 @@ private:
 
     /// ] todo: put into its own class
 
-    class playdar::Config* m_config;
-    class Resolver* m_resolver;
     boost::shared_ptr<class SimilarArtists> m_sa;
     boost::shared_ptr<class BoffinDb> m_db;
 };

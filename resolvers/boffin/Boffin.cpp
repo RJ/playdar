@@ -10,6 +10,7 @@
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 
+#include "TagCloudRQBuilder.h"
 
 using namespace fm::last::query_parser;
 
@@ -106,12 +107,12 @@ Boffin::name() const
 bool 
 Boffin::init(playdar::Config* c, Resolver* r)
 {
-    m_config = c;
+    m_conf = c;
     m_resolver = r;
     m_thread = new boost::thread( boost::bind(&Boffin::thread_run, this) );
 
     std::string playdarDb = r->app()->library()->dbfilepath();
-    std::string boffinDb = "boffin.db";
+    std::string boffinDb = conf()->get<string>( "plugins.boffin.db", "boffin.db" );
 
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
@@ -240,7 +241,7 @@ Boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 
             // look up results, turn them into PlayableItems:
             std::vector< boost::shared_ptr<ResolvedItem> > playables;
-            Library *library = m_resolver->app()->library();
+            Library *library = resolver()->app()->library();
             assert(library);
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = library->playable_item_from_fid( t.trackId );
@@ -282,11 +283,24 @@ Boffin::get_http_handlers()
 
 // handler for HTTP reqs we are registerd for:
 string 
-Boffin::http_handler(string url,
-                     vector<string> parts,
-                     map<string,string> getvars,
-                     map<string,string> postvars,
-                     playdar::auth * pauth)
+Boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
 {
-    return "This plugin has no web interface.";
+    if(req.parts().size() > 1 &&
+       req.parts()[1] == "tagcloud" )
+    {
+        rq_ptr rq = TagCloudRQBuilder::build();
+        rq->set_from_name( conf()->name() );
+        
+        query_uid qid = resolver()->dispatch( rq );
+
+        using namespace json_spirit;
+        Object r;
+        r.push_back( Pair("qid", qid ));
+
+        ostringstream os;
+        write_formatted( r, os );
+        return os.str();
+    }
+    else 
+        return "This plugin has no web interface.";
 }
