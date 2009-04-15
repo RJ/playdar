@@ -17,17 +17,67 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-// Created by Max Howell <max@last.fm>
+#define private public
+    #include "ITunesPlaysDatabase.h"
+#undef private
 
-#import <Cocoa/Cocoa.h>
+#include "Moose.h"
+
+#include <QtTest>
+#include <QtSql>
 
 
-@interface StatusItemController : NSObject
+class TestITunesPlaysDatabaseMac : public QObject
 {
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
+    Q_OBJECT
+
+    public:
+        TestITunesPlaysDatabaseMac();
+
+    private slots:
+        void testIsValid();
+
+    private:
+        ITunesPlaysDatabase m_db;
+
+        inline void createTable()
+        {
+            QSqlQuery query; 
+            query.exec( "CREATE TABLE itunes_db ( "
+                        "persistent_id   VARCHAR( 32 ) PRIMARY KEY,"
+                        "path            TEXT,"
+                        "play_count      INTEGER )" );
+        }
+                                                    
+        inline void deleteTable()
+        {
+            QSqlQuery query;
+            query.exec( "DROP TABLE itunes_db" );
+        }
+};
+
+
+TestITunesPlaysDatabaseMac::TestITunesPlaysDatabaseMac()
+{
+    QSqlDatabase qdb = QSqlDatabase::addDatabase( "QSQLITE" );
+    qdb.setDatabaseName ( QString( Moose::applicationSupport().c_str() ) + "iTunesPlays.db" );
+    bool ok = qdb.open();
 }
 
--(void)awakeFromNib;
 
-@end
+void TestITunesPlaysDatabaseMac::testIsValid()
+{
+    
+    deleteTable();
+    
+    QCOMPARE( m_db.isValid(), false );
+    
+    createTable();
+                    
+    QCOMPARE( m_db.isValid(), true );
+}
+
+
+QTEST_MAIN( TestITunesPlaysDatabaseMac )
+
+#include "TestITunesPlaysDatabaseMac.moc"

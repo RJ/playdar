@@ -1,0 +1,5 @@
+Edit the version in these files before building the release version:
+
+main.h
+windows.rc
+Info.plist

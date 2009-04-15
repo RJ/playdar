@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright 2005-2009 Last.fm Ltd.                                      *
+ *   Copyright 2008-2009 Last.fm Ltd.                                      *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,17 +17,22 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-// Created by Max Howell <max@last.fm>
+#ifndef ITUNES_EXCEPTIONS_H
+#define ITUNES_EXCEPTIONS_H
 
-#import <Cocoa/Cocoa.h>
+#include <stdexcept>
 
-
-@interface StatusItemController : NSObject
+class ITunesException : public std::runtime_error
 {
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
-}
+public:
+    ITunesException( const char* s = "ITunesException" ) : std::runtime_error( s ) { }
+};
 
--(void)awakeFromNib;
 
-@end
+class PlayCountException : public ITunesException
+{
+public:
+    PlayCountException() : ITunesException( "PlayCountException" ) { }
+};
+
+#endif // ITUNESEXCEPTIONS_H

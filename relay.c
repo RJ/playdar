@@ -19,15 +19,30 @@
 
 // Created by Max Howell <max@last.fm>
 
-#import <Cocoa/Cocoa.h>
+#include "scrobsub.h"
+#if __APPLE__
+#include <ApplicationServices/ApplicationServices.h>
+#endif
 
-
-@interface StatusItemController : NSObject
+/** returns false if Audioscrobbler is not installed */
+bool scrobsub_launch_audioscrobbler()
 {
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
+#if __APPLE__
+    FSRef fsref;
+    OSStatus err = LSFindApplicationForInfo(kLSUnknownCreator, CFSTR("fm.last.Audioscrobbler"), NULL, &fsref, NULL);
+    if (err == kLSApplicationNotFoundErr) 
+        return false;
+    
+    LSApplicationParameters p = {0};
+    p.flags = kLSLaunchDontSwitch | kLSLaunchAsync;
+    p.application = &fsref;
+    LSOpenApplication( &p, NULL ); //won't launch if already running
+    return true; //TODO if failed to launch we should log it
+#endif
 }
 
--(void)awakeFromNib;
 
-@end
+void scrobsub_relay(int state)
+{
+    
+}

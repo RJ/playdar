@@ -17,17 +17,12 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-// Created by Max Howell <max@last.fm>
+#ifdef WIN32
+    #define COMMON_STD_STRING std::wstring
+    #define COMMON_CHAR wchar_t
+#else
+    #define COMMON_STD_STRING std::string
+    #define COMMON_CHAR char
+#endif
 
-#import <Cocoa/Cocoa.h>
-
-
-@interface StatusItemController : NSObject
-{
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
-}
-
--(void)awakeFromNib;
-
-@end
+#include <string>

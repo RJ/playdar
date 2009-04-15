@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright 2005-2009 Last.fm Ltd.                                      *
+ *   Copyright  Ltd. <client@last.fm>                          *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -14,20 +14,56 @@
  *   You should have received a copy of the GNU General Public License     *
  *   along with this program; if not, write to the                         *
  *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
+ *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 
-// Created by Max Howell <max@last.fm>
+#include "Logger.h"
+#include <sys/stat.h>
 
-#import <Cocoa/Cocoa.h>
 
-
-@interface StatusItemController : NSObject
+/** @author Max Howell 
+  * @brief Used by Twiddly and iTunesPlugin
+  */
+namespace common
 {
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
+    #if WIN32
+        #define STRING wstring
+        #define STAT _stat
+        #define stat _wstat
+        #define COMMON_LOG LOGW
+    #else
+        #define STAT stat
+        #define STRING string
+        #define COMMON_LOG LOG
+    #endif
+
+    static time_t
+    fileCreationTime( const std::STRING& path )
+    {
+        struct STAT st;
+        if (stat( path.c_str(), &st ) != 0)
+        {
+            COMMON_LOG( 3, "Couldn't stat" << path );
+            return 0;
+        }
+        else
+            return st.st_ctime ? st.st_ctime : st.st_mtime;
+    }
+
+    #undef STAT
+    #undef stat
+    #undef STRING
+    #undef COMMON_LOG
+
+#ifdef QT_CORE_LIB
+    static inline time_t
+    fileCreationTime( const QString& path )
+    {
+    #ifdef Q_OS_WIN32
+        return fileCreationTime( path.toStdWString() );
+    #else
+        return fileCreationTime( path.toStdString() );
+    #endif
+    }
+#endif
 }
-
--(void)awakeFromNib;
-
-@end

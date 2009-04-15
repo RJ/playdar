@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright 2005-2009 Last.fm Ltd.                                      *
+ *   Copyright 2008-2009 Last.fm Ltd.                                      *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -17,17 +17,63 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
-// Created by Max Howell <max@last.fm>
+#include "IPod.h"
+#include <sys/stat.h>
+#include <iostream>
+#include <sstream>
 
-#import <Cocoa/Cocoa.h>
+#ifndef WIN32
+    #include <dirent.h>
+#endif
 
 
-@interface StatusItemController : NSObject
+const COMMON_STD_STRING 
+IPod::twiddlyFlags() const
 {
-    NSStatusItem* status_item;
-    IBOutlet NSMenu* menu;   
+    LFM_STRINGSTREAM ss;
+    
+    ss << "--device ";
+    ss << device();
+    
+    ss << " --connection ";
+    switch( m_connectionType )
+    {
+        case usb:
+            ss << "usb";
+            break;
+            
+        case fireWire:
+            ss << "fireWire";
+            break;
+    }
+    
+    ss << " --pid " << m_pid;
+    ss << " --vid " << m_vid;
+    ss << " --serial " << m_serial;
+    
+    if( m_manualMode )
+        ss << " --manual";
+
+    return ss.str();
 }
 
--(void)awakeFromNib;
 
-@end
+COMMON_STD_STRING
+IPod::device() const
+{
+    #ifdef WIN32
+        #define _(x) L##x
+    #else
+        #define _(x) x
+    #endif
+
+    switch( m_type )
+    {
+        case iPod:   return _( "ipod" );
+        case iTouch: return _( "itouch" );
+        case iPhone: return _( "iphone" );
+        default:     return _( "unknown" );
+    }
+
+    #undef _
+}

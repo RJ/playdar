@@ -80,4 +80,5 @@ extern char* scrobsub_username;
 /** for your convenience, we need it, so maybe you can use it too */
 void scrobsub_md5(char out[33], const char* in);
 
+
 #endif
