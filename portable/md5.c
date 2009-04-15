@@ -23,6 +23,8 @@
 #else
 #include <openssl/md5.h>
 #endif
+#include <stdio.h>
+#include <string.h>
 
 
 void scrobsub_md5(char out[33], const char* in)
