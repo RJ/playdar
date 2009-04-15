@@ -25,7 +25,6 @@
 #include <string.h>
 #include <time.h>
 
-static bool enabled = true;
 static time_t start_time = 0;
 static time_t pause_time = 0;
 static int state = SCROBSUB_STOPPED;
@@ -72,11 +71,6 @@ void scrobsub_init(void(*callback)(int, const char*))
     else
         ;//scrobsub_start_scrobbler();
 }    
-
-void scrobsub_set_enabled(bool enabledp)
-{
-    enabled = enabledp;
-}
 
 static void get_handshake_auth(char out[33], time_t time)
 {
@@ -147,9 +141,7 @@ static unsigned int scrobble_time(unsigned int duration)
 }
 
 static void submit()
-{
-    if(!enabled) return;    
-    
+{    
     //TODO check track is valid to submit
     
     if(state == SCROBSUB_PAUSED)
@@ -185,7 +177,7 @@ static void submit()
     }
 }
 
-void scrobsub_start(const char* _artist, const char* _track, const char* _album, unsigned int _duration, unsigned int _track_number, const char* _mbid)
+void scrobsub_start(const char* _artist, const char* _track, unsigned int _duration, const char* _album, unsigned int _track_number, const char* _mbid)
 {
     state = SCROBSUB_PLAYING;
     N = strlen(_artist)+strlen(_track)+strlen(_album)+strlen(_mbid);
@@ -208,21 +200,20 @@ void scrobsub_start(const char* _artist, const char* _track, const char* _album,
     track_number = _track_number;
 
     start_time = now();
-
-    if(!enabled)return;
     
     //TODO, don't emit np if user is skipping fast, then you need a timer
     //    static time_t previous_np = 0;
     //    time_t time = now();
     //    if(time - previous_np < 4)
     
+    //TODO don't submit track number if 0
+    
     if(duration>9999) duration = 9999;
     if(track_number>99) track_number = 99;
     
-    
-    int n = 32+4+2+N +2+6*3;
-    char post_data[n];
-    snprintf(post_data, n, "s=%s"
+    char post_data[32+4+2+N+2+6*3];
+    snprintf(post_data, sizeof(post_data),
+                           "s=%s"
                           "&a=%s"
                           "&t=%s"
                           "&b=%s"

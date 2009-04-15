@@ -35,12 +35,6 @@ void scrobsub_init(void(*callback)(int event, const char* message));
 #define SCROBSUB_ERROR_RESPONSE 1
 
 
-/** calling false will disable submission to Last.fm. However it will not
-  * disable it if the official Last.fm Audioscrobbler client is running. This is
-  * because the user disables scrobbling centrally there in that case. */
-void scrobsub_set_enabled(bool enabled);
-
-
 /** the user needs to visit @p url within one hour for authentication to succeed */
 void scrobsub_auth(char url[110]);
 
@@ -55,9 +49,10 @@ bool scrobsub_finish_auth();
   * be UTF8. 
   * artist, track and duration are mandatory
   * album and mbid can be "" (do not pass NULL or 0)
-  * if track_number is less than 0 it is ignored (0 is a valid track number on some albums)
+  * if track_number is 0 it is ignored (yes, we know some albums have a zeroth track)
+  * valid MBIDs are always 38 characters, be wary of that
   */
-void scrobsub_start(const char* artist, const char* track, int duration, const char* album, int track_number, const char* mbid);
+void scrobsub_start(const char* artist, const char* track, unsigned int duration, const char* album, unsigned int track_number, const char* mbid);
 /** the thing that we're scrobbling got paused. This is not a toggle, when/if
   * the track is unpaused, call resume. We insist on this distinction because
   * we want you to be exact! */
