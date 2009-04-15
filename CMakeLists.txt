@@ -99,6 +99,7 @@ ADD_LIBRARY(playdarcore STATIC
 
 TARGET_LINK_LIBRARIES( playdarcore 
 			${SQLITE3_LIBRARIES}
+		    ${CURL_LIBRARIES}			
 			)
 
 					  
