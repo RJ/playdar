@@ -1,5 +1,6 @@
 #include "lan.h"
 #include <time.h>
+#include "playdar/types.h"
 
 namespace playdar {
 namespace resolvers {
@@ -244,7 +245,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 url += "/sid/";
                 url += rip->id();
                 boost::shared_ptr<StreamingStrategy> 
-                    s(new HTTPStreamingStrategy(url));
+                s(new CurlStreamingStrategy(url));
                 rip->set_streaming_strategy(s);
                 vector< ri_ptr > v;
                 v.push_back(rip);

@@ -3,7 +3,7 @@
 #include "playdar/resolved_item.h"
 #include "playdar/config.hpp"
 #include "playdar/types.h"
-#include "playdar/ss_http.hpp"
+#include "playdar/streaming_strategy.h"
 #include "json_spirit/json_spirit.h"
 #include <cassert>
 /*
@@ -166,16 +166,14 @@ public:
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
     const int size() const          { return m_size; }
+    /// This returns what ss->get_instance() returns, which in some cases is a 
+    /// shared_ptr to the same SS as is attached, if the SS is threadsafe.
+    /// in the case of curlSS, it's a copy, because curlSS is not threadsafe.
     boost::shared_ptr<StreamingStrategy> streaming_strategy() const 
     {
-        // memoized auto-upgrade from an url param -> httpstreamingstrategy:
-        if(m_ss) return m_ss; 
-        if(!m_ss && m_url.length())
-        {
-            m_ss = boost::shared_ptr<StreamingStrategy>
-            (new HTTPStreamingStrategy(m_url));
-        }
-        return m_ss; // could be null if not specified.
+        if(m_ss) return m_ss->get_instance();
+        // this returns a null shared_ptr:
+        return m_ss;
     }
     
 private:

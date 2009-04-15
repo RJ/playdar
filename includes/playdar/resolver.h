@@ -15,7 +15,7 @@
 
 #include "playdar/streaming_strategy.h"
 #include "playdar/ss_localfile.hpp"
-#include "playdar/ss_http.hpp"
+#include "playdar/ss_curl.hpp"
 
 
 class MyApplication;
