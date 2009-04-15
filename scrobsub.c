@@ -32,7 +32,6 @@ static char* session_id = 0;
 static unsigned int N = 0;
 static char* np_url = 0;
 static char* submit_url = 0;
-static bool relay = true;
 
 static char* artist;
 static char* track;
@@ -46,7 +45,15 @@ void scrobsub_get(char* response, const char* url);
 void scrobsub_post(char* response, const char* url, const char* post_data);
 bool scrobsub_retrieve_credentials();
 bool scrobsub_launch_audioscrobbler();
+
+#if SCROBSUB_NO_RELAY
+// compiler will optimise this stuff away now
+#define relay false
+#define scrobsub_relay(x)
+#else
 void scrobsub_relay(int);
+static bool relay = true;
+#endif
 
 char* scrobsub_session_key = 0;
 char* scrobsub_username = 0;
@@ -64,9 +71,10 @@ void scrobsub_init(void(*callback)(int, const char*))
 {
     scrobsub_callback = callback;
 
+#if !SCROBSUB_NO_RELAY
     // will return true if audioscrobbler is installed
     relay = scrobsub_launch_audioscrobbler();
-    
+#endif    
     if(!relay && !scrobsub_retrieve_credentials())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
 }    
@@ -180,7 +188,7 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
 {
     state = SCROBSUB_PLAYING;
     N = strlen(_artist)+strlen(_track)+strlen(_album)+strlen(_mbid);
-    
+
     if(relay){
         //scrobsub_relay("START", _artist, _track, _album, _duration, _track_number, _mbid);
         return;

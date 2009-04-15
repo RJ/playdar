@@ -44,7 +44,7 @@ static void callback(int e, const char* s)
 int main()
 {
     scrobsub_init(callback);
-    scrobsub_start("Max Howell", "Is Fucking Awesome", "Audioscrobbler EXAMPLE", 60, 1, "");
+    scrobsub_start("Max Howell", "Is Fucking Awesome", 60, "Audioscrobbler EXAMPLE", 0, "");
     printf("Fake track is playing for 60 seconds...\n");
     sleep(60);
     scrobsub_stop();
