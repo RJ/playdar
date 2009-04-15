@@ -1,4 +1,4 @@
-static const bool DISABLE_AUTH=true;
+static const bool DISABLE_AUTH=false;
 
 #include "playdar/application.h"
 #include <iostream>
@@ -579,10 +579,10 @@ playdar_request_handler::handle_api( const playdar_request& req,
     
     /// Auth stuff
     string permissions = "";
-    if(req.getvar_exists("auth"))
+    if(DISABLE_AUTH || req.getvar_exists("auth"))
     {
         string whom;
-        if(m_pauth->is_valid(req.getvar("auth"), whom) || DISABLE_AUTH)
+        if(DISABLE_AUTH || m_pauth->is_valid(req.getvar("auth"), whom) )
         {
             //cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
