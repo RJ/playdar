@@ -10,7 +10,7 @@
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 
-#include "TagCloudRQBuilder.h"
+#include "BoffinRQUtil.h"
 
 using namespace fm::last::query_parser;
 
@@ -260,6 +260,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             }
 
             report_results(rq->id(), playables, "Boffin");
+            return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
     } else if (rq->param_exists("boffin_tags")) {
@@ -295,22 +296,31 @@ boffin::get_http_handlers()
 playdar_response 
 boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
 {
-    if(req.parts().size() > 1 &&
-       req.parts()[1] == "tagcloud" )
-    {
-        rq_ptr rq = TagCloudRQBuilder::build();
-        rq->set_from_name( conf()->name() );
-        
-        query_uid qid = resolver()->dispatch( rq );
-
-        using namespace json_spirit;
-        Object r;
-        r.push_back( Pair("qid", qid ));
-
-        ostringstream os;
-        write_formatted( r, os );
-        return playdar_response( os.str(), false );
-    }
-    else 
+    if(req.parts().size() <= 1)
         return "This plugin has no web interface.";
+    
+    rq_ptr rq;
+    if( req.parts()[1] == "tagcloud" )
+    {
+        rq = BoffinRQUtil::buildTagCloudRequest();
+    }
+    else if( req.parts()[1] == "rql" && req.parts().size() >= 2)
+    {
+        rq = BoffinRQUtil::buildRQLRequest( req.parts()[2] );
+    }
+
+    if( !rq )
+        return "Error!";
+    
+    rq->set_from_name( conf()->name() );
+    
+    query_uid qid = resolver()->dispatch( rq );
+    
+    using namespace json_spirit;
+    Object r;
+    r.push_back( Pair("qid", qid ));
+    
+    ostringstream os;
+    write_formatted( r, os );
+    return playdar_response( os.str(), false );
 }
