@@ -50,9 +50,11 @@ bool scrobsub_launch_audioscrobbler();
 // compiler will optimise this stuff away now
 #define relay false
 #define scrobsub_relay(x)
+#define scrobsub_relay_start(x, y, z);
 #else
-void scrobsub_relay(int);
 static bool relay = true;
+void scrobsub_relay(int);
+void scrobsub_relay_start(const char*, const char*, int);
 #endif
 
 char* scrobsub_session_key = 0;
@@ -187,10 +189,12 @@ static void submit()
 void scrobsub_start(const char* _artist, const char* _track, unsigned int _duration, const char* _album, unsigned int _track_number, const char* _mbid)
 {
     state = SCROBSUB_PLAYING;
-    N = strlen(_artist)+strlen(_track)+strlen(_album)+strlen(_mbid);
-
+    
+    if(_duration>9999) _duration = 9999;
+    if(_track_number>99) _track_number = 99;
+    
     if(relay){
-        //scrobsub_relay("START", _artist, _track, _album, _duration, _track_number, _mbid);
+        scrobsub_relay_start(_artist, _track, _duration);
         return;
     }
     
@@ -208,16 +212,15 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
 
     start_time = now();
     
+    N = strlen(_artist)+strlen(_track)+strlen(_album)+strlen(_mbid);
+    
     //TODO, don't emit np if user is skipping fast, then you need a timer
     //    static time_t previous_np = 0;
     //    time_t time = now();
     //    if(time - previous_np < 4)
     
     //TODO don't submit track number if 0
-    
-    if(duration>9999) duration = 9999;
-    if(track_number>99) track_number = 99;
-    
+
     char post_data[32+4+2+N+2+6*3];
     snprintf(post_data, sizeof(post_data),
                            "s=%s"
