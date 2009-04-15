@@ -28,6 +28,7 @@ public:
         while (m_recent.size() > m_memory)
             m_recent.pop_back();
         m_recent.push_front(r.artistId);
+        m_results.push_back( r );
     }
 
     const std::vector<TrackResult>& get_results()

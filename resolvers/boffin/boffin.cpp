@@ -260,6 +260,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             }
 
             report_results(rq->id(), playables, "Boffin");
+            return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
     } else if (rq->param_exists("boffin_tags")) {
