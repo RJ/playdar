@@ -433,7 +433,7 @@ lan::receive_pang(map<string,Value> & om,
     m_lannodes.erase(from_name);
 }
 
-string 
+playdar_response 
 lan::http_handler( const playdar_request& req,
                          playdar::auth * pauth)
 {

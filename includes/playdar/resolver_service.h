@@ -4,6 +4,7 @@
 #include "playdar/application.h"
 #include "playdar/resolver.h"
 #include "playdar/auth.hpp"
+#include "playdar/playdar_response.h"
 
 #include <DynamicClass.hpp>
 
@@ -61,7 +62,7 @@ public:
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
     /// handler for HTTP reqs we are registered for:
-    virtual string http_handler( const playdar_request&, playdar::auth * pauth)
+    virtual playdar_response http_handler( const playdar_request&, playdar::auth * pauth)
     {
         return "This plugin has no web interface.";
     }

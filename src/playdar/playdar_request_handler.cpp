@@ -15,6 +15,7 @@ static const bool DISABLE_AUTH=false;
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
@@ -246,17 +247,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
 {
     //TODO: handle script resolver urls?
     cout << "pluginhandler: " << req.parts()[0] << endl;
-    ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
+    ResolverService* rs = app()->resolver()->get_resolver( req.parts()[0] );
 
-    if( resolver == 0 )
+    if( rs == 0 )
     {
         cout << "No plugin of that name found." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
         return;
     }
 
-    serve_body( resolver->http_handler( req,
-                                        m_pauth), rep );
+    const playdar_response& response = rs->http_handler( req, m_pauth );
+    serve_body( response, rep );
 }
 
 void 
@@ -802,38 +803,14 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 }
 
 void
-playdar_request_handler::serve_body(string reply, moost::http::reply& rep)
+playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    std::ostringstream r;
-    r   << "<html><head><title>Playdar</title>"
-        << "<style type=\"text/css\">"
-        << "td { padding: 5px; }"
-        << "</style></head><body>"
-        << "<h1>Local Playdar Server</h1>"
-        << "<a href=\"/\">Home</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/stats/\">Stats</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/auth/\">Authentication</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/queries/\">Queries</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/config/\">Configuration</a>"
-        
-        << "&nbsp; || &nbsp;"
-        << "<a href=\"http://www.playdar.org/\" target=\"playdarsite\">Playdar.org</a>"
-        
-        << "<hr style=\"clear:both;\" />";
-
-    r << reply;
-    r << "\n</body></html>";
-
     rep.headers.resize(2);
     rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = r.str().length();
+    rep.headers[0].value = response.str().length();
     rep.headers[1].name = "Content-Type";
     rep.headers[1].value = "text/html";
-    rep.content = r.str(); 
+    rep.content = response; 
 }
 
 void

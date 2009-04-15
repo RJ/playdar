@@ -30,7 +30,7 @@ public:
     virtual vector<string> get_http_handlers();
 
     // handler for HTTP reqs we are registerd for:
-    virtual string http_handler( const playdar_request&, playdar::auth * pauth);
+    virtual playdar_response http_handler( const playdar_request&, playdar::auth * pauth);
 
 protected:
     virtual ~boffin() throw() {}
