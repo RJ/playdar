@@ -59,15 +59,18 @@ static string config(bool auth_required)
     return string("<p>You need to <a href='") + url + "'>authenticate</a> in order to scrobble.</p>";
 }
 
-string
+playdar_response 
 audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
 {
     if(rq.parts().size()<2) return "Hi index!";
     string action = rq.parts()[1];
-    if(action == "start")  { start(rq); return "OK"; }
-    if(action == "pause")  { scrobsub_pause(); return "OK"; }
-    if(action == "resume") { scrobsub_resume(); return "OK"; }
-    if(action == "stop")   { scrobsub_stop(); return "OK"; }
+    
+    playdar_response ok( "OK", false );
+    
+    if(action == "start")  { start(rq); return ok; }
+    if(action == "pause")  { scrobsub_pause(); return ok; }
+    if(action == "resume") { scrobsub_resume(); return ok; }
+    if(action == "stop")   { scrobsub_stop(); return ok; }
     
     if(action == "config") return config(auth_required);
     
