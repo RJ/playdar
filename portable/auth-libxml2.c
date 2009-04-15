@@ -20,10 +20,11 @@
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 
+bool scrobsub_persist_credentials();
+static char* token = 0;
+
 //TODO localise and get webservice error
 //TODO error handling
-
-static char* token = 0;
 
 void scrobsub_auth(char out_url[110])
 {

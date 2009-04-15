@@ -50,6 +50,7 @@ bool scrobsub_retrieve_credentials()
 {
     FILE* fp = fopen_session_file("r");
     if(!fp) return false;
+    scrobsub_session_key = malloc(33);
     fread(scrobsub_session_key, sizeof(char), 32, fp);
     fseek(fp, 0, SEEK_END);
     long n = ftell(fp)-32; //determine length of username
@@ -69,7 +70,7 @@ bool scrobsub_persist_credentials()
     FILE* fp = fopen_session_file("w");
     if(!fp) return false;
     fwrite(scrobsub_session_key, sizeof(char), 32, fp);
-    fwrite(scrobsub_username, sizeof(char), strlen(username), fp);
+    fwrite(scrobsub_username, sizeof(char), strlen(scrobsub_username), fp);
     fclose(fp);
     return true;
 }

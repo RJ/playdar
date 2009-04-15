@@ -1,5 +1,5 @@
-audioscrobbled: EXAMPLE.c scrobsub.c scrobsub-curl.c _configure.h
-	gcc -w -std=c99 -ggdb -o $@ EXAMPLE.c -lcrypto -lxml2 -lcurl
+audioscrobbled: EXAMPLE.c scrobsub.c portable/http-curl.c portable/auth-libxml2.c portable/md5.c portable/persistence-simple.c _configure.h
+	gcc -w -std=c99 -g3 -ggdb -o $@ -I. EXAMPLE.c -lcrypto -lxml2 -lcurl
 
 _configure.h: VERSION
 	@echo '#define SCROBSUB_CLIENT_VERSION "'`cat VERSION`'"' > _configure.h

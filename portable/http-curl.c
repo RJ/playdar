@@ -23,16 +23,6 @@
 
 //TODO user-agent
 
-void scrobsub_relay(const char* string)
-{
-#ifdef __APPLE__
-    #define STRING_BEGIN "open lastfm://scrobsub/" SCROBSUB_CLIENT_ID "/"
-    char sh[sizeof(STRING_BEGIN)+strlen(string)] = STRING_BEGIN;
-    strcat(sh, string);
-    system(sh);
-#endif
-}
-
 static int n;
 
 static size_t curl_writer(void* in, size_t size, size_t N, void* out)

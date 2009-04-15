@@ -52,8 +52,12 @@ bool scrobsub_finish_auth();
 
 
 /** A new track started. scrobsub takes copies of the strings. All strings must
-  * be UTF8. */
-void scrobsub_start(const char* artist, const char* track, const char* album, unsigned int duration, unsigned int track_number, const char* mbid);
+  * be UTF8. 
+  * artist, track and duration are mandatory
+  * album and mbid can be "" (do not pass NULL or 0)
+  * if track_number is less than 0 it is ignored (0 is a valid track number on some albums)
+  */
+void scrobsub_start(const char* artist, const char* track, int duration, const char* album, int track_number, const char* mbid);
 /** the thing that we're scrobbling got paused. This is not a toggle, when/if
   * the track is unpaused, call resume. We insist on this distinction because
   * we want you to be exact! */
