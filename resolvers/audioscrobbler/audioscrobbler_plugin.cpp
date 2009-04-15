@@ -65,7 +65,7 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(rq.parts().size()<2) return "Hi index!";
     string action = rq.parts()[1];
     
-    playdar_response ok( "{success: true}", false );
+    playdar_response ok( "{\"success\" : true}", false );
     
     if(action == "start")  { start(rq); return ok; }
     if(action == "pause")  { scrobsub_pause(); return ok; }
