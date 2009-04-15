@@ -9,7 +9,7 @@
 #include <boost/foreach.hpp>
 
 #include "sqlite3pp.h"
-
+#include <iostream>
 class BoffinDb
 {
 public:
@@ -76,9 +76,10 @@ public:
         int tagId = get_tag_id(tag, NoCreate);
         if (tagId > 0) {
             sqlite3pp::query qry( m_db,
-                "SELECT file, artist, file_tag.weight FROM pd.file_join "
-                "INNER JOIN file_tag ON pd.file_join = file_tag.file "
+                "SELECT file_tag.file, artist, file_tag.weight FROM pd.file_join "
+                "INNER JOIN file_tag ON pd.file_join.file = file_tag.file "
                 "WHERE tag = ?");
+            
             qry.bind(1, tagId);
             for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
                 onFile( i->get<int>(0), i->get<int>(1), i->get<float>(2) );
