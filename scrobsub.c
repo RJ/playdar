@@ -76,7 +76,7 @@ void scrobsub_init(void(*callback)(int, const char*))
 #if !SCROBSUB_NO_RELAY
     // will return true if audioscrobbler is installed
     relay = scrobsub_launch_audioscrobbler();
-#endif    
+#endif
     if(!relay && !scrobsub_retrieve_credentials())
         (callback)(SCROBSUB_AUTH_REQUIRED, 0);
 }    
