@@ -15,6 +15,7 @@ static const bool DISABLE_AUTH=false;
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
@@ -44,7 +45,6 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
     m_urlHandlers[ "stats" ] = boost::bind( &playdar_request_handler::serve_stats, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
-    m_urlHandlers[ "serve" ] = boost::bind( &playdar_request_handler::handle_serve, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
@@ -246,17 +246,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
 {
     //TODO: handle script resolver urls?
     cout << "pluginhandler: " << req.parts()[0] << endl;
-    ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
+    ResolverService* rs = app()->resolver()->get_resolver( req.parts()[0] );
 
-    if( resolver == 0 )
+    if( rs == 0 )
     {
         cout << "No plugin of that name found." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
         return;
     }
 
-    serve_body( resolver->http_handler( req,
-                                        m_pauth), rep );
+    const playdar_response& response = rs->http_handler( req, m_pauth );
+    serve_body( response, rep );
 }
 
 void 
@@ -487,21 +487,6 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         }
     }
     while( false );
-}
-
-/// serves file-id from library 
-void 
-playdar_request_handler::handle_serve( const playdar_request& req,
-                                       moost::http::reply& rep )
-{
-    if(req.parts().size() != 2)
-    {
-        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
-        return;
-    }
-    
-    int fid = atoi(req.parts()[1].c_str());
-    if(fid) serve_track( rep, fid );
 }
 
 /// serves file based on SID
@@ -802,38 +787,14 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 }
 
 void
-playdar_request_handler::serve_body(string reply, moost::http::reply& rep)
+playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    std::ostringstream r;
-    r   << "<html><head><title>Playdar</title>"
-        << "<style type=\"text/css\">"
-        << "td { padding: 5px; }"
-        << "</style></head><body>"
-        << "<h1>Local Playdar Server</h1>"
-        << "<a href=\"/\">Home</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/stats/\">Stats</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/auth/\">Authentication</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/queries/\">Queries</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/config/\">Configuration</a>"
-        
-        << "&nbsp; || &nbsp;"
-        << "<a href=\"http://www.playdar.org/\" target=\"playdarsite\">Playdar.org</a>"
-        
-        << "<hr style=\"clear:both;\" />";
-
-    r << reply;
-    r << "\n</body></html>";
-
     rep.headers.resize(2);
     rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = r.str().length();
+    rep.headers[0].value = response.str().length();
     rep.headers[1].name = "Content-Type";
     rep.headers[1].value = "text/html";
-    rep.content = r.str(); 
+    rep.content = response; 
 }
 
 void
@@ -933,47 +894,4 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     rep.content = os.str(); 
 }
 
-/*
-    Serves a file based on fid from library.
-    Might be useful if browsing your local library and you want
-    to play tracks without searching and generating SIDs etc.
-*/
-void
-playdar_request_handler::serve_track( moost::http::reply& rep, int tid)
-{
-    vector<int> fids = app()->library()->get_fids_for_tid(tid);
-    int fid = fids[0];
-    //lookup file path and content type etc
-    string full_path    = app()->library()->get_field("file", fid, "path");
-    string mimetype     = app()->library()->get_field("file", fid, "mimetype");
-    string size         = app()->library()->get_field("file", fid, "size");
-
-    cout << "Serving track id: "<<tid << " using file id: " << fid << " File: " << full_path << " size: " << size << endl;
-
-    // Open the file to send back.
-    std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
-    if (!is)
-    {
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
-        return;
-    }
-
-    // Fill out the reply to be sent to the client.
-    rep.status = moost::http::reply::ok;
-    char buf[512];
-    while (is.read(buf, sizeof(buf)).gcount() > 0)
-        rep.content.append(buf, is.gcount());
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = size;
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = mimetype;
-// just install mozilla-plugin-vlc and it will play in-browser.
-//    rep.headers[2].name = "";
-//    rep.headers[2].value = "";
-//    rep.headers[3].name = "";
-//    rep.headers[3].value = "";
-//    header("Content-Disposition: attachment; filename=\"".$filename."\";" );
-//    header("Content-Transfer-Encoding: binary");
-}
 

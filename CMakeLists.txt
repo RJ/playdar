@@ -18,6 +18,7 @@ FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread progr
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
 FIND_PACKAGE(OsspUuid REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
+FIND_PACKAGE(CURL REQUIRED)
 # we're not doing this because CMake sucks and RJ's machine had the right one
 # in /usr/local and an old one in /usr and CMake chose the wrong one :P
 FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
@@ -53,7 +54,7 @@ ENDIF(APPLE)
 
 IF(NOT WIN32)
     # removes operators like "and", "or" and "not"
-    ADD_DEFINITIONS(-fno-operator-names -g)
+    ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
@@ -113,7 +114,8 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/moost_http/src/http/request_parser.cpp
               )
 
-TARGET_LINK_LIBRARIES( playdar
+TARGET_LINK_LIBRARIES( playdar 
+                       ${CURL_LIBRARIES}
                        playdarcore
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain

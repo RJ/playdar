@@ -105,7 +105,7 @@ class RS_http_playdar  : public ResolverService
                             string url = remote_httpbase();
                             url += "/sid/";
                             url += pip->id();
-                            boost::shared_ptr<StreamingStrategy> s(new HTTPStreamingStrategy(url));
+                            boost::shared_ptr<StreamingStrategy> s(new CurlStreamingStrategy(url));
                             pip->set_streaming_strategy(s);
                             // get remote pref * out multiplier for speed of network:
                             float  our_pref = (float)0.5*(float)pip->preference();
@@ -148,7 +148,7 @@ class RS_http_playdar  : public ResolverService
         ostringstream output;
         try
         {
-            HTTPStreamingStrategy h(url);
+            CurlStreamingStrategy h(url);
             char b[512];
             int len = 0;
             //cout <<"Starting to read";

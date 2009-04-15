@@ -65,9 +65,14 @@ function get_matches($rq){
     $pi->bitrate= 160;
     $pi->duration = 248;
     $pi->extra_headers = array("X-Something: foo", "X-WTF: bar");
+    // anything cURL supports:
     // NB this url should be url encoded properly:
+    // $pi->url    = "ftp://user:pass@ftp.example.com/foo/bar.mp3";
+    // $pi->url    = "scp://10.180.255.129/home/rj/mp3/TomWaits/Time.mp3"; // if your curl supports it!
+    // $pi->url    = "file:///home/rj/mp3/Zero 7 - The Garden/Zero 7 - 11 - Crosses.mp3";
+    // $pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
+
     $pi->url    = "http://playdar:password@www.playdar.org/secret/hiding.mp3";
-    //$pi->url    = "http://play.mokele.co.uk/music/Hiding%20In%20Your%20Insides.mp3";
     $pi->score  = (float)1.00;
     return array($pi);
 }

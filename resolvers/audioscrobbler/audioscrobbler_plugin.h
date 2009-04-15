@@ -21,7 +21,7 @@ namespace playdar
             virtual bool init(playdar::Config*, Resolver*);
             virtual void Destroy();
             virtual string name() const { return "Audioscrobbler"; }
-            virtual string http_handler(const playdar_request&, playdar::auth* pauth);
+            virtual playdar_response http_handler(const playdar_request&, playdar::auth* pauth);
 
         private:
             /** pure virtual, so reimplemented but does nothing */

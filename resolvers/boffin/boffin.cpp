@@ -292,7 +292,7 @@ boffin::get_http_handlers()
 }
 
 // handler for HTTP reqs we are registerd for:
-string 
+playdar_response 
 boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
 {
     if(req.parts().size() > 1 &&
@@ -309,7 +309,7 @@ boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
 
         ostringstream os;
         write_formatted( r, os );
-        return os.str();
+        return playdar_response( os.str(), false );
     }
     else 
         return "This plugin has no web interface.";

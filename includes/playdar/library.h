@@ -13,18 +13,22 @@
 #include "playdar/album.h"
 #include "playdar/track.h"
 
+#include "playdar/streaming_strategy.h"
 
 class MyApplication;
 
 class Library
 {
 public:
-    Library(std::string dbfilepath, MyApplication * a);
+    Library(const std::string& dbfilepath, MyApplication * a);
     ~Library();
 
-    int add_dir(const std::string&, int);
-    int add_file(const std::string&, int, int, const std::string&, const std::string&, int, int, const std::string&, const std::string&, const std::string&, int);
-    bool remove_file(const std::string&);
+    int add_dir( const std::string& url, int mtime);
+    int add_file( const std::string& url, int mtime, int size, const std::string& md5, const std::string& mimetype,
+                  int duration, int bitrate,
+                  const std::string& artist, const std::string& album, const std::string& track, int tracknum);
+    
+    bool remove_file( const std::string& url );
 
     int get_artist_id(const std::string&);
     int get_track_id(int, const std::string&);

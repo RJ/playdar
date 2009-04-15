@@ -466,7 +466,7 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 }
 
 // web interface:
-string 
+playdar_response 
 darknet::http_handler(const playdar_request& req,
                       playdar::auth * pauth)
 {
