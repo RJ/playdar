@@ -267,8 +267,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 
         shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
         vector< shared_ptr<ResolvedItem> > results;
-        typedef tuple<std::string, float, int> Item;
-        BOOST_FOREACH(const Item& tag, *tv) {
+        BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
             results.push_back( makeTagCloudItem(tag) );
         }
         report_results(rq->id(), results, "Boffin");

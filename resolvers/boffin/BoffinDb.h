@@ -13,7 +13,8 @@
 class BoffinDb
 {
 public:
-    typedef std::vector< boost::tuple<std::string, float, int> > TagCloudVec;   // tagname, total weight, track count
+    typedef boost::tuple<std::string, float, int> TagCloudVecItem;
+    typedef std::vector<TagCloudVecItem> TagCloudVec;       // tagname, total weight, track count
     typedef std::vector< std::pair<int, float> > TagVec;                        // tag_id, weight
     typedef std::map<int, TagVec> ArtistTagMap;
 

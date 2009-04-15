@@ -15,20 +15,22 @@ boost::shared_ptr<BoffinDb::TagCloudVec>
 BoffinDb::get_tag_cloud(int limit)
 {
     sqlite3pp::query qry(m_db, 
-        "SELECT name, sum(weight), count(weight) FROM file_tag "
-        "INNER JOIN tag ON file_tag.tag = tag.rowid group by tag.rowid");
-    int count = qry.begin()->data_count();
-    boost::shared_ptr<TagCloudVec> p( new TagCloudVec( count ) );
+        "SELECT name, sum(weight), count(weight) "
+        "FROM file_tag "
+        "INNER JOIN tag ON file_tag.tag = tag.rowid "
+        "GROUP BY tag.rowid");
+
+    boost::shared_ptr<TagCloudVec> p( new TagCloudVec() );
     float maxWeight = 0;
     for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-        const TagCloudVec::value_type& tag = i->get_columns<string, float, int>(0, 1, 2);
-        maxWeight = max( maxWeight, tag.get<1>());
-        p->push_back( tag );
+        p->push_back( i->get_columns<string, float, int>(0, 1, 2) );
+        maxWeight = max( maxWeight, p->back().get<1>() );
     }
     
-    for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i )
-    {
-        *i = boost::tuple<string, float, int>( i->get<0>(), i->get<1>() / maxWeight, i->get<2>() );
+    if (maxWeight > 0) {
+        for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
+            i->get<1>() = i->get<1>() / maxWeight;
+        }
     }
     
     return p;
