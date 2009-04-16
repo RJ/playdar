@@ -84,9 +84,7 @@ RS_local_library::process( rq_ptr rq )
         vector<int> fids = app()->library()->get_fids_for_tid(sp.id);
         BOOST_FOREACH(int fid, fids)
         {
-            pi_ptr pip = app()->library()->playable_item_from_fid(fid);
-            boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
-            pip->set_streaming_strategy(ss);
+            pi_ptr pip = PlayableItem::create(*app()->library(), fid);
             pip->set_source(conf()->name());
             final_results.push_back( pip );
         }

@@ -4,8 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <iostream>
-#include <stdio.h>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
@@ -15,9 +13,11 @@ typedef std::string source_uid; // identifies a streamable source for a song
 class Artist;
 class Album;
 class Track;
-typedef boost::shared_ptr<Artist>   artist_ptr;
-typedef boost::shared_ptr<Track>    track_ptr;
-typedef boost::shared_ptr<Album>    album_ptr;
+class LibraryFile;
+typedef boost::shared_ptr<Artist>       artist_ptr;
+typedef boost::shared_ptr<Track>        track_ptr;
+typedef boost::shared_ptr<Album>        album_ptr;
+typedef boost::shared_ptr<LibraryFile>  LibraryFile_ptr;
 
 class ResolvedItem;
 class PlayableItem;

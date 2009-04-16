@@ -61,7 +61,6 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
               )
 			  
 TARGET_LINK_LIBRARIES(scanner 
-                      uriparser
                       ${SQLITE3_LIBRARIES}
 					  ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
