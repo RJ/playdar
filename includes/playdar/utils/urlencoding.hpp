@@ -21,4 +21,4 @@ namespace playdar { namespace utils {
     }
 }}
 
-#endif
+#endif //_PLAYDAR_UTILS_URLENCODING_H_

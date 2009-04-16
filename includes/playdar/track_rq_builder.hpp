@@ -2,9 +2,10 @@
 #define __TRACK_RESOLVER_QUERY__
 
 #include "resolver_query.hpp"
+
 class TrackRQBuilder {
 public:
-    static rq_ptr build( string artist, string album, string track )
+    static rq_ptr build( const string& artist, const string& album, const string& track )
     {
         rq_ptr rq = rq_ptr( new ResolverQuery );
         rq->set_param( "artist", artist );
