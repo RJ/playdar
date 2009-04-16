@@ -111,7 +111,7 @@ boffin::~boffin() throw()
 {
     if (m_thread) {
         m_thread_stop = true;
-        m_queue_wake.notify_all();
+        m_thread->interrupt();
         m_thread->join();
         delete m_thread;
         m_thread = 0;
@@ -160,17 +160,18 @@ boost::function< void() >
 boffin::get_work()
 {
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
-    while (m_queue.empty()) {
-        m_queue_wake.wait(lock);
-        // we might be trying to shutdown:
-        if( m_thread_stop )
-        {   
-            return 0;
+    try {
+        while (m_queue.empty()) {
+            m_queue_wake.wait(lock);
         }
+        boost::function< void() > result = m_queue.front();
+        m_queue.pop();
+        return result;
     }
-    boost::function< void() > result = m_queue.front();
-    m_queue.pop();
-    return result;
+    catch(boost::thread_interrupted) {
+        // must be shutting down:
+        return 0;
+    }
 }
 
 void
@@ -181,7 +182,7 @@ boffin::thread_run()
         boost::function< void() > fun;
         while (!m_thread_stop) {
             fun = get_work();
-            if( fun && !m_thread_stop ) fun();
+            if( fun ) fun();
         }
     }
     catch (std::exception &e) {
