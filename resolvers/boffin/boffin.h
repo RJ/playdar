@@ -44,8 +44,6 @@ private:
     void thread_run();
     void queue_work(boost::function< void() > work);
     boost::function< void() > get_work();
-    void drain_queue();
-    void stop();
 
     volatile bool m_thread_stop;
     boost::thread* m_thread;
