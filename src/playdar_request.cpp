@@ -1,4 +1,5 @@
 #include "playdar/playdar_request.h"
+#include "playdar/utils/urlencoding.hpp"
 #include <boost/tokenizer.hpp>
 
 playdar_request::playdar_request( const moost::http::request& req )
@@ -32,6 +33,11 @@ playdar_request::collect_parts( const string & url, vector<string>& parts )
     
     boost::split(parts, path, boost::is_any_of("/"));
     
+    BOOST_FOREACH( string& part, parts )
+    {
+        part = playdar::utils::url_decode( part );
+    }
+    
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
     if(parts.size() && *(parts.end() -1)=="") parts.erase(parts.end()-1);
 }
@@ -60,7 +66,8 @@ playdar_request::collect_params(const string & url, map<string,string> & vars)
         boost::split( paramParts, *tok_iter, boost::is_any_of( "=" ));
         if( paramParts.size() != 2 )
             return -1;
-        vars[ paramParts[0]] = paramParts[1];
+        
+        vars[ playdar::utils::url_decode( paramParts[0] )] = playdar::utils::url_decode( paramParts[1] );
     }
     return vars.size();
 }
