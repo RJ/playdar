@@ -79,16 +79,3 @@ playdar_request::collect_params(const string & url, map<string,string> & vars)
         return vars.size();
     }
 }
-
-string /* static */
-playdar_request::unescape( string s )
-{
-    // +1's for null terminator
-    char * n = (char *) malloc(sizeof(char) * s.length() + 1);
-    memcpy(n, s.data(), s.length() + 1);
-    uriUnescapeInPlaceA(n);
-
-    string ret(n);
-    free(n);
-    return ret;
-}
