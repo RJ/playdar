@@ -6,7 +6,7 @@ namespace BoffinRQUtil
     rq_ptr buildTagCloudRequest()
     {
         rq_ptr rq( new ResolverQuery );
-        rq->set_param( "boffin_cloud", "*" );
+        rq->set_param( "boffin_tags", "*" );
         return rq;
     }
     
