@@ -178,15 +178,10 @@ void
 boffin::thread_run()
 {
     cout << "boffin thread_run" << endl;
-    try {
-        boost::function< void() > fun;
-        while (!m_thread_stop) {
-            fun = get_work();
-            if( fun ) fun();
-        }
-    }
-    catch (std::exception &e) {
-        std::cout << "boffin::thread_run exception " << e.what();
+    boost::function< void() > fun;
+    while (!m_thread_stop) {
+        fun = get_work();
+        if( fun ) fun();
     }
     cout << "boffin::thread_run exiting" << endl;
 }
