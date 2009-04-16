@@ -109,7 +109,13 @@ boffin::boffin()
 
 boffin::~boffin() throw()
 {
-    stop();
+    if (m_thread) {
+        m_thread_stop = true;
+        m_queue_wake.notify_all();
+        m_thread->join();
+        delete m_thread;
+        m_thread = 0;
+    }
 }
 
 std::string 
@@ -156,6 +162,11 @@ boffin::get_work()
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
     while (m_queue.empty()) {
         m_queue_wake.wait(lock);
+        // we might be trying to shutdown:
+        if( m_thread_stop )
+        {   
+            return 0;
+        }
     }
     boost::function< void() > result = m_queue.front();
     m_queue.pop();
@@ -163,42 +174,20 @@ boffin::get_work()
 }
 
 void
-boffin::drain_queue()
-{
-    boost::lock_guard<boost::mutex> guard(m_queue_mutex);
-    while (!m_queue.empty()) {
-        m_queue.pop();
-    }
-}
-
-void
 boffin::thread_run()
 {
+    cout << "boffin thread_run" << endl;
     try {
+        boost::function< void() > fun;
         while (!m_thread_stop) {
-            get_work()();
+            fun = get_work();
+            if( fun && !m_thread_stop ) fun();
         }
-    } 
-    catch (boost::thread_interrupted) {
-        std::cout << "boffin::thread_run exiting normally";
-    } 
+    }
     catch (std::exception &e) {
         std::cout << "boffin::thread_run exception " << e.what();
     }
-
-    drain_queue();
-}
-
-void
-boffin::stop()
-{
-    if (m_thread) {
-        m_thread_stop = true;
-        m_thread->interrupt();
-        m_thread->join();
-        delete m_thread;
-        m_thread = 0;
-    }
+    cout << "boffin::thread_run exiting" << endl;
 }
 
 /// max time in milliseconds we'd expect to have results in.
