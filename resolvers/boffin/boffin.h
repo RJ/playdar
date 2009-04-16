@@ -33,7 +33,7 @@ public:
     virtual playdar_response http_handler( const playdar_request&, playdar::auth * pauth);
 
 protected:
-    virtual ~boffin() throw() {}
+    virtual ~boffin() throw();
 
 private:
     void resolve(boost::shared_ptr<ResolverQuery> rq);
