@@ -54,6 +54,8 @@ private:
    
     typedef std::map< const string, boost::function<void( const moost::http::request&, moost::http::reply& )> > HandlerMap;
     HandlerMap m_urlHandlers;
+    
+    bool m_disableAuth;
 
 };
 

@@ -1,5 +1,3 @@
-static const bool DISABLE_AUTH=false;
-
 #include "playdar/application.h"
 #include <iostream>
 #include <fstream>
@@ -12,6 +10,7 @@ static const bool DISABLE_AUTH=false;
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
@@ -33,6 +32,7 @@ static const bool DISABLE_AUTH=false;
 void 
 playdar_request_handler::init(MyApplication * app)
 {
+    m_disableAuth = app->conf()->get<bool>( "disableauth", false );
     cout << "HTTP handler online." << endl;
     m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
@@ -79,7 +79,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
-    string base = req.uri.substr(1, req.uri.find("/", 1)-1);
+    boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
+    string base;
+    if( tokenizer.begin() != tokenizer.end())
+        base = *tokenizer.begin();
+
+    
     boost::to_lower(base);
     cout << "Base: " << base << endl;
     HandlerMap::iterator handler = m_urlHandlers.find( base );
@@ -565,10 +570,10 @@ playdar_request_handler::handle_api( const playdar_request& req,
     
     /// Auth stuff
     string permissions = "";
-    if(DISABLE_AUTH || req.getvar_exists("auth"))
+    if(m_disableAuth || req.getvar_exists("auth"))
     {
         string whom;
-        if(DISABLE_AUTH || m_pauth->is_valid(req.getvar("auth"), whom) )
+        if(m_disableAuth || m_pauth->is_valid(req.getvar("auth"), whom) )
         {
             //cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
