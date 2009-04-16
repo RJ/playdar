@@ -10,6 +10,7 @@
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
@@ -78,7 +79,9 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
-    string base = req.uri.substr(1, req.uri.find("/", 1)-1);
+    string base = *boost::tokenizer<boost::char_separator<char> >
+                    (req.uri, boost::char_separator<char>("/?")).begin();
+
     boost::to_lower(base);
     cout << "Base: " << base << endl;
     HandlerMap::iterator handler = m_urlHandlers.find( base );
