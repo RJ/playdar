@@ -40,9 +40,9 @@ void
 BoffinDb::get_all_artist_tags(BoffinDb::ArtistTagMap& out)
 {
     sqlite3pp::query qry(m_db, 
-        "SELECT pd.track.artist, tag, avg(weight) "
+        "SELECT artist, tag, avg(weight) "
         "FROM file_tag "
-        "INNER JOIN pd.file on file_tag.file = pd.track.id "
+        "INNER JOIN pd.file_join ON file_tag.file = pd.file_join.file "
         "GROUP BY artist, tag "
         "ORDER BY artist, tag ");
 
