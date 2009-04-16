@@ -71,12 +71,17 @@ public:
 
     static bool validator(const json_spirit::Object& o)
     {
-        try {
-            generator(o);
-        } catch (...) {
-            return false;
+        map<string, json_spirit::Value> m;
+        obj_to_map(o, m);
+        
+        if( m.find("name") != m.end() && m.find("name")->second.type() == json_spirit::str_type &&
+            m.find("score") != m.end() && m.find("score")->second.type() == json_spirit::real_type &&
+            m.find("count") != m.end() && m.find("count")->second.type() == json_spirit::int_type )
+        {
+            return true;
         }
-        return true;
+        
+        return false;
     }
 
     static ri_ptr generator(const json_spirit::Object& o)

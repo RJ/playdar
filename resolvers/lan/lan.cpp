@@ -237,23 +237,28 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 try
                 {
                     rip = resolver()->ri_from_json(resobj);
+
+                    //FIXME this could be moved into the PlayableItem class perhaps
+                    //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
+                    if( pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip)) {
+                        ostringstream rbs;
+                        rbs << "http://"
+                        << sender_endpoint_.address()
+                        << ":"
+                        << sender_endpoint_.port();
+                        string url = rbs.str();
+                        url += "/sid/";
+                        url += rip->id();
+                        boost::shared_ptr<StreamingStrategy> 
+                        s(new CurlStreamingStrategy(url));
+                        pip->set_streaming_strategy(s);
+                    }
                 }
                 catch (...)
                 {
                     cout << "lan: Missing fields in response json, discarding" << endl;
                     break;
                 }
-                ostringstream rbs;
-                rbs << "http://"
-                    << sender_endpoint_.address()
-                    << ":"
-                    << sender_endpoint_.port();
-                string url = rbs.str();
-                url += "/sid/";
-                url += rip->id();
-                boost::shared_ptr<StreamingStrategy> 
-                s(new CurlStreamingStrategy(url));
-                rip->set_streaming_strategy(s);
                 vector< ri_ptr > v;
                 v.push_back(rip);
                 report_results(qid, v, name());
