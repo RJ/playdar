@@ -155,17 +155,15 @@ SimilarArtists::filesBySimilarArtist(BoffinDb& library, const char* artist)
     int trackCount = 0;
     while ((trackCount < 10000 || artistCount < 20) && pArtist != artistList.end())
     {
-        if (artistFilter.find(pArtist->first) == artistFilter.end()) 
-        {
-            // artist is not in the filter set.
-
-            list<int> tracks;
-            //library.tracksByArtistId(pArtist->first, tracks);
-            //foreach(uint trackId, tracks) {
-            //    result << TrackResult(trackId, pArtist->first, pArtist->second);
-            //}
-            trackCount += tracks.size();
-            artistCount++;
+        if (artistFilter.find(pArtist->first) == artistFilter.end()) {
+            // artist is not filtered out
+            int count = library.files_by_artist(
+                pArtist->first, 
+                boost::bind( &ResultSet::insertTrackResult, result.get(), _1, _2, pArtist->second ) );
+            if (count) {
+                trackCount += count;
+                artistCount++;
+            }
         }
         pArtist++;
     }

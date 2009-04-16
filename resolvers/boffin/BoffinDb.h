@@ -89,16 +89,33 @@ public:
 
     // Functor is: void onFile(int track, int artist)
     template<typename Functor>
-    void files_by_artist(const std::string& artist, Functor onFile)
+    int files_by_artist(const std::string& artist, Functor onFile)
     {
+        int count = 0;
         sqlite3pp::query qry( m_db,
             "SELECT file, artist FROM pd.file_join "
             "INNER JOIN pd.artist ON pd.file_join.artist = pd.artist.id "
             "WHERE pd.artist.sortname = ?");
         qry.bind(1, sortname(artist).data());
-        for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
+        for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i, count++) {
             onFile( i->get<int>(0), i->get<int>(1) );
         }
+        return count;
+    }
+
+    // Functor is: void onFile(int track, int artist)
+    template<typename Functor>
+    int files_by_artist(int artistId, Functor onFile)
+    {
+        int count = 0;
+        sqlite3pp::query qry( m_db,
+            "SELECT file, artist FROM pd.file_join "
+            "WHERE artist = ?");
+        qry.bind(1, artistId);
+        for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i, count++) {
+            onFile( i->get<int>(0), i->get<int>(1) );
+        }
+        return count;
     }
 
 private:
