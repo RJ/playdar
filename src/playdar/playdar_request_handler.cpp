@@ -18,7 +18,6 @@
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
-#include "playdar/utils/urlencoding.hpp"
 
 /*
 
@@ -114,11 +113,11 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
     vars["<%URL%>"]="";
     if(req.getvar_exists("receiverurl"))
     {
-        vars["<%URL%>"] = playdar::utils::url_decode( req.getvar("receiverurl") );
+        vars["<%URL%>"] = req.getvar("receiverurl");
     }
     vars["<%FORMTOKEN%>"]=ftoken;
-    vars["<%WEBSITE%>"]=playdar::utils::url_decode( req.getvar("website") );
-    vars["<%NAME%>"]=playdar::utils::url_decode( req.getvar("name") );
+    vars["<%WEBSITE%>"]=req.getvar("website");
+    vars["<%NAME%>"]=req.getvar("name");
     serve_dynamic(rep, filename, vars);
 }
 
@@ -144,15 +143,15 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         {
             map<string,string> vars;
             string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
-            vars["<%WEBSITE%>"]=playdar::utils::url_decode(req.postvar("website"));
-            vars["<%NAME%>"]=playdar::utils::url_decode(req.postvar("name"));
+            vars["<%WEBSITE%>"]=req.postvar("website");
+            vars["<%NAME%>"]=req.postvar("name");
             vars["<%AUTHCODE%>"]=tok;
             serve_dynamic(rep, filename, vars);
         }
         else
         {
             ostringstream os;
-            os  << playdar::utils::url_decode( req.postvar("receiverurl"))
+            os  << req.postvar("receiverurl")
             << ( strstr(req.postvar("receiverurl").c_str(), "?")==0 ? "?" : "&" )
             << "authtoken=" << tok
             << "#" << tok;
@@ -523,9 +522,9 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
         return;
     }
     
-    string artist   = playdar::utils::url_decode(req.parts()[1]);
-    string album    = req.parts()[2].length()?playdar::utils::url_decode(req.parts()[2]):"";
-    string track    = playdar::utils::url_decode(req.parts()[3]);
+    string artist   = req.parts()[1];
+    string album    = req.parts()[2].length()?req.parts()[2]:"";
+    string track    = req.parts()[3];
     boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);
@@ -626,9 +625,9 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         
         if(req.getvar("method") == "resolve")
         {
-            string artist = playdar::utils::url_decode( req.getvar("artist"));
-            string album  = playdar::utils::url_decode( req.getvar("album"));
-            string track  = playdar::utils::url_decode( req.getvar("track"));
+            string artist = req.getvar("artist");
+            string album  = req.getvar("album");
+            string track  = req.getvar("track");
             // create a new query and start resolving it:
             boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
 
@@ -754,7 +753,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     string retval;
     if(req.getvar_exists("jsonp")) // wrap in js callback
     {
-        retval = playdar::utils::url_decode( req.getvar("jsonp") );
+        retval = req.getvar("jsonp");
         retval += "(" ;
         string s = response.str();
         //while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
