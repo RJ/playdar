@@ -12,15 +12,15 @@
 #include "playdar/artist.h"
 #include "playdar/album.h"
 #include "playdar/track.h"
+#include "playdar/library_file.h"
 
-#include "playdar/streaming_strategy.h"
 
 class MyApplication;
 
 class Library
 {
 public:
-    Library(const std::string& dbfilepath, MyApplication * a);
+    Library(const std::string& dbfilepath);
     ~Library();
 
     int add_dir( const std::string& url, int mtime);
@@ -61,23 +61,19 @@ public:
     std::vector< boost::shared_ptr<Artist> > list_artists();
     std::vector< boost::shared_ptr<Track> > list_artist_tracks(boost::shared_ptr<Artist>);
     
-    boost::shared_ptr<PlayableItem> playable_item_from_fid(int fid);
-    
     std::string get_name(std::string, int);
     std::string get_field(std::string, int, std::string);
 
     std::vector<int> get_fids_for_tid(int tid);
+    LibraryFile_ptr file_from_fid(int fid);
 
-    MyApplication * app() { return m_app; }
-    sqlite3pp::database * db(){ return &m_db; }
+    sqlite3pp::database * db() { return &m_db; }
     std::string dbfilepath() const { return m_dbfilepath; }
     
     // DB helper:
     template <typename T> T db_get_one(std::string sql, T def);
     
 private:
-    MyApplication * m_app;
-    
     sqlite3pp::database m_db;
     boost::mutex m_mut;
     std::string m_dbfilepath;
