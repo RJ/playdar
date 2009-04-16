@@ -827,7 +827,7 @@ void
 playdar_request_handler::serve_static_file(const moost::http::request& req, moost::http::reply& rep)
 {
     moost::http::filesystem_request_handler frh;
-    frh.doc_root("www");
+    frh.doc_root(app()->conf()->get(string("www_root"), string("www")));
     frh.handle_request(req, rep);
 }
 
