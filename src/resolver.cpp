@@ -49,8 +49,17 @@ Resolver::Resolver(MyApplication * app)
     // Load all non built-in resolvers:
     try
     {
-        load_resolver_scripts(); // external processes
-        load_resolver_plugins(); // DLL plugins
+        // Scripts resolvers:
+        if( m_app->conf()->get<bool>("load_scripts", true) )
+            load_resolver_scripts(); // external processes
+        else 
+            cerr << "NOT loading scripts, due to load_scripts=no" << endl;
+        
+        // PDL-loaded plugins:
+        if( m_app->conf()->get<bool>("load_plugins", true) )
+            load_resolver_plugins(); // DLL plugins
+        else 
+            cerr << "NOT loading scripts, due to load_scripts=no" << endl;
     }
     catch(...)
     {
