@@ -26,9 +26,18 @@ public:
     CurlStreamingStrategy(string url)
         : m_curl(0)
         , m_url(url)
+        , m_thread(0)
     {
         reset();
-        m_thread = 0;
+    }
+
+    /// copy constructor, used by get_instance()
+    CurlStreamingStrategy(const CurlStreamingStrategy& other)
+        : m_curl(0)
+        , m_url(other.url())
+        , m_thread(0)
+    {
+        reset();
     }
 
     ~CurlStreamingStrategy()
@@ -40,21 +49,12 @@ public:
         }
         reset(); 
     }
-    
-    /// copy constructor, used by get_instance()
-    CurlStreamingStrategy(CurlStreamingStrategy* const inst)
-    {
-        reset();
-        m_curl = 0;
-        m_url  = inst->url();
-        m_thread = 0;
-    }
-    
+
     /// this returns a shr_ptr to a copy, because it's not threadsafe 
     virtual boost::shared_ptr<StreamingStrategy> get_instance()
     {
         // make a copy:
-        return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(this));
+        return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(*this));
     }
     
     vector<string> & extra_headers() { return m_extra_headers; }
