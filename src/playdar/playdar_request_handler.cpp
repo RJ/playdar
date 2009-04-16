@@ -19,6 +19,7 @@ static const bool DISABLE_AUTH=false;
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
+#include "playdar/utils/urlencoding.hpp"
 
 /*
 
@@ -517,9 +518,9 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
         return;
     }
     
-    string artist   = playdar_request::unescape(req.parts()[1]);
-    string album    = req.parts()[2].length()?playdar_request::unescape(req.parts()[2]):"";
-    string track    = playdar_request::unescape(req.parts()[3]);
+    string artist   = playdar::utils::url_decode(req.parts()[1]);
+    string album    = req.parts()[2].length()?playdar::utils::url_decode(req.parts()[2]):"";
+    string track    = playdar::utils::url_decode(req.parts()[3]);
     boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);

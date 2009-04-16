@@ -7,6 +7,7 @@
 #include "SampleAccumulator.h"
 #include "SimilarArtists.h"
 
+#include "playdar/utils/urlencoding.hpp"
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 
@@ -256,6 +257,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             assert(library);
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = library->playable_item_from_fid( t.trackId );
+                boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
+                pip->set_streaming_strategy(ss);
+                pip->set_source(conf()->name());
                 playables.push_back( pip );
             }
 
@@ -306,7 +310,7 @@ boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
     }
     else if( req.parts()[1] == "rql" && req.parts().size() >= 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar_request::unescape( req.parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
     }
 
     if( !rq )
