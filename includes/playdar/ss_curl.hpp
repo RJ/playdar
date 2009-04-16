@@ -1,6 +1,8 @@
 #ifndef __CURL_STRAT_H__
 #define __CURL_STRAT_H__
+
 #include <boost/asio.hpp>
+#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -22,7 +24,8 @@ class CurlStreamingStrategy : public StreamingStrategy
 {
 public:
     CurlStreamingStrategy(string url)
-        : m_curl(0), m_url(url)
+        : m_curl(0)
+        , m_url(url)
     {
         reset();
         m_thread = 0;
@@ -41,6 +44,7 @@ public:
     /// copy constructor, used by get_instance()
     CurlStreamingStrategy(CurlStreamingStrategy* const inst)
     {
+        reset();
         m_curl = 0;
         m_url  = inst->url();
         m_thread = 0;
