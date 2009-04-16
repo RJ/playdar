@@ -23,10 +23,17 @@ lan::~lan() throw()
 {
     cout << "DTOR LAN " << endl;
     //send_pang(); // can't send when shutting down - crashes atm.
-    m_io_service->stop();
-    m_responder_thread->join();
-    delete(socket_);
-    delete(broadcast_endpoint_);
+    if( m_io_service )
+        m_io_service->stop();
+    
+    if( m_responder_thread )
+        m_responder_thread->join();
+    
+    if( socket_ )
+        delete(socket_);
+    
+    if( broadcast_endpoint_ )
+        delete(broadcast_endpoint_);
 }
 
 void
