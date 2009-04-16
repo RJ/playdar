@@ -29,6 +29,7 @@ INCLUDE_DIRECTORIES(
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
+					${CURL_INCLUDE_DIR}
                     /usr/local/include
                     ${DEPS}/moost_http/include     # our httpd server, from erikf's moost
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
@@ -97,6 +98,7 @@ ADD_LIBRARY(playdarcore STATIC
 
 TARGET_LINK_LIBRARIES( playdarcore 
 			${SQLITE3_LIBRARIES}
+		    ${CURL_LIBRARIES}			
 			)
 
 					  

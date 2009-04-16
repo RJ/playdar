@@ -121,18 +121,13 @@ RqlOpProcessor::unsupported()
     return r;
 }
 
-void insertTrackResult(ResultSet* rs, int track, int artist, float weight)
-{
-    rs->insert(TrackResult(track, artist, weight));
-}
-
 ResultSetPtr
 RqlOpProcessor::globalTag()
 {
     ResultSetPtr rs( new ResultSet() );
     m_library.files_with_tag(
         m_it->name, 
-        boost::bind( &insertTrackResult, rs.get(), _1, _2, _3 ) );
+        boost::bind( &ResultSet::insertTrackResult, rs.get(), _1, _2, _3 ) );
     normalise(m_it->weight, rs);
     return rs;
 }
@@ -150,7 +145,7 @@ RqlOpProcessor::artist()
     ResultSetPtr rs( new ResultSet() );
     m_library.files_by_artist( 
         m_it->name, 
-        boost::bind( &insertTrackResult, rs.get(), _1, _2, 1.0f) );
+        boost::bind( &ResultSet::insertTrackResult, rs.get(), _1, _2, 1.0f) );
     normalise(m_it->weight, rs); 
     return rs;
 }

@@ -112,7 +112,7 @@ public:
     ResultSetPtr filesBySimilarArtist(BoffinDb& library, const char *artist);
 
 private:
-    typedef std::pair<int, float> SimilarArtist;
+    typedef std::pair<int, float> SimilarArtist;    // artist id, similarity (0-1)
     static void resultCb(std::list<SimilarArtist>& results, const BoffinDb::ArtistTagMap::const_iterator& it, float score);
     static bool artistList_orderByWeightDesc(const SimilarArtist& a, const SimilarArtist& b);
     void getSimilarArtists(BoffinDb& library, const std::string& artist, int artistId, std::list<SimilarArtist>& out);

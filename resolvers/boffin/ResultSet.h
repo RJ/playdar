@@ -44,7 +44,15 @@ struct TrackResult
     }
 };
 
-typedef std::set<TrackResult> ResultSet;
+class ResultSet : public std::set<TrackResult> 
+{
+public:
+    void insertTrackResult(int track, int artist, float weight)
+    {
+        insert(TrackResult(track, artist, weight));
+    }
+};
+
 typedef boost::shared_ptr<ResultSet> ResultSetPtr;
 
 
