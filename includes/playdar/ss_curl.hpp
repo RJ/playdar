@@ -142,9 +142,9 @@ public:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
         cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << endl;
-        m_cond.notify_all();
         if(m_curlres != 0) cout << "Curl error: " << m_curlerror << endl;
         curl_easy_cleanup( m_curl );
+        m_cond.notify_all();
     }
     
     const string url() const { return m_url; }
