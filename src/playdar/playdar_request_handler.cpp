@@ -114,11 +114,11 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
     vars["<%URL%>"]="";
     if(req.getvar_exists("receiverurl"))
     {
-        vars["<%URL%>"] = req.getvar("receiverurl");
+        vars["<%URL%>"] = playdar::utils::url_decode( req.getvar("receiverurl") );
     }
     vars["<%FORMTOKEN%>"]=ftoken;
-    vars["<%WEBSITE%>"]=req.getvar("website");
-    vars["<%NAME%>"]=req.getvar("name");
+    vars["<%WEBSITE%>"]=playdar::utils::url_decode( req.getvar("website") );
+    vars["<%NAME%>"]=playdar::utils::url_decode( req.getvar("name") );
     serve_dynamic(rep, filename, vars);
 }
 
@@ -144,15 +144,15 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         {
             map<string,string> vars;
             string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
-            vars["<%WEBSITE%>"]=req.postvar("website");
-            vars["<%NAME%>"]=req.postvar("name");
+            vars["<%WEBSITE%>"]=playdar::utils::url_decode(req.postvar("website"));
+            vars["<%NAME%>"]=playdar::utils::url_decode(req.postvar("name"));
             vars["<%AUTHCODE%>"]=tok;
             serve_dynamic(rep, filename, vars);
         }
         else
         {
             ostringstream os;
-            os  << req.postvar("receiverurl")
+            os  << playdar::utils::url_decode( req.postvar("receiverurl"))
             << ( strstr(req.postvar("receiverurl").c_str(), "?")==0 ? "?" : "&" )
             << "authtoken=" << tok
             << "#" << tok;
@@ -192,32 +192,32 @@ playdar_request_handler::handle_root( const playdar_request& req,
 {
     ostringstream os;
     os  << "<h2>" << app()->conf()->name() << "</h2>"
-        << "<p>"
-        << "Your Playdar server is running! Websites and applications that "
-        << "support Playdar will ask your permission, and then be able to "
-        << "access music you have on your machine."
-        << "</p>"
+           "<p>"
+           "Your Playdar server is running! Websites and applications that "
+           "support Playdar will ask your permission, and then be able to "
+           "access music you have on your machine."
+           "</p>"
 
-        << "<p>"
-        << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
-        << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
-        << "</p>"
+           "<p>"
+           "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+           "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+           "</p>"
 
-        << "<p>"
-        << "For the real demo that uses the JSON API, check "
-        << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
-        << "</p>"
+           "<p>"
+           "For the real demo that uses the JSON API, check "
+           "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+           "</p>"
 
-        << "<p>"
-        << "<h3>Resolver Pipeline</h3>"
-        << "<table>"
-        << "<tr style=\"font-weight: bold;\">"
-        << "<td>Plugin Name</td>"
-        << "<td>Weight</td>"
-        << "<td>Target Time</td>"
-        << "<td>Configuration</td>"
-        << "</tr>"
-        ;
+           "<p>"
+           "<h3>Resolver Pipeline</h3>"
+           "<table>"
+           "<tr style=\"font-weight: bold;\">"
+           "<td>Plugin Name</td>"
+           "<td>Weight</td>"
+           "<td>Target Time</td>"
+           "<td>Configuration</td>"
+           "</tr>"
+           ;
     unsigned short lw = 0;
     bool dupe = false;
     int i = 0;
@@ -609,7 +609,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         if(req.getvar("method") == "stat") {
             Object r;
             r.push_back( Pair("name", "playdar") );
-            r.push_back( Pair("version", "0.1.0") );
+            r.push_back( Pair("version", VERSION) );
             r.push_back( Pair("authenticated", permissions.length()>0 ) );
             //r.push_back( Pair("permissions", permissions) );
             //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
@@ -626,9 +626,9 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         
         if(req.getvar("method") == "resolve")
         {
-            string artist = req.getvar("artist");
-            string album  = req.getvar("album");
-            string track  = req.getvar("track");
+            string artist = playdar::utils::url_decode( req.getvar("artist"));
+            string album  = playdar::utils::url_decode( req.getvar("album"));
+            string track  = playdar::utils::url_decode( req.getvar("track"));
             // create a new query and start resolving it:
             boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
 
@@ -754,7 +754,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     string retval;
     if(req.getvar_exists("jsonp")) // wrap in js callback
     {
-        retval = req.getvar("jsonp");
+        retval = playdar::utils::url_decode( req.getvar("jsonp") );
         retval += "(" ;
         string s = response.str();
         //while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
