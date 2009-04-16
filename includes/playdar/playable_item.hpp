@@ -148,7 +148,7 @@ public:
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
         if(score >= 0)          pip->set_score(score);
-                        
+        
         return pip;
     }
     
