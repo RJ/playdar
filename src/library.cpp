@@ -5,22 +5,16 @@
 #include <stdio.h>
 #include <sstream>
 #include <boost/foreach.hpp>
-#include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "playdar/library.h"
-#include "playdar/playable_item.hpp"
-#include "playdar/streaming_strategy.h"
-#include "playdar/ss_localfile.hpp"
-
 
 using namespace std;
 
 
-Library::Library(const string& dbfilepath, MyApplication * a)
+Library::Library(const string& dbfilepath)
 : m_db(dbfilepath.c_str())
 {
-    m_app = a;
     m_dbfilepath = dbfilepath;
 }
 
@@ -416,6 +410,34 @@ Library::num_tracks()
     return db_get_one(string("SELECT count(*) FROM track"), 0);
 }
 
+LibraryFile_ptr
+Library::file_from_fid(int fid)
+{
+    boost::mutex::scoped_lock lock(m_mut);
+    sqlite3pp::query qry(m_db,
+        "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
+        "file_join.artist, file_join.album, file_join.track "
+        "FROM file, file_join "
+        "WHERE file.id = file_join.file "
+        "AND file.id = ?");
+    qry.bind(1, fid);
+    sqlite3pp::query::iterator i( qry.begin() );
+    if (i == qry.end())
+        return LibraryFile_ptr((LibraryFile*)0);
+    
+    LibraryFile_ptr p(new LibraryFile);
+    p->url = string((*i).get<const char *>(0));
+    p->size = (*i).get<int>(1);
+    p->mimetype = string((*i).get<const char *>(2));
+    p->duration = (*i).get<int>(3);
+    p->bitrate = (*i).get<int>(4);
+    p->piartid = (*i).get<int>(5);
+    p->pialbid = (*i).get<int>(6);
+    p->pitrkid = (*i).get<int>(7);
+    return p;
+}
+
+#if 0
 /// NB: this doesn't attach a streaming strategy, but it does set_url().
 ///     so the caller should create an appropriate SS (probably a curl strat)
 boost::shared_ptr<PlayableItem>
@@ -461,9 +483,8 @@ Library::playable_item_from_fid(int fid)
     }
     return pip;
 }
-            
-            
-            
+#endif
+
 
 // get mtimes of all filesnames scanned
 map<string, int>

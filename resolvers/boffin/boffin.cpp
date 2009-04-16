@@ -256,9 +256,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             Library *library = resolver()->app()->library();
             assert(library);
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                pi_ptr pip = library->playable_item_from_fid( t.trackId );
-                boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
-                pip->set_streaming_strategy(ss);
+                pi_ptr pip = PlayableItem::create( *library, t.trackId );
                 pip->set_source(conf()->name());
                 playables.push_back( pip );
             }
@@ -277,6 +275,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         }
         report_results(rq->id(), results, "Boffin");
     }
+
 }
 
 
