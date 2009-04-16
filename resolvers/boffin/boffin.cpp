@@ -306,7 +306,7 @@ boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
     }
     else if( req.parts()[1] == "rql" && req.parts().size() >= 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( req.parts()[2] );
+        rq = BoffinRQUtil::buildRQLRequest( playdar_request::unescape( req.parts()[2] ) );
     }
 
     if( !rq )
