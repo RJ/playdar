@@ -19,10 +19,6 @@ FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
 FIND_PACKAGE(OsspUuid REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
-# we're not doing this because CMake sucks and RJ's machine had the right one
-# in /usr/local and an old one in /usr and CMake chose the wrong one :P
-FIND_PACKAGE(Uriparser 0.7.0 REQUIRED)
-
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
                     ${OSSPUUID_INCLUDE_DIR}
