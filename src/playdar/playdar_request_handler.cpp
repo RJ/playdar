@@ -79,9 +79,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
-    string base = *boost::tokenizer<boost::char_separator<char> >
-                    (req.uri, boost::char_separator<char>("/?")).begin();
+    boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
+    string base;
+    if( tokenizer.begin() != tokenizer.end())
+        base = *tokenizer.begin();
 
+    
     boost::to_lower(base);
     cout << "Base: " << base << endl;
     HandlerMap::iterator handler = m_urlHandlers.find( base );
