@@ -107,6 +107,11 @@ boffin::boffin()
 {
 }
 
+boffin::~boffin() throw()
+{
+    stop();
+}
+
 std::string 
 boffin::name() const
 {
