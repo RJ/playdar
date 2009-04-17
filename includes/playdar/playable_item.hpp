@@ -43,9 +43,7 @@ public:
         set_source("unspecified");
     }
 
-    static
-    pi_ptr 
-    create(Library& lib, int fid)
+    static pi_ptr create(Library& lib, int fid)
     {
         LibraryFile_ptr file( lib.file_from_fid(fid) );
         pi_ptr pip( new PlayableItem() );
@@ -65,8 +63,8 @@ public:
             album_ptr albobj = lib.load_album(file->pialbid);
             pip->set_album(albobj->name());
         }
-        boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(file->url));
-        pip->set_streaming_strategy(ss);
+        //boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(file->url));
+        //pip->set_streaming_strategy(ss);
         return pip;
     }
 

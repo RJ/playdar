@@ -17,20 +17,8 @@
 #include "playdar/ss_localfile.hpp"
 #include "playdar/ss_curl.hpp"
 
-
 class MyApplication;
 class ResolverService;
-
-// This struct adds weights to the ResolverService so the resolver pipeline
-// can run them in the appropriate sequence:
-struct loaded_rs
-{
-    ResolverService * rs; 
-    unsigned int targettime; // ms before passing to next resolver
-    unsigned short weight;   // highest weight runs first.
-    bool script;             // true if external process, false if plugin.
-};
-
 
 /*
  *  Acts as a container for all content-resolution queries that are running
@@ -72,7 +60,8 @@ public:
     
     size_t num_seen_queries();
     
-    vector<loaded_rs> * resolvers() { return &m_resolvers; }
+    const vector< pa_ptr >& resolvers() const
+    { return m_resolvers; }
 
     ResolverService * get_resolver(string name)
     {
@@ -94,7 +83,7 @@ public:
         return 21600; // 6 hours.
     }
     
-    bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
+    bool pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs);
     
     void run_pipeline_cont( rq_ptr rq, 
                        unsigned short lastweight,
@@ -133,7 +122,7 @@ private:
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:
-    vector<loaded_rs> m_resolvers;
+    vector< pa_ptr > m_resolvers;
 
     map< string, ResolverService* > m_pluginNameMap;
     

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-MyApplication::MyApplication(playdar::Config c)
+MyApplication::MyApplication(Config c)
     : m_config(c)
 {
     string db_path = conf()->get<string>("db", "");

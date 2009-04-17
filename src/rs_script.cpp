@@ -18,8 +18,9 @@ namespace resolvers {
     sends us a settings object, containing a name, weight and targettime.
 */
 bool
-rs_script::init(playdar::Config * c, Resolver * r, string script) 
+rs_script::init(pa_ptr pap, string script) 
 {
+    /*
     m_resolver  = r;
     m_conf = c;
     m_dead = false;
@@ -56,9 +57,6 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
             boost::xtime_get(&time,boost::TIME_UTC); 
             time.sec += 5;
             m_cond_settings.timed_wait(lk, time);
-            /* doesn't work on boost 1.35, but new way is this:
-            m_cond_settings.timed_wait(lk, boost::posix_time::seconds(5));
-            */
         }
         
         if(m_got_settings)
@@ -75,6 +73,7 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
             return false;
         }
     }
+    */
     return true;
 }
 
@@ -289,7 +288,7 @@ rs_script::process_output()
                 pip->set_streaming_strategy(s);
                 v.push_back(pip);
             }
-            report_results(qid, v, name());
+//            report_results(qid, v, name());
         }
     }
     cout << "Gateway plugin read loop exited" << endl;

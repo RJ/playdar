@@ -20,27 +20,9 @@ public:
     }
     
     /// called once at startup. returning false disables this resolver.
-    virtual bool init(playdar::Config * c, Resolver * r)
-    {
-        m_resolver = r;
-        m_conf = c;
-        return true;
-    }
+    virtual bool init(pa_ptr pap) = 0;
     
-    virtual const playdar::Config * conf() const
-    {
-        return m_conf;
-    }
-    
-    virtual Resolver * resolver() const
-    {
-        return m_resolver;
-    }
-
-    virtual std::string name() const
-    {
-        return "UNKNOWN_RESOLVER";
-    }
+    virtual std::string name() const = 0;
     
     /// max time in milliseconds we'd expect to have results in.
     virtual unsigned int target_time() const
@@ -68,14 +50,9 @@ public:
     }
     
 protected:
-    /** thread-safe */
-    bool report_results(query_uid qid, 
-                        vector< ri_ptr > results,
-                        string via);
     
     virtual ~ResolverService() throw() {  }
-    playdar::Config * m_conf;
-    Resolver * m_resolver;
+
 };
 
 /// this is what the dynamically loaded resolver plugins extend:

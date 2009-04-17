@@ -1,15 +1,5 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
-// must be first because ossp uuid.h is stubborn and name-conflicts with
-// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-// to you guys at OSSP. *claps*
-#ifdef HAS_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-// default source package for ossp-uuid doesn't namespace itself
-#include <uuid.h> 
-#endif
 
 #include "json_spirit/json_spirit.h"
 #include <iostream>
@@ -22,10 +12,12 @@
 #include <boost/asio.hpp> // for hostname.
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
-namespace playdar {
+
 
 using namespace std;
 using namespace json_spirit;
+
+namespace playdar { } // would be nice to use a namespace.
 
 // wrapper around JSON config file
 // instance of this is also passed to plugins.
@@ -138,40 +130,6 @@ public:
         write_formatted( m_mainval, o );
         return o.str();
     }
-    
-    static string gen_uuid()
-    {
-        // TODO use V3 instead, so uuids are anonymous?
-        char *uuid_str;
-        uuid_rc_t rc;
-        uuid_t *uuid;
-        void *vp;
-        size_t len;
-    
-        if((rc = uuid_create(&uuid)) != UUID_RC_OK)
-        {
-            uuid_destroy(uuid);
-            return "";
-        }
-        if((rc = uuid_make(uuid, UUID_MAKE_V1)) != UUID_RC_OK)
-        {
-            uuid_destroy(uuid);
-            return "";
-        }
-        len = UUID_LEN_STR+1;
-        if ((vp = uuid_str = (char *)malloc(len)) == NULL) {
-            uuid_destroy(uuid);
-            return "";
-        }
-        if ((rc = uuid_export(uuid, UUID_FMT_STR, &vp, &len)) != UUID_RC_OK) {
-            uuid_destroy(uuid);
-            return "";
-        }
-        uuid_destroy(uuid);
-        string retval(uuid_str);
-        delete(uuid_str);
-        return retval;
-    }
 
     string filename() { return m_filename; }
 
@@ -196,6 +154,6 @@ private:
 
 };
 
-} //namespace
+
 
 #endif

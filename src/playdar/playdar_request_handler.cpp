@@ -18,6 +18,7 @@
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
+#include "playdar/pluginadaptor.h"
 
 /*
 
@@ -52,9 +53,9 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "api" ] = boost::bind( &playdar_request_handler::handle_api, this, _1, _2 );
     
     // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
-    BOOST_FOREACH( loaded_rs & lrs, *m_app->resolver()->resolvers() )
+    BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
     {
-        string name = lrs.rs->name();
+        string name = pap->rs()->name();
         boost::algorithm::to_lower( name );
         m_urlHandlers[ name ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
     }
@@ -136,7 +137,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     
     if(m_pauth->consume_formtoken(req.postvar("formtoken")))
     {
-        string tok = playdar::Config::gen_uuid(); 
+        string tok = playdar::utils::gen_uuid(); 
         m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"));
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )
@@ -221,18 +222,18 @@ playdar_request_handler::handle_root( const playdar_request& req,
     bool dupe = false;
     int i = 0;
     string bgc="";
-    BOOST_FOREACH(loaded_rs lrs, *app()->resolver()->resolvers())
+    BOOST_FOREACH(const pa_ptr pap, app()->resolver()->resolvers())
     {
-        if(lw == lrs.weight) dupe = true; else dupe = false;
-        if(lw==0) lw = lrs.weight;
+        if(lw == pap->weight()) dupe = true; else dupe = false;
+        if(lw==0) lw = pap->weight();
         if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
         os  << "<tr style=\"background-color: " << bgc << "\">"
-            << "<td>" << lrs.rs->name() << "</td>"
-            << "<td>" << lrs.weight << "</td>"
-            << "<td>" << lrs.targettime << "ms</td>";
+            << "<td>" << pap->rs()->name() << "</td>"
+            << "<td>" << pap->weight() << "</td>"
+            << "<td>" << pap->targettime() << "ms</td>";
         os << "<td>" ;
 
-        string name = lrs.rs->name();
+        string name = pap->rs()->name();
         boost::algorithm::to_lower( name );
         os << "<a href=\""<< name << "/config" <<"\">" << name << " config</a><br/> " ;
 

@@ -22,9 +22,16 @@ typedef boost::shared_ptr<LibraryFile>  LibraryFile_ptr;
 class ResolvedItem;
 class PlayableItem;
 class ResolverQuery;
-typedef boost::shared_ptr<PlayableItem>    pi_ptr;
-typedef boost::shared_ptr<ResolvedItem>    ri_ptr;
-typedef boost::shared_ptr<ResolverQuery>   rq_ptr;
+class PluginAdaptor;
+class StreamingStrategy;
+typedef boost::shared_ptr<PlayableItem>     pi_ptr;
+typedef boost::shared_ptr<ResolvedItem>     ri_ptr;
+typedef boost::shared_ptr<ResolverQuery>    rq_ptr;
+typedef boost::shared_ptr<PluginAdaptor>    pa_ptr;
+typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
+
+
+
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd

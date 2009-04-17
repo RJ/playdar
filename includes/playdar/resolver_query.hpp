@@ -118,7 +118,7 @@ public:
     { 
         if(!m_uuid.length())
         {
-            m_uuid = playdar::Config::gen_uuid();
+            m_uuid = playdar::utils::gen_uuid();
         }
         return m_uuid; 
     }

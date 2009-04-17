@@ -69,7 +69,7 @@ public:
     
     string gen_formtoken()
     {
-        string f = playdar::Config::gen_uuid();
+        string f = playdar::utils::gen_uuid();
         m_formtokens.insert(f);
         return f;
     }
