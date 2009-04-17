@@ -42,7 +42,7 @@ class lan : public ResolverServicePlugin
         const short multicast_port);
     
     void send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip,
+                        ri_ptr rip,
                         boost::asio::ip::udp::endpoint sep );
     
     /// max time in milliseconds we'd expect to have results in.
@@ -57,7 +57,7 @@ class lan : public ResolverServicePlugin
         return 99;
     }
         
-    string http_handler( const playdar_request& req,
+    playdar_response http_handler( const playdar_request& req,
                          playdar::auth * pauth);
     
 protected:    

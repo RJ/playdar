@@ -1,11 +1,6 @@
 #include "playdar/playdar_request.h"
-
-#include <uriparser/Uri.h>
-#include <uriparser/UriBase.h>
-#include <uriparser/UriDefsAnsi.h>
-#include <uriparser/UriDefsConfig.h>
-#include <uriparser/UriDefsUnicode.h>
-#include <uriparser/UriIp4.h>
+#include "playdar/utils/urlencoding.hpp"
+#include <boost/tokenizer.hpp>
 
 playdar_request::playdar_request( const moost::http::request& req )
 {
@@ -38,6 +33,11 @@ playdar_request::collect_parts( const string & url, vector<string>& parts )
     
     boost::split(parts, path, boost::is_any_of("/"));
     
+    BOOST_FOREACH( string& part, parts )
+    {
+        part = playdar::utils::url_decode( part );
+    }
+    
     if(parts.size() && parts[0]=="") parts.erase(parts.begin());
     if(parts.size() && *(parts.end() -1)=="") parts.erase(parts.end()-1);
 }
@@ -47,46 +47,27 @@ playdar_request::collect_parts( const string & url, vector<string>& parts )
 int
 playdar_request::collect_params(const string & url, map<string,string> & vars)
 {
-    UriParserStateA state;
-    UriQueryListA * queryList;
-    UriUriA uri;
-    state.uri = &uri;
-    int qsnum; // how many pairs in querystring
-    // basic uri parsing
-    if (uriParseUriA(&state, url.c_str()) != URI_SUCCESS)
-    {
-        cerr << "FAILED TO PARSE QUERYSTRING" << endl;
-        return -1;
-    }
+    size_t pos = url.find( "?" );
     
-    if ( uriDissectQueryMallocA(&queryList, &qsnum, uri.query.first, 
-                                uri.query.afterLast) != URI_SUCCESS)
-    {
-        // this means valid but empty
-        uriFreeUriMembersA(&uri);
+    if( pos == string::npos )
         return 0;
-    } 
-    else
-    {
-        UriQueryListA * q = queryList;
-        for(int j=0; j<qsnum; j++)
-        {
-            vars[q->key]= (q->value ? q->value : "");
-            if(q->next) q = q->next;
-        }
-        if(queryList) uriFreeQueryListA(queryList);
-        uriFreeUriMembersA(&uri);
-        return vars.size();
-    }
-}
+    
+    string querystring = url.substr( pos + 1, url.length());
+    
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep("&");
+    tokenizer tokens(querystring, sep);
 
-string /* static */
-playdar_request::unescape( string s )
-{
-    char * n = (char *) malloc(sizeof(char) * s.length()+1);
-    memcpy(n, s.data(), s.length());
-    uriUnescapeInPlaceA(n);
-    string ret(n);
-    delete(n);
-    return ret;
+    vector<string> paramParts;
+    for( tokenizer::iterator tok_iter = tokens.begin();
+         tok_iter != tokens.end(); ++tok_iter )
+    {
+        paramParts.clear();
+        boost::split( paramParts, *tok_iter, boost::is_any_of( "=" ));
+        if( paramParts.size() != 2 )
+            return -1;
+        
+        vars[ playdar::utils::url_decode( paramParts[0] )] = playdar::utils::url_decode( paramParts[1] );
+    }
+    return vars.size();
 }

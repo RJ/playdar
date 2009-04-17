@@ -10,9 +10,15 @@ class StreamingStrategy
 public:
     StreamingStrategy(){}
     virtual ~StreamingStrategy(){}
-    virtual int read_bytes(char * buffer, int size) = 0;
+    virtual int read_bytes(char * buffer, size_t size) = 0;
     virtual std::string debug() = 0;
     virtual void reset() = 0;
+    /// called when we want to use a SS to stream.
+    /// could make a copy if the implementation requires it.
+    virtual boost::shared_ptr<StreamingStrategy> get_instance()
+    {
+        return boost::shared_ptr<StreamingStrategy>(this);
+    }
 };
 
 #endif

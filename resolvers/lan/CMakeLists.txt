@@ -6,17 +6,12 @@ ADD_LIBRARY( lan SHARED
 # Ensure the shared library file is called <CLASS NAME>.resolver
 # Playdar looks for a class with the same name as the file, minus suffix
 #
-SET_TARGET_PROPERTIES( lan PROPERTIES 
-                       PREFIX "" 
+SET_TARGET_PROPERTIES( lan PROPERTIES
+                       PREFIX ""
                        SUFFIX ".resolver" )
 
-IF(APPLE)
-    SET(APPLE_PLUGIN_LDFLAGS -undefined\ dynamic_lookup)
-ENDIF(APPLE)
-
 TARGET_LINK_LIBRARIES( lan
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
-                       ${Boost_SYSTEM_LIBRARY}
-                       ${Boost_THREAD_LIBRARY}
-                       ${APPLE_PLUGIN_LDFLAGS}
-                     )
+                       ${OSSPUUID_LIBRARIES}
+                       ${PLAYDAR_PLUGIN_LDFLAGS}
+                       ${Boost_LIBRARIES}
+                       )

@@ -10,9 +10,11 @@
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <boost/tokenizer.hpp>
 
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 #include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
@@ -29,6 +31,7 @@
 void 
 playdar_request_handler::init(MyApplication * app)
 {
+    m_disableAuth = app->conf()->get<bool>( "disableauth", false );
     cout << "HTTP handler online." << endl;
     m_pauth = new playdar::auth(app->library()->dbfilepath());
     m_app = app;
@@ -42,7 +45,6 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
     m_urlHandlers[ "stats" ] = boost::bind( &playdar_request_handler::serve_stats, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
-    m_urlHandlers[ "serve" ] = boost::bind( &playdar_request_handler::handle_serve, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
@@ -76,7 +78,12 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     cout << "HTTP " << req.method << " " << req.uri << endl;
     rep.unset_streaming();
     
-    string base = req.uri.substr(1, req.uri.find("/", 1)-1);
+    boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
+    string base;
+    if( tokenizer.begin() != tokenizer.end())
+        base = *tokenizer.begin();
+
+    
     boost::to_lower(base);
     cout << "Base: " << base << endl;
     HandlerMap::iterator handler = m_urlHandlers.find( base );
@@ -184,32 +191,32 @@ playdar_request_handler::handle_root( const playdar_request& req,
 {
     ostringstream os;
     os  << "<h2>" << app()->conf()->name() << "</h2>"
-        << "<p>"
-        << "Your Playdar server is running! Websites and applications that "
-        << "support Playdar will ask your permission, and then be able to "
-        << "access music you have on your machine."
-        << "</p>"
+           "<p>"
+           "Your Playdar server is running! Websites and applications that "
+           "support Playdar will ask your permission, and then be able to "
+           "access music you have on your machine."
+           "</p>"
 
-        << "<p>"
-        << "For quick and dirty resolving, you can try constructing an URL like: <br/> "
-        << "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
-        << "</p>"
+           "<p>"
+           "For quick and dirty resolving, you can try constructing an URL like: <br/> "
+           "<code>" << app()->conf()->httpbase() << "/quickplay/ARTIST/ALBUM/TRACK</code><br/>"
+           "</p>"
 
-        << "<p>"
-        << "For the real demo that uses the JSON API, check "
-        << "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
-        << "</p>"
+           "<p>"
+           "For the real demo that uses the JSON API, check "
+           "<a href=\"http://www.playdar.org/\">Playdar.org</a>"
+           "</p>"
 
-        << "<p>"
-        << "<h3>Resolver Pipeline</h3>"
-        << "<table>"
-        << "<tr style=\"font-weight: bold;\">"
-        << "<td>Plugin Name</td>"
-        << "<td>Weight</td>"
-        << "<td>Target Time</td>"
-        << "<td>Configuration</td>"
-        << "</tr>"
-        ;
+           "<p>"
+           "<h3>Resolver Pipeline</h3>"
+           "<table>"
+           "<tr style=\"font-weight: bold;\">"
+           "<td>Plugin Name</td>"
+           "<td>Weight</td>"
+           "<td>Target Time</td>"
+           "<td>Configuration</td>"
+           "</tr>"
+           ;
     unsigned short lw = 0;
     bool dupe = false;
     int i = 0;
@@ -244,17 +251,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
 {
     //TODO: handle script resolver urls?
     cout << "pluginhandler: " << req.parts()[0] << endl;
-    ResolverService* resolver = app()->resolver()->get_resolver( req.parts()[0] );
+    ResolverService* rs = app()->resolver()->get_resolver( req.parts()[0] );
 
-    if( resolver == 0 )
+    if( rs == 0 )
     {
         cout << "No plugin of that name found." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
         return;
     }
 
-    serve_body( resolver->http_handler( req,
-                                        m_pauth), rep );
+    const playdar_response& response = rs->http_handler( req, m_pauth );
+    serve_body( response, rep );
 }
 
 void 
@@ -360,19 +367,13 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
         << "</tr>"
         ;
     int i  = 0;
-    deque< query_uid>::const_iterator it =
-        app()->resolver()->qids().begin();
-    string bgc="";
-    while(it != app()->resolver()->qids().end())
+    deque< query_uid>::const_iterator it( app()->resolver()->qids().begin() );
+    for(; it != app()->resolver()->qids().end(); it++)
     {
-        rq_ptr rq;
         try
         { 
-            if( !TrackRQBuilder::valid( rq ))
-                continue;
-            
-            rq = app()->resolver()->rq(*it); 
-            bgc = (++i%2) ? "lightgrey" : "";
+            rq_ptr rq( app()->resolver()->rq(*it) );
+            string bgc( (++i%2) ? "lightgrey" : "" );
             os  << "<tr style=\"background-color: "<< bgc << "\">";
             if(!rq)
             {
@@ -380,6 +381,9 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
             }
             else
             {
+            if( !TrackRQBuilder::valid( rq ))
+                continue;
+
              os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
@@ -398,7 +402,6 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
             }
             os << "</tr>";
         } catch(...) { }
-        it++;
     }  
     return os.str();
 }
@@ -407,25 +410,28 @@ void
 playdar_request_handler::handle_queries( const playdar_request& req,
                                          moost::http::reply& rep )
 {
-    cout << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
     do
     {
         if( req.parts().size() == 1 )
         {
+            cout << "Query handler, parts: " << req.parts()[0] << endl;
+
             const string& s = handle_queries_root(req);
             serve_body( s, rep );
             break;
         }
         else if( req.parts().size() == 2 )
         {
-           query_uid qid = req.parts()[1];
-           rq_ptr rq = app()->resolver()->rq(qid);
+            cout << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
+
+            query_uid qid = req.parts()[1];
+            rq_ptr rq = app()->resolver()->rq(qid);
             if(!rq || !TrackRQBuilder::valid( rq ))
            {
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
                return;
            }
-           vector< pi_ptr > results = rq->results();
+           vector< ri_ptr > results = rq->results();
 
            ostringstream os;
            os  << "<h2>Query: " << qid << "</h2>"
@@ -455,8 +461,11 @@ playdar_request_handler::handle_queries( const playdar_request& req,
                ;
            string bgc="";
            int i = 0;
-           BOOST_FOREACH(pi_ptr pi, results)
+           BOOST_FOREACH(ri_ptr ri, results)
            {
+               pi_ptr pi = boost::dynamic_pointer_cast<PlayableItem>(ri);
+               if( !pi ) continue;
+               
                bgc = ++i%2 ? "lightgrey" : "";
                os  << "<tr style=\"background-color:" << bgc << "\">"
                    << "<td style=\"font-size:60%\">"
@@ -483,21 +492,6 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         }
     }
     while( false );
-}
-
-/// serves file-id from library 
-void 
-playdar_request_handler::handle_serve( const playdar_request& req,
-                                       moost::http::reply& rep )
-{
-    if(req.parts().size() != 2)
-    {
-        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
-        return;
-    }
-    
-    int fid = atoi(req.parts()[1].c_str());
-    if(fid) serve_track( rep, fid );
 }
 
 /// serves file based on SID
@@ -528,9 +522,9 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
         return;
     }
     
-    string artist   = playdar_request::unescape(req.parts()[1]);
-    string album    = req.parts()[2].length()?playdar_request::unescape(req.parts()[2]):"";
-    string track    = playdar_request::unescape(req.parts()[3]);
+    string artist   = req.parts()[1];
+    string album    = req.parts()[2].length()?req.parts()[2]:"";
+    string track    = req.parts()[3];
     boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
     query_uid qid = app()->resolver()->dispatch(rq);
@@ -539,23 +533,27 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     boost::xtime_get(&time,boost::TIME_UTC); 
     time.sec += 2;
     boost::thread::sleep(time);
-    vector< boost::shared_ptr<PlayableItem> > results = app()->resolver()->get_results(qid);
-    if(results.size())
-    {
-        json_spirit::Object ro = results[0]->get_json();
-        cout << "Top result:" <<endl;
-        json_spirit::write_formatted( ro, cout );
-        cout << endl;
-        string url = "/sid/";
-        url += results[0]->id();
-        rep.headers.resize(3);
-        rep.status = moost::http::reply::moved_temporarily;
-        moost::http::header h;
-        h.name = "Location";
-        h.value = url;
-        rep.headers[2] = h;
-        rep.content = "";
-    }
+    vector< ri_ptr > results = app()->resolver()->get_results(qid);
+    
+    if( !results.size() ) return;
+    
+    pi_ptr result = boost::dynamic_pointer_cast<PlayableItem>(results[0]);
+
+    if( !result) return;
+
+    json_spirit::Object ro = results[0]->get_json();
+    cout << "Top result:" <<endl;
+    json_spirit::write_formatted( ro, cout );
+    cout << endl;
+    string url = "/sid/";
+    url += result->id();
+    rep.headers.resize(3);
+    rep.status = moost::http::reply::moved_temporarily;
+    moost::http::header h;
+    h.name = "Location";
+    h.value = url;
+    rep.headers[2] = h;
+    rep.content = "";
 }
 
 void
@@ -571,10 +569,10 @@ playdar_request_handler::handle_api( const playdar_request& req,
     
     /// Auth stuff
     string permissions = "";
-    if(req.getvar_exists("auth"))
+    if(m_disableAuth || req.getvar_exists("auth"))
     {
         string whom;
-        if(m_pauth->is_valid(req.getvar("auth"), whom))
+        if(m_disableAuth || m_pauth->is_valid(req.getvar("auth"), whom) )
         {
             //cout << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
@@ -610,7 +608,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         if(req.getvar("method") == "stat") {
             Object r;
             r.push_back( Pair("name", "playdar") );
-            r.push_back( Pair("version", "0.1.0") );
+            r.push_back( Pair("version", VERSION) );
             r.push_back( Pair("authenticated", permissions.length()>0 ) );
             //r.push_back( Pair("permissions", permissions) );
             //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
@@ -644,7 +642,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
                     // new qid assigned automatically if we don't provide one.
                 }
             }
-            if(!rq->valid()) // usually caused by empty track name or something.
+            if(!TrackRQBuilder::valid(rq)) // usually caused by empty track name or something.
             {
                 cout << "Tried to dispatch an invalid query, failing." << endl;
                 rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
@@ -673,10 +671,10 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             }
             Object r;
             Array qresults;
-            vector< pi_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
-            BOOST_FOREACH(boost::shared_ptr<PlayableItem> pip, results)
+            vector< ri_ptr > results = app()->resolver()->get_results(req.getvar("qid"));
+            BOOST_FOREACH(ri_ptr rip, results)
             {
-                qresults.push_back( pip->get_json() );
+                qresults.push_back( rip->get_json());
             }   
             r.push_back( Pair("qid", req.getvar("qid")) );
             r.push_back( Pair("refresh_interval", 1000) ); //TODO move to ResolveQuery
@@ -794,38 +792,14 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 }
 
 void
-playdar_request_handler::serve_body(string reply, moost::http::reply& rep)
+playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    std::ostringstream r;
-    r   << "<html><head><title>Playdar</title>"
-        << "<style type=\"text/css\">"
-        << "td { padding: 5px; }"
-        << "</style></head><body>"
-        << "<h1>Local Playdar Server</h1>"
-        << "<a href=\"/\">Home</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/stats/\">Stats</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/auth/\">Authentication</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/queries/\">Queries</a>"
-        << "&nbsp; | &nbsp;"
-        << "<a href=\"/settings/config/\">Configuration</a>"
-        
-        << "&nbsp; || &nbsp;"
-        << "<a href=\"http://www.playdar.org/\" target=\"playdarsite\">Playdar.org</a>"
-        
-        << "<hr style=\"clear:both;\" />";
-
-    r << reply;
-    r << "\n</body></html>";
-
     rep.headers.resize(2);
     rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = r.str().length();
+    rep.headers[0].value = response.str().length();
     rep.headers[1].name = "Content-Type";
     rep.headers[1].value = "text/html";
-    rep.content = r.str(); 
+    rep.content = response; 
 }
 
 void
@@ -863,10 +837,12 @@ void
 playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
 {
     cout << "Serving SID " << sid << endl;
-    boost::shared_ptr<PlayableItem> pip = app()->resolver()->get_pi(sid);
+    ri_ptr rip = app()->resolver()->get_ri(sid);
+    
+    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
     if(!pip)
     {
-        cerr << "This SID does not exist." << endl;
+        cerr << "This SID does not exist or does not resolve to a playable item." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found );
         return;
     }
@@ -923,47 +899,4 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     rep.content = os.str(); 
 }
 
-/*
-    Serves a file based on fid from library.
-    Might be useful if browsing your local library and you want
-    to play tracks without searching and generating SIDs etc.
-*/
-void
-playdar_request_handler::serve_track( moost::http::reply& rep, int tid)
-{
-    vector<int> fids = app()->library()->get_fids_for_tid(tid);
-    int fid = fids[0];
-    //lookup file path and content type etc
-    string full_path    = app()->library()->get_field("file", fid, "path");
-    string mimetype     = app()->library()->get_field("file", fid, "mimetype");
-    string size         = app()->library()->get_field("file", fid, "size");
-
-    cout << "Serving track id: "<<tid << " using file id: " << fid << " File: " << full_path << " size: " << size << endl;
-
-    // Open the file to send back.
-    std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
-    if (!is)
-    {
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
-        return;
-    }
-
-    // Fill out the reply to be sent to the client.
-    rep.status = moost::http::reply::ok;
-    char buf[512];
-    while (is.read(buf, sizeof(buf)).gcount() > 0)
-        rep.content.append(buf, is.gcount());
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = size;
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = mimetype;
-// just install mozilla-plugin-vlc and it will play in-browser.
-//    rep.headers[2].name = "";
-//    rep.headers[2].value = "";
-//    rep.headers[3].name = "";
-//    rep.headers[3].value = "";
-//    header("Content-Disposition: attachment; filename=\"".$filename."\";" );
-//    header("Content-Transfer-Encoding: binary");
-}
 
