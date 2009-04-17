@@ -49,7 +49,7 @@ public:
         m_string = r.str();
     }
     
-    operator std::string() const
+    operator const std::string &() const
     { 
         return m_string;
     }
