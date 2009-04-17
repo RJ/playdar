@@ -93,8 +93,13 @@ int main(int argc, char *argv[])
         // http options:
         cc("URL") = curl_easy_setopt(curl, CURLOPT_URL, MUSICLOOKUP_URL);  
         cc("HEADER") = curl_easy_setopt(curl, CURLOPT_HEADER, 0);                           // don't include header in response
+
+        // leave this to the defaults with older versions of curl
+#if defined(CURLOPT_POSTREDIR) && defined(CURL_REDIR_POST_ALL) && defined(CURLOPT_FOLLOWLOCATION)
         cc("FOLLOWLOCATION") = curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);           // follow http redirects
         cc("POSTREDIR") = curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL );  // keep on posting when redir'd (301 or 302)
+#endif
+
         cc("POST") = curl_easy_setopt(curl, CURLOPT_POST, 1);
         cc("POSTFIELDSIZE") = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, ssreq.rdbuf()->in_avail());
         cc("USERAGENT") = curl_easy_setopt(curl, CURLOPT_USERAGENT, "playdar boffin tagger");
