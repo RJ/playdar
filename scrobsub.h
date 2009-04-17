@@ -24,6 +24,10 @@
 
 #include <stdbool.h>
 
+#if __cplusplus
+extern "C" {
+#endif
+
 /** the callback must be set, when the callback is called, you get one of the
   * SCROBSUB_ values. */
 void scrobsub_init(void(*callback)(int event, const char* message));
@@ -81,4 +85,7 @@ extern char* scrobsub_username;
 void scrobsub_md5(char out[33], const char* in);
 
 
+#if __cplusplus
+}
+#endif
 #endif

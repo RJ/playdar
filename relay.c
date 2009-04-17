@@ -63,7 +63,7 @@ void scrobsub_relay(int state)
     }
 }
 
-void scrosub_relay_start(const char* artist, const char* title, int duration)
+void scrobsub_relay_start(const char* artist, const char* title, int duration)
 {
     #define FORMAT "start "SCROBSUB_CLIENT_ID" with \"%s\" by \"%s\" duration %d"
     char s[sizeof(FORMAT)+strlen(artist)+strlen(title)];
