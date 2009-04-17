@@ -50,22 +50,22 @@ static void script(const char* cmd)
     char b[sizeof(a)+strlen(cmd)+2];
     strcpy(b, a);
     strcat(b, cmd);
-    b[sizeof(b)-2] = '\'';
+    strcat(b, "'");
     system(b);
 }
 
 void scrobsub_relay(int state)
 {
     switch(state){
-        case SCROBSUB_PLAYING: script("resume "SCROBSUB_CLIENT_ID); break;
-        case SCROBSUB_PAUSED:  script("pause "SCROBSUB_CLIENT_ID); break;
-        case SCROBSUB_STOPPED: script("stop "SCROBSUB_CLIENT_ID); break;
+        case SCROBSUB_PLAYING: script("resume \""SCROBSUB_CLIENT_ID"\""); break;
+        case SCROBSUB_PAUSED:  script("pause \""SCROBSUB_CLIENT_ID"\""); break;
+        case SCROBSUB_STOPPED: script("stop \""SCROBSUB_CLIENT_ID"\""); break;
     }
 }
 
 void scrobsub_relay_start(const char* artist, const char* title, int duration)
 {
-    #define FORMAT "start "SCROBSUB_CLIENT_ID" with \"%s\" by \"%s\" duration %d"
+    #define FORMAT "start \""SCROBSUB_CLIENT_ID"\" with \"%s\" by \"%s\" duration %d"
     char s[sizeof(FORMAT)+strlen(artist)+strlen(title)];
     snprintf(s, sizeof(s), FORMAT, title, artist, duration);
     script(s);

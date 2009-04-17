@@ -17,6 +17,7 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
  ***************************************************************************/
 
+#include "scrobsub.h"
 #include <libxml/parser.h>
 #include <libxml/xpath.h>
 
