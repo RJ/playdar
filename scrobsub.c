@@ -188,13 +188,12 @@ static void submit()
 
 void scrobsub_start(const char* _artist, const char* _track, unsigned int _duration, const char* _album, unsigned int _track_number, const char* _mbid)
 {
-    state = SCROBSUB_PLAYING;
-    
     if(_duration>9999) _duration = 9999;
     if(_track_number>99) _track_number = 99;
     
     if(relay){
         scrobsub_relay_start(_artist, _track, _duration);
+        state = SCROBSUB_PLAYING;
         return;
     }
     
@@ -202,6 +201,8 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
         handshake();
     if (state != SCROBSUB_STOPPED)
         submit();
+    
+    state = SCROBSUB_PLAYING;
     
     artist = strdup(_artist);
     track = strdup(_track);

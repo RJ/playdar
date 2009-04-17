@@ -38,6 +38,8 @@ bool scrobsub_launch_audioscrobbler()
     p.application = &fsref;
     LSOpenApplication( &p, NULL ); //won't launch if already running
     return true; //TODO if failed to launch we should log it
+#else
+    return false;
 #endif
 }
 
@@ -68,4 +70,11 @@ void scrosub_relay_start(const char* artist, const char* title, int duration)
     snprintf(s, sizeof(s), FORMAT, title, artist, duration);
     script(s);
 }
+
+#else
+void scrobsub_relay(int state)
+{}
+
+void scrosub_relay_start(const char* artist, const char* title, int duration)
+{}
 #endif //__APPLE__
