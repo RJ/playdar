@@ -22,7 +22,7 @@ public:
         reset();
     }
     
-    int read_bytes(char * buf, int size)
+    int read_bytes(char * buf, size_t size)
     {
         if(!m_connected) do_connect();
         if(!m_connected) return 0;

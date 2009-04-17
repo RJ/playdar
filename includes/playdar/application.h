@@ -5,15 +5,19 @@
 //#include <boost/program_options.hpp>
 //#include <boost/thread.hpp>
 
+#include <string>
+#include <boost/function.hpp>
+
 #include "playdar/config.h"
 #include "playdar/types.h"
 #include "playdar/playable_item.hpp"
+
+#define VERSION "0.1.0"
 //:::
 //#include "playdar/playdar_request_handler.h"
 
 //namespace moost{ namespace http{ class server; } } // fwd
 
-using namespace std;
 
 class Library;
 class Resolver;
@@ -43,11 +47,11 @@ public:
     // RANDOM UTILITY FUNCTIONS TOSSED IN HERE FOR NOW:
     
     // swap the http://DOMAIN:PORT bit at the start of a URI
-    string http_swap_base(const string & orig, const string & newbase)
+    std::string http_swap_base(const std::string& orig, const std::string& newbase)
     {
         if(orig.at(0) == '/') return newbase + orig;
         size_t slash = orig.find_first_of('/', 8); // https:// is at least 8 in
-        if(string::npos == slash) return orig; // WTF?
+        if(std::string::npos == slash) return orig; // WTF?
         return newbase + orig.substr(slash);
     }
     

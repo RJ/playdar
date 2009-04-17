@@ -6,12 +6,12 @@
 #include <vector>
 #include <boost/thread/mutex.hpp>
 
-//using namespace std;
 
 #include "playdar/types.h"
 #include "playdar/artist.h"
 #include "playdar/album.h"
 #include "playdar/track.h"
+#include "playdar/library_file.h"
 
 #include "sqlite3pp.h"
 
@@ -23,32 +23,29 @@ class MyApplication;
 class Library
 {
 public:
-    Library(std::string dbfilepath, MyApplication * a)
-    : m_db(dbfilepath.c_str())
-    {
-        m_app = a;
-        m_dbfilepath = dbfilepath;
-    }
-
+    Library(const std::string& dbfilepath);
     ~Library();
 
-    int add_dir(std::string, int);
-    int add_file(std::string, int, int, std::string, std::string, int, int, std::string, std::string, std::string, int);
-    bool remove_file(std::string);
+    int add_dir( const std::string& url, int mtime);
+    int add_file( const std::string& url, int mtime, int size, const std::string& md5, const std::string& mimetype,
+                  int duration, int bitrate,
+                  const std::string& artist, const std::string& album, const std::string& track, int tracknum);
+    
+    bool remove_file( const std::string& url );
 
-    int get_artist_id(std::string);
-    int get_track_id(int, std::string);
-    int get_album_id(int, std::string);
+    int get_artist_id(const std::string&);
+    int get_track_id(int, const std::string&);
+    int get_album_id(int, const std::string&);
 
-    std::map<std::string,int> file_mtimes();
+    std::map<std::string, int> file_mtimes();
     int num_files();
     int num_artists();
     int num_albums();
     int num_tracks();
 
     bool build_index(std::string);
-    static std::string sortname(std::string name);
-    std::map<std::string,int> ngrams(std::string);
+    static std::string sortname(const std::string& name);
+    std::map<std::string, int> ngrams(const std::string&);
 
     std::vector<scorepair> search_catalogue(std::string, std::string);
     std::vector<scorepair> search_catalogue_for_artist(int, std::string, std::string);
@@ -67,19 +64,13 @@ public:
     std::vector< boost::shared_ptr<Artist> > list_artists();
     std::vector< boost::shared_ptr<Track> > list_artist_tracks(boost::shared_ptr<Artist>);
     
-    boost::shared_ptr<PlayableItem> playable_item_from_fid(int fid);
-    
     std::string get_name(std::string, int);
     std::string get_field(std::string, int, std::string);
 
     std::vector<int> get_fids_for_tid(int tid);
+    LibraryFile_ptr file_from_fid(int fid);
 
-    MyApplication * app() { return m_app; }
-
-    MyApplication * m_app;
-    
-    sqlite3pp::database * db(){ return &m_db; }
-    
+    sqlite3pp::database * db() { return &m_db; }
     std::string dbfilepath() const { return m_dbfilepath; }
     
     // DB helper:
@@ -94,6 +85,7 @@ private:
     std::map< int, std::map<std::string, int> > m_trackcache;
     std::map< int, std::map<std::string, int> > m_albumcache;
 };
+
 
 #endif
 

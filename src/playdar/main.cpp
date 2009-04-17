@@ -10,6 +10,7 @@
 #include <iterator>
 
 #include "playdar/application.h"
+#include <curl/curl.h>
 #include "playdar/playdar_request_handler.h"
 
 using namespace std;
@@ -83,6 +84,32 @@ void start_http_server(string ip, int port, int conc, MyApplication* app)
     cout << "http_server thread exiting." << endl; 
 }
 
+static void print_curl_info()
+{
+    // print some curl version info
+    curl_version_info_data * cv = curl_version_info(CURLVERSION_NOW);
+    if(cv->age >= 0)
+    {
+        cout << "Curl version:\t" << cv->version << endl;
+        const char * proto;
+        int i = 0;
+        cout << "* Protocols:\t";
+        for(; (proto = cv->protocols[i]) ; i++ )
+        {
+            cout << proto << ", " ;
+        }
+        cout << endl;
+        cout << "* SSL:\t" << (cv->features&CURL_VERSION_SSL ? "YES" : "NO") << endl;
+        cout << "* IPv6:\t" << (cv->features&CURL_VERSION_IPV6 ? "YES" : "NO") << endl;
+        cout << "* LIBZ:\t" << (cv->features&CURL_VERSION_LIBZ ? "YES" : "NO") << endl;
+    }else{
+        cerr << "Curl detection failed." << endl;
+        throw;
+    }
+    cout << endl;
+    // end curl info 
+}
+
 int main(int ac, char *av[])
 {
     po::options_description generic("Generic options");
@@ -147,6 +174,17 @@ int main(int ac, char *av[])
     
     try 
     {
+        string configfile = vm["config"].as<string>();
+        cout << "Using config file: " << configfile << endl;
+                
+        playdar::Config conf(configfile);
+        if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
+        {
+            cerr << "Please edit " << configfile << endl;
+            cerr << "YOURNAMEHERE is not a valid name." << endl;
+		    cout << "Autodetecting name: " << conf.name() << endl;
+        }
+        
         app = new MyApplication(conf);
         
 #ifndef WIN32
@@ -159,6 +197,18 @@ int main(int ac, char *av[])
         sigaction( SIGINT,  &setmask, (struct sigaction *) NULL );
         /// probably need to look for WM_BLAHWTFMSG or something.
 #endif
+
+        try
+        {
+            curl_global_init( CURL_GLOBAL_ALL );
+            print_curl_info();
+        }
+        catch(...)
+        {
+            cerr << "Curl FAIL." << endl;
+            return 9;
+        }
+        
         // start http server:
         string ip = "0.0.0.0"; 
         boost::thread http_thread(
@@ -178,7 +228,7 @@ int main(int ac, char *av[])
     {
         cout << "Playdar main exception: " << e.what() << "\n";
         return 1;
-    }    
+    }
 
    return 0;
 }

@@ -26,7 +26,10 @@ namespace resolvers {
 class lan : public ResolverServicePlugin
 {
     public:
-    lan(){}
+    lan(): m_io_service( 0 ),
+           m_responder_thread( 0 ),
+           socket_( 0 ),
+           broadcast_endpoint_( 0 ){}
     
     bool init(playdar::Config * c, Resolver * r);
     void run();
@@ -42,7 +45,7 @@ class lan : public ResolverServicePlugin
         const short multicast_port);
     
     void send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip,
+                        ri_ptr rip,
                         boost::asio::ip::udp::endpoint sep );
     
     /// max time in milliseconds we'd expect to have results in.
@@ -57,7 +60,7 @@ class lan : public ResolverServicePlugin
         return 99;
     }
         
-    string http_handler( const playdar_request& req,
+    playdar_response http_handler( const playdar_request& req,
                          playdar::auth * pauth);
     
 protected:    

@@ -15,6 +15,7 @@ public:
     std::string name()   const { return m_name; }
     artist_ptr  artist() const { return m_artist; }
 
+
 private:
 
     int         m_id;

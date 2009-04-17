@@ -15,8 +15,8 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
-using namespace playdar::resolvers;
-using namespace json_spirit;
+namespace playdar {
+namespace resolvers {
 
 bool
 darknet::init(playdar::Config * c, Resolver * r)
@@ -276,7 +276,7 @@ darknet::fwd_search(const boost::system::error_code& e,
 // fired when a new result is available for a running query:
 void
 darknet::send_response( query_uid qid, 
-                        boost::shared_ptr<PlayableItem> pip)
+                        boost::shared_ptr<ResolvedItem> rip)
 {
     connection_ptr origin_conn = get_query_origin(qid);
     // relay result if the originating connection still active:
@@ -286,7 +286,7 @@ darknet::send_response( query_uid qid,
              << origin_conn->username() << endl;
         Object response;
         response.push_back( Pair("qid", qid) );
-        response.push_back( Pair("result", pip->get_json()) );
+        response.push_back( Pair("result", rip->get_json()) );
         ostringstream ss;
         write_formatted( response, ss );
         msg_ptr resp(new LameMsg(ss.str(), SEARCHRESULT));
@@ -316,10 +316,10 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     }
     query_uid qid = r["qid"].get_str();
     Object resobj = r["result"].get_obj();
-    boost::shared_ptr<PlayableItem> pip;
+    ri_ptr rip;
     try
     {
-        pip = PlayableItem::from_json(resobj);
+        rip = resolver()->ri_from_json(resobj);
         
     }
     catch (...)
@@ -328,10 +328,10 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
         return true; // could just be incompatible version, not too bad. don't disconnect.
     }
     boost::shared_ptr<StreamingStrategy> s(
-                            new DarknetStreamingStrategy( this, conn, pip->id() ));
-    pip->set_streaming_strategy(s);
-    vector< boost::shared_ptr<PlayableItem> > vr;
-    vr.push_back(pip);
+                            new DarknetStreamingStrategy( this, conn, rip->id() ));
+    rip->set_streaming_strategy(s);
+    vector< boost::shared_ptr<ResolvedItem> > vr;
+    vr.push_back(rip);
     report_results(qid, vr, name());
     // we've already setup a callback, which will be fired when we call report_results.    
     return true;
@@ -353,7 +353,11 @@ darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
     source_uid sid = msg->payload();
     cout << "Darknet request for sid: " << sid << endl;
-    boost::shared_ptr<PlayableItem> pip = resolver()->get_pi(sid);
+    boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
+    
+    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
+    if( !pip )
+        return false;
     
     // We send SIDDATA msgs, where the payload is a sid_header followed
     // by the audio data.
@@ -462,7 +466,7 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 }
 
 // web interface:
-string 
+playdar_response 
 darknet::http_handler(const playdar_request& req,
                       playdar::auth * pauth)
 {
@@ -513,5 +517,8 @@ darknet::http_handler(const playdar_request& req,
     return os.str();
 }
 
-
 EXPORT_DYNAMIC_CLASS( darknet )
+
+}
+}
+

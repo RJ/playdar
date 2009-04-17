@@ -60,11 +60,11 @@ demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         // Create streaming strategy for accessing the track:
         string url = "http://he3.magnatune.com/all/01-Sweet%20Melissa-Big%20Bad%20Sun.mp3";
         boost::shared_ptr<StreamingStrategy> 
-                    s(new HTTPStreamingStrategy(url));
+                    s(new CurlStreamingStrategy(url));
         // Attach streamingstrat to the playable item:
         pip->set_streaming_strategy(s);
-        // Results are a list of playableitems:
-        vector< boost::shared_ptr<PlayableItem> > v;
+        // Results are a list of resolveditems:
+        vector< boost::shared_ptr<ResolvedItem> > v;
         // .. containing just the one match we found:
         v.push_back(pip);
         // tell the resolver what we found:

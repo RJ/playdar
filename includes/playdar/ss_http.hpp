@@ -9,6 +9,7 @@
 #include "playdar/streaming_strategy.h"
 
 using namespace boost::asio::ip;
+using namespace std;
 /*
     Consider this a nasty hack until I find a decent c++ http library
 

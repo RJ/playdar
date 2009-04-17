@@ -1,5 +1,5 @@
-#ifndef __RS_HTTP_rs_script_H__
-#define __RS_HTTP_rs_script_H__
+#ifndef __RS_SCRIPT_H__
+#define __RS_SCRIPT_H__
 
 #include "playdar/resolver_service.h"
 
