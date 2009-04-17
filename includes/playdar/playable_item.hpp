@@ -26,6 +26,7 @@ public:
         set_bitrate(0);
         set_mimetype("text/plain");
         set_source("unspecified");
+        set_url("");
     }
     
     PlayableItem(string art, string alb, string trk)
@@ -41,6 +42,7 @@ public:
         set_bitrate(0);
         set_mimetype("text/plain");
         set_source("unspecified");
+        set_url("");
     }
 
     static pi_ptr create(Library& lib, int fid)
@@ -63,8 +65,7 @@ public:
             album_ptr albobj = lib.load_album(file->pialbid);
             pip->set_album(albobj->name());
         }
-        //boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(file->url));
-        //pip->set_streaming_strategy(ss);
+        pip->set_url( file->url );
         return pip;
     }
 
@@ -113,7 +114,9 @@ public:
         if(resobj_map.find("mimetype")!=resobj_map.end())
             mimetype= resobj_map["mimetype"].get_str();
             
-        
+        if(resobj_map.find("url")!=resobj_map.end())
+            url = resobj_map["url"].get_str();
+            
         if(resobj_map.find("size")!=resobj_map.end())
             size    = resobj_map["size"].get_int();
             
@@ -142,6 +145,7 @@ public:
         if(sid.length())        pip->set_id(sid);
         if(source.length())     pip->set_source(source);
         if(mimetype.length())   pip->set_mimetype(mimetype);
+        if(url.length())        pip->set_url(url);
         if(size)                pip->set_size(size);
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
@@ -162,6 +166,7 @@ public:
         j.push_back( Pair("mimetype", mimetype())   );
         j.push_back( Pair("bitrate", bitrate())     );
         j.push_back( Pair("duration", duration())   );
+        j.push_back( Pair("url", url())   );
     }
     
     void set_artist(string s)   { m_artist = s; }
@@ -171,6 +176,7 @@ public:
     void set_duration(int s)    { m_duration = s; }
     void set_tracknum(int s)    { m_tracknum = s; }
     void set_size(int s)        { m_size = s; }
+    void set_url(string s)      { m_url = s; }
     void set_bitrate(int s)     { m_bitrate = s; }
     void set_streaming_strategy(boost::shared_ptr<StreamingStrategy> s)   { m_ss = s; }
     
@@ -178,6 +184,7 @@ public:
     const string & album() const    { return m_album; }
     const string & track() const    { return m_track; }
     const string & mimetype() const { return m_mimetype; }
+    const string & url() const   { return m_url; }
     const int duration() const      { return m_duration; }
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
@@ -197,6 +204,7 @@ private:
     string m_album;
     string m_track;
     string m_mimetype;
+    string m_url;
     int m_size;
     int m_duration;
     int m_bitrate;

@@ -40,7 +40,7 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     vector< ri_ptr > results,
+                     const vector< std::pair<ri_ptr,ss_ptr> >& results,
                      string via);
     vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
@@ -56,7 +56,7 @@ public:
     ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
-    ri_ptr get_ri(const source_uid & sid);
+    ss_ptr get_ss(const source_uid & sid);
     
     size_t num_seen_queries();
     
@@ -109,7 +109,7 @@ private:
     MyApplication * m_app;
     
     map< query_uid, rq_ptr > m_queries;
-    map< source_uid, ri_ptr > m_ris;
+    map< source_uid, ss_ptr > m_sid2ss;
     // timers used to auto-cancel queries that are inactive for long enough:
     map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     

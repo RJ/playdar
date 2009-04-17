@@ -53,13 +53,12 @@ public:
     
     virtual bool report_results(const query_uid& qid, const std::vector< result_pair >& results)
     {
-        std::vector<ri_ptr> v;
+        std::vector< std::pair<ri_ptr,ss_ptr> > v;
         BOOST_FOREACH( const result_pair & rp, results )
         {
             ri_ptr rip = m_resolver->ri_from_json( rp.first );
             if(!rip) continue;
-            //rip->set_ss( rp.second );
-            v.push_back( rip );
+            v.push_back( std::pair<ri_ptr,ss_ptr>(rip, rp.second) );
         }
         m_resolver->add_results( qid, v, rs()->name() );
         return true;

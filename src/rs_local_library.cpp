@@ -90,7 +90,9 @@ RS_local_library::process( rq_ptr rq )
         {
             pi_ptr pip = PlayableItem::create(*app()->library(), fid);
             pip->set_source( m_pap->hostname() );
-            final_results.push_back( result_pair(pip->get_json(), ss_ptr()) );
+            boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
+            pip->set_url("");
+            final_results.push_back( result_pair(pip->get_json(), ss) );
         }
     }
     if(final_results.size())

@@ -404,7 +404,7 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 /// false means give up on this query, it's over
 /// true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
+Resolver::add_results(query_uid qid, const vector< std::pair<ri_ptr,ss_ptr> >& results, string via)
 {
     if(results.size()==0)
     {
@@ -413,14 +413,15 @@ Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) return false; // query was deleted
     string reason;
+    typedef std::pair<ri_ptr,ss_ptr> rpair;
     // add these new results to the ResolverQuery object
-    BOOST_FOREACH(ri_ptr rip, results)
+    BOOST_FOREACH(const rpair rp, results)
     {
         rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-        if(rip->score() < 0 &&
+        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rp.first);
+        if(rp.first->score() < 0 &&
            TrackRQBuilder::valid( rq ) &&
            pip)
         {
@@ -429,9 +430,9 @@ Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
             pip->set_score( score );
         }
         
-        m_queries[qid]->add_result(rip);
+        m_queries[qid]->add_result(rp.first);
         // update map of source id -> playable item
-        m_ris[rip->id()] = rip;
+        m_sid2ss[rp.first->id()] = rp.second;
     } 
     return true;
 }
@@ -538,7 +539,7 @@ Resolver::cancel_query(const query_uid & qid)
         vector< ri_ptr > results = cq->results();
         BOOST_FOREACH( ri_ptr rip, results )
         {
-            m_ris.erase( rip->id() );
+            m_sid2ss.erase( rip->id() );
         }
     }
     // the RQ should not be referenced anywhere and will destruct now.
@@ -627,10 +628,10 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-ri_ptr 
-Resolver::get_ri(const source_uid & sid)
+ss_ptr
+Resolver::get_ss(const source_uid & sid)
 {
-    return m_ris[sid];
+    return m_sid2ss[sid];
 }
 
 

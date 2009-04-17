@@ -31,6 +31,7 @@ public:
         , m_thread(0)
         , m_abort(false)
     {
+        cout << "CTOR ss_curl: " << url << endl;
         reset();
     }
 

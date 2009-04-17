@@ -838,18 +838,15 @@ void
 playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
 {
     cout << "Serving SID " << sid << endl;
-    ri_ptr rip = app()->resolver()->get_ri(sid);
-    
-    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-    if(!pip)
+    ss_ptr ss = app()->resolver()->get_ss(sid);
+    if(!ss)
     {
         cerr << "This SID does not exist or does not resolve to a playable item." << endl;
         rep = moost::http::reply::stock_reply(moost::http::reply::not_found );
         return;
     }
-    cout << "-> PlayableItem: " << pip->artist() << " - " << pip->track() << endl;
-    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
     cout << "-> " << ss->debug() << endl;
+    /*
     rep.headers.resize(2);
     if(pip->mimetype().length())
     {
@@ -862,8 +859,9 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         rep.headers[0].name = "Content-Length";
         rep.headers[0].value = boost::lexical_cast<string>(pip->size());
     }
+    */
     // hand off the streaming strategy for the http server to do:
-    rep.set_streaming(ss, pip->size());
+    rep.set_streaming(ss, 99999999); // pip->size());
     return;  
 }
 
