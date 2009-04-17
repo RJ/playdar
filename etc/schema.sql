@@ -58,7 +58,7 @@ CREATE UNIQUE INDEX track_search_index_ngram_track ON track_search_index(ngram, 
 -- files on disk and joinage with catalogue:
 CREATE TABLE IF NOT EXISTS file (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    path TEXT NOT NULL,
+    url TEXT NOT NULL,
     size INTEGER NOT NULL,
     mtime INTEGER NOT NULL,
     md5 TEXT,
@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS file (
     duration INTEGER NOT NULL DEFAULT 0,
     bitrate INTEGER NOT NULL DEfAULT 0
 );
-CREATE UNIQUE INDEX file_path_uniq ON file(path);
+CREATE UNIQUE INDEX file_url_uniq ON file(url);
 
 CREATE TABLE IF NOT EXISTS file_join (
     file INTEGER NOT NULL REFERENCES file(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -95,5 +95,4 @@ CREATE TABLE IF NOT EXISTS playdar_settings (
     description TEXT NOT NULL
 );
 CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
-
 

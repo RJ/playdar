@@ -1,23 +1,35 @@
-#include "playdar/application.h"
+//include first otherwise face uuid fail on OSX!
+#include "playdar/config.hpp"
+
 #include <iostream>
 #include <stdio.h>
 #include <sstream>
-#include "playdar/library.h"
 #include <boost/foreach.hpp>
-#include <boost/asio.hpp>
 #include <boost/algorithm/string.hpp>
 
-
+#include "playdar/library.h"
 
 using namespace std;
 
 
+Library::Library(const string& dbfilepath)
+: m_db(dbfilepath.c_str())
+{
+    m_dbfilepath = dbfilepath;
+}
+
+Library::~Library()
+{
+    cout << "DTOR library" << endl;
+}
+
+
 bool
-Library::remove_file( string path )
+Library::remove_file( const string& url )
 {
     boost::mutex::scoped_lock lock(m_mut);
-    sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE path = ?");
-    qry.bind(1, path.c_str(), true);
+    sqlite3pp::query qry(m_db, "SELECT id FROM file WHERE url = ?");
+    qry.bind(1, url.c_str(), true);
     int fileid = 0;
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         fileid = (*i).get<int>(0);
@@ -34,27 +46,27 @@ Library::remove_file( string path )
 }
 
 int 
-Library::add_dir(string path, int mtime)
+Library::add_dir( const string& url, int mtime)
 {
     boost::mutex::scoped_lock lock(m_mut);
-    remove_file( path );
-    sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime) VALUES (?, 0, ?)");
-    cmd.bind(1, path.c_str(), true);
+    remove_file( url );
+    sqlite3pp::command cmd(m_db, "INSERT INTO file(url, size, mtime) VALUES (?, 0, ?)");
+    cmd.bind(1, url.c_str(), true);
     cmd.bind(2, mtime);
     return cmd.execute();        
 }
 
 
 int 
-Library::add_file(  string path, int mtime, int size, string md5, string mimetype,
+Library::add_file(  const string& url, int mtime, int size, const string& md5, const string& mimetype,
                     int duration, int bitrate,
-                    string artist, string album, string track, int tracknum)
+                    const string& artist, const string& album, const string& track, int tracknum)
 {
     int fileid = 0;
-    remove_file(path);
+    remove_file(url);
 
-    sqlite3pp::command cmd(m_db, "INSERT INTO file(path, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    cmd.bind(1, path.c_str(), true);
+    sqlite3pp::command cmd(m_db, "INSERT INTO file(url, size, mtime, md5, mimetype, duration, bitrate) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    cmd.bind(1, url.c_str(), true);
     cmd.bind(2, size);
     cmd.bind(3, mtime);
     cmd.bind(4, md5.c_str(), true);
@@ -90,7 +102,7 @@ Library::add_file(  string path, int mtime, int size, string md5, string mimetyp
 }
 
 int
-Library::get_artist_id(string name_orig)
+Library::get_artist_id(const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -122,7 +134,7 @@ Library::get_artist_id(string name_orig)
 }
 
 int
-Library::get_track_id(int artistid, string name_orig)
+Library::get_track_id(int artistid, const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -156,7 +168,7 @@ Library::get_track_id(int artistid, string name_orig)
 }
 
 int
-Library::get_album_id(int artistid, string name_orig)
+Library::get_album_id(int artistid, const string& name_orig)
 {
     boost::mutex::scoped_lock lock(m_mut);
     int id = 0;
@@ -361,7 +373,7 @@ Library::build_index(string table)
 
 // horribly inefficient:
 map<string,int> 
-Library::ngrams(string str_orig)
+Library::ngrams(const string& str_orig)
 {
     int n=3;
     map<string,int> m;
@@ -398,20 +410,50 @@ Library::num_tracks()
     return db_get_one(string("SELECT count(*) FROM track"), 0);
 }
 
+LibraryFile_ptr
+Library::file_from_fid(int fid)
+{
+    boost::mutex::scoped_lock lock(m_mut);
+    sqlite3pp::query qry(m_db,
+        "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
+        "file_join.artist, file_join.album, file_join.track "
+        "FROM file, file_join "
+        "WHERE file.id = file_join.file "
+        "AND file.id = ?");
+    qry.bind(1, fid);
+    sqlite3pp::query::iterator i( qry.begin() );
+    if (i == qry.end())
+        return LibraryFile_ptr((LibraryFile*)0);
+    
+    LibraryFile_ptr p(new LibraryFile);
+    p->url = string((*i).get<const char *>(0));
+    p->size = (*i).get<int>(1);
+    p->mimetype = string((*i).get<const char *>(2));
+    p->duration = (*i).get<int>(3);
+    p->bitrate = (*i).get<int>(4);
+    p->piartid = (*i).get<int>(5);
+    p->pialbid = (*i).get<int>(6);
+    p->pitrkid = (*i).get<int>(7);
+    return p;
+}
+
+#if 0
+/// NB: this doesn't attach a streaming strategy, but it does set_url().
+///     so the caller should create an appropriate SS (probably a curl strat)
 boost::shared_ptr<PlayableItem>
 Library::playable_item_from_fid(int fid)
 {
     boost::mutex::scoped_lock lock(m_mut);
     boost::shared_ptr<PlayableItem> pip(new PlayableItem());
     ostringstream sql;
-    sql << "SELECT file.path, file.size, file.mimetype, file.duration, file.bitrate, "
+    sql << "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
         << "file_join.artist, file_join.album, file_join.track "
         << "FROM file, file_join "
         << "WHERE file.id = file_join.file "
         << "AND file.id = " << fid;
     sqlite3pp::query qry(m_db, sql.str().c_str() );
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        string path = string((*i).get<const char *>(0));
+        string url = string((*i).get<const char *>(0));
         int size = (*i).get<int>(1);
         string mimetype = string((*i).get<const char *>(2));
         int duration = (*i).get<int>(3);
@@ -431,8 +473,7 @@ Library::playable_item_from_fid(int fid)
             album_ptr albobj  = load_album(pialbid);
             pip->set_album(albobj->name());
         }
-        boost::shared_ptr<StreamingStrategy> ss(new LocalFileStreamingStrategy(path));
-        pip->set_streaming_strategy(ss);
+        pip->set_url(url);
         pip->set_mimetype(mimetype);
         pip->set_size(size);
         pip->set_duration(duration);
@@ -442,9 +483,8 @@ Library::playable_item_from_fid(int fid)
     }
     return pip;
 }
-            
-            
-            
+#endif
+
 
 // get mtimes of all filesnames scanned
 map<string, int>
@@ -452,7 +492,7 @@ Library::file_mtimes()
 {
     boost::mutex::scoped_lock lock(m_mut);
     map<string, int> ret;
-    sqlite3pp::query qry(m_db, "SELECT path, mtime FROM file");
+    sqlite3pp::query qry(m_db, "SELECT url, mtime FROM file");
     for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
         ret[ string((*i).get<const char *>(0)) ] = (*i).get<int>(1);
     }
@@ -495,7 +535,7 @@ Library::get_field(string table, int id, string field)
 }
 
 string
-Library::sortname(string name)
+Library::sortname(const string& name)
 {
     string data(name);
     std::transform(data.begin(), data.end(), data.begin(), ::tolower);
@@ -589,6 +629,4 @@ Library::load_album(int n)
     }
     return ptr;
 }
-
-
 

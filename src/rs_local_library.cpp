@@ -71,7 +71,7 @@ RS_local_library::run()
 void
 RS_local_library::process( rq_ptr rq )
 {
-    vector< boost::shared_ptr<PlayableItem> > final_results;
+    vector< ri_ptr > final_results;
     
     // get candidates (rough potential matches):
     vector<scorepair> candidates = find_candidates(rq, 10);
@@ -84,7 +84,7 @@ RS_local_library::process( rq_ptr rq )
         vector<int> fids = app()->library()->get_fids_for_tid(sp.id);
         BOOST_FOREACH(int fid, fids)
         {
-            pi_ptr pip = app()->library()->playable_item_from_fid(fid);
+            pi_ptr pip = PlayableItem::create(*app()->library(), fid);
             pip->set_source(conf()->name());
             final_results.push_back( pip );
         }

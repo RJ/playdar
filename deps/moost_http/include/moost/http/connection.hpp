@@ -182,7 +182,7 @@ void connection<RequestHandler>::handle_write_stream
         
             if(!ss)
             {
-                cout << "StreamingStrat died" << endl;
+                cout << "StreamingStrat went away?" << endl;
                 break;
             }
             const size_t maxbuf = 4096 * 2;
@@ -213,13 +213,14 @@ void connection<RequestHandler>::handle_write_stream
         }
         else
         {
+            // this might happen if you hit stop or your browser just aborts the connection halfway.
             cout << "handle_write_stream error for " << ss->debug() 
                  << endl;
             break;
         }
     }while(false);
     
-    cout << "Shutting down socket." << endl;
+    //cout << "Shutting down socket." << endl;
     boost::system::error_code ignored_ec;
         socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }

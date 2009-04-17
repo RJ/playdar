@@ -128,14 +128,14 @@ public:
         return m_results.size();
     }
 
-    vector< boost::shared_ptr<PlayableItem> > results()
+    vector< ri_ptr > results()
     {
         time(&m_atime);
         // sort results on score/preference.
         boost::function
                     < bool 
-                    (   const boost::shared_ptr<PlayableItem> &, 
-                        const boost::shared_ptr<PlayableItem> &
+                    (   const ri_ptr &, 
+                        const ri_ptr &
                     ) > sortfun = 
                     boost::bind(&ResolverQuery::sorter, this, _1, _2);
         
@@ -144,7 +144,7 @@ public:
         return m_results; 
     }
 
-    bool sorter(const boost::shared_ptr<PlayableItem> & lhs, const boost::shared_ptr<PlayableItem> & rhs)
+    bool sorter(const ri_ptr & lhs, const ri_ptr & rhs)
     {
         // if equal scores, prefer item with higher preference (ie, network reliability)
         //if(lhs->score() == rhs->score()) return lhs->preference() > rhs->preference();
@@ -153,17 +153,17 @@ public:
         return lhs->score() > rhs->score();
     }
 
-    void add_result(boost::shared_ptr<PlayableItem> pip) 
+    void add_result(ri_ptr rip) 
     { 
         //cout << "RQ.add_result: "<< pip->score() <<"\t"
         //     << pip->artist() << " - " << pip->track() << endl;
         {
             boost::mutex::scoped_lock lock(m_mut);
-            m_results.push_back(pip); 
+            m_results.push_back(rip); 
         }
         // decide if this result "solves" the query:
         // for now just assume score of 1 means solved.
-        if(pip->score() == 1.0) 
+        if(rip->score() == 1.0) 
         {
 //            cout << "SOLVED " << id() << endl;   
             m_solved = true;
@@ -171,7 +171,7 @@ public:
         // fire callbacks:
         BOOST_FOREACH(rq_callback_t & cb, m_callbacks)
         {
-            cb(id(), pip);
+            cb(id(), rip);
         }
     }
     
@@ -187,7 +187,8 @@ public:
     const json_spirit::Value& param( const string& param ) const { return m_qryobj_map.find( param )->second; }
     const json_spirit::Value_type param_type( const string& param ) const { return m_qryobj_map.find( param )->second.type(); }
     
-    void set_param( const string& param, const string& value ){ m_qryobj_map[param] = value; }
+    template<typename T>
+    void set_param( const string& param, const T& value ){ m_qryobj_map[param] = value; }
     
     string str() const
     {
@@ -222,7 +223,7 @@ protected:
     map<string,json_spirit::Value> m_qryobj_map;
 
 private:
-    vector< boost::shared_ptr<PlayableItem> > m_results;
+    vector< ri_ptr > m_results;
     string      m_from_name;
         
     // list of functors to fire on new result:

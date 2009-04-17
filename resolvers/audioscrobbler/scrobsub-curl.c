@@ -53,7 +53,7 @@ static FILE* fopen_session_file(const char* mode)
     if(xdg)
         strcpy(fn, xdg);
     else
-        strcat("/.config");
+        strcat(fn, "/.config");
     strcat(fn, "/Last.fm/"SCROBSUB_CLIENT_ID".sk");
 #endif
 #endif
