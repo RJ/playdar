@@ -206,7 +206,7 @@ private:
     float m_score;
     string m_source;
     
-    mutable boost::shared_ptr<StreamingStrategy> m_ss;
+    boost::shared_ptr<StreamingStrategy> m_ss;
 };
 #endif
 

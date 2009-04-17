@@ -21,8 +21,10 @@ struct CurlChecker
             oss << "error " << e << " from curl " << doing;
             m_what = oss.str();
         }
+        
+        ~Exception() throw () {}
 
-        virtual const char* what() const
+        virtual const char* what() const throw ()
         {
             return m_what.data();
         }
