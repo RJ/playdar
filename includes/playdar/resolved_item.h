@@ -18,6 +18,7 @@
 #include "playdar/types.h"
 #include "playdar/utils/uuid.hpp"
 
+#include "json_spirit/json_spirit.h"
 
 class ResolvedItem
 {

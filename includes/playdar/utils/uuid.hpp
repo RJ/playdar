@@ -33,7 +33,7 @@ inline std::string gen_uuid()
         return "";
     }
     uuid_destroy(uuid);
-    string retval(uuid_str);
+    std::string retval(uuid_str);
     delete(uuid_str);
     return retval;
 }
