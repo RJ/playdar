@@ -49,8 +49,17 @@ Resolver::Resolver(MyApplication * app)
     // Load all non built-in resolvers:
     try
     {
-        load_resolver_scripts(); // external processes
-        load_resolver_plugins(); // DLL plugins
+        // Scripts resolvers:
+        if( m_app->conf()->get<bool>("load_scripts", true) )
+            load_resolver_scripts(); // external processes
+        else 
+            cerr << "NOT loading scripts, due to load_scripts=no" << endl;
+        
+        // PDL-loaded plugins:
+        if( m_app->conf()->get<bool>("load_plugins", true) )
+            load_resolver_plugins(); // DLL plugins
+        else 
+            cerr << "NOT loading scripts, due to load_scripts=no" << endl;
     }
     catch(...)
     {
@@ -153,7 +162,8 @@ Resolver::load_resolver_scripts()
             // (leaf method marked as deprecated in boost > 1.35)
             // basic_path::stem() added in boost 1.36
             string name = i->path().leaf();
-            string conf = "plugins." + stem( i->path() ) + '.';     
+            string conf = "scripts." + stem( i->path() ) + '.';   
+            std::cout << conf << "enabled" << std::endl;
             
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
@@ -216,7 +226,7 @@ Resolver::load_resolver_plugins()
                  << "Case-insensitivity applies." << endl;
             continue;
         }
-        string confopt = "resolvers.";
+        string confopt = "plugins.";
         confopt += classname;
         confopt += ".enabled";
         if(app()->conf()->get<bool>(confopt, true) == false)

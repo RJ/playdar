@@ -23,7 +23,7 @@ using namespace boost::asio::ip;
 class CurlStreamingStrategy : public StreamingStrategy
 {
 public:
-    CurlStreamingStrategy(string url)
+    CurlStreamingStrategy(std::string url)
         : m_curl(0)
         , m_url(url)
         , m_thread(0)
@@ -57,14 +57,14 @@ public:
         return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(*this));
     }
     
-    vector<string> & extra_headers() { return m_extra_headers; }
+    std::vector<std::string> & extra_headers() { return m_extra_headers; }
 
     int read_bytes(char * buf, size_t size)
     {
         if(!m_connected) do_connect();
         if(!m_connected)
         {
-            cout << "ERROR: do_connect failed in httpss." << endl;
+            std::cout << "ERROR: do_connect failed in httpss." << std::endl;
             if( m_curl ) curl_easy_cleanup( m_curl );
             reset();
             return 0;
@@ -92,9 +92,9 @@ public:
     }
 
     
-    string debug()
+    std::string debug()
     { 
-        ostringstream s;
+        std::ostringstream s;
         s<< "CurlStreamingStrategy( " << m_url << " )";
         return s.str();
     }
@@ -137,17 +137,17 @@ public:
     /// run in a thread to do the curl transfer
     void curl_perform()
     {
-        cout << "doing curl_perform for '" << m_url << "'" << endl;
+        std::cout << "doing curl_perform for '" << m_url << "'" << std::endl;
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
-        cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << endl;
-        m_cond.notify_all();
-        if(m_curlres != 0) cout << "Curl error: " << m_curlerror << endl;
+        std::cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << std::endl;
+        if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
         curl_easy_cleanup( m_curl );
+        m_cond.notify_all();
     }
     
-    const string url() const { return m_url; }
+    const std::string url() const { return m_url; }
     
 protected:
 
@@ -157,12 +157,12 @@ protected:
         {
             m_thread->join();
         }
-        cout << debug() << endl; 
+        std::cout << debug() << std::endl; 
         reset();
         m_curl = curl_easy_init();
         if(!m_curl)
         {
-            cout << "Curl init failed" << endl;
+            std::cout << "Curl init failed" << std::endl;
             throw;
         }
         curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
@@ -185,10 +185,10 @@ protected:
     
     CURL *m_curl;
     CURLcode m_curlres;
-    vector<string> m_extra_headers; 
+    std::vector<std::string> m_extra_headers; 
     bool m_connected;
-    string m_url;
-    deque< char > m_buffers; // received data
+    std::string m_url;
+    std::deque< char > m_buffers; // received data
     boost::mutex m_mut;
     boost::condition m_cond;
     bool m_curl_finished;

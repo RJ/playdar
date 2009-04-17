@@ -26,7 +26,10 @@ namespace resolvers {
 class lan : public ResolverServicePlugin
 {
     public:
-    lan(){}
+    lan(): m_io_service( 0 ),
+           m_responder_thread( 0 ),
+           socket_( 0 ),
+           broadcast_endpoint_( 0 ){}
     
     bool init(playdar::Config * c, Resolver * r);
     void run();

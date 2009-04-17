@@ -71,12 +71,17 @@ public:
 
     static bool validator(const json_spirit::Object& o)
     {
-        try {
-            generator(o);
-        } catch (...) {
-            return false;
+        map<string, json_spirit::Value> m;
+        obj_to_map(o, m);
+        
+        if( m.find("name") != m.end() && m.find("name")->second.type() == json_spirit::str_type &&
+            m.find("score") != m.end() && m.find("score")->second.type() == json_spirit::real_type &&
+            m.find("count") != m.end() && m.find("count")->second.type() == json_spirit::int_type )
+        {
+            return true;
         }
-        return true;
+        
+        return false;
     }
 
     static ri_ptr generator(const json_spirit::Object& o)
@@ -105,6 +110,17 @@ boffin::boffin()
     : m_thread( 0 )
     , m_thread_stop( false )
 {
+}
+
+boffin::~boffin() throw()
+{
+    if (m_thread) {
+        m_thread_stop = true;
+        m_thread->interrupt();
+        m_thread->join();
+        delete m_thread;
+        m_thread = 0;
+    }
 }
 
 std::string 
@@ -149,51 +165,30 @@ boost::function< void() >
 boffin::get_work()
 {
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
-    while (m_queue.empty()) {
-        m_queue_wake.wait(lock);
-    }
-    boost::function< void() > result = m_queue.front();
-    m_queue.pop();
-    return result;
-}
-
-void
-boffin::drain_queue()
-{
-    boost::lock_guard<boost::mutex> guard(m_queue_mutex);
-    while (!m_queue.empty()) {
+    try {
+        while (m_queue.empty()) {
+            m_queue_wake.wait(lock);
+        }
+        boost::function< void() > result = m_queue.front();
         m_queue.pop();
+        return result;
+    }
+    catch(boost::thread_interrupted) {
+        // must be shutting down:
+        return 0;
     }
 }
 
 void
 boffin::thread_run()
 {
-    try {
-        while (!m_thread_stop) {
-            get_work()();
-        }
-    } 
-    catch (boost::thread_interrupted) {
-        std::cout << "boffin::thread_run exiting normally";
-    } 
-    catch (std::exception &e) {
-        std::cout << "boffin::thread_run exception " << e.what();
+    cout << "boffin thread_run" << endl;
+    boost::function< void() > fun;
+    while (!m_thread_stop) {
+        fun = get_work();
+        if( fun ) fun();
     }
-
-    drain_queue();
-}
-
-void
-boffin::stop()
-{
-    if (m_thread) {
-        m_thread_stop = true;
-        m_thread->interrupt();
-        m_thread->join();
-        delete m_thread;
-        m_thread = 0;
-    }
+    cout << "boffin::thread_run exiting" << endl;
 }
 
 /// max time in milliseconds we'd expect to have results in.

@@ -33,7 +33,7 @@ public:
     virtual playdar_response http_handler( const playdar_request&, playdar::auth * pauth);
 
 protected:
-    virtual ~boffin() throw() {}
+    virtual ~boffin() throw();
 
 private:
     void resolve(boost::shared_ptr<ResolverQuery> rq);
@@ -44,8 +44,6 @@ private:
     void thread_run();
     void queue_work(boost::function< void() > work);
     boost::function< void() > get_work();
-    void drain_queue();
-    void stop();
 
     volatile bool m_thread_stop;
     boost::thread* m_thread;
