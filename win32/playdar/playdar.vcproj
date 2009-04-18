@@ -293,6 +293,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\includes\playdar\pluginadaptor.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\includes\playdar\resolved_item.h"
 				>
 			</File>
@@ -314,10 +318,6 @@
 			</File>
 			<File
 				RelativePath="..\..\includes\playdar\rs_local_library.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\includes\playdar\rs_script.h"
 				>
 			</File>
 			<File
