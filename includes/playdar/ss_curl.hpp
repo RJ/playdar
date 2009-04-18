@@ -19,52 +19,56 @@ using namespace boost::asio::ip;
     Can stream from anything cURL can.. 
     
     TODO handle failure/slow streams better.
+    TODO potential efficiency gain by storing data in lumps of size returned by curl
+    TODO make some of the curl options user-configurable (ssl cert checking, auth, timeouts..)
 */
 class CurlStreamingStrategy : public StreamingStrategy
 {
 public:
-    CurlStreamingStrategy(string url)
+    CurlStreamingStrategy(std::string url)
         : m_curl(0)
         , m_url(url)
+        , m_thread(0)
+        , m_abort(false)
     {
         reset();
-        m_thread = 0;
+    }
+
+    /// copy constructor, used by get_instance()
+    CurlStreamingStrategy(const CurlStreamingStrategy& other)
+        : m_curl(0)
+        , m_url(other.url())
+        , m_thread(0)
+        , m_abort(false)
+    {
+        reset();
     }
 
     ~CurlStreamingStrategy()
     { 
         if(m_thread)
         {
-            // kill any running downloads from curl:
-            m_thread->interrupt();
+            m_abort = true; // will cause thread to terminate
+            m_thread->join();
         }
         reset(); 
     }
-    
-    /// copy constructor, used by get_instance()
-    CurlStreamingStrategy(CurlStreamingStrategy* const inst)
-    {
-        reset();
-        m_curl = 0;
-        m_url  = inst->url();
-        m_thread = 0;
-    }
-    
+
     /// this returns a shr_ptr to a copy, because it's not threadsafe 
     virtual boost::shared_ptr<StreamingStrategy> get_instance()
     {
         // make a copy:
-        return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(this));
+        return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(*this));
     }
     
-    vector<string> & extra_headers() { return m_extra_headers; }
+    std::vector<std::string> & extra_headers() { return m_extra_headers; }
 
     int read_bytes(char * buf, size_t size)
     {
         if(!m_connected) do_connect();
         if(!m_connected)
         {
-            cout << "ERROR: do_connect failed in httpss." << endl;
+            std::cout << "ERROR: do_connect failed in httpss." << std::endl;
             if( m_curl ) curl_easy_cleanup( m_curl );
             reset();
             return 0;
@@ -92,9 +96,9 @@ public:
     }
 
     
-    string debug()
+    std::string debug()
     { 
-        ostringstream s;
+        std::ostringstream s;
         s<< "CurlStreamingStrategy( " << m_url << " )";
         return s.str();
     }
@@ -104,6 +108,7 @@ public:
         m_connected = false;
         m_bytesreceived = 0;
         m_curl_finished = false;
+        m_abort = false;
         m_buffers.clear();
     }
     
@@ -131,23 +136,31 @@ public:
                                  double ultotal, double ulnow)
     {
         //cout << "Curl has downloaded: " << dlnow << " : " << dltotal << endl;
-        return 0; // non-zero aborts download.
+        if( ((CurlStreamingStrategy*)clientp)->m_abort )
+        {
+            std::cout << "Aborting in-progress download." << std::endl;
+            return 1; // non-zero aborts download.
+        }
+        else
+        {
+            return 0;
+        }
     }
     
     /// run in a thread to do the curl transfer
     void curl_perform()
     {
-        cout << "doing curl_perform for '" << m_url << "'" << endl;
+        std::cout << "doing curl_perform for '" << m_url << "'" << std::endl;
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
-        cout << "curl_perform done. ret: " << m_curlres << " bytes rcvd: " << m_bytesreceived << endl;
-        if(m_curlres != 0) cout << "Curl error: " << m_curlerror << endl;
+        std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
+        if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
         curl_easy_cleanup( m_curl );
         m_cond.notify_all();
     }
     
-    const string url() const { return m_url; }
+    const std::string url() const { return m_url; }
     
 protected:
 
@@ -157,27 +170,33 @@ protected:
         {
             m_thread->join();
         }
-        cout << debug() << endl; 
+        std::cout << debug() << std::endl; 
         reset();
         m_curl = curl_easy_init();
         if(!m_curl)
         {
-            cout << "Curl init failed" << endl;
+            std::cout << "Curl init failed" << std::endl;
             throw;
         }
+        // for curl options, see:
+        // http://curl.netmirror.org/libcurl/c/curl_easy_setopt.html
+        
+        curl_easy_setopt( m_curl, CURLOPT_NOSIGNAL, 1 );
+        curl_easy_setopt( m_curl, CURLOPT_CONNECTTIMEOUT, 5 );
+        curl_easy_setopt( m_curl, CURLOPT_SSL_VERIFYPEER, 0 );
+        curl_easy_setopt( m_curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
         curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
         curl_easy_setopt( m_curl, CURLOPT_FOLLOWLOCATION, 1 );
         curl_easy_setopt( m_curl, CURLOPT_MAXREDIRS, 5 );
         curl_easy_setopt( m_curl, CURLOPT_USERAGENT, "Playdar (libcurl)" );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, 
-                                  &CurlStreamingStrategy::curl_writefunc );
+        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_writefunc );
         curl_easy_setopt( m_curl, CURLOPT_WRITEDATA, this );
         curl_easy_setopt( m_curl, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
-        // set to 0 and uncomment if you want ~1 sec callbacks on progress:
-        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 1 );
-        //curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION, 
-        //                          &CurlStreamingStrategy::curl_progressfunc );
-        //curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
+        // we use the curl progress callbacks to abort transfers mid-download on exit
+        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 0 );
+        curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION,
+                                  &CurlStreamingStrategy::curl_progressfunc );
+        curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
         m_connected = true; 
         // do the blocking-fetch in a thread:
         m_thread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
@@ -185,16 +204,17 @@ protected:
     
     CURL *m_curl;
     CURLcode m_curlres;
-    vector<string> m_extra_headers; 
+    std::vector<std::string> m_extra_headers; 
     bool m_connected;
-    string m_url;
-    deque< char > m_buffers; // received data
+    std::string m_url;
+    std::deque< char > m_buffers; // received data
     boost::mutex m_mut;
     boost::condition m_cond;
     bool m_curl_finished;
     size_t m_bytesreceived;
     char m_curlerror[CURL_ERROR_SIZE];
     boost::thread * m_thread;
+    bool m_abort;
 };
 
 #endif

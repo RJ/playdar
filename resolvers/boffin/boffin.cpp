@@ -71,12 +71,17 @@ public:
 
     static bool validator(const json_spirit::Object& o)
     {
-        try {
-            generator(o);
-        } catch (...) {
-            return false;
+        map<string, json_spirit::Value> m;
+        obj_to_map(o, m);
+        
+        if( m.find("name") != m.end() && m.find("name")->second.type() == json_spirit::str_type &&
+            m.find("score") != m.end() && m.find("score")->second.type() == json_spirit::real_type &&
+            m.find("count") != m.end() && m.find("count")->second.type() == json_spirit::int_type )
+        {
+            return true;
         }
-        return true;
+        
+        return false;
     }
 
     static ri_ptr generator(const json_spirit::Object& o)
@@ -111,7 +116,7 @@ boffin::~boffin() throw()
 {
     if (m_thread) {
         m_thread_stop = true;
-        m_thread->interrupt();
+        m_queue_wake.notify_all();
         m_thread->join();
         delete m_thread;
         m_thread = 0;
@@ -160,28 +165,32 @@ boost::function< void() >
 boffin::get_work()
 {
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
-    try {
-        while (m_queue.empty()) {
-            m_queue_wake.wait(lock);
+    while (m_queue.empty()) {
+        m_queue_wake.wait(lock);
+        // we might be trying to shutdown:
+        if( m_thread_stop )
+        {   
+            return 0;
         }
-        boost::function< void() > result = m_queue.front();
-        m_queue.pop();
-        return result;
     }
-    catch(boost::thread_interrupted) {
-        // must be shutting down:
-        return 0;
-    }
+    boost::function< void() > result = m_queue.front();
+    m_queue.pop();
+    return result;
 }
 
 void
 boffin::thread_run()
 {
     cout << "boffin thread_run" << endl;
-    boost::function< void() > fun;
-    while (!m_thread_stop) {
-        fun = get_work();
-        if( fun ) fun();
+    try {
+        boost::function< void() > fun;
+        while (!m_thread_stop) {
+            fun = get_work();
+            if( fun && !m_thread_stop ) fun();
+        }
+    }
+    catch (std::exception &e) {
+        std::cout << "boffin::thread_run exception " << e.what();
     }
     cout << "boffin::thread_run exiting" << endl;
 }
@@ -246,9 +255,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             Library *library = resolver()->app()->library();
             assert(library);
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                pi_ptr pip = library->playable_item_from_fid( t.trackId );
-                boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
-                pip->set_streaming_strategy(ss);
+                pi_ptr pip = PlayableItem::create( *library, t.trackId );
                 pip->set_source(conf()->name());
                 playables.push_back( pip );
             }
@@ -267,6 +274,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         }
         report_results(rq->id(), results, "Boffin");
     }
+
 }
 
 

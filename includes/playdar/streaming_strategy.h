@@ -1,6 +1,9 @@
 #ifndef __DELIVERY_STRATEGY_H__
 #define __DELIVERY_STRATEGY_H__
+
 #include <string>
+#include <boost/shared_ptr.hpp>
+
 // Resolvers attach streaming strategies to playable items.
 // they are responsible for getting the bytes from the audio file, which
 // may be on local disk, or remote HTTP, or something more exotic -

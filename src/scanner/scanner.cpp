@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     try {
-        gLibrary = new Library(argv[1], 0);
+        gLibrary = new Library(argv[1]);
 
         // get last scan date:
         cout << "Loading data from last scan..." << flush;

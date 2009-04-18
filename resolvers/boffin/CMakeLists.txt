@@ -21,8 +21,12 @@ TARGET_LINK_LIBRARIES(boffin
 ADD_EXECUTABLE( tagger
                 Tagger.cpp
                 BoffinDb.cpp
+				${CURL_INCLUDE_DIR}
                 ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp )
 
 TARGET_LINK_LIBRARIES( tagger
                        ${SQLITE3_LIBRARIES}
-                       ${Boost_LIBRARIES} )
+                       ${Boost_LIBRARIES} 
+					   ${CURL_LIBRARIES} )
+					   
+					   

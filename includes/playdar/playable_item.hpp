@@ -2,8 +2,8 @@
 #define __PLAYABLE_ITEM_H__
 #include "playdar/resolved_item.h"
 #include "playdar/config.hpp"
-#include "playdar/types.h"
-#include "playdar/streaming_strategy.h"
+#include "playdar/library.h"
+#include "playdar/ss_curl.hpp"
 #include "json_spirit/json_spirit.h"
 #include <cassert>
 /*
@@ -42,7 +42,34 @@ public:
         set_mimetype("text/plain");
         set_source("unspecified");
     }
-    
+
+    static
+    pi_ptr 
+    create(Library& lib, int fid)
+    {
+        LibraryFile_ptr file( lib.file_from_fid(fid) );
+        pi_ptr pip( new PlayableItem() );
+        pip->set_mimetype( file->mimetype );
+        pip->set_size( file->size );
+        pip->set_duration( file->duration );
+        pip->set_bitrate( file->bitrate );
+        //    int m_tracknum;
+        //    float m_score;
+        //    string m_source;
+        artist_ptr artobj = lib.load_artist(file->piartid);
+        track_ptr trkobj = lib.load_track(file->pitrkid);
+        pip->set_artist(artobj->name());
+        pip->set_track(trkobj->name());
+        // album metadata kinda optional for now
+        if (file->pialbid) {
+            album_ptr albobj = lib.load_album(file->pialbid);
+            pip->set_album(albobj->name());
+        }
+        boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(file->url));
+        pip->set_streaming_strategy(ss);
+        return pip;
+    }
+
     ~PlayableItem()
     {
         cout << "dtor, playableitem: " << id() << endl;
@@ -55,8 +82,6 @@ public:
         if( objMap.find( "artist" ) == objMap.end())
             return false;
         if( objMap.find( "track" ) == objMap.end())
-            return false;
-        if( objMap.find( "url" ) == objMap.end())
             return false;
         
         return true;
@@ -83,9 +108,6 @@ public:
             
         if(resobj_map.find("sid")!=resobj_map.end())
             sid     = resobj_map["sid"].get_str();
-            
-        if(resobj_map.find("url")!=resobj_map.end())
-            url     = resobj_map["url"].get_str();
             
         if(resobj_map.find("source")!=resobj_map.end())
             source  = resobj_map["source"].get_str();
@@ -126,8 +148,7 @@ public:
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
         if(score >= 0)          pip->set_score(score);
-        if(url.length())        pip->set_url(url);
-                        
+        
         return pip;
     }
     
@@ -143,13 +164,11 @@ public:
         j.push_back( Pair("mimetype", mimetype())   );
         j.push_back( Pair("bitrate", bitrate())     );
         j.push_back( Pair("duration", duration())   );
-        j.push_back( Pair("url", url())             );
     }
     
     void set_artist(string s)   { m_artist = s; }
     void set_album(string s)    { m_album  = s; }
     void set_track(string s)    { m_track  = s; }
-    void set_url(string s)      { m_url    = s; }
     void set_mimetype(string s) { m_mimetype = s; }
     void set_duration(int s)    { m_duration = s; }
     void set_tracknum(int s)    { m_tracknum = s; }
@@ -161,7 +180,6 @@ public:
     const string & album() const    { return m_album; }
     const string & track() const    { return m_track; }
     const string & mimetype() const { return m_mimetype; }
-    const string & url() const      { return m_url; }
     const int duration() const      { return m_duration; }
     const int bitrate() const       { return m_bitrate; }
     const int tracknum() const      { return m_tracknum; }
@@ -181,7 +199,6 @@ private:
     string m_album;
     string m_track;
     string m_mimetype;
-    string m_url;
     int m_size;
     int m_duration;
     int m_bitrate;
@@ -189,7 +206,7 @@ private:
     float m_score;
     string m_source;
     
-    mutable boost::shared_ptr<StreamingStrategy> m_ss;
+    boost::shared_ptr<StreamingStrategy> m_ss;
 };
 #endif
 
