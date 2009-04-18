@@ -62,7 +62,7 @@ class lan : public ResolverPlugin<lan>
     }
         
     playdar_response http_handler( const playdar_request& req,
-                         playdar::auth * pauth);
+                                   playdar::auth * pauth);
     
 protected:    
     virtual ~lan() throw();

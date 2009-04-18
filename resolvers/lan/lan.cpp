@@ -1,6 +1,7 @@
 #include "lan.h"
 
 #include "playdar/resolver_query.hpp"
+#include "playdar/playdar_request.h"
 
 #include <ctime>
 
@@ -330,7 +331,7 @@ lan::send_ping()
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
     jq.push_back( Pair("from_name", m_pap->hostname()) );
-    jq.push_back( Pair("http_port", conf()->get("http_port", 8888)) );
+    jq.push_back( Pair("http_port", m_pap->get("http_port", 8888)) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
@@ -346,7 +347,7 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
     o.push_back( Pair("from_name", m_pap->hostname()) );
-    o.push_back( Pair("http_port", conf()->get("http_port", 8888)) );
+    o.push_back( Pair("http_port", m_pap->get("http_port", 8888)) );
     ostringstream os;
     write_formatted( o, os );
     async_send( &sender_endpoint, os.str() );
