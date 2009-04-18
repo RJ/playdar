@@ -22,7 +22,6 @@ namespace playdar {
 
 class Library;
 class Resolver;
-class ResolverService;
 class playdar_request_handler;
 
 /*  

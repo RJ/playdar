@@ -22,6 +22,8 @@
 #include "playdar/resolver.h"
 #include "playdar/utils/uuid.h"
 
+namespace playdar {
+
 class PluginAdaptorImpl : public PluginAdaptor
 {
 public:
@@ -68,7 +70,10 @@ public:
     
 private:
     
-    Config *   m_config;
-    Resolver * m_resolver;
+    Config*   m_config;
+    Resolver* m_resolver;
 };
+
+} // ns
+
 #endif
