@@ -1,13 +1,14 @@
 #ifndef __DARKNET_STREAMING_STRAT_H__
 #define __DARKNET_STREAMING_STRAT_H__
 
+#include "playdar/streaming_strategy.h"
+
 #include "msgs.h"
 #include "servent.h"
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
 #include <deque>
-
 
 namespace playdar {
 namespace resolvers {

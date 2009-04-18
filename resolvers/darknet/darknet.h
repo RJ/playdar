@@ -1,39 +1,43 @@
 #ifndef __RS_DARKNET_H__
 #define __RS_DARKNET_H__
-#include "playdar/playdar_plugin_include.h"
-#include "msgs.h"
-#include "servent.h"
+
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/weak_ptr.hpp>
+#include <boost/thread.hpp>                
+
 #include <iostream>
 #include <string>
+#include <vector>
+#include <map>
+
+#include "playdar/playdar_plugin_include.h"
+#include "msgs.h"
+//#include "servent.h"
 
 namespace playdar { 
 namespace resolvers { 
 
 class Servent; //fwd decl
 
-class darknet : public ResolverServicePlugin
+class darknet : public ResolverPlugin<darknet>
 {
-
 public:
-    darknet(){};
-    
-    bool init(Config * c, Resolver * r);
-    
-    void start_resolving(boost::shared_ptr<ResolverQuery> rq);
-    
-    std::string name() const { return "Darknet"; }
+
+    virtual bool init(pa_ptr pap);
+   
+    virtual std::string name() const { return "Darknet"; }
+
+    virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     
     /// max time in milliseconds we'd expect to have results in.
-    unsigned int target_time() const
+    virtual unsigned int target_time() const
     {
         return 3000;
     }
     
     /// highest weighted resolverservices are queried first.
-    unsigned short weight() const
+    virtual unsigned short weight() const
     {
         return 50;
     }
@@ -42,7 +46,7 @@ public:
     void start_io(boost::shared_ptr<boost::asio::io_service> io_service)
     {
         io_service->run();
-        cout << "io_service exiting!" << endl;   // never happens..
+        std::cout << "io_service exiting!" << std::endl;   // never happens..
     }
     
     /// ---------------------
@@ -50,9 +54,9 @@ public:
     /// Handle completion of a read operation.
     /// Typically a new message just arrived.
     /// @return true if connection should remain open
-    bool handle_read(   const boost::system::error_code& e, 
-                        msg_ptr msg, 
-                        connection_ptr conn);
+    bool handle_read(  const boost::system::error_code& e, 
+                       msg_ptr msg, 
+                       connection_ptr conn);
                         
     void connection_terminated(connection_ptr conn);
     
@@ -81,9 +85,9 @@ public:
     void send_msg(connection_ptr conn, msg_ptr msg);
     
     /// associate username->conn
-    void register_connection(string username, connection_ptr conn);
+    void register_connection(std::string username, connection_ptr conn);
     
-    void unregister_connection(string username);
+    void unregister_connection(std::string username);
     
     void start_sidrequest(connection_ptr conn, source_uid sid, boost::function<bool (msg_ptr)> handler);
     
@@ -107,7 +111,7 @@ public:
         catch(...){}
     }
     
-    map<string, connection_ptr_weak> connections()
+    std::map<std::string, connection_ptr_weak> connections()
     {
         return m_connections;
     }
@@ -131,28 +135,32 @@ public:
     playdar_response http_handler( const playdar_request& req,
                         playdar::auth * pauth);
                            
-    vector<string> get_http_handlers()
+    std::vector<std::string> get_http_handlers()
     {
-        vector<string> h;
+        std::vector<std::string> h;
         h.push_back ( "/darknet/config/" );
         return h;
     }
 
 protected:
-    ~darknet() throw();
+    virtual ~darknet() throw();
     
 private:
-    boost::thread_group * m_threads;
+
+    pa_ptr m_pap;
+
+    boost::thread_group m_threads;
     boost::shared_ptr<boost::asio::io_service> m_io_service;
     boost::shared_ptr<boost::asio::io_service> m_io_service_p;
     boost::shared_ptr<Servent> m_servent;
     boost::shared_ptr<boost::asio::io_service::work> m_work;
+
     // source of queries, so we know how to reply.
-    map< query_uid, connection_ptr_weak > m_qidorigins;
-    map< source_uid,  boost::function<bool (msg_ptr)> > m_sidhandlers;
+    std::map< query_uid, connection_ptr_weak > m_qidorigins;
+    std::map< source_uid,  boost::function<bool (msg_ptr)> > m_sidhandlers;
     /// Keep track of username -> connection
     /// this tells us how many connections are established, and to whom.
-    map<string, connection_ptr_weak> m_connections;
+    std::map<std::string, connection_ptr_weak> m_connections;
     
 };
 
