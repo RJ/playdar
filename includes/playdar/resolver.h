@@ -17,20 +17,8 @@
 #include "playdar/ss_localfile.hpp"
 #include "playdar/ss_curl.hpp"
 
-
 class MyApplication;
 class ResolverService;
-
-// This struct adds weights to the ResolverService so the resolver pipeline
-// can run them in the appropriate sequence:
-struct loaded_rs
-{
-    ResolverService * rs; 
-    unsigned int targettime; // ms before passing to next resolver
-    unsigned short weight;   // highest weight runs first.
-    bool script;             // true if external process, false if plugin.
-};
-
 
 /*
  *  Acts as a container for all content-resolution queries that are running
@@ -52,7 +40,7 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     vector< ri_ptr > results,
+                     const vector< std::pair<ri_ptr,ss_ptr> >& results,
                      string via);
     vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
@@ -68,11 +56,12 @@ public:
     ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
-    ri_ptr get_ri(const source_uid & sid);
+    ss_ptr get_ss(const source_uid & sid);
     
     size_t num_seen_queries();
     
-    vector<loaded_rs> * resolvers() { return &m_resolvers; }
+    const vector< pa_ptr >& resolvers() const
+    { return m_resolvers; }
 
     ResolverService * get_resolver(string name)
     {
@@ -94,7 +83,7 @@ public:
         return 21600; // 6 hours.
     }
     
-    bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
+    bool pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs);
     
     void run_pipeline_cont( rq_ptr rq, 
                        unsigned short lastweight,
@@ -120,7 +109,7 @@ private:
     MyApplication * m_app;
     
     map< query_uid, rq_ptr > m_queries;
-    map< source_uid, ri_ptr > m_ris;
+    map< source_uid, ss_ptr > m_sid2ss;
     // timers used to auto-cancel queries that are inactive for long enough:
     map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     
@@ -133,7 +122,7 @@ private:
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:
-    vector<loaded_rs> m_resolvers;
+    vector< pa_ptr > m_resolvers;
 
     map< string, ResolverService* > m_pluginNameMap;
     

@@ -19,7 +19,7 @@ namespace playdar {
 namespace resolvers {
 
 bool
-darknet::init(playdar::Config * c, Resolver * r)
+darknet::init(Config * c, Resolver * r)
 {
     m_resolver = r;
     m_conf = c;

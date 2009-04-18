@@ -18,7 +18,6 @@
 
 //namespace moost{ namespace http{ class server; } } // fwd
 
-
 class Library;
 class Resolver;
 class ResolverService;
@@ -33,13 +32,13 @@ class playdar_request_handler;
 class MyApplication
 {
 public:
-    MyApplication(playdar::Config c);
+    MyApplication(Config c);
     ~MyApplication();
 
     Library * library();
     Resolver * resolver();
     
-    playdar::Config * conf()
+    Config * conf()
     {
         return &m_config;
     }
@@ -63,7 +62,7 @@ public:
 private:
     
     boost::function<void()> m_stop_http;
-    playdar::Config m_config;
+    Config m_config;
     Library * m_library;
     Resolver * m_resolver;
 

@@ -13,9 +13,12 @@
 //#endif
 
 #include <string>
-#include "playdar/types.h"
 #include "playdar/config.h"
 #include <boost/function.hpp>
+
+#include "playdar/types.h"
+#include "playdar/utils/uuid.hpp"
+
 
 class ResolvedItem
 {
@@ -45,7 +48,8 @@ public:
     {
         if(m_uuid.length()==0) // generate it if not already specified
         {
-            m_uuid = playdar::Config::gen_uuid();
+            m_uuid = playdar::utils::gen_uuid();
+            
         }
         return m_uuid; 
     }

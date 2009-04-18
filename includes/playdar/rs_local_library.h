@@ -6,12 +6,13 @@
 #include <boost/thread/condition.hpp>
 
 #include "playdar/resolver_service.h"
+#include "playdar/pluginadaptor.h"
 
 class RS_local_library : public ResolverService
 {
     public:
     RS_local_library(){}
-    bool init(playdar::Config * c, Resolver * r);
+    bool init(pa_ptr pap);
     void set_app(MyApplication * a)
     {
         m_app = a;
@@ -47,7 +48,9 @@ class RS_local_library : public ResolverService
             m_t->join();
         };
         
-    private:
+    private:    
+        pa_ptr m_pap;
+        
         bool m_exiting;
         boost::thread * m_t;
         deque<rq_ptr> m_pending;

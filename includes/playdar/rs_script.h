@@ -23,7 +23,7 @@ class rs_script : public ResolverService
     public:
     rs_script(){}
     
-    bool init(playdar::Config * c, Resolver * r, string script);
+    bool init(pa_ptr pap, string script);
     
     void start_resolving(rq_ptr rq);
     std::string name() const

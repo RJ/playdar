@@ -20,7 +20,7 @@ class darknet : public ResolverServicePlugin
 public:
     darknet(){};
     
-    bool init(playdar::Config * c, Resolver * r);
+    bool init(Config * c, Resolver * r);
     
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     
