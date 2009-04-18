@@ -19,4 +19,4 @@ IF(NOT WIN32)
                            ${LIBXML2_LIBRARIES}
                            -lcrypto
                            -lcurl )
-ENDIF(WIN32)
+ENDIF(NOT WIN32)

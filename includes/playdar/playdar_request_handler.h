@@ -28,7 +28,7 @@ private:
     void handle_json_query(string query, const moost::http::request& req, moost::http::reply& rep);
     void handle_rest_api( const playdar_request& req, moost::http::reply& rep, string permissions);
 
-    void serve_body(string reply, moost::http::reply& rep);
+    void serve_body(const class playdar_response&, moost::http::reply& rep);
     void serve_stats(const moost::http::request& req, moost::http::reply& rep);
     void serve_static_file(const moost::http::request&, moost::http::reply& rep);
     void serve_track( moost::http::reply& rep, int tid);
@@ -52,8 +52,10 @@ private:
     string handle_queries_root(const playdar_request& req);
     MyApplication * m_app;
    
-    typedef std::map< const string, boost::function<void( const moost::http::request&, moost::http::reply&)> > HandlerMap;
+    typedef std::map< const string, boost::function<void( const moost::http::request&, moost::http::reply& )> > HandlerMap;
     HandlerMap m_urlHandlers;
+    
+    bool m_disableAuth;
 
 };
 

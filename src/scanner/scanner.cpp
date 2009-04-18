@@ -25,6 +25,27 @@ Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
 
+string urlify(const bfs::path &p)
+{
+    // turn it into a url by prepending file://
+    // because we pass all urls to curl:
+    string urlpath = "file://";
+    if( p.string().at(0)=='/' ) // posix path starting with /
+    {
+        urlpath += p.string();
+    }
+    else if(p.string().at(1)==':') // windows style filepath
+    {
+        urlpath += "/";
+        urlpath += p.string();
+    }
+    else
+    {
+        // could be anything, hopefully something curl understands:
+        urlpath = p.string();
+    }
+    return urlpath;
+}
 
 bool scan(const bfs::path &p, map<string,int> & mtimes)
 {
@@ -46,10 +67,11 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
                     ext == ".mp4" ||  
                     ext == ".aac" )
                 {
+                    string url = urlify( itr->string() );
                     int mtime = bfs::last_write_time(itr->path());
-                    mtimeit = mtimes.find(itr->string());
+                    mtimeit = mtimes.find(url);
                     if(    mtimeit == mtimes.end() // not scanned previously
-                        || mtimes[itr->string()] != mtime) // modified since last time
+                        || mtimes[url] != mtime) // modified since last time
                     {
                         add_file(itr->path(), mtime);
                     }else{
@@ -107,17 +129,22 @@ bool add_file(const bfs::path &p, int mtime)
         }
         string ext(bfs::extension(p));
         string mimetype = ext2mime(to_lower_copy(ext));
-        gLibrary->add_file( p.string(), 
+        
+        // turn it into a url by prepending file://
+        // because we pass all urls to curl:
+        string urlpath = urlify( p );
+        
+        gLibrary->add_file( urlpath, 
                             mtime, 
                             filesize, 
-                            string("md5here"), 
+                            string(""), //TODO file hash?
                             mimetype,
                             duration,
                             bitrate,
                             artist, 
                             album, 
                             track, 
-                            tag->track());
+                            tag->track() );
 
        /* cout << "-- TAG --" << endl;
         cout << "title   - \"" << tag->title()   << "\"" << endl;
@@ -154,7 +181,7 @@ int main(int argc, char *argv[])
         return 1;
     }
     try {
-        gLibrary = new Library(argv[1], 0);
+        gLibrary = new Library(argv[1]);
 
         // get last scan date:
         cout << "Loading data from last scan..." << flush;

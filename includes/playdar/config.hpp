@@ -1,6 +1,5 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
-
 // must be first because ossp uuid.h is stubborn and name-conflicts with
 // the uuid_t in unistd.h. It gets round this with preprocessor magic. But
 // this causes PAIN and HEARTACHE for everyone else in the world, so well done
@@ -23,7 +22,6 @@
 #include <boost/asio.hpp> // for hostname.
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
-
 namespace playdar {
 
 using namespace std;
@@ -45,18 +43,15 @@ public:
         ifs.open(m_filename.c_str(), ifstream::in);
         if(ifs.fail())
         {
-            cerr << "Failed to open config file: " << m_filename << endl;
-            throw;
+            throw exception("Failed to open config file");
         }
         if(!read(ifs, m_mainval))
         {
-            cerr << "Failed to parse config file: " << m_filename << endl;
-            throw;
+            throw exception("Failed to parse config file");
         }
         if(m_mainval.type() != obj_type)
         {
-            cerr << "Config file isn't a JSON object!" << endl;
-            throw;
+            throw("Config file isn't a JSON object!");
         }
         obj_to_map(m_mainval.get_obj(), m_mainmap);
     }
@@ -189,6 +184,16 @@ private:
     string m_filename;
     Value m_mainval;
     map<string,Value> m_mainmap;
+    class exception: public std::exception {
+
+    public:
+        exception( const char* w ):m_w(w){}
+        const char* what() throw(){ return m_w; }
+
+    private:
+        const char* m_w;
+    };
+
 };
 
 } //namespace

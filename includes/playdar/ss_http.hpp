@@ -7,6 +7,7 @@
 #include "playdar/utils/base64.h"
 
 using namespace boost::asio::ip;
+using namespace std;
 /*
     Consider this a nasty hack until I find a decent c++ http library
 

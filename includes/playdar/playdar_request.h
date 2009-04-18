@@ -18,9 +18,6 @@ public:
     const string& postvar( const string& s ) const{ return m_postvars.find(s)->second; }
     const vector<string>& parts() const{ return m_parts; }
     
-    // un%encode
-    static string unescape(string s);
-
 private:
     
     void collect_parts( const string & url, vector<string>& parts );

@@ -18,6 +18,7 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
 bool
 audioscrobbler::init(playdar::Config* c, Resolver* r)
 {
+    if(instance) return false; //loading more than one scrobbling plugin is stupid
     instance = this;
     
     ResolverService::init(c, r);
@@ -29,6 +30,7 @@ void
 audioscrobbler::Destroy()
 {
     scrobsub_stop();
+    instance = 0;
 }
 
 static void start(const playdar_request& rq)
@@ -46,7 +48,6 @@ static void start(const playdar_request& rq)
     scrobsub_start(artist, track, album, duration, track_number, mbid);
 }
 
-#include <sstream>
 static string config(bool auth_required)
 {
     if (!auth_required || scrobsub_finish_auth())
@@ -55,20 +56,26 @@ static string config(bool auth_required)
     
     char url[110];
     scrobsub_auth(url);
-    ostringstream oss;
-    oss << "<p>You need to <a href='" << url << "'>authenticate</a> in order to scrobble.</p>";
-    return oss.str();    
+    return string("<p>You need to <a href='") + url + "'>authenticate</a> in order to scrobble.</p>";
 }
 
-string
+playdar_response 
 audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
 {
     if(rq.parts().size()<2) return "Hi index!";
     string action = rq.parts()[1];
-    if(action == "start")  { start(rq); return "OK"; }
-    if(action == "pause")  { scrobsub_pause(); return "OK"; }
-    if(action == "resume") { scrobsub_resume(); return "OK"; }
-    if(action == "stop")   { scrobsub_stop(); return "OK"; }
+
+    std::string s1, s2;    
+    if(rq.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = rq.getvar("jsonp(");
+        s2 = ");\n";
+    }
+    playdar_response ok( s1+"{\"success\" : true}"+s2, false );
+    
+    if(action == "start")  { start(rq); return ok; }
+    if(action == "pause")  { scrobsub_pause(); return ok; }
+    if(action == "resume") { scrobsub_resume(); return ok; }
+    if(action == "stop")   { scrobsub_stop(); return ok; }
     
     if(action == "config") return config(auth_required);
     
