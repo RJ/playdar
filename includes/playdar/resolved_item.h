@@ -13,11 +13,11 @@
 //#endif
 
 #include <string>
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include <boost/function.hpp>
 
 #include "playdar/types.h"
-#include "playdar/utils/uuid.hpp"
+#include "playdar/utils/uuid.h"
 
 
 class ResolvedItem
