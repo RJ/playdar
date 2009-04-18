@@ -37,6 +37,7 @@ public:
     virtual boost::shared_ptr<ResolverService> clone()
     { return boost::shared_ptr<ResolverService>(); }
 
+    /// plugin name
     virtual std::string name() const = 0;
     
     /// max time in milliseconds we'd expect to have results in.
