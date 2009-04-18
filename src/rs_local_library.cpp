@@ -4,6 +4,8 @@
 #include <boost/foreach.hpp>
 #include "playdar/utils/levenshtein.h"
 
+namespace playdar { namespace resolvers {
+
 /*
     I want to integrate the ngram2/l implementation done by erikf
     in moost here. This is a bit hacky, but gets the job done 99% for now.
@@ -146,3 +148,5 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
 }
+
+}}

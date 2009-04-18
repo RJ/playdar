@@ -14,6 +14,7 @@
 #include "playdar/playdar_request_handler.h"
 
 using namespace std;
+using namespace playdar;
 namespace po = boost::program_options;
 
 // global !

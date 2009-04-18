@@ -7,6 +7,8 @@
 
 using namespace std;
 
+namespace playdar {
+
 MyApplication::MyApplication(Config c)
     : m_config(c)
 {
@@ -44,8 +46,4 @@ MyApplication::resolver()
     return m_resolver;
 }
 
-
-
-
-
-
+} ns

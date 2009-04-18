@@ -14,6 +14,8 @@
 
 using namespace std;
 
+namespace playdar {
+
 
 Library::Library(const string& dbfilepath)
 : m_db(dbfilepath.c_str())
@@ -576,3 +578,4 @@ Library::load_album(int n)
     return ptr;
 }
 
+}

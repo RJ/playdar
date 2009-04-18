@@ -11,8 +11,7 @@ stdin, results expected from stdout of the script.
 
 Messages sent via stdin/out are framed with a 4-byte integer (big endian) denoting the length of the message. Actual protocol msgs are JSON objects.
 */
-namespace playdar {
-namespace resolvers {
+namespace playdar { namespace resolvers {
 
 /*
     init() will spawn the external script and block until the script

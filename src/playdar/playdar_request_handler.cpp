@@ -21,6 +21,8 @@
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/pluginadaptor.h"
 
+namespace playdar {
+
 /*
 
     Known gaping security problem:
@@ -899,4 +901,4 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     rep.content = os.str(); 
 }
 
-
+}

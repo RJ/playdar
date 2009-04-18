@@ -29,6 +29,7 @@
 #include "./platform.h"
 // end PDL stuff
 
+{
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
@@ -636,4 +637,6 @@ Resolver::ri_from_json( const json_spirit::Object& j ) const
             return pair.second( j );
     }
     return ri_ptr();
+}
+
 }

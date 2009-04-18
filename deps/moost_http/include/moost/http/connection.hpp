@@ -39,7 +39,7 @@ private:
   /// Handle completion of a write operation.
   void handle_write(const boost::system::error_code& e);
   /// Handle completion of headers-sent, then wait on body.
-  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<StreamingStrategy> ss, char * scratch);
+  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<playdar::StreamingStrategy> ss, char * scratch);
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
 
@@ -105,7 +105,7 @@ void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
       }
       else // streaming enabled, use the streamingstrategy.
       {
-        boost::shared_ptr<StreamingStrategy> ss = reply_.get_ss();
+        boost::shared_ptr<playdar::StreamingStrategy> ss = reply_.get_ss();
         cout << "sending headers.." << endl;
         boost::asio::async_write(socket_, reply_.to_buffers(false),
             strand_.wrap(
@@ -159,8 +159,8 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
 /// Used when handler sends headers first, then streams body.
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write_stream 
-    (const boost::system::error_code& e, 
-     boost::shared_ptr<StreamingStrategy> ss,
+    ( const boost::system::error_code& e, 
+      boost::shared_ptr<playdar::StreamingStrategy> ss,
      char * scratch)
 {
     //cout << "handle_write_stream" << endl;
