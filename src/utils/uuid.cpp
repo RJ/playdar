@@ -12,7 +12,8 @@ namespace utils {
        boost::uuids::uuid u = gen1();
 
        std::ostringstream oss;
-       oss << boost::uuids::showbraces << u;
+       oss << u;
+       // oss << boost::uuids::showbraces << u;
        // output "{00000000-0000-0000-0000-000000000000}"
 
        return oss.str();

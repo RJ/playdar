@@ -31,7 +31,8 @@ INCLUDE_DIRECTORIES(
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
                     ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
-                    ${DEPS}/boost.process          # spawning resolver scripts
+                    ${DEPS}/boost.process          # (unofficial) spawning resolver scripts
+                    ${DEPS}/boost.uuid             # (unofficial) UUID generation library
                    )
 
 # Always check local/lib first:
