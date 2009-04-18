@@ -13,7 +13,6 @@
 #include "playdar/streaming_strategy.h"
 #include "playdar/utils/base64.h"
 
-
 using namespace boost::asio::ip;
 /*
     Can stream from anything cURL can.. 
@@ -31,7 +30,7 @@ public:
         , m_thread(0)
         , m_abort(false)
     {
-        cout << "CTOR ss_curl: " << url << endl;
+        std::cout << "CTOR ss_curl: " << url << std::endl;
         reset();
     }
 
@@ -100,7 +99,7 @@ public:
     std::string debug()
     { 
         std::ostringstream s;
-        s<< "CurlStreamingStrategy( " << m_url << " )";
+        s << "CurlStreamingStrategy( " << m_url << " )";
         return s.str();
     }
     
