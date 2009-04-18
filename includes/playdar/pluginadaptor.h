@@ -22,16 +22,19 @@ public:
     }
     
     virtual ~PluginAdaptor(){};
-    virtual void set(const std::string& key, json_spirit::Value value) = 0;
 
+    virtual void               set(const std::string& key, json_spirit::Value value) = 0;
     virtual json_spirit::Value get(const std::string& key) const = 0;
+    
+    template <typename T>
+    T get(const std::string& key, const T& def) const;
+
     virtual bool report_results(const query_uid& qid, const std::vector< result_pair >&) = 0;
 
     virtual std::string gen_uuid() const = 0;
     virtual void set_rs( ResolverService * rs )
-    {
-        m_rs = rs;
-    }
+    { m_rs = rs; }
+
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
@@ -50,6 +53,21 @@ private:
     bool m_script;
     
 };
+
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+T PluginAdaptor::get(const std::string& k, const T& def) const
+{
+    json_spirit::Value val = get(k);
+    if (val.type() != json_spirit::obj_type) 
+        return def;
+    else
+        return val.get_value<T>();
+}
+
+////////////////////////////////////////////////////////////////////////////////
 
 }
 
