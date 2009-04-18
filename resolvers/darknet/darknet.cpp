@@ -195,56 +195,56 @@ darknet::handle_read(   const boost::system::error_code& e,
 bool
 darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
 {
-//    using namespace json_spirit;
-//    boost::shared_ptr<ResolverQuery> rq;
-//    try
-//    {
-//        Value mv;
-//        if(!read(msg->payload(), mv)) 
-//        {
-//            cout << "Darknet: invalid JSON in this message, discarding." << endl;
-//            return false; // invalid json = disconnect them.
-//        }
-//        Object qo = mv.get_obj();
-//        rq = ResolverQuery::from_json(qo);
-//    } 
-//    catch (...) 
-//    {
-//        cout << "Darknet: invalid search json, discarding" << endl;
-//        return true; //TODO maybe false - cut off the connection?
-//    }
-//    
-//    if(resolver()->query_exists(rq->id()))
-//    {
-//        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
-//        return true;
-//    }
-//
-//    // register source for this query, so we know where to 
-//    // send any replies to.
-//    set_query_origin(rq->id(), conn);
-//
-//    // dispatch search with our callback handler:
-//    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2);
-//    query_uid qid = resolver()->dispatch(rq, cb);
-//    
-//    assert(rq->id() == qid);
-//    
-//    /*
-//        schedule search to be fwded to our peers - this will abort if
-//        the query has been solved before it fires anyway.
-//          
-//        The 100ms delay is intentional - it means cancellation messages
-//        can reach the search frontier immediately (fwded with no delay)
-//    */
-//    boost::shared_ptr<boost::asio::deadline_timer> 
-//        t(new boost::asio::deadline_timer( m_work->get_io_service() ));
-//    t->expires_from_now(boost::posix_time::milliseconds(100));
-//    // pass the timer pointer to the handler so it doesnt autodestruct:
-//    t->async_wait(boost::bind(&darknet::fwd_search, this,
-//                                boost::asio::placeholders::error, 
-//                                conn, msg, t, qid));
-//
+    using namespace json_spirit;
+    boost::shared_ptr<ResolverQuery> rq;
+    try
+    {
+        Value mv;
+        if(!read(msg->payload(), mv)) 
+        {
+            cout << "Darknet: invalid JSON in this message, discarding." << endl;
+            return false; // invalid json = disconnect them.
+        }
+        Object qo = mv.get_obj();
+        rq = ResolverQuery::from_json(qo);
+    } 
+    catch (...) 
+    {
+        cout << "Darknet: invalid search json, discarding" << endl;
+        return true; //TODO maybe false - cut off the connection?
+    }
+    
+    if(m_pap->query_exists(rq->id()))
+    {
+        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+        return true;
+    }
+
+    // register source for this query, so we know where to 
+    // send any replies to.
+    set_query_origin(rq->id(), conn);
+
+    // dispatch search with our callback handler:
+    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2);
+    query_uid qid = m_pap->dispatch(rq, cb);
+    
+    assert(rq->id() == qid);
+    
+    /*
+        schedule search to be fwded to our peers - this will abort if
+        the query has been solved before it fires anyway.
+          
+        The 100ms delay is intentional - it means cancellation messages
+        can reach the search frontier immediately (fwded with no delay)
+    */
+    boost::shared_ptr<boost::asio::deadline_timer> 
+        t(new boost::asio::deadline_timer( m_work->get_io_service() ));
+    t->expires_from_now(boost::posix_time::milliseconds(100));
+    // pass the timer pointer to the handler so it doesnt autodestruct:
+    t->async_wait(boost::bind(&darknet::fwd_search, this,
+                                boost::asio::placeholders::error, 
+                                conn, msg, t, qid));
+
     return true;
 }
 
