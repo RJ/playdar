@@ -198,14 +198,6 @@
 				RelativePath="..\..\src\resolver.cpp"
 				>
 			</File>
-			<File
-				RelativePath="..\..\src\rs_local_library.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\rs_script.cpp"
-				>
-			</File>
 			<Filter
 				Name="playdar"
 				>
@@ -231,6 +223,18 @@
 				</File>
 				<File
 					RelativePath="..\..\src\utils\uuid.cpp"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="resolvers"
+				>
+				<File
+					RelativePath="..\..\src\rs_local_library.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\src\rs_script.cpp"
 					>
 				</File>
 			</Filter>
@@ -297,6 +301,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\includes\playdar\pluginadaptor_impl.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\includes\playdar\resolved_item.h"
 				>
 			</File>
@@ -310,14 +318,6 @@
 			</File>
 			<File
 				RelativePath="..\..\includes\playdar\resolver_service.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\includes\playdar\rs_http_playdar.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\includes\playdar\rs_local_library.h"
 				>
 			</File>
 			<File
@@ -365,6 +365,22 @@
 				</File>
 				<File
 					RelativePath="..\..\includes\playdar\utils\uuid.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="resolvers"
+				>
+				<File
+					RelativePath="..\..\includes\playdar\rs_http_playdar.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\includes\playdar\rs_local_library.h"
+					>
+				</File>
+				<File
+					RelativePath="..\..\includes\playdar\rs_script.h"
 					>
 				</File>
 			</Filter>
