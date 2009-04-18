@@ -164,7 +164,7 @@ int main(int ac, char *av[])
     string configfile = vm["config"].as<string>();
     cout << "Using config file: " << configfile << endl;
             
-    playdar::Config conf(configfile);
+    Config conf(configfile);
     if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
     {
         cerr << "Please edit " << configfile << endl;
