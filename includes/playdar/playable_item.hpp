@@ -1,7 +1,7 @@
 #ifndef __PLAYABLE_ITEM_H__
 #define __PLAYABLE_ITEM_H__
 #include "playdar/resolved_item.h"
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include "playdar/library.h"
 #include "playdar/ss_curl.hpp"
 #include "json_spirit/json_spirit.h"
@@ -204,11 +204,13 @@ public:
     }
     
 private:
+
     std::string m_artist;
     std::string m_album;
     std::string m_track;
     std::string m_mimetype;
-    string m_url;
+    std::string m_url;
+
     int m_size;
     int m_duration;
     int m_bitrate;
