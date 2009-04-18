@@ -240,6 +240,11 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 }
                 //cout << "lan: Got udp response." <<endl;
                 ri_ptr rip;
+
+                // TEMP!
+                typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
+                vector< result_pair > final_results;
+
                 try
                 {
                     rip = m_pap->ri_from_json(resobj);
@@ -256,8 +261,11 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         url += "/sid/";
                         url += rip->id();
                         boost::shared_ptr<StreamingStrategy> 
-                        s(new CurlStreamingStrategy(url));
-                        pip->set_streaming_strategy(s);
+                        ss(new CurlStreamingStrategy(url));
+                        pip->set_streaming_strategy(ss); // pointless?
+
+                        // TEMP!
+                        final_results.push_back( result_pair(pip->get_json(), ss) );
                     }
                 }
                 catch (...)
@@ -265,9 +273,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     cout << "lan: Missing fields in response json, discarding" << endl;
                     break;
                 }
-                vector< ri_ptr > v;
-                v.push_back(rip);
-                report_results(qid, v, name());
+                if ( !final_results.empty() )
+                    m_pap->report_results( qid, final_results );
+                //report_results(qid, v, name());
                 cout    << "INFO Result from '" << rip->source()
                         <<"' for '"<< write_formatted( rip->get_json())
                         << endl;
