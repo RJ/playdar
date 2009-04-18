@@ -1,21 +1,26 @@
 #include "lan.h"
-#include <time.h>
-#include "playdar/types.h"
+
+#include "playdar/resolver_query.hpp"
+
+#include <ctime>
+
+using namespace std;
+using namespace json_spirit;
 
 namespace playdar {
 namespace resolvers {
 
 bool
-lan::init(playdar::Config * c, Resolver * r)
+lan::init(pa_ptr pap)
 {
-    m_resolver  = r;
-    m_conf = c;
+    m_pap = pap;
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
          (  boost::asio::ip::address::from_string
-            (conf()->get<string> ("plugins.lan.multicast", "")), 
-           conf()->get<int>("plugins.lan.port", 0));
-    m_responder_thread = new boost::thread(boost::bind(&lan::run, this));
+            (pap->get<string> ("plugins.lan.multicast", "")), 
+             pap->get("plugins.lan.port", 0) );
+
+    m_responder_thread.reset( new boost::thread(boost::bind(&lan::run, this)) );
     return true;
 }
 
@@ -64,12 +69,12 @@ lan::cancel_query(query_uid qid)
 void 
 lan::run()
 {
-    m_io_service = new boost::asio::io_service;
+    m_io_service.reset( new boost::asio::io_service );
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    (conf()->get<string>("plugins.lan.multicast", "")), 
-                    conf()->get<int>("plugins.lan.port", 0)); 
+                    (m_pap->get<string>("plugins.lan.multicast", "")), 
+                     m_pap->get<int>("plugins.lan.port", 0)); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -208,7 +213,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     break; 
                 }
                 
-                if(resolver()->query_exists(rq->id()))
+                if(m_pap->query_exists(rq->id()))
                 {
                     //cout << "lan: discarding message, QID already exists: " << rq->id() << endl;
                     break;
@@ -227,7 +232,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 map<string,Value> resobj_map;
                 obj_to_map(resobj, resobj_map);
                 query_uid qid = r["qid"].get_str();
-                if(!resolver()->query_exists(qid))
+                if(!m_pap->query_exists(qid))
                 {
                     cout << "lan: Ignoring response - QID invalid or expired" << endl;
                     break;
@@ -324,8 +329,8 @@ lan::send_ping()
     using namespace json_spirit;
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
-    jq.push_back( Pair("from_name", conf()->name()) );
-    jq.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
+    jq.push_back( Pair("from_name", m_pap->hostname()) );
+    jq.push_back( Pair("http_port", conf()->get("http_port", 8888)) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
@@ -340,8 +345,8 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
-    o.push_back( Pair("from_name", conf()->name()) );
-    o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
+    o.push_back( Pair("from_name", m_pap->hostname()) );
+    o.push_back( Pair("http_port", conf()->get("http_port", 8888)) );
     ostringstream os;
     write_formatted( o, os );
     async_send( &sender_endpoint, os.str() );
@@ -355,7 +360,7 @@ lan::send_pang()
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pang") );
-    o.push_back( Pair("from_name", conf()->name()) );
+    o.push_back( Pair("from_name", m_pap->hostname()) );
     ostringstream os;
     write_formatted( o, os );
     async_send(broadcast_endpoint_, os.str());
@@ -371,7 +376,7 @@ lan::receive_ping(map<string,Value> & om,
         return;
     }
     // ignore pings sent from ourselves:
-    if(om["from_name"]==conf()->name()) return;
+    if(om["from_name"]==m_pap->hostname()) return;
     if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
         cout << "Malformed UDP PING dropped." << endl;
