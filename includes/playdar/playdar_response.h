@@ -2,6 +2,7 @@
 #define __PLAYDAR_RESPONSE_H__
 
 #include <string>
+#include <sstream>
 
 namespace playdar {
 
