@@ -264,7 +264,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         return;
     }
 
-    const playdar_response& response = rs->http_handler( req, m_pauth );
+    const playdar_response& response = rs->http_handler( &req, m_pauth );
     serve_body( response, rep );
 }
 
