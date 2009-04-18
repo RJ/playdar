@@ -225,7 +225,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 rq_callback_t cb =
                  boost::bind(&lan::send_response, this, _1, _2,
                              sender_endpoint_);
-                query_uid qid = resolver()->dispatch(rq, cb);
+                query_uid qid = m_pap->dispatch(rq, cb);
             }
             else if(msgtype == "result") // RESPONSE 
             {
@@ -242,7 +242,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 ri_ptr rip;
                 try
                 {
-                    rip = resolver()->ri_from_json(resobj);
+                    rip = m_pap->ri_from_json(resobj);
 
                     //FIXME this could be moved into the PlayableItem class perhaps
                     //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
