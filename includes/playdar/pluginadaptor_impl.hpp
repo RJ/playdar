@@ -1,29 +1,26 @@
 #ifndef _PLUGIN_ADAPTOR_IMPL_H_
 #define _PLUGIN_ADAPTOR_IMPL_H_
 
-// must be first because ossp uuid.h is stubborn and name-conflicts with
-// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-// to you guys at OSSP. *claps*
-#ifdef HAS_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-// default source package for ossp-uuid doesn't namespace itself
-#include <uuid.h> 
-#endif
+//// must be first because ossp uuid.h is stubborn and name-conflicts with
+//// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
+//// this causes PAIN and HEARTACHE for everyone else in the world, so well done
+//// to you guys at OSSP. *claps*
+//#ifdef HAS_OSSP_UUID_H
+//#include <ossp/uuid.h>
+//#else
+//// default source package for ossp-uuid doesn't namespace itself
+//#include <uuid.h> 
+//#endif
 
 #include <boost/shared_ptr.hpp>
 #include <vector>
 #include <string>
 
-
 #include "playdar/pluginadaptor.h"
 #include "json_spirit/json_spirit.h"
 #include "playdar/config.hpp"
 #include "playdar/resolver.h"
-#include "playdar/utils/uuid.hpp"
-
-
+#include "playdar/utils/uuid.h"
 
 class PluginAdaptorImpl : public PluginAdaptor
 {
