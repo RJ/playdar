@@ -8,7 +8,7 @@
 #include <string>
 #include <boost/function.hpp>
 
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include "playdar/types.h"
 #include "playdar/playable_item.hpp"
 
@@ -17,6 +17,8 @@
 //#include "playdar/playdar_request_handler.h"
 
 //namespace moost{ namespace http{ class server; } } // fwd
+
+//namespace playdar {
 
 class Library;
 class Resolver;
@@ -68,7 +70,7 @@ private:
 
 };
 
-
+//}
 
 #endif
 
