@@ -4,13 +4,20 @@
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "playdar/resolver.h"
+
 /*
 This resolver spawns an external process, typically a python/ruby script
 which will do the actual resolving. Messages are passed to the script down
 stdin, results expected from stdout of the script.
 
-Messages sent via stdin/out are framed with a 4-byte integer (big endian) denoting the length of the message. Actual protocol msgs are JSON objects.
+Messages sent via stdin/out are framed with a 4-byte integer (big endian) 
+denoting the length of the message. Actual protocol msgs are JSON objects.
 */
+
+using namespace std;
+
 namespace playdar { namespace resolvers {
 
 /*

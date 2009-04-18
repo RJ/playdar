@@ -1,8 +1,13 @@
-#include "playdar/application.h"
 #include "playdar/rs_local_library.h"
-#include "playdar/library.h"
+
 #include <boost/foreach.hpp>
+
+#include "playdar/application.h"
+#include "playdar/library.h"
 #include "playdar/utils/levenshtein.h"
+#include "playdar/resolver.h"
+
+using namespace std;
 
 namespace playdar { namespace resolvers {
 
@@ -12,7 +17,6 @@ namespace playdar { namespace resolvers {
     Specifically it currently doesnt know about words.. 
     so "title" and "title (LIVE)" aren't very similar due to large edit-dist.
 */
-
     
 bool
 RS_local_library::init(pa_ptr pap)
