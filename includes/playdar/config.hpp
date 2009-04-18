@@ -99,7 +99,7 @@ T Config::get(std::string k, T def) const
     std::vector<std::string> toks;
     boost::split(toks, k, boost::is_any_of("."));
     json_spirit::Value val = m_mainval;
-    std::map<string, json_spirit::Value> mp;
+    std::map<std::string, json_spirit::Value> mp;
     unsigned int i = 0;
     //cout << "getting: " << k << " size: " << toks.size() << endl;
     do
@@ -127,20 +127,20 @@ bool Config::set(std::string k, T def)
     json_spirit::Object o;
     std::map<std::string, json_spirit::Value> mp;
     int i = 0;
-    cout << "getting: " << k << " size: " << toks.size() << endl;
+    std::cout << "getting: " << k << " size: " << toks.size() << std::endl;
     do
     {
-        if(val->type() != obj_type)
+        if(val->type() != json_spirit::obj_type)
         {
             return false; // won't replace an existing non-obj
         }
         json_spirit::obj_to_map(val->get_obj(), mp);
         if( mp.find(toks[i]) == mp.end() )
         {
-            cerr << "Creating {} " << toks[i] << endl;
+            std::cerr << "Creating {} " << toks[i] << std::endl;
             mp[toks[i]] = o;
         }
-        cout << "Got " << toks[i] << endl;
+        std::cout << "Got " << toks[i] << std::endl;
         val = & mp[toks[i]];
     }
     while(++i < toks.size());
