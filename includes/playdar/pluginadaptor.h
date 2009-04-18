@@ -35,6 +35,8 @@ public:
     virtual void set_rs( ResolverService * rs )
     { m_rs = rs; }
 
+    virtual bool query_exists(const query_uid & qid) = 0;
+
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
@@ -45,6 +47,8 @@ public:
     void set_weight(unsigned short w) { m_weight = w; }
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
+
+
 
 private:
     ResolverService * m_rs;    // instance of a plugin

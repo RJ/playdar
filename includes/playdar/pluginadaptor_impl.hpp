@@ -67,6 +67,10 @@ public:
     {
         return playdar::utils::gen_uuid();
     }
+
+    virtual bool query_exists(const query_uid & qid)
+    { return m_resolver->query_exists(qid); }
+
     
 private:
     
