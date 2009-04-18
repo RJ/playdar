@@ -2,10 +2,6 @@
 #define __RESOLVER_SERVICE_H__
 // Interface for all resolver services
 
-//#include "playdar/application.h"
-//#include "playdar/resolver.h"
-//#include "playdar/auth.hpp"
-
 #include <string>
 
 #include <DynamicClass.hpp>

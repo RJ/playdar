@@ -48,8 +48,6 @@ public:
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
 
-
-
 private:
     ResolverService * m_rs;    // instance of a plugin
     unsigned int m_targettime; // ms before passing to next resolver
