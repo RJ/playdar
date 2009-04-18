@@ -6,10 +6,9 @@
 //#include "playdar/resolver.h"
 //#include "playdar/auth.hpp"
 
+#include <string>
 
 #include <DynamicClass.hpp>
-#include <iostream> // that HAS to be removed!
-#include <string>
 
 #include "playdar/pluginadaptor.h"
 #include "playdar/playdar_response.h"
@@ -27,14 +26,17 @@ class ResolverService
 public:
     /// Constructor
     ResolverService(){}
-    // destructor is protected, see below
-    
-    virtual void Destroy()
-    { std::cout << "Unloading " << name() << std::endl; }
-    
-    /// called once at startup. returning false disables this resolver.
+    virtual ~ResolverService() {}
+
+    /// called once at startup.
     virtual bool init(pa_ptr pap) = 0;
-    
+
+    /// can return an instance of itself: non-cloneable 
+    /// resolvers will return an empty shared ptr
+    /// note: ResolverServicePlugin are ALWAYS cloneable!
+    virtual boost::shared_ptr<ResolverService> clone()
+    { return boost::shared_ptr<ResolverService>(); }
+
     virtual std::string name() const = 0;
     
     /// max time in milliseconds we'd expect to have results in.
@@ -55,49 +57,24 @@ public:
     /// handler for HTTP reqs we are registered for:
     virtual playdar_response http_handler(const playdar_request*, auth* pauth)
     { return "This plugin has no web interface."; }
-    
-protected:
-    
-    virtual ~ResolverService() throw() {  }
+
 };
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-/// this is what the dynamically loaded resolver plugins extend:
-class ResolverServicePlugin 
- : public PDL::DynamicClass,
-   public ResolverService
+////////////////////////////////////////////////////////////////////////
+// The dll plugin interface
+// "any problem can be solved with an additional layer of indirection"..
+class ResolverServicePlugin
+: public PDL::DynamicClass,
+  public ResolverService
 {
-public:
-
-    /// Cloning method, this will have to return a new object of the same
-    /// derived type
-    virtual ResolverService* create( PluginAdaptor* pPA ) = 0;
-
 public:
     DECLARE_DYNAMIC_CLASS( ResolverServicePlugin )
 
 protected:
+    
+    virtual ~ResolverServicePlugin() {}
+}; 
 
-    template <typename T>
-    struct custom_deleter
-    {
-        void operator() (T *pObj)
-        { delete pObj; }
-    };
-
-protected:
-
-    template <typename T>
-    boost::shared_ptr<T> object_factory()
-    { 
-        return boost::shared_ptr<T>( new T(), custom_deleter<T>() );
-    }
-
-};
-
-////////////////////////////////////////////////////////////////////////////////
 
 }
 
