@@ -21,7 +21,7 @@ namespace bp = ::boost::process;
 
 class rs_script : public ResolverService
 {
-    public:
+public:
     rs_script(){}
     
     bool init(pa_ptr pap, std::string script);
@@ -46,36 +46,36 @@ class rs_script : public ResolverService
     
     void run();
     
-    protected:
-        ~rs_script() throw();
+protected:
+    ~rs_script() throw();
         
-    private:
+private:
     
-        int m_weight;
-        int m_targettime;
-        std::string m_name;
+    int m_weight;
+    int m_targettime;
+    std::string m_name;
+
+    void init_worker();
+    void process_output();
+    void process_stderr();
     
-        void init_worker();
-        void process_output();
-        void process_stderr();
-        
-        bool m_dead;
-        bool m_got_settings;
-        std::string m_scriptpath;
-        bp::child * m_c;
-        boost::thread * m_t; // std out (main comms)
-        boost::thread * m_e; // std error (logging)
-        bp::postream * m_os;
-        
-        bool m_exiting;
-        boost::thread * m_dt;
-        std::deque<rq_ptr> m_pending;
-        boost::mutex m_mutex;
-        boost::condition m_cond;
-        
-        // used to wait for settings object from script:
-        boost::mutex m_mutex_settings;
-        boost::condition m_cond_settings;
+    bool m_dead;
+    bool m_got_settings;
+    std::string m_scriptpath;
+    bp::child * m_c;
+    boost::thread * m_t; // std out (main comms)
+    boost::thread * m_e; // std error (logging)
+    bp::postream * m_os;
+    
+    bool m_exiting;
+    boost::thread * m_dt;
+    std::deque<rq_ptr> m_pending;
+    boost::mutex m_mutex;
+    boost::condition m_cond;
+    
+    // used to wait for settings object from script:
+    boost::mutex m_mutex_settings;
+    boost::condition m_cond_settings;
 };
 
 }}
