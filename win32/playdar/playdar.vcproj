@@ -138,7 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib moost_http.lib pdl.lib uriparser.lib"
+				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib moost_http.lib pdl.lib uriparser.lib  curllib.lib"
 				OutputFile="..\bin\$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../lib"
@@ -187,10 +187,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\config.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\library.cpp"
 				>
 			</File>
@@ -200,10 +196,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\resolver.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\resolver_service.cpp"
 				>
 			</File>
 			<File
@@ -237,6 +229,10 @@
 					RelativePath="..\..\src\utils\levenshtein.cpp"
 					>
 				</File>
+				<File
+					RelativePath="..\..\src\utils\uuid.cpp"
+					>
+				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -261,7 +257,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\includes\playdar\config.h"
+				RelativePath="..\..\includes\playdar\config.hpp"
 				>
 			</File>
 			<File
@@ -365,6 +361,10 @@
 				</File>
 				<File
 					RelativePath="..\..\includes\playdar\utils\urlencoding.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\..\includes\playdar\utils\uuid.h"
 					>
 				</File>
 			</Filter>

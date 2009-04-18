@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;"
+				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;;../../deps/libcurl-7.19.3/include"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN;NOMINMAX"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -119,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;"
+				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;;../../deps/libcurl-7.19.3/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN;NOMINMAX"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
@@ -183,10 +183,6 @@
 			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
-			<File
-				RelativePath="..\..\src\config.cpp"
-				>
-			</File>
 			<File
 				RelativePath="..\..\src\library.cpp"
 				>
