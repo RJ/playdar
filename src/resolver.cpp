@@ -29,7 +29,9 @@
 #include "./platform.h"
 // end PDL stuff
 
-{
+namespace playdar { 
+
+using namespace resolvers;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)

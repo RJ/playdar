@@ -46,4 +46,4 @@ MyApplication::resolver()
     return m_resolver;
 }
 
-} ns
+} // ns
