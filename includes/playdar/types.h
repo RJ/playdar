@@ -34,13 +34,13 @@ typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
-typedef boost::function< void (query_uid qid, ri_ptr pip)> rq_callback_t;
+typedef boost::function< void (const query_uid& qid, ri_ptr pip)> rq_callback_t;
 
 /// Handlers for web requests:
-typedef boost::function< void ( const std::string url,
-                                const std::vector<std::string> parts,
-                                const std::map<std::string, std::string> getvars,
-                                const std::map<std::string, std::string> postvars ) > 
+typedef boost::function< void ( const std::string& url,
+                                const std::vector<std::string>& parts,
+                                const std::map<std::string, std::string>& getvars,
+                                const std::map<std::string, std::string>& postvars ) > 
          http_req_cb;
 
 struct scorepair
