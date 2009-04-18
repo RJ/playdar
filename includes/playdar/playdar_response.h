@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace playdar {
+
 class playdar_response {
 public:
     playdar_response( const char* s, bool isBody = true ): m_string( s )
@@ -59,6 +61,8 @@ public:
 private:
     std::string m_string;
 };
+
+}
 
 #endif //__PLAYDAR_RESPONSE_H__
 

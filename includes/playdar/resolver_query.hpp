@@ -14,6 +14,8 @@
 #include <boost/thread/mutex.hpp>
 #include "time.h"
 
+namespace playdar {
+
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
 using namespace std;
@@ -240,6 +242,8 @@ private:
     mutable time_t m_atime; 
 
 };
+
+}
 
 #endif
 

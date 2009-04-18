@@ -7,6 +7,8 @@
 
 #include <boost/filesystem.hpp> 
 
+namespace playdar {
+
 class LocalFileStreamingStrategy : public StreamingStrategy
 {
 public:
@@ -63,5 +65,7 @@ private:
     std::ifstream m_is;
     bool m_connected;
 };
+
+}
 
 #endif

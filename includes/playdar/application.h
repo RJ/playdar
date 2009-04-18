@@ -18,7 +18,7 @@
 
 //namespace moost{ namespace http{ class server; } } // fwd
 
-//namespace playdar {
+namespace playdar {
 
 class Library;
 class Resolver;
@@ -70,7 +70,7 @@ private:
 
 };
 
-//}
+}
 
 #endif
 

@@ -10,6 +10,8 @@
 #include <string>
 #include <map>
 
+namespace playdar {
+
 /*
     Represents something (a song) that can be played.
     ResolverService plugins provide these as their results for matching content.
@@ -220,5 +222,7 @@ private:
     
     boost::shared_ptr<StreamingStrategy> m_ss;
 };
+
+} // ns
 
 #endif

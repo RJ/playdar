@@ -3,6 +3,8 @@
 
 #include "resolver_query.hpp"
 
+namespace playdar {
+
 class TrackRQBuilder {
 public:
     static rq_ptr build( const string& artist, const string& album, const string& track )
@@ -27,5 +29,7 @@ public:
     }
     
 };
+
+}
 
 #endif //__TRACK_RESOLVER_QUERY__

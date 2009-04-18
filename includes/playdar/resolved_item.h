@@ -19,6 +19,7 @@
 #include "playdar/types.h"
 #include "playdar/utils/uuid.h"
 
+namespace playdar {
 
 class ResolvedItem
 {
@@ -84,5 +85,7 @@ private:
     mutable source_uid m_uuid;
 
 };
+
+}
 
 #endif //__RESOLVED_ITEM_H__

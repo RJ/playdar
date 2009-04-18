@@ -16,7 +16,7 @@
 //using namespace std;
 //using namespace json_spirit;
 
-//namespace playdar {
+namespace playdar {
 
 // wrapper around JSON config file
 // instance of this is also passed to plugins.
@@ -151,6 +151,6 @@ bool Config::set(std::string k, T def)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-//}
+}
 
 #endif

@@ -10,6 +10,9 @@
 
 using namespace boost::asio::ip;
 using namespace std;
+
+namespace playdar {
+
 /*
     Consider this a nasty hack until I find a decent c++ http library
 
@@ -315,5 +318,7 @@ private:
     size_t m_bytesreceived;
     std::vector<std::string> m_extra_headers;
 };
+
+}
 
 #endif

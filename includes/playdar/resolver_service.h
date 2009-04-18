@@ -8,6 +8,8 @@
 
 #include <DynamicClass.hpp>
 
+namespace playdar {
+
 class playdar_request;
 class ResolverService
 {
@@ -64,5 +66,6 @@ public:
     DECLARE_DYNAMIC_CLASS( ResolverServicePlugin )
 };
 
+}
 
 #endif

@@ -13,6 +13,8 @@
 #include "playdar/streaming_strategy.h"
 #include "playdar/utils/base64.h"
 
+namespace playdar {
+
 using namespace boost::asio::ip;
 /*
     Can stream from anything cURL can.. 
@@ -216,5 +218,7 @@ protected:
     boost::thread * m_thread;
     bool m_abort;
 };
+
+}
 
 #endif

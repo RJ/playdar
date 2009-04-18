@@ -7,6 +7,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 
+namespace playdar {
+
 typedef std::string query_uid;  // identifies a resolverquery
 typedef std::string source_uid; // identifies a streamable source for a song
 
@@ -24,14 +26,11 @@ class PlayableItem;
 class ResolverQuery;
 class PluginAdaptor;
 class StreamingStrategy;
-typedef boost::shared_ptr<PlayableItem>     pi_ptr;
-typedef boost::shared_ptr<ResolvedItem>     ri_ptr;
-typedef boost::shared_ptr<ResolverQuery>    rq_ptr;
-typedef boost::shared_ptr<PluginAdaptor>    pa_ptr;
+typedef boost::shared_ptr<PlayableItem>      pi_ptr;
+typedef boost::shared_ptr<ResolvedItem>      ri_ptr;
+typedef boost::shared_ptr<ResolverQuery>     rq_ptr;
+typedef boost::shared_ptr<PluginAdaptor>     pa_ptr;
 typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
-
-
-
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
@@ -58,5 +57,7 @@ struct sortbyscore
         return lhs.score > rhs.score;
     }
 };
+
+}
 
 #endif

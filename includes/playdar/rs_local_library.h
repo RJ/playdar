@@ -8,6 +8,8 @@
 #include "playdar/resolver_service.h"
 #include "playdar/pluginadaptor.h"
 
+namespace playdar { namespace resolvers {
+
 class RS_local_library : public ResolverService
 {
     public:
@@ -58,8 +60,9 @@ class RS_local_library : public ResolverService
         boost::condition m_cond;
         
         vector<scorepair> find_candidates(rq_ptr rq, unsigned int limit = 0);
-    
-;
+
 };
+
+}}
 
 #endif

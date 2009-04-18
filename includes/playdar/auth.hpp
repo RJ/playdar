@@ -93,5 +93,7 @@ private:
     sqlite3pp::database m_db;
     boost::mutex m_mut;
 };
+
 } //ns
+
 #endif

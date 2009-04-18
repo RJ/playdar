@@ -4,6 +4,8 @@
 #include "playdar/types.h"
 //#include "playdar/streaming_strategy.h"
 
+namespace playdar {
+
 class PluginAdaptor
 {
 protected:
@@ -44,6 +46,7 @@ private:
     
 };
 
+}
 
 #endif
 

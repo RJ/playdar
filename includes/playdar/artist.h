@@ -4,6 +4,8 @@
 #include <string>
 #include "types.h"
 
+namespace playdar {
+
 class Artist
 {
 public:
@@ -21,5 +23,7 @@ private:
     int m_id;
     std::string m_name;
 };
+
+}
 
 #endif
