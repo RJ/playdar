@@ -1,10 +1,13 @@
 #ifndef _PLUGIN_ADAPTOR_H_
 #define _PLUGIN_ADAPTOR_H_
+
 #include "json_spirit/json_spirit.h"
 #include "playdar/types.h"
 //#include "playdar/streaming_strategy.h"
 
 namespace playdar {
+
+class ResolverService;
 
 class PluginAdaptor
 {
@@ -20,8 +23,10 @@ public:
     
     virtual ~PluginAdaptor(){};
     virtual void set(const std::string& key, json_spirit::Value value) = 0;
+
     virtual json_spirit::Value get(const std::string& key) const = 0;
     virtual bool report_results(const query_uid& qid, const std::vector< result_pair >&) = 0;
+
     virtual std::string gen_uuid() const = 0;
     virtual void set_rs( ResolverService * rs )
     {
