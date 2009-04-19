@@ -96,11 +96,11 @@ private:
     void send_ping();
     void send_pong( boost::asio::ip::udp::endpoint sender_endpoint);
     void send_pang();
-    void receive_pong(map<string,Value> & om,
+	void receive_pong(map<string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
-    void receive_ping(map<string,Value> & om,
+    void receive_ping(map<string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
-    void receive_pang(map<string,Value> & om,
+    void receive_pang(map<string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
 };
 

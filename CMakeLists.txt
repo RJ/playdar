@@ -53,6 +53,11 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
+IF(WIN32)
+	ADD_DEFINITIONS(/DWIN32_LEAN_AND_MEAN)
+	ADD_DEFINITIONS(/DNOMINMAX)
+ENDIF(WIN32)
+
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
                ${SRC}/scanner/scanner.cpp
                ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
