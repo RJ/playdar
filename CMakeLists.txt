@@ -21,7 +21,6 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
-                    ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
@@ -32,6 +31,7 @@ INCLUDE_DIRECTORIES(
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
                     ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
                     ${DEPS}/boost.process          # spawning resolver scripts
+					${DEPS}/boost.uuid
                    )
 
 # Always check local/lib first:
@@ -78,6 +78,7 @@ ADD_LIBRARY(playdarcore STATIC
 			${SRC}/rs_local_library.cpp
 			${SRC}/rs_script.cpp
 			${SRC}/library.cpp
+			${SRC}/config.cpp
 			
 			# json parser:
 			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  

@@ -15,6 +15,8 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
+using namespace json_spirit;
+
 namespace playdar {
 namespace resolvers {
 
