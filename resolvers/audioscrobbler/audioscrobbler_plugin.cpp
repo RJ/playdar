@@ -70,7 +70,8 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
         s1 = rq.getvar("jsonp") + "(";
         s2 = ");\n";
     }
-    playdar_response ok( s1+"{\"success\" : true}"+s2, false );
+    // TODO, use json_spirit
+    playdar_response ok( s1 + "{\"success\" : true, \"action\" : \"" + action + "\"}" + s2, false );
     
     if(action == "start")  { start(rq); return ok; }
     if(action == "pause")  { scrobsub_pause(); return ok; }
