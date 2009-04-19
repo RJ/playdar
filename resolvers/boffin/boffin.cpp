@@ -322,7 +322,14 @@ boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
     Object r;
     r.push_back( Pair("qid", qid ));
     
+    
+    std::string s1, s2;
+    if(req.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = req.getvar("jsonp") + "(";
+        s2 = ");\n";
+    }
+    
     ostringstream os;
     write_formatted( r, os );
-    return playdar_response( os.str(), false );
+    return playdar_response( s1 + os.str() + s2, false );
 }

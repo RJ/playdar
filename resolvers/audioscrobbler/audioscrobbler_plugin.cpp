@@ -65,9 +65,9 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(rq.parts().size()<2) return "Hi index!";
     string action = rq.parts()[1];
 
-    std::string s1, s2;    
+    std::string s1, s2;
     if(rq.getvar_exists("jsonp")){ // wrap in js callback
-        s1 = rq.getvar("jsonp(");
+        s1 = rq.getvar("jsonp") + "(";
         s2 = ");\n";
     }
     playdar_response ok( s1+"{\"success\" : true}"+s2, false );
