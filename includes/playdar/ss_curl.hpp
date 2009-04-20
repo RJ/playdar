@@ -35,7 +35,7 @@ public:
         std::cout << "CTOR ss_curl: " << url << std::endl;
         reset();
     }
-
+    
     /// copy constructor, used by get_instance()
     CurlStreamingStrategy(const CurlStreamingStrategy& other)
         : m_curl(0)
@@ -48,6 +48,7 @@ public:
 
     ~CurlStreamingStrategy()
     { 
+        std::cout << "DTOR ss_curl: " << m_url << std::endl;
         if(m_thread)
         {
             m_abort = true; // will cause thread to terminate

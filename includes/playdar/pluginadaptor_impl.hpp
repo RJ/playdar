@@ -50,14 +50,14 @@ public:
         return v;
     }
     
-    virtual bool report_results(const query_uid& qid, const std::vector< result_pair >& results)
+    virtual bool report_results(const query_uid& qid, const std::vector< json_spirit::Object >& results)
     {
-        std::vector< std::pair<ri_ptr,ss_ptr> > v;
-        BOOST_FOREACH( const result_pair & rp, results )
+        std::vector< ri_ptr > v;
+        BOOST_FOREACH( const json_spirit::Object & o, results )
         {
-            ri_ptr rip = m_resolver->ri_from_json( rp.first );
+            ri_ptr rip = m_resolver->ri_from_json( o );
             if(!rip) continue;
-            v.push_back( std::pair<ri_ptr,ss_ptr>(rip, rp.second) );
+            v.push_back( rip );
         }
         m_resolver->add_results( qid, v, rs()->name() );
         return true;

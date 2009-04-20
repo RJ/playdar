@@ -24,7 +24,7 @@ class rs_script : public ResolverService
 public:
     rs_script(){}
     
-    bool init(pa_ptr pap, std::string script);
+    bool init(pa_ptr pap);
     
     void start_resolving(rq_ptr rq);
     std::string name() const
@@ -50,6 +50,8 @@ protected:
     ~rs_script() throw();
         
 private:
+    
+    pa_ptr m_pap;
     
     int m_weight;
     int m_targettime;

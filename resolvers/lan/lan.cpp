@@ -14,7 +14,6 @@ namespace resolvers {
 bool
 lan::init(pa_ptr pap)
 {
-    cout << "lan::init" << endl;
     m_pap = pap;
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
@@ -246,10 +245,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 //cout << "lan: Got udp response." <<endl;
                 ri_ptr rip;
 
-                // TEMP!
-                typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
-                vector< result_pair > final_results;
-
+                vector< Object > final_results;
                 try
                 {
                     rip = m_pap->ri_from_json(resobj);
@@ -265,12 +261,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         string url = rbs.str();
                         url += "/sid/";
                         url += rip->id();
-                        boost::shared_ptr<StreamingStrategy> 
-                        ss(new CurlStreamingStrategy(url));
-                        pip->set_streaming_strategy(ss); // pointless?
-
+                        pip->set_url( url );
                         // TEMP!
-                        final_results.push_back( result_pair(pip->get_json(), ss) );
+                        final_results.push_back( pip->get_json() );
                     }
                 }
                 catch (...)

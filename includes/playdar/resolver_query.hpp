@@ -134,6 +134,7 @@ public:
     {
         time(&m_atime);
         // sort results on score/preference.
+        // TODO this could be memoized
         boost::function
                     < bool 
                     (   const ri_ptr &, 
