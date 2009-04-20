@@ -49,6 +49,11 @@ IF(APPLE)
     ADD_DEFINITIONS(-Dunix)
 ENDIF(APPLE)
 
+IF(WIN32)
+	ADD_DEFINITIONS(/DNOMINMAX)
+	ADD_DEFINITIONS(/DWIN32_LEAN_AND_MEAN)
+ENDIF(WIN32)
+
 IF(NOT WIN32)
     # removes operators like "and", "or" and "not"
     ADD_DEFINITIONS(-fno-operator-names)
