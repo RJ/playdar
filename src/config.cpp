@@ -23,18 +23,15 @@ void Config::reload()
     ifs.open(m_filename.c_str(), ifstream::in);
     if(ifs.fail())
     {
-        cerr << "Failed to open config file: " << m_filename << endl;
-        throw;
+        throw runtime_error("Failed to open config file");
     }
     if(!read(ifs, m_mainval))
     {
-        cerr << "Failed to parse config file: " << m_filename << endl;
-        throw;
+        throw runtime_error("Failed to parse config file");
     }
     if(m_mainval.type() != obj_type)
     {
-        cerr << "Config file isn't a JSON object!" << endl;
-        throw;
+        throw runtime_error("Config file isn't a JSON object!");
     }
     obj_to_map(m_mainval.get_obj(), m_mainmap);
 }
