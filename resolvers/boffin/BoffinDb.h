@@ -117,6 +117,11 @@ public:
         }
         return count;
     }
+    
+    sqlite3pp::database* db()
+    {
+        return &m_db;
+    }
 
 private:
     sqlite3pp::database m_db;

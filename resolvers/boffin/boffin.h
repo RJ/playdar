@@ -7,14 +7,13 @@
 #include <boost/function.hpp>
 #include <boost/thread.hpp>
 
-
-class boffin : public ResolverServicePlugin
+class boffin : public playdar::ResolverPlugin<boffin>
 {
 public:
     boffin();
 
     // return false to disable the plugin
-    virtual bool init(playdar::Config*, Resolver*);
+    virtual bool init(playdar::pa_ptr pap);
    
     virtual std::string name() const;
     
@@ -24,19 +23,19 @@ public:
     /// highest weighted resolverservices are queried first.
     virtual unsigned short weight() const;
 
-    virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq);
+    virtual void start_resolving(boost::shared_ptr<playdar::ResolverQuery> rq);
 
     // default is empty, ie no http urls handle
-    virtual vector<string> get_http_handlers();
+    virtual std::vector<std::string> get_http_handlers();
 
     // handler for HTTP reqs we are registerd for:
-    virtual playdar_response http_handler( const playdar_request&, playdar::auth * pauth);
+    virtual playdar::playdar_response http_handler( const playdar::playdar_request*, playdar::auth * pauth);
 
 protected:
     virtual ~boffin() throw();
 
 private:
-    void resolve(boost::shared_ptr<ResolverQuery> rq);
+    void resolve(boost::shared_ptr<playdar::ResolverQuery> rq);
     void parseFail(std::string line, int error_offset);
 
     /// thread work queue stuff [
@@ -55,6 +54,8 @@ private:
 
     boost::shared_ptr<class SimilarArtists> m_sa;
     boost::shared_ptr<class BoffinDb> m_db;
+    
+    playdar::pa_ptr m_pap;
 };
 
 EXPORT_DYNAMIC_CLASS( boffin )

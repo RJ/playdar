@@ -412,29 +412,9 @@ Library::num_tracks()
 LibraryFile_ptr
 Library::file_from_fid(int fid)
 {
-    boost::mutex::scoped_lock lock(m_mut);
-    sqlite3pp::query qry(m_db,
-        "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
-        "file_join.artist, file_join.album, file_join.track "
-        "FROM file, file_join "
-        "WHERE file.id = file_join.file "
-        "AND file.id = ?");
-    qry.bind(1, fid);
-    sqlite3pp::query::iterator i( qry.begin() );
-    if (i == qry.end())
-        return LibraryFile_ptr((LibraryFile*)0);
-    
-    LibraryFile_ptr p(new LibraryFile);
-    p->url = string((*i).get<const char *>(0));
-    p->size = (*i).get<int>(1);
-    p->mimetype = string((*i).get<const char *>(2));
-    p->duration = (*i).get<int>(3);
-    p->bitrate = (*i).get<int>(4);
-    p->piartid = (*i).get<int>(5);
-    p->pialbid = (*i).get<int>(6);
-    p->pitrkid = (*i).get<int>(7);
-    return p;
+    file_from_fid( &m_db, fid );
 }
+
 
 // get mtimes of all filesnames scanned
 map<string, int>
@@ -512,14 +492,7 @@ Library::load_artist(string n)
 artist_ptr
 Library::load_artist(int n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name FROM artist WHERE id = ?");
-    qry.bind(1, n);
-    artist_ptr ptr;
-    for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        ptr = artist_ptr(new Artist((*i).get<int>(0), (*i).get<string>(1)));
-        break;
-    }
-    return ptr;
+    return load_artist( &m_db, n );
 }
 
 track_ptr
@@ -540,14 +513,7 @@ Library::load_track(artist_ptr artp, string n)
 track_ptr
 Library::load_track(int n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name,artist FROM track WHERE id = ?");
-    qry.bind(1, n);
-    track_ptr ptr;
-    for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        ptr = track_ptr(new Track((*i).get<int>(0), (*i).get<string>(1), load_artist((*i).get<int>(2))));
-        break;
-    }
-    return ptr;
+    return load_track( &m_db, n );
 }
 
 album_ptr
@@ -568,14 +534,7 @@ Library::load_album(artist_ptr artp, string n)
 album_ptr
 Library::load_album(int n)
 {
-    sqlite3pp::query qry(m_db, "SELECT id,name,artist FROM album WHERE id = ?");
-    qry.bind(1, n);
-    album_ptr ptr;
-    for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        ptr = album_ptr(new Album((*i).get<int>(0), (*i).get<string>(1), load_artist((*i).get<int>(2))));
-        break;
-    }
-    return ptr;
+    return load_album( &m_db, n );
 }
 
 }

@@ -103,7 +103,7 @@ Resolver::load_library_resolver()
                             boost::bind( &PlayableItem::from_json, _1 ));
     
     // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)rs)->set_app(m_app);
+    ((RS_local_library *)rs)->set_app(app());
     pap->set_rs( rs );
     pap->set_weight( rs->weight() );
     pap->set_targettime( rs->target_time() );
