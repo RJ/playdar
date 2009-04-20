@@ -120,7 +120,10 @@ public:
     { 
         if(!m_uuid.length())
         {
-            m_uuid = playdar::utils::gen_uuid();
+            // WARNING this is slow. best to only create once, then 
+            // call () in whatever code is creating the RQs
+            playdar::utils::uuid_gen ug;
+            m_uuid = ug();
         }
         return m_uuid; 
     }

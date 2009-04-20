@@ -42,7 +42,8 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
 #add definitions, compiler switches, etc.
-#ADD_DEFINITIONS(-Wall -ggdb) 
+ADD_DEFINITIONS(-Wall) # -ggdb
+ADD_DEFINITIONS(-g -O2 -DNDEBUG)
 
 # PDL doesn't know apple mac = posix, this tells it:
 IF(APPLE)

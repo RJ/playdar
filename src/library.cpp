@@ -412,7 +412,7 @@ Library::num_tracks()
 LibraryFile_ptr
 Library::file_from_fid(int fid)
 {
-    file_from_fid( &m_db, fid );
+    return file_from_fid( &m_db, fid );
 }
 
 

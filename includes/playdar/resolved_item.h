@@ -50,8 +50,10 @@ public:
     {
         if(m_uuid.length()==0) // generate it if not already specified
         {
-            m_uuid = playdar::utils::gen_uuid();
-            
+            // WARNING this is slow. best to only create once, then 
+            // call () in whatever code is creating the RIs
+            playdar::utils::uuid_gen ug;
+            m_uuid = ug();
         }
         return m_uuid; 
     }

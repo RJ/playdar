@@ -112,7 +112,6 @@ Resolver::detect_curl_capabilities()
         cout << "SS factory registered for: " << p << endl ;
         m_ss_factories[ p ] = ssf; // add an SS factory for this protocol
     }
-    
 }
 
 void
@@ -417,11 +416,14 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 bool
 Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
+    cout << "add_results(" << results.size() << ")" << endl;
     if(results.size()==0)
     {
         return true;
     }
+    DebugMutex dm("add_results");
     boost::mutex::scoped_lock lock(m_mut_results);
+    
     if(!query_exists(qid)) return false; // query was deleted
     string reason;
     // add these new results to the ResolverQuery object
@@ -431,9 +433,9 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
         pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-        if(rip->score() < 0 &&
-           TrackRQBuilder::valid( rq ) &&
-           pip)
+        if(pip && rip->score() < 0 &&
+           TrackRQBuilder::valid( rq ) 
+          )
         {
             float score = calculate_score( rq, pip, reason );
             if( score == 0.0) continue;
@@ -442,7 +444,10 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         
         m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
-        m_sid2ri[rip->id()] = rip;
+       /// m_sid2ri[rip->id()] = rip;
+        cout << "Adding: ";
+        json_spirit::write( rip->get_json(), cout );
+        cout << endl; 
     }
     return true;
 }
@@ -530,6 +535,7 @@ Resolver::cancel_query(const query_uid & qid)
     rq_ptr cq;
     {
         // removing from m_queries map means no-one can find and get a new shared_ptr given a qid:
+        DebugMutex dm("cancel_query");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         cq = rq(qid);
@@ -563,6 +569,7 @@ Resolver::cancel_query_timeout(query_uid qid)
     cout << "Stale timeout reached for QID: " << qid << endl;
     rq_ptr rq;
     {
+        DebugMutex dm("cancel timeout");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         rq = this->rq(qid);
@@ -589,6 +596,7 @@ Resolver::cancel_query_timeout(query_uid qid)
 vector< ri_ptr >
 Resolver::get_results(query_uid qid)
 {
+    DebugMutex dm("get_results");
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
@@ -599,6 +607,7 @@ int
 Resolver::num_results(query_uid qid)
 {
     {
+        DebugMutex dm("num_results");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(query_exists(qid)) 
         {
@@ -645,7 +654,9 @@ Resolver::get_ss(const source_uid & sid)
 {
     ri_ptr rip = m_sid2ri[sid];
     if( rip->url().empty() ) return ss_ptr();
-    string p = rip->url().substr(0, rip->url().find(':'));
+    size_t offset = rip->url().find(':');
+    if( offset == string::npos ) return ss_ptr();
+    string p = rip->url().substr(0, offset);
     cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
     if( !rip->url().empty() && 
         m_ss_factories.find( p ) != m_ss_factories.end() )
