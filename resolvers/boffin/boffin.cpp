@@ -116,7 +116,7 @@ boffin::~boffin() throw()
 {
     if (m_thread) {
         m_thread_stop = true;
-        m_thread->interrupt();
+        m_queue_wake.notify_all();
         m_thread->join();
         delete m_thread;
         m_thread = 0;
@@ -165,28 +165,32 @@ boost::function< void() >
 boffin::get_work()
 {
     boost::unique_lock<boost::mutex> lock(m_queue_mutex);
-    try {
-        while (m_queue.empty()) {
-            m_queue_wake.wait(lock);
+    while (m_queue.empty()) {
+        m_queue_wake.wait(lock);
+        // we might be trying to shutdown:
+        if( m_thread_stop )
+        {   
+            return 0;
         }
-        boost::function< void() > result = m_queue.front();
-        m_queue.pop();
-        return result;
     }
-    catch(boost::thread_interrupted) {
-        // must be shutting down:
-        return 0;
-    }
+    boost::function< void() > result = m_queue.front();
+    m_queue.pop();
+    return result;
 }
 
 void
 boffin::thread_run()
 {
     cout << "boffin thread_run" << endl;
-    boost::function< void() > fun;
-    while (!m_thread_stop) {
-        fun = get_work();
-        if( fun ) fun();
+    try {
+        boost::function< void() > fun;
+        while (!m_thread_stop) {
+            fun = get_work();
+            if( fun && !m_thread_stop ) fun();
+        }
+    }
+    catch (std::exception &e) {
+        std::cout << "boffin::thread_run exception " << e.what();
     }
     cout << "boffin::thread_run exiting" << endl;
 }
@@ -318,7 +322,14 @@ boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
     Object r;
     r.push_back( Pair("qid", qid ));
     
+    
+    std::string s1, s2;
+    if(req.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = req.getvar("jsonp") + "(";
+        s2 = ");\n";
+    }
+    
     ostringstream os;
     write_formatted( r, os );
-    return playdar_response( os.str(), false );
+    return playdar_response( s1 + os.str() + s2, false );
 }
