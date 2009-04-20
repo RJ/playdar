@@ -1,13 +1,19 @@
 #ifndef __LOCAL_FILE_STRAT_H__
 #define __LOCAL_FILE_STRAT_H__
-#include <boost/filesystem.hpp> 
+
 #include <fstream>  
+#include <sstream>
+#include <iostream>
+
+#include <boost/filesystem.hpp> 
+
+namespace playdar {
 
 class LocalFileStreamingStrategy : public StreamingStrategy
 {
 public:
 
-    LocalFileStreamingStrategy(std::string p)
+    LocalFileStreamingStrategy(const std::string& p)
         : m_uri(p)
     {
         m_connected=false;
@@ -30,7 +36,7 @@ public:
     std::string debug()
     { 
         std::ostringstream s;
-        s<< "LocalFileStreamingStrategy(" << m_uri << ")";
+        s << "LocalFileStreamingStrategy(" << m_uri << ")";
         return s.str();
     }
 
@@ -59,5 +65,7 @@ private:
     std::ifstream m_is;
     bool m_connected;
 };
+
+}
 
 #endif

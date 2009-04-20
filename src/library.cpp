@@ -1,15 +1,20 @@
-//include first otherwise face uuid fail on OSX!
-#include "playdar/config.hpp"
+#include "playdar/library.h"
+
+//#include <boost/asio.hpp>
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <sstream>
+
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "playdar/library.h"
+#include "playdar/application.h"
+#include "playdar/playable_item.hpp"
 
 using namespace std;
+
+namespace playdar {
 
 
 Library::Library(const string& dbfilepath)
@@ -56,7 +61,6 @@ Library::add_dir( const string& url, int mtime)
     return cmd.execute();        
 }
 
-
 int 
 Library::add_file(  const string& url, int mtime, int size, const string& md5, const string& mimetype,
                     int duration, int bitrate,
@@ -77,7 +81,7 @@ Library::add_file(  const string& url, int mtime, int size, const string& md5, c
         cerr<<"Error inserting into file table"<<endl;
         return 0;
     }
-    fileid = m_db.last_insert_rowid();
+    fileid = static_cast<int>( m_db.last_insert_rowid() );
     int artid = get_artist_id(artist);
     if(artid<1){
         return 0;
@@ -127,7 +131,7 @@ Library::get_artist_id(const string& name_orig)
         cerr << "Failed to insert artist: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_artistcache[sortname]=id;
     return id;
@@ -161,7 +165,7 @@ Library::get_track_id(int artistid, const string& name_orig)
         cerr << "Failed to insert track: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_trackcache[artistid][sortname]=id;
     return id;
@@ -195,7 +199,7 @@ Library::get_album_id(int artistid, const string& name_orig)
         cerr << "Failed to insert album: " << name_orig << endl;
         return 0;
     }
-    id = m_db.last_insert_rowid();
+    id = static_cast<int>( m_db.last_insert_rowid() );
     //cout << "New insert: " << sortname << " == " << id << endl;
     m_albumcache[artistid][sortname]=id;
     return id;
@@ -305,11 +309,6 @@ Library::list_artist_tracks(artist_ptr artist)
     return results;
 }
 
-
-
-
-
-
 vector<int>
 Library::get_fids_for_tid(int tid)
 {
@@ -379,9 +378,9 @@ Library::ngrams(const string& str_orig)
     map<string,int> m;
     //TODO trim etc
     string str = " " +sortname(str_orig) +" ";
-    int num = str.length() - (n-1);
+    size_t num = str.length() - (n-1);
     string ngram;
-    for(int j = 0; j<num; j++){
+    for(size_t j = 0; j < num; j++){
          ngram = str.substr(j, n);
          if(m[ngram]) m[ngram]++;
          else m[ngram]=1;
@@ -437,55 +436,6 @@ Library::file_from_fid(int fid)
     return p;
 }
 
-#if 0
-/// NB: this doesn't attach a streaming strategy, but it does set_url().
-///     so the caller should create an appropriate SS (probably a curl strat)
-boost::shared_ptr<PlayableItem>
-Library::playable_item_from_fid(int fid)
-{
-    boost::mutex::scoped_lock lock(m_mut);
-    boost::shared_ptr<PlayableItem> pip(new PlayableItem());
-    ostringstream sql;
-    sql << "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
-        << "file_join.artist, file_join.album, file_join.track "
-        << "FROM file, file_join "
-        << "WHERE file.id = file_join.file "
-        << "AND file.id = " << fid;
-    sqlite3pp::query qry(m_db, sql.str().c_str() );
-    for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
-        string url = string((*i).get<const char *>(0));
-        int size = (*i).get<int>(1);
-        string mimetype = string((*i).get<const char *>(2));
-        int duration = (*i).get<int>(3);
-        int bitrate = (*i).get<int>(4);
-        int piartid = (*i).get<int>(5);
-        int pialbid = (*i).get<int>(6);
-        int pitrkid = (*i).get<int>(7);
-        
-        // Set properties of the PlayableItem:
-        artist_ptr artobj = load_artist(piartid);
-        track_ptr trkobj  = load_track(pitrkid);
-        pip->set_artist(artobj->name());
-        pip->set_track(trkobj->name());
-        // album metadata kinda optional for now
-        if(pialbid)
-        {
-            album_ptr albobj  = load_album(pialbid);
-            pip->set_album(albobj->name());
-        }
-        pip->set_url(url);
-        pip->set_mimetype(mimetype);
-        pip->set_size(size);
-        pip->set_duration(duration);
-        pip->set_bitrate(bitrate);
-        
-        break; // should only be one row
-    }
-    return pip;
-}
-#endif
-
-
 // get mtimes of all filesnames scanned
 map<string, int>
 Library::file_mtimes()
@@ -512,7 +462,6 @@ Library::db_get_one(string sql, T def)
     }
     return def;
 }
-
 
 string
 Library::get_name(string table, int id)
@@ -543,7 +492,6 @@ Library::sortname(const string& name)
     return data;
 }
 
-
 // CATALOGUE LOADING (TODO) some factory of singletons->shared pointers, so only one lookup
 // and one instance of each artist, album, track exists at any one time. boost pool maybe.
 
@@ -560,6 +508,7 @@ Library::load_artist(string n)
     }
     return ptr;
 }
+
 artist_ptr
 Library::load_artist(int n)
 {
@@ -572,7 +521,6 @@ Library::load_artist(int n)
     }
     return ptr;
 }
-
 
 track_ptr
 Library::load_track(artist_ptr artp, string n)
@@ -588,6 +536,7 @@ Library::load_track(artist_ptr artp, string n)
     }
     return ptr;
 }
+
 track_ptr
 Library::load_track(int n)
 {
@@ -600,7 +549,6 @@ Library::load_track(int n)
     }
     return ptr;
 }
-
 
 album_ptr
 Library::load_album(artist_ptr artp, string n)
@@ -630,3 +578,4 @@ Library::load_album(int n)
     return ptr;
 }
 
+}

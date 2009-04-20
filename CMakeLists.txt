@@ -25,13 +25,14 @@ INCLUDE_DIRECTORIES(
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
-					${CURL_INCLUDE_DIR}
+                    ${CURL_INCLUDE_DIR}
                     /usr/local/include
                     ${DEPS}/moost_http/include     # our httpd server, from erikf's moost
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
                     ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
-                    ${DEPS}/boost.process          # spawning resolver scripts
+                    ${DEPS}/boost.process          # (unofficial) spawning resolver scripts
+                    ${DEPS}/boost.uuid             # (unofficial) UUID generation library
                    )
 
 # Always check local/lib first:
@@ -62,7 +63,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
 			  
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
-					  ${Boost_LIBRARIES}
+                      ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 					  
@@ -75,6 +76,7 @@ ADD_EXECUTABLE( playdar
                 
                 ${SRC}/utils/base64.cpp
                 ${SRC}/utils/levenshtein.cpp
+                ${SRC}/utils/uuid.cpp
 
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp

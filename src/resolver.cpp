@@ -7,6 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/version.hpp>
 
 #include "playdar/resolver.h"
 
@@ -28,6 +29,9 @@
 #include "./platform.h"
 // end PDL stuff
 
+namespace playdar { 
+
+using namespace resolvers;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
@@ -130,23 +134,6 @@ Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
     return lhs->weight() > rhs->weight();
 }
 
-// work-around lack of basic_path::stem()
-//
-// Returns: if p.filename() contains a dot, returns the substring of p.filename() 
-// starting at its beginning and ending at the last dot (the dot is not included). 
-// Otherwise, returns p.filename().
-template<typename Path>
-typename Path::string_type 
-stem(const Path & p)
-{
-    int pos = p.leaf().find_last_of('.');
-    if (pos != Path::string_type::npos) {
-        return p.leaf().substr(0, pos);
-    } 
-    return p.leaf();
-}
-
-
 /// spawn resolver scripts:
 void 
 Resolver::load_resolver_scripts()
@@ -164,13 +151,13 @@ Resolver::load_resolver_scripts()
     string name;
     for(directory_iterator i(etc); i != end; ++i) {
         try {
-            // basic_path::leaf() understandably renamed to filename() in boost 1.36
-            // (leaf method marked as deprecated in boost > 1.35)
-            // basic_path::stem() added in boost 1.36
+#if BOOST_VERSION >= 103600
+            string name = i->path().filename();
+            string conf = "plugins." + i->path().stem() + '.';
+#else
             string name = i->path().leaf();
-            string conf = "scripts." + stem( i->path() ) + '.';   
-            std::cout << conf << "enabled" << std::endl;
-            
+            string conf = "plugins." + basename(i->path()) + '.';
+#endif
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
             //FIXME more sensible place to put resolving scripts
@@ -247,7 +234,7 @@ Resolver::load_resolver_plugins()
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
             cout << "Loading resolver: " << pluginfile << endl;
-            ResolverService * instance = 
+            ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
                     
@@ -652,4 +639,6 @@ Resolver::ri_from_json( const json_spirit::Object& j ) const
             return pair.second( j );
     }
     return ri_ptr();
+}
+
 }

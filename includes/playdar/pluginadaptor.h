@@ -1,8 +1,13 @@
 #ifndef _PLUGIN_ADAPTOR_H_
 #define _PLUGIN_ADAPTOR_H_
+
 #include "json_spirit/json_spirit.h"
 #include "playdar/types.h"
 //#include "playdar/streaming_strategy.h"
+
+namespace playdar {
+
+class ResolverService;
 
 class PluginAdaptor
 {
@@ -17,14 +22,21 @@ public:
     }
     
     virtual ~PluginAdaptor(){};
-    virtual void set(const std::string& key, json_spirit::Value value) = 0;
+
+    virtual void               set(const std::string& key, json_spirit::Value value) = 0;
     virtual json_spirit::Value get(const std::string& key) const = 0;
+    
+    template <typename T>
+    T get(const std::string& key, const T& def) const;
+
     virtual bool report_results(const query_uid& qid, const std::vector< result_pair >&) = 0;
+
     virtual std::string gen_uuid() const = 0;
     virtual void set_rs( ResolverService * rs )
-    {
-        m_rs = rs;
-    }
+    { m_rs = rs; }
+
+    virtual bool query_exists(const query_uid & qid) = 0;
+
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
@@ -36,6 +48,11 @@ public:
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
 
+
+    // TEMP!
+    virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb) = 0;
+    virtual ri_ptr ri_from_json( const json_spirit::Object& ) const = 0;
+
 private:
     ResolverService * m_rs;    // instance of a plugin
     unsigned int m_targettime; // ms before passing to next resolver
@@ -44,6 +61,22 @@ private:
     
 };
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+template <typename T>
+T PluginAdaptor::get(const std::string& k, const T& def) const
+{
+    json_spirit::Value val = get(k);
+    if (val.type() != json_spirit::obj_type) 
+        return def;
+    else
+        return val.get_value<T>();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+}
 
 #endif
 

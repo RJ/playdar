@@ -1,24 +1,26 @@
 #ifndef __RESOLVED_ITEM_H__
 #define __RESOLVED_ITEM_H__
 
-// must be first because ossp uuid.h is stubborn and name-conflicts with
-// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-// to you guys at OSSP. *claps*
-#ifdef HAS_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-// default source package for ossp-uuid doesn't namespace itself
-#include <uuid.h> 
-#endif
+//// must be first because ossp uuid.h is stubborn and name-conflicts with
+//// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
+//// this causes PAIN and HEARTACHE for everyone else in the world, so well done
+//// to you guys at OSSP. *claps*
+//#ifdef HAS_OSSP_UUID_H
+//#include <ossp/uuid.h>
+//#else
+//// default source package for ossp-uuid doesn't namespace itself
+//#include <uuid.h> 
+//#endif
 
 #include <string>
+#include "playdar/config.hpp"
 #include <boost/function.hpp>
 
 #include "playdar/types.h"
-#include "playdar/utils/uuid.hpp"
+#include "playdar/utils/uuid.h"
 
 #include "json_spirit/json_spirit.h"
+namespace playdar {
 
 class ResolvedItem
 {
@@ -84,5 +86,7 @@ private:
     mutable source_uid m_uuid;
 
 };
+
+}
 
 #endif //__RESOLVED_ITEM_H__

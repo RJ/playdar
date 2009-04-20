@@ -17,6 +17,8 @@
 #include "playdar/ss_localfile.hpp"
 #include "playdar/ss_curl.hpp"
 
+namespace playdar {
+
 class MyApplication;
 class ResolverService;
 
@@ -137,6 +139,8 @@ private:
     std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
 };
+
+}
 
 #endif
 

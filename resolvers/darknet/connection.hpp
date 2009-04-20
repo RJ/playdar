@@ -229,7 +229,7 @@ public:
                     //     << msg->toString() <<")" << endl;
                 }
             }
-            catch (std::exception& e)
+            catch (std::exception& /*e*/)
             {
                 // Unable to decode data.
                 boost::system::error_code error(boost::asio::error::invalid_argument);

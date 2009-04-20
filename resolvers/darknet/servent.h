@@ -1,20 +1,14 @@
 #ifndef _PLAYDAR_DARKNET_SERVENT_H_
 #define _PLAYDAR_DARKNET_SERVENT_H_
 
-#include "servent.h"
-#include "darknet.h"
-#include "msgs.h"
-#include "connection.hpp"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <iostream>
 #include <vector>
 
-
-using namespace std;
-
-
+#include "msgs.h"
+#include "connection.hpp"
 
 namespace playdar {
 namespace resolvers {
@@ -28,9 +22,9 @@ class Servent
 public:
     /// Constructor opens the acceptor and starts waiting for the first incoming
     /// Connection.
-    Servent(boost::asio::io_service& io_service, 
-            unsigned short port, 
-            darknet * p);
+    Servent( boost::asio::io_service& io_service, 
+             unsigned short port, 
+             darknet * p );
     
     /// Handle completion of a accept operation.
     void handle_accept(const boost::system::error_code& e, connection_ptr conn);

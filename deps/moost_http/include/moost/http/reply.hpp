@@ -3,12 +3,13 @@
 
 #include "playdar/application.h" // if not first mac compile fails
 #include "playdar/streaming_strategy.h"
-#include "moost/http/header.hpp"
+
 #include <string>
 #include <vector>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 
+#include "moost/http/header.hpp"
 
 namespace moost { namespace http {
 
@@ -56,9 +57,9 @@ struct reply
   /// false means entire body prepared up-front.
   bool m_streaming;
   size_t m_streaming_len;
-  boost::shared_ptr<StreamingStrategy> m_ss;
+  boost::shared_ptr<playdar::StreamingStrategy> m_ss;
   
-  void set_streaming(boost::shared_ptr<StreamingStrategy> ss, 
+  void set_streaming(boost::shared_ptr<playdar::StreamingStrategy> ss, 
                      size_t len)
   { 
     m_streaming=true; 
@@ -72,7 +73,7 @@ struct reply
   }
   
   // get streaming strategy, for streaming response
-  boost::shared_ptr<StreamingStrategy> get_ss()
+  boost::shared_ptr<playdar::StreamingStrategy> get_ss()
   {
     return m_ss;
   }

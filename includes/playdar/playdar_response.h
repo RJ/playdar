@@ -2,6 +2,9 @@
 #define __PLAYDAR_RESPONSE_H__
 
 #include <string>
+#include <sstream>
+
+namespace playdar {
 
 class playdar_response {
 public:
@@ -59,6 +62,8 @@ public:
 private:
     std::string m_string;
 };
+
+}
 
 #endif //__PLAYDAR_RESPONSE_H__
 

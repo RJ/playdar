@@ -12,6 +12,7 @@
 #include "json_spirit/json_spirit.h"
 #include <boost/foreach.hpp>
 
+namespace playdar { namespace resolvers {
 
 class RS_http_playdar  : public ResolverService
 {
@@ -223,5 +224,6 @@ class RS_http_playdar  : public ResolverService
         }
 };
 
+}}
 
 #endif

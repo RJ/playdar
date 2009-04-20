@@ -1,8 +1,15 @@
-#include "playdar/application.h"
 #include "playdar/rs_local_library.h"
-#include "playdar/library.h"
+
 #include <boost/foreach.hpp>
+
+#include "playdar/application.h"
+#include "playdar/library.h"
 #include "playdar/utils/levenshtein.h"
+#include "playdar/resolver.h"
+
+using namespace std;
+
+namespace playdar { namespace resolvers {
 
 /*
     I want to integrate the ngram2/l implementation done by erikf
@@ -10,7 +17,6 @@
     Specifically it currently doesnt know about words.. 
     so "title" and "title (LIVE)" aren't very similar due to large edit-dist.
 */
-
     
 bool
 RS_local_library::init(pa_ptr pap)
@@ -146,3 +152,5 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
 }
+
+}}

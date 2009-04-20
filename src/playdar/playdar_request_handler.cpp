@@ -1,8 +1,6 @@
-#include "playdar/application.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include "json_spirit/json_spirit.h"
 
 #include <boost/foreach.hpp>
 #include <moost/http/filesystem_request_handler.hpp>
@@ -12,6 +10,9 @@
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 
+#include "json_spirit/json_spirit.h"
+#include "playdar/application.h"
+
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
 #include "playdar/playdar_response.h"
@@ -19,6 +20,8 @@
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/pluginadaptor.h"
+
+namespace playdar {
 
 /*
 
@@ -261,7 +264,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         return;
     }
 
-    const playdar_response& response = rs->http_handler( req, m_pauth );
+    const playdar_response& response = rs->http_handler( &req, m_pauth );
     serve_body( response, rep );
 }
 
@@ -898,4 +901,4 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     rep.content = os.str(); 
 }
 
-
+}

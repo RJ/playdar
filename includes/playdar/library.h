@@ -1,12 +1,11 @@
 #ifndef __PLAYDAR_LIBRARY_H__
 #define __PLAYDAR_LIBRARY_H__
 
-#include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <map>
 #include <vector>
-#include <boost/thread.hpp>
-#include "sqlite3pp.h"
+#include <boost/thread/mutex.hpp>
+
 
 #include "playdar/types.h"
 #include "playdar/artist.h"
@@ -14,6 +13,12 @@
 #include "playdar/track.h"
 #include "playdar/library_file.h"
 
+#include "sqlite3pp.h"
+
+#include "playdar/streaming_strategy.h"
+#include "playdar/ss_localfile.hpp"
+
+namespace playdar {
 
 class MyApplication;
 
@@ -83,6 +88,7 @@ private:
     std::map< int, std::map<std::string, int> > m_albumcache;
 };
 
+}
 
 #endif
 
