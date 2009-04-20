@@ -32,6 +32,12 @@ class ResolverService;
  */
 class Resolver
 {
+private:
+    // validator and generator functions to pass to the resolver in 
+    // order to generate the correct derived ResolvedItem type from json_spirit
+    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
+    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
+    
 public:
     Resolver(MyApplication * app);
     ~Resolver();
@@ -53,8 +59,6 @@ public:
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
     
-    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
-    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
     void register_resolved_item( const ri_validator&, const ri_generator& );
     ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
@@ -94,7 +98,7 @@ public:
     void run_pipeline( rq_ptr rq, unsigned short lastweight );
     
     void dispatch_runner();
-
+    
 protected:
     float calculate_score( const rq_ptr & rq,  // query
                           const pi_ptr & pi,  // candidate

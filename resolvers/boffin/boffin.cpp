@@ -143,8 +143,7 @@ boffin::init( pa_ptr pap )
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
 
-//TODO: @jono this needs cleaning up
-    //r->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
+    m_pap->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
     return true;
 }
 
