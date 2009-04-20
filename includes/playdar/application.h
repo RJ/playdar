@@ -8,7 +8,7 @@
 #include <string>
 #include <boost/function.hpp>
 
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include "playdar/types.h"
 #include "playdar/playable_item.hpp"
 
@@ -18,10 +18,10 @@
 
 //namespace moost{ namespace http{ class server; } } // fwd
 
+namespace playdar {
 
 class Library;
 class Resolver;
-class ResolverService;
 class playdar_request_handler;
 
 /*  
@@ -33,13 +33,13 @@ class playdar_request_handler;
 class MyApplication
 {
 public:
-    MyApplication(playdar::Config c);
+    MyApplication(Config c);
     ~MyApplication();
 
     Library * library();
     Resolver * resolver();
     
-    playdar::Config * conf()
+    Config * conf()
     {
         return &m_config;
     }
@@ -63,13 +63,13 @@ public:
 private:
     
     boost::function<void()> m_stop_http;
-    playdar::Config m_config;
+    Config m_config;
     Library * m_library;
     Resolver * m_resolver;
 
 };
 
-
+}
 
 #endif
 

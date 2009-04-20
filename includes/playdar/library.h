@@ -18,6 +18,8 @@
 #include "playdar/streaming_strategy.h"
 #include "playdar/ss_localfile.hpp"
 
+namespace playdar {
+
 class MyApplication;
 
 class Library
@@ -86,6 +88,7 @@ private:
     std::map< int, std::map<std::string, int> > m_albumcache;
 };
 
+}
 
 #endif
 

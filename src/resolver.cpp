@@ -8,6 +8,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/version.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "playdar/resolver.h"
 
@@ -18,6 +20,7 @@
 // Generic track calculation stuff:
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/utils/levenshtein.h"
+#include "playdar/pluginadaptor_impl.hpp"
 
 // PDL stuff:
 #include <DynamicLoader.hpp>
@@ -28,6 +31,9 @@
 #include "./platform.h"
 // end PDL stuff
 
+namespace playdar { 
+
+using namespace resolvers;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
@@ -43,7 +49,10 @@ Resolver::Resolver(MyApplication * app)
     m_iothr = new boost::thread(boost::bind(
                     &boost::asio::io_service::run,
                     m_io_service));
-             
+    
+    // Initialize built-in curl SS facts:
+    detect_curl_capabilities();
+    
     // Initialize built-in local library resolver:
     load_library_resolver();
 
@@ -74,36 +83,57 @@ Resolver::Resolver(MyApplication * app)
     cout << endl;
     
     // sort the list of resolvers by weight, descending:
-    boost::function<bool (const loaded_rs &, const loaded_rs &)> sortfun =
-        boost::bind(&Resolver::loaded_rs_sorter, this, _1, _2);
+    boost::function<bool (const pa_ptr &, const pa_ptr&)> sortfun =
+        boost::bind(&Resolver::pluginadaptor_sorter, this, _1, _2);
     sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
     cout << endl;
     cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
-    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    BOOST_FOREACH( pa_ptr & pa, m_resolvers )
     {
-        cout << "RESOLVER w:" << lrs.weight << "\tt:" << lrs.targettime 
-             << "\t[" << (lrs.script?"script":"plugin") << "]  " 
-             << lrs.rs->name() << endl;
+        cout << "RESOLVER w:" << pa->weight() << "\tt:" << pa->targettime() 
+             << "\t[" << (pa->script()?"script":"plugin") << "]  " 
+             << pa->rs()->name() << endl;
     }
     cout << endl;
+}
+
+/// set up SS factories for every protocol curl can handle
+void
+Resolver::detect_curl_capabilities()
+{
+    curl_version_info_data * cv = curl_version_info(CURLVERSION_NOW);
+    assert( cv->age >= 0 ); // should never get this far without curl.
+    boost::function<boost::shared_ptr<CurlStreamingStrategy>(std::string)> 
+     ssf = boost::bind( &Resolver::ss_ptr_generator<CurlStreamingStrategy>, this, _1 );
+    const char * proto;
+    for(int i = 0; (proto = cv->protocols[i]) ; i++ )
+    {
+        string p(proto);
+        cout << "SS factory registered for: " << p << endl ;
+        m_ss_factories[ p ] = ssf; // add an SS factory for this protocol
+    }
+    
 }
 
 void
 Resolver::load_library_resolver()
 {
-    loaded_rs cr;
-    cr.rs = new RS_local_library();
+    pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+    
+    ResolverService * rs = new RS_local_library();
     
     register_resolved_item( boost::bind( &PlayableItem::is_valid_json, _1 ),
                             boost::bind( &PlayableItem::from_json, _1 ));
     
     // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)cr.rs)->set_app(m_app);
-    cr.weight = cr.rs->weight();
-    cr.targettime = cr.rs->target_time();
-    if(cr.rs->init(m_app->conf(), this))
+    ((RS_local_library *)rs)->set_app(m_app);
+    pap->set_rs( rs );
+    pap->set_weight( rs->weight() );
+    pap->set_targettime( rs->target_time() );
+    
+    if( rs->init(pap) )
     {
-        m_resolvers.push_back( cr );
+        m_resolvers.push_back( pap );
     }else{
         cerr << "Couldn't load local library resolver. This is bad." 
              << endl;
@@ -116,15 +146,15 @@ Resolver::~Resolver()
     m_exiting = true;
     m_cond.notify_one();
     m_t->join();
-    delete(m_work);
+    delete m_work;
     m_io_service->stop();
     m_iothr->join();
 }
 
 bool
-Resolver::loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs)
+Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
 {
-    return lhs.weight > rhs.weight;
+    return lhs->weight() > rhs->weight();
 }
 
 /// spawn resolver scripts:
@@ -161,21 +191,25 @@ Resolver::load_resolver_scripts()
 
             cout << "-> Loading: " << name << endl;
             
-            loaded_rs cr;
-            cr.script = true;
-            cr.rs = new playdar::resolvers::rs_script();
-            bool init = ((playdar::resolvers::rs_script*) cr.rs)->init(app()->conf(), this, i->path().string());
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pap->set_script( true );
+            pap->set_scriptpath( i->path().string() );
+            ResolverService * rs = new playdar::resolvers::rs_script();
+            bool init = rs->init( pap );
             if(!init) throw 1;
-
-            cr.targettime = app()->conf()->get<int>(conf+"targettime", cr.rs->target_time());            
-            cr.weight = app()->conf()->get<int>(conf+"weight", cr.rs->weight());
-            
-            if(cr.weight > 0) {
-                m_resolvers.push_back( cr );
-                cout << "-> OK [weight:" << cr.weight 
-                     <<  " target-time:" << cr.targettime
-                     << "] " << cr.rs->name() << endl;
-             }
+            pap->set_rs( rs );
+            pap->set_weight( app()->conf()->get<int>(conf+"weight",
+                             rs->weight()) ); 
+            pap->set_targettime( app()->conf()->get<int>(conf+"targettime",
+                             rs->target_time()) );
+            // if weight == 0, it doesnt resolve, but may handle HTTP calls etc.
+            if(pap->weight() > 0) 
+            {
+                m_resolvers.push_back( pap );
+                cout << "-> OK [weight:" << pap->weight() 
+                     <<  " target-time:" << pap->targettime()
+                     << "] " << pap->rs()->name() << endl;
+            }
         }
         catch(...)
         {
@@ -224,10 +258,13 @@ Resolver::load_resolver_plugins()
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
             cout << "Loading resolver: " << pluginfile << endl;
-            ResolverService * instance = 
+            ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-            if( ! instance->init(app()->conf(), this) )
+                    
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            
+            if( ! instance->init(pap) )
             {
                 cerr << "-> ERROR couldn't initialize." << endl;
                 instance->Destroy();
@@ -236,17 +273,18 @@ Resolver::load_resolver_plugins()
             
             m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
             cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
-            loaded_rs cr;
-            cr.script = false;
-            cr.rs = instance;
+            
+            
+            pap->set_script( false );
+            pap->set_rs( instance );
             string rsopt = "resolvers."+classname;
-            cr.weight = app()->conf()->get<int>(rsopt + ".weight", 
-                                                instance->weight());
-            cr.targettime = app()->conf()->get<int>(rsopt + ".targettime", 
-                                                    instance->target_time());
-            m_resolvers.push_back( cr );
-            cout << "-> OK [w:" << cr.weight << " t:" << cr.targettime << "] " 
-                 << instance->name() << endl;
+            pap->set_weight( app()->conf()->get<int>(rsopt + ".weight", 
+                                                instance->weight()) );
+            pap->set_targettime( app()->conf()->get<int>(rsopt + ".targettime", 
+                                                    instance->target_time()) );
+            m_resolvers.push_back( pap );
+            cout << "-> OK [w:" << pap->weight() << " t:" << pap->targettime() << "] " 
+                 << pap->rs()->name() << endl;
         }
         catch( PDL::LoaderException & ex )
         {
@@ -321,17 +359,17 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
     unsigned short atweight;
     unsigned int mintime;
     bool started = false;
-    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    BOOST_FOREACH( pa_ptr pap, m_resolvers )
     {
-        if(lrs.weight >= lastweight) continue;
+        if(pap->weight() >= lastweight) continue;
         if(!started)
         {
-            atweight = lrs.weight;
-            mintime = lrs.targettime;
+            atweight = pap->weight();
+            mintime = pap->targettime();
             started = true;
             cout << "Pipeline at weight: " << atweight << endl;
         }
-        if(lrs.weight != atweight)
+        if(pap->weight() != atweight)
         {
             // we've dispatched to everything of weight "atweight"
             // and the shortest targettime at that weight is "mintime"
@@ -346,11 +384,11 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
                                       rq, atweight, t));
             break;
         }
-        if(lrs.targettime < mintime) mintime = lrs.targettime;
+        if(pap->targettime() < mintime) mintime = pap->targettime();
         // dispatch to this resolver:
-        cout << "Pipeline dispatching to " << lrs.rs->name() 
+        cout << "Pipeline dispatching to " << pap->rs()->name() 
              << " (lastweight: " << lastweight << ")" << endl;
-        lrs.rs->start_resolving(rq);
+        pap->rs()->start_resolving(rq);
     }
 }
 
@@ -377,7 +415,7 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 /// false means give up on this query, it's over
 /// true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
+Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
     if(results.size()==0)
     {
@@ -387,7 +425,7 @@ Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
     if(!query_exists(qid)) return false; // query was deleted
     string reason;
     // add these new results to the ResolverQuery object
-    BOOST_FOREACH(ri_ptr rip, results)
+    BOOST_FOREACH(const ri_ptr rip, results)
     {
         rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
@@ -404,8 +442,8 @@ Resolver::add_results(query_uid qid, vector< ri_ptr > results, string via)
         
         m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
-        m_ris[rip->id()] = rip;
-    } 
+        m_sid2ri[rip->id()] = rip;
+    }
     return true;
 }
 
@@ -485,9 +523,9 @@ Resolver::cancel_query(const query_uid & qid)
 {
     cout << "Cancelling query: " << qid << endl;
     // send cancel to all resolvers, in case they have cleanup to do:
-    BOOST_FOREACH( loaded_rs & lrs, m_resolvers )
+    BOOST_FOREACH( pa_ptr pap, m_resolvers )
     {
-        lrs.rs->cancel_query( qid );
+        pap->rs()->cancel_query( qid );
     }
     rq_ptr cq;
     {
@@ -511,7 +549,7 @@ Resolver::cancel_query(const query_uid & qid)
         vector< ri_ptr > results = cq->results();
         BOOST_FOREACH( ri_ptr rip, results )
         {
-            m_ris.erase( rip->id() );
+            m_sid2ri.erase( rip->id() );
         }
     }
     // the RQ should not be referenced anywhere and will destruct now.
@@ -600,10 +638,21 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-ri_ptr 
-Resolver::get_ri(const source_uid & sid)
+/// this creates a SS from the URL in the ResolvedItem
+/// it checks our map of protocol -> SS factory where protocol is the bit before the : in urls.
+ss_ptr
+Resolver::get_ss(const source_uid & sid)
 {
-    return m_ris[sid];
+    ri_ptr rip = m_sid2ri[sid];
+    if( rip->url().empty() ) return ss_ptr();
+    string p = rip->url().substr(0, rip->url().find(':'));
+    cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
+    if( !rip->url().empty() && 
+        m_ss_factories.find( p ) != m_ss_factories.end() )
+    {
+        return m_ss_factories[ p ](rip->url());
+    }
+    return ss_ptr();
 }
 
 
@@ -624,4 +673,13 @@ Resolver::ri_from_json( const json_spirit::Object& j ) const
             return pair.second( j );
     }
     return ri_ptr();
+}
+
+template <class T>
+boost::shared_ptr<T>
+Resolver::ss_ptr_generator(string url)
+{
+    return boost::shared_ptr<T>(new T(url));
+}
+
 }

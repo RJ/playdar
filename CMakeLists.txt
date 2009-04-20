@@ -21,17 +21,18 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
+                    ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
-					${CURL_INCLUDE_DIR}
+                    ${CURL_INCLUDE_DIR}
                     /usr/local/include
                     ${DEPS}/moost_http/include     # our httpd server, from erikf's moost
                     ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
                     ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
                     ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
-                    ${DEPS}/boost.process          # spawning resolver scripts
-					${DEPS}/boost.uuid
+                    ${DEPS}/boost.process          # (unofficial) spawning resolver scripts
+                    ${DEPS}/boost.uuid             # (unofficial) UUID generation library
                    )
 
 # Always check local/lib first:
@@ -53,11 +54,6 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
-IF(WIN32)
-	ADD_DEFINITIONS(/DWIN32_LEAN_AND_MEAN)
-	ADD_DEFINITIONS(/DNOMINMAX)
-ENDIF(WIN32)
-
 ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
                ${SRC}/scanner/scanner.cpp
                ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
@@ -67,48 +63,38 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
 			  
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
-					  ${Boost_LIBRARIES}
+                      ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
 					  
-ADD_LIBRARY(playdarcore STATIC
-			${SRC}/application.cpp
-			${SRC}/resolver.cpp
-			${SRC}/resolver_service.cpp
-			${SRC}/rs_local_library.cpp
-			${SRC}/rs_script.cpp
-			${SRC}/library.cpp
-			${SRC}/config.cpp
-			
-			# json parser:
-			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
-			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
-			${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
-			
-			# Portable Dynamic Loader:
-			${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
-			${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
-			${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
-			${DEPS}/pdl-0.3.0/src/LoaderException.cpp
-		
-			${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
-			
-			${SRC}/utils/base64.cpp
-			${SRC}/utils/levenshtein.cpp
-			)
-
-TARGET_LINK_LIBRARIES( playdarcore 
-			${SQLITE3_LIBRARIES}
-		    ${CURL_LIBRARIES}			
-			)
-
-					  
 ADD_EXECUTABLE( playdar
+                ${SRC}/application.cpp
+                ${SRC}/resolver.cpp
+                ${SRC}/rs_local_library.cpp
+                ${SRC}/rs_script.cpp
+                ${SRC}/library.cpp
+                
+                ${SRC}/utils/base64.cpp
+                ${SRC}/utils/levenshtein.cpp
+                ${SRC}/utils/uuid.cpp
 
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
                 ${SRC}/playdar/main.cpp
 
+                # json parser:
+                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
+                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp  
+                ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp
+                
+                # Portable Dynamic Loader:
+                ${DEPS}/pdl-0.3.0/src/DynamicLibrary.cpp
+                ${DEPS}/pdl-0.3.0/src/DynamicLibraryManager.cpp
+                ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
+                ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
+            
+                ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
+                
                 # moost http:
                 ${DEPS}/moost_http/src/http/filesystem_request_handler.cpp
                 ${DEPS}/moost_http/src/http/mime_types.cpp
@@ -118,7 +104,8 @@ ADD_EXECUTABLE( playdar
 
 TARGET_LINK_LIBRARIES( playdar 
                        ${CURL_LIBRARIES}
-                       playdarcore
+                       ${SQLITE3_LIBRARIES}
+                       ${CURL_LIBRARIES}			
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
                        ${OSSPUUID_LIBRARIES}  # BSD-like
@@ -135,8 +122,6 @@ SET(LIBRARY_OUTPUT_PATH "${PLAYDAR_PATH}/plugins")
 
 IF(APPLE)
     SET( PLAYDAR_PLUGIN_LDFLAGS -undefined\ dynamic_lookup )
-ELSEIF(WIN32)
-    SET( PLAYDAR_PLUGIN_LDFLAGS playdarcore )
 ENDIF(APPLE)
 
 FILE( GLOB PLUGINDIRS "${RESOLVERS_DIR}/*" )

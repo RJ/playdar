@@ -4,6 +4,8 @@
 #include <string>
 #include <boost/shared_ptr.hpp>
 
+namespace playdar {
+
 // Resolvers attach streaming strategies to playable items.
 // they are responsible for getting the bytes from the audio file, which
 // may be on local disk, or remote HTTP, or something more exotic -
@@ -23,5 +25,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 };
+
+}
 
 #endif

@@ -1,14 +1,20 @@
 #ifndef __JSON_CONFIG_HPP__
 #define __JSON_CONFIG_HPP__
 
+#include "json_spirit/json_spirit.h"
+#include <iostream>
+#include <fstream>
 #include <map>
+#include <set>
 #include <vector>
 #include <sstream>
-
+#include <boost/asio/ip/host_name.hpp> // for hostname.
 #include <boost/algorithm/string.hpp>
+#include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
-#include "json_spirit/json_spirit.h"
+//using namespace std;
+//using namespace json_spirit;
 
 namespace playdar {
 
@@ -16,20 +22,32 @@ namespace playdar {
 // instance of this is also passed to plugins.
 class Config
 {
-
 public:
-    Config(std::string f);
-    void reload();
-
-    std::string name() const;
-    std::string httpbase();
-    std::string str();
-
-    std::string filename() { return m_filename; }
-
-    static std::string gen_uuid();
-
-    // get a value from json object
+    Config(const std::string& f) : m_filename(f)
+    {
+        reload();
+    }
+    
+    void reload()
+    {
+        std::fstream ifs;
+        ifs.open(m_filename.c_str(), std::ifstream::in);
+        if(ifs.fail())
+        {
+            throw std::runtime_error("Failed to open config file");
+        }
+        if(!read(ifs, m_mainval))
+        {
+            throw std::runtime_error("Failed to parse config file");
+        }
+        if(m_mainval.type() != json_spirit::obj_type)
+        {
+            throw("Config file isn't a JSON object!");
+        }
+        obj_to_map(m_mainval.get_obj(), m_mainmap);
+    }
+    
+     // get a value from json object
     // or value from nested *objects* by using a key of first.second.third
     template <typename T>
     T get(std::string k, T def) const;
@@ -38,10 +56,38 @@ public:
     template <typename T>
     bool set(std::string k, T def);
 
-private:
+	std::string name() const
+	{
+		std::string n = get<std::string>("name", "YOURNAMEHERE");
+		if(n == "YOURNAMEHERE")
+		{
+			n = boost::asio::ip::host_name();
+		}
+		return n;
+	}
     
-    std::string          m_filename;
-    json_spirit::Value   m_mainval;
+    std::string httpbase()
+    {
+        std::ostringstream s;
+        s << "http://127.0.0.1"  << ":" << get<int>("http_port", 8888);
+        return s.str();
+    }
+    
+    std::string str()
+    {
+        std::ostringstream o;
+        write_formatted( m_mainval, o );
+        return o.str();
+    }
+
+    std::string filename() 
+    { return m_filename; }
+
+private:
+   
+    std::string         m_filename;
+    json_spirit::Value  m_mainval;
+
     std::map<std::string, json_spirit::Value> m_mainmap;
 };
 
@@ -53,7 +99,7 @@ T Config::get(std::string k, T def) const
     std::vector<std::string> toks;
     boost::split(toks, k, boost::is_any_of("."));
     json_spirit::Value val = m_mainval;
-    std::map<string, json_spirit::Value> mp;
+    std::map<std::string, json_spirit::Value> mp;
     unsigned int i = 0;
     //cout << "getting: " << k << " size: " << toks.size() << endl;
     do
@@ -81,20 +127,20 @@ bool Config::set(std::string k, T def)
     json_spirit::Object o;
     std::map<std::string, json_spirit::Value> mp;
     int i = 0;
-    cout << "getting: " << k << " size: " << toks.size() << endl;
+    std::cout << "getting: " << k << " size: " << toks.size() << std::endl;
     do
     {
-        if(val->type() != obj_type)
+        if(val->type() != json_spirit::obj_type)
         {
             return false; // won't replace an existing non-obj
         }
         json_spirit::obj_to_map(val->get_obj(), mp);
         if( mp.find(toks[i]) == mp.end() )
         {
-            cerr << "Creating {} " << toks[i] << endl;
+            std::cerr << "Creating {} " << toks[i] << std::endl;
             mp[toks[i]] = o;
         }
-        cout << "Got " << toks[i] << endl;
+        std::cout << "Got " << toks[i] << std::endl;
         val = & mp[toks[i]];
     }
     while(++i < toks.size());
@@ -105,6 +151,6 @@ bool Config::set(std::string k, T def)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-} //namespace
+}
 
 #endif

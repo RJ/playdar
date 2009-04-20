@@ -12,7 +12,7 @@ public:
     demo() {}
     
     /** you should call the base implementation if you reimplement */
-    virtual bool init(playdar::Config * c, Resolver * r);
+    virtual bool init(Config * c, Resolver * r);
 
     /** the base version is pure virtual */
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq);

@@ -14,6 +14,8 @@ includes/playdar/config.hpp
 includes/playdar/library.h
 includes/playdar/playable_item.hpp
 includes/playdar/playdar_plugin_include.h
+includes/playdar/pluginadaptor.h
+includes/playdar/pluginadaptor_impl.hpp
 includes/playdar/resolver.h
 includes/playdar/resolver_query.hpp
 includes/playdar/resolver_service.h
@@ -26,6 +28,7 @@ includes/playdar/track.h
 includes/playdar/types.h
 includes/playdar/utils
 includes/playdar/utils/levenshtein.h
+includes/playdar/utils/uuid.hpp
 resolvers
 resolvers/darknet
 resolvers/darknet/CMakeLists.txt
@@ -42,8 +45,6 @@ resolvers/demo/demo.cpp
 resolvers/demo/demo.h
 resolvers/lan
 resolvers/lan/CMakeLists.txt
-resolvers/lan/lan_udp.cpp
-resolvers/lan/lan_udp.h
 src
 src/playdar
 src/playdar/main.cpp

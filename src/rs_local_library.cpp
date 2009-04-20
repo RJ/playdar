@@ -1,8 +1,15 @@
-#include "playdar/application.h"
 #include "playdar/rs_local_library.h"
-#include "playdar/library.h"
+
 #include <boost/foreach.hpp>
+
+#include "playdar/application.h"
+#include "playdar/library.h"
 #include "playdar/utils/levenshtein.h"
+#include "playdar/resolver.h"
+
+using namespace std;
+
+namespace playdar { namespace resolvers {
 
 /*
     I want to integrate the ngram2/l implementation done by erikf
@@ -10,13 +17,12 @@
     Specifically it currently doesnt know about words.. 
     so "title" and "title (LIVE)" aren't very similar due to large edit-dist.
 */
-
     
 bool
-RS_local_library::init(playdar::Config * c, Resolver * r)
+RS_local_library::init(pa_ptr pap)
 {
-    m_resolver  = r;
-    m_conf = c;
+    m_pap = pap;
+    
     m_exiting = false;
     cout << "Local library resolver: " << app()->library()->num_files() 
          << " files indexed." << endl;
@@ -27,6 +33,7 @@ RS_local_library::init(playdar::Config * c, Resolver * r)
     }
     // worker thread for doing actual resolving:
     m_t = new boost::thread(boost::bind(&RS_local_library::run, this));
+    
     return true;
 }
 
@@ -66,13 +73,14 @@ RS_local_library::run()
     }
 }
 
+// 
+
 /// this is some what fugly atm, but gets the job done for now.
 /// it does the fuzzy library search using the ngram table from the db:
 void
 RS_local_library::process( rq_ptr rq )
 {
-    vector< ri_ptr > final_results;
-    
+    vector< json_spirit::Object > final_results;
     // get candidates (rough potential matches):
     vector<scorepair> candidates = find_candidates(rq, 10);
     // now do the "real" scoring of candidate results:
@@ -85,13 +93,13 @@ RS_local_library::process( rq_ptr rq )
         BOOST_FOREACH(int fid, fids)
         {
             pi_ptr pip = PlayableItem::create(*app()->library(), fid);
-            pip->set_source(conf()->name());
-            final_results.push_back( pip );
+            pip->set_source( m_pap->hostname() );
+            final_results.push_back( pip->get_json() );
         }
     }
     if(final_results.size())
     {
-        report_results(rq->id(), final_results, name());
+        m_pap->report_results( rq->id(), final_results );
     }
 }
 
@@ -140,3 +148,5 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
 }
+
+}}

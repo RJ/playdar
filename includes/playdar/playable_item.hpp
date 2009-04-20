@@ -1,7 +1,7 @@
 #ifndef __PLAYABLE_ITEM_H__
 #define __PLAYABLE_ITEM_H__
 #include "playdar/resolved_item.h"
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include "playdar/library.h"
 #include "playdar/ss_curl.hpp"
 #include "json_spirit/json_spirit.h"
@@ -9,6 +9,8 @@
 #include <cassert>
 #include <string>
 #include <map>
+
+namespace playdar {
 
 /*
     Represents something (a song) that can be played.
@@ -30,6 +32,7 @@ public:
         set_bitrate(0);
         set_mimetype("text/plain");
         set_source("unspecified");
+        set_url("");
     }
     
     PlayableItem(std::string art, std::string alb, std::string trk)
@@ -45,11 +48,10 @@ public:
         set_bitrate(0);
         set_mimetype("text/plain");
         set_source("unspecified");
+        set_url("");
     }
 
-    static
-    pi_ptr 
-    create(Library& lib, int fid)
+    static pi_ptr create(Library& lib, int fid)
     {
         LibraryFile_ptr file( lib.file_from_fid(fid) );
         pi_ptr pip( new PlayableItem() );
@@ -69,8 +71,7 @@ public:
             album_ptr albobj = lib.load_album(file->pialbid);
             pip->set_album(albobj->name());
         }
-        boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(file->url));
-        pip->set_streaming_strategy(ss);
+        pip->set_url( file->url );
         return pip;
     }
 
@@ -119,7 +120,9 @@ public:
         if(resobj_map.find("mimetype")!=resobj_map.end())
             mimetype= resobj_map["mimetype"].get_str();
             
-        
+        if(resobj_map.find("url")!=resobj_map.end())
+            url = resobj_map["url"].get_str();
+            
         if(resobj_map.find("size")!=resobj_map.end())
             size    = resobj_map["size"].get_int();
             
@@ -148,6 +151,7 @@ public:
         if(sid.length())        pip->set_id(sid);
         if(source.length())     pip->set_source(source);
         if(mimetype.length())   pip->set_mimetype(mimetype);
+        if(url.length())        pip->set_url(url);
         if(size)                pip->set_size(size);
         if(bitrate)             pip->set_bitrate(bitrate);
         if(duration)            pip->set_duration(duration);
@@ -168,25 +172,23 @@ public:
         j.push_back( Pair("mimetype", mimetype())   );
         j.push_back( Pair("bitrate", bitrate())     );
         j.push_back( Pair("duration", duration())   );
+        j.push_back( Pair("url", url())   );
     }
     
     void set_artist(std::string s)   { m_artist = s; }
     void set_album(std::string s)    { m_album  = s; }
     void set_track(std::string s)    { m_track  = s; }
-
     void set_mimetype(std::string s) { m_mimetype = s; }
     void set_duration(int s)         { m_duration = s; }
     void set_tracknum(int s)         { m_tracknum = s; }
     void set_size(int s)             { m_size = s; }
     void set_bitrate(int s)          { m_bitrate = s; }
-
     void set_streaming_strategy(boost::shared_ptr<StreamingStrategy> s)   { m_ss = s; }
     
     const std::string & artist() const   { return m_artist; }
     const std::string & album() const    { return m_album; }
     const std::string & track() const    { return m_track; }
     const std::string & mimetype() const { return m_mimetype; }
-
     const int duration() const           { return m_duration; }
     const int bitrate() const            { return m_bitrate; }
     const int tracknum() const           { return m_tracknum; }
@@ -202,10 +204,13 @@ public:
     }
     
 private:
+
     std::string m_artist;
     std::string m_album;
     std::string m_track;
     std::string m_mimetype;
+    std::string m_url;
+
     int m_size;
     int m_duration;
     int m_bitrate;
@@ -215,5 +220,7 @@ private:
     
     boost::shared_ptr<StreamingStrategy> m_ss;
 };
+
+} // ns
 
 #endif

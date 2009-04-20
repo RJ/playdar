@@ -13,6 +13,7 @@
 #include "playdar/streaming_strategy.h"
 #include "playdar/utils/base64.h"
 
+namespace playdar {
 
 using namespace boost::asio::ip;
 /*
@@ -31,9 +32,10 @@ public:
         , m_thread(0)
         , m_abort(false)
     {
+        std::cout << "CTOR ss_curl: " << url << std::endl;
         reset();
     }
-
+    
     /// copy constructor, used by get_instance()
     CurlStreamingStrategy(const CurlStreamingStrategy& other)
         : m_curl(0)
@@ -46,6 +48,7 @@ public:
 
     ~CurlStreamingStrategy()
     { 
+        std::cout << "DTOR ss_curl: " << m_url << std::endl;
         if(m_thread)
         {
             m_abort = true; // will cause thread to terminate
@@ -99,7 +102,7 @@ public:
     std::string debug()
     { 
         std::ostringstream s;
-        s<< "CurlStreamingStrategy( " << m_url << " )";
+        s << "CurlStreamingStrategy( " << m_url << " )";
         return s.str();
     }
     
@@ -216,5 +219,7 @@ protected:
     boost::thread * m_thread;
     bool m_abort;
 };
+
+}
 
 #endif

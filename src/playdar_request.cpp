@@ -5,6 +5,8 @@
 
 using namespace std;
 
+namespace playdar {
+
 playdar_request::playdar_request( const moost::http::request& req )
 {
     // Parse params from querystring:
@@ -73,4 +75,6 @@ playdar_request::collect_params(const std::string & url, std::map<std::string,st
         vars[ playdar::utils::url_decode( paramParts[0] )] = playdar::utils::url_decode( paramParts[1] );
     }
     return vars.size();
+}
+
 }

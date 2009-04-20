@@ -10,7 +10,9 @@
 #include "playdar/library.h"
 #include "playdar/application.h"
 #include "playdar/auth.hpp"
-         
+
+namespace playdar {
+
 class playdar_request;
 
 class playdar_request_handler : public moost::http::request_handler_base<playdar_request_handler>
@@ -59,6 +61,7 @@ private:
 
 };
 
+}
 
 #endif // __PLAYDAR_REQUEST_HANDLER_H__
 

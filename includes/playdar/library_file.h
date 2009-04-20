@@ -3,6 +3,8 @@
 
 #include <string>
 
+namespace playdar {
+
 // a "File" from the playdar local library db
 class LibraryFile
 {
@@ -17,5 +19,6 @@ public:
     int pitrkid;
 };
 
+}
 
 #endif

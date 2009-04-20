@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 
+namespace playdar {
+
 class playdar_request {
 public:
     playdar_request( const moost::http::request& );
@@ -28,5 +30,7 @@ private:
     std::map<std::string, std::string> m_getvars;
     std::map<std::string, std::string> m_postvars;    
 };
+
+}
 
 #endif //__PLAYDAR_REQUEST_H__

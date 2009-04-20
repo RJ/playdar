@@ -8,7 +8,7 @@ namespace resolvers {
     Called once when plugin is loaded when playdar starts up.
 */
 bool
-demo::init(playdar::Config * c, Resolver * r)
+demo::init(Config * c, Resolver * r)
 {
     m_resolver  = r;
     m_conf = c;

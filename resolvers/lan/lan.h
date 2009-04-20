@@ -1,16 +1,18 @@
 #ifndef __RS_lan_DL_H__
 #define __RS_lan_DL_H__
 
-#include "playdar/playdar_plugin_include.h"
-#include "json_spirit/json_spirit.h"
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
+
 #include <iostream>
 #include <map>
 #include <string>
+
+#include "playdar/playdar_plugin_include.h"
 
 
 /*
@@ -23,15 +25,14 @@
 namespace playdar {
 namespace resolvers {
 
-class lan : public ResolverServicePlugin
+class lan : public ResolverPlugin<lan>
 {
     public:
-    lan(): m_io_service( 0 ),
-           m_responder_thread( 0 ),
-           socket_( 0 ),
+    lan(): socket_( 0 ),
            broadcast_endpoint_( 0 ){}
     
-    bool init(playdar::Config * c, Resolver * r);
+    virtual bool init(pa_ptr pap);
+
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(query_uid qid);
@@ -61,20 +62,27 @@ class lan : public ResolverServicePlugin
     }
         
     playdar_response http_handler( const playdar_request& req,
-                         playdar::auth * pauth);
+                                   playdar::auth * pauth);
     
 protected:    
-    ~lan() throw();
+    virtual ~lan() throw();
     
 private:
-    boost::asio::io_service * m_io_service;
-    boost::thread * m_responder_thread;
-    void handle_send(   const boost::system::error_code& error,
-                                size_t bytes_recvd,
-                                char * scratch );
 
-    void async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
-                    string message);
+    pa_ptr m_pap;
+
+    boost::shared_ptr< boost::asio::io_service > m_io_service;
+    boost::shared_ptr< boost::thread > m_responder_thread;
+    
+    //boost::asio::io_service * m_io_service;
+    // boost::thread * m_responder_thread;
+
+    void handle_send( const boost::system::error_code& error,
+                      size_t bytes_recvd,
+                      char * scratch );
+
+    void async_send( boost::asio::ip::udp::endpoint * remote_endpoint,
+                     std::string message );
 
     boost::asio::ip::udp::socket * socket_;
     boost::asio::ip::udp::endpoint sender_endpoint_;
@@ -83,24 +91,27 @@ private:
     char data_[max_length];
     
     // a lan node we got a ping from:
-    typedef struct 
+    struct lannode
     { 
-        string name;
+        std::string name;
         time_t lastdate; 
-        string http_base;
+        std::string http_base;
         boost::asio::ip::udp::endpoint udp_ep;
-    } lannode;
+    };
+
     // nodes we've seen:
-    map<string,lannode> m_lannodes;
+    std::map<std::string,lannode> m_lannodes;
+
     // lan discovery:
     void send_ping();
     void send_pong( boost::asio::ip::udp::endpoint sender_endpoint);
     void send_pang();
-	void receive_pong(map<string, json_spirit::Value> & om,
+
+    void receive_pong(std::map<std::string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
-    void receive_ping(map<string, json_spirit::Value> & om,
+    void receive_ping(std::map<std::string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
-    void receive_pang(map<string, json_spirit::Value> & om,
+    void receive_pang(std::map<std::string, json_spirit::Value> & om,
                       const boost::asio::ip::udp::endpoint &  sender_endpoint);
 };
 

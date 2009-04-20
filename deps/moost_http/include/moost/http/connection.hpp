@@ -39,7 +39,7 @@ private:
   /// Handle completion of a write operation.
   void handle_write(const boost::system::error_code& e);
   /// Handle completion of headers-sent, then wait on body.
-  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<StreamingStrategy> ss, char * scratch);
+  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<playdar::StreamingStrategy> ss, char * scratch);
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
 
@@ -105,8 +105,8 @@ void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
       }
       else // streaming enabled, use the streamingstrategy.
       {
-        boost::shared_ptr<StreamingStrategy> ss = reply_.get_ss();
-        cout << "sending headers.." << endl;
+        boost::shared_ptr<playdar::StreamingStrategy> ss = reply_.get_ss();
+        std::cout << "sending headers.." << std::endl;
         boost::asio::async_write(socket_, reply_.to_buffers(false),
             strand_.wrap(
             boost::bind(&connection<RequestHandler>::handle_write_stream,             connection<RequestHandler>::shared_from_this(),
@@ -159,11 +159,11 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
 /// Used when handler sends headers first, then streams body.
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write_stream 
-    (const boost::system::error_code& e, 
-     boost::shared_ptr<StreamingStrategy> ss,
+    ( const boost::system::error_code& e, 
+      boost::shared_ptr<playdar::StreamingStrategy> ss,
      char * scratch)
 {
-    //cout << "handle_write_stream" << endl;
+    //std::cout << "handle_write_stream" << std::endl;
     if(scratch)
     {
         // free previous buffer
@@ -173,16 +173,16 @@ void connection<RequestHandler>::handle_write_stream
     {
         if (!e)
         {
-            //cout << "Reading SS...." << endl;
+            //std::cout << "Reading SS...." << std::endl;
             if(!scratch)
             {
                 // scratch is 0 the first time.
-                cout << "Initiating ss delivery.." << endl;
+                std::cout << "Initiating ss delivery.." << std::endl;
             }
         
             if(!ss)
             {
-                cout << "StreamingStrat went away?" << endl;
+                std::cout << "StreamingStrat went away?" << std::endl;
                 break;
             }
             const size_t maxbuf = 4096 * 2;
@@ -194,7 +194,7 @@ void connection<RequestHandler>::handle_write_stream
                 if(len > 0)
                 {
                     total += len;
-                    //cout << "Sending " << len << " bytes.. " << endl;
+                    //std::cout << "Sending " << len << " bytes.. " << std::endl;
                     boost::asio::async_write(socket_, boost::asio::buffer(buf, len),
                        strand_.wrap(
                         boost::bind(&connection<RequestHandler>::handle_write_stream, connection<RequestHandler>::shared_from_this(),
@@ -203,24 +203,24 @@ void connection<RequestHandler>::handle_write_stream
                     return;
                 }
                 // end of stream..
-                cout << "EOS(" << ss->debug() << ")" << endl;
+                std::cout << "EOS(" << ss->debug() << ")" << std::endl;
             }
             catch(...)
             {
-                cout << "StreamingStrat threw an error. " << endl;
+                std::cout << "StreamingStrat threw an error. " << std::endl;
                 break;
             }
         }
         else
         {
             // this might happen if you hit stop or your browser just aborts the connection halfway.
-            cout << "handle_write_stream error for " << ss->debug() 
-                 << endl;
+            std::cout << "handle_write_stream error for " << ss->debug() 
+                 << std::endl;
             break;
         }
     }while(false);
     
-    //cout << "Shutting down socket." << endl;
+    //std::cout << "Shutting down socket." << std::endl;
     boost::system::error_code ignored_ec;
         socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }

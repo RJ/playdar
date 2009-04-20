@@ -4,31 +4,37 @@
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "playdar/resolver.h"
+
 /*
 This resolver spawns an external process, typically a python/ruby script
 which will do the actual resolving. Messages are passed to the script down
 stdin, results expected from stdout of the script.
 
-Messages sent via stdin/out are framed with a 4-byte integer (big endian) denoting the length of the message. Actual protocol msgs are JSON objects.
+Messages sent via stdin/out are framed with a 4-byte integer (big endian) 
+denoting the length of the message. Actual protocol msgs are JSON objects.
 */
-namespace playdar {
-namespace resolvers {
+
+using namespace std;
+
+namespace playdar { namespace resolvers {
 
 /*
     init() will spawn the external script and block until the script
     sends us a settings object, containing a name, weight and targettime.
 */
 bool
-rs_script::init(playdar::Config * c, Resolver * r, string script) 
+rs_script::init(pa_ptr pap) 
 {
-    m_resolver  = r;
-    m_conf = c;
+    assert( pap->script() );
+    m_pap = pap;
     m_dead = false;
     m_exiting = false;
     m_weight = 1;
     m_targettime = 1000;
     m_got_settings = false;
-    m_scriptpath = script;
+    m_scriptpath = m_pap->scriptpath();
     if(m_scriptpath=="")
     {
         cout << "No script path specified. gateway plugin failed." 
@@ -57,9 +63,6 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
             boost::xtime_get(&time,boost::TIME_UTC); 
             time.sec += 5;
             m_cond_settings.timed_wait(lk, time);
-            /* doesn't work on boost 1.35, but new way is this:
-            m_cond_settings.timed_wait(lk, boost::posix_time::seconds(5));
-            */
         }
         
         if(m_got_settings)
@@ -255,7 +258,7 @@ rs_script::process_output()
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
             cout << "Got " << resultsA.size() << " results from script" << endl;
-            vector< ri_ptr > v;
+            vector< Object > v;
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
@@ -263,34 +266,9 @@ rs_script::process_output()
                 pip = PlayableItem::from_json(po);
                 cout << "Parserd pip from script: " << endl;
                 write_formatted(  pip->get_json(), cout );
-                map<string,Value> po_map;
-                obj_to_map(po, po_map);
-                string url   = po_map["url"].get_str();  
-                cout << "url=" << url << endl;
-                // we don't give this to the shared_ptr yet, because
-                // we need to call a method specific to curlss, not
-                // in the parent ss (to set headers):
-                CurlStreamingStrategy * curlss = new CurlStreamingStrategy(url);
-                try
-                {
-                    if( po_map.find("extra_headers")!=po_map.end() &&
-                        po_map["extra_headers"].type() == array_type )
-                    {
-                        Array a = po_map["extra_headers"].get_array();
-                        BOOST_FOREACH( Value &eh, a )
-                        {
-                            if(eh.type() != str_type) continue;
-                            // not implemented in curl strat yet
-                            //curlss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
-                        }
-                    }
-                } 
-                catch(...) { delete curlss; continue; }
-                boost::shared_ptr<StreamingStrategy> s(curlss);
-                pip->set_streaming_strategy(s);
-                v.push_back(pip);
+                v.push_back( pip->get_json() );
             }
-            report_results(qid, v, name());
+            m_pap->report_results( qid, v );
         }
     }
     cout << "Gateway plugin read loop exited" << endl;

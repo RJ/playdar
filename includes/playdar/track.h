@@ -4,6 +4,8 @@
 #include <string>
 #include "types.h"
 
+namespace playdar {
+
 class Track
 {
 public:
@@ -21,4 +23,7 @@ private:
     std::string m_name;
     artist_ptr m_artist;
 };
+
+}
+
 #endif

@@ -3,7 +3,7 @@
 
 //#include "playdar/application.h"
 #include "playdar/types.h"
-#include "playdar/config.h"
+#include "playdar/config.hpp"
 #include "playdar/playable_item.hpp"
 
 #include "json_spirit/json_spirit.h"
@@ -13,6 +13,8 @@
 #include <boost/function.hpp>
 #include <boost/thread/mutex.hpp>
 #include "time.h"
+
+namespace playdar {
 
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
@@ -118,7 +120,7 @@ public:
     { 
         if(!m_uuid.length())
         {
-            m_uuid = playdar::Config::gen_uuid();
+            m_uuid = playdar::utils::gen_uuid();
         }
         return m_uuid; 
     }
@@ -132,6 +134,7 @@ public:
     {
         time(&m_atime);
         // sort results on score/preference.
+        // TODO this could be memoized
         boost::function
                     < bool 
                     (   const ri_ptr &, 
@@ -240,6 +243,8 @@ private:
     mutable time_t m_atime; 
 
 };
+
+}
 
 #endif
 

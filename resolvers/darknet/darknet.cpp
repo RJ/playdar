@@ -1,11 +1,7 @@
 #include "darknet.h"
-#include "msgs.h"
-#include "servent.h"
-#include "ss_darknet.h"
+
 #include <iostream>                        
-#include <boost/asio.hpp>                  
 #include <boost/lexical_cast.hpp>          
-#include <boost/thread.hpp>                
 #include <boost/shared_ptr.hpp>
 #include <boost/algorithm/string.hpp> 
 #include <boost/foreach.hpp>
@@ -15,17 +11,27 @@
 #include <boost/lexical_cast.hpp>
 #include <cassert>
 
+#include "playdar/resolver_query.hpp"
+#include "playdar/playdar_request.h"
+#include "playdar/auth.hpp"
+
+#include "servent.h"
+#include "ss_darknet.h"
+
+using namespace std;
 using namespace json_spirit;
 
 namespace playdar {
 namespace resolvers {
 
-bool
-darknet::init(playdar::Config * c, Resolver * r)
+bool darknet::init(pa_ptr pap)
 {
-    m_resolver = r;
-    m_conf = c;
-    unsigned short port = conf()->get<int>("plugins.darknet.port",9999);
+    m_pap = pap;
+    //m_resolver = r;
+    //m_conf = c;
+
+    unsigned short port = pap->get("plugins.darknet.port", 9999);
+
     m_io_service = boost::shared_ptr<boost::asio::io_service>
                    (new boost::asio::io_service);
     m_work = boost::shared_ptr<boost::asio::io_service::work>
@@ -35,19 +41,19 @@ darknet::init(playdar::Config * c, Resolver * r)
     // start io_services:
     cout << "Darknet servent coming online on port " <<  port <<endl;
     
-    m_threads = new boost::thread_group; // TODO configurable threads?
     for (std::size_t i = 0; i < 5; ++i)
     {
-        m_threads->create_thread(boost::bind(
+        m_threads.create_thread( boost::bind(
             &boost::asio::io_service::run, m_io_service.get()));
     }
  
     // get peers: TODO support multiple/list from config
-    string remote_ip = conf()->get<string>("plugins.darknet.peerip","");
+    string remote_ip = pap->get<string>("plugins.darknet.peerip","");
     if(remote_ip!="")
     {
-        unsigned short remote_port = conf()->get<int>
+        unsigned short remote_port = pap->get<int>
                                      ("plugins.darknet.peerport",9999);
+
         cout << "Attempting peer connect: " 
              << remote_ip << ":" << remote_port << endl;
         boost::asio::ip::address_v4 ipaddr = boost::asio::ip::address_v4::from_string(remote_ip);
@@ -60,8 +66,8 @@ darknet::init(playdar::Config * c, Resolver * r)
 darknet::~darknet() throw()
 {
     m_io_service->stop();
-    m_threads->join_all();
-    
+    m_threads.join_all();
+    cout << "Unloading " << this->name() << endl;
 }
 
 void
@@ -75,13 +81,13 @@ darknet::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     start_search(msg);
 }
 
-/// ---
+// ---
 
 bool 
 darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(conf()->name(), WELCOME));
+    msg_ptr lm(new LameMsg(name(), WELCOME));
     send_msg(conn, lm);
     return true;
 }
@@ -96,7 +102,7 @@ darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::end
 void
 darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(conf()->name(), IDENTIFY));
+    msg_ptr lm(new LameMsg(name(), IDENTIFY));
     send_msg(conn, lm);
 }
 
@@ -189,56 +195,56 @@ darknet::handle_read(   const boost::system::error_code& e,
 bool
 darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
 {
-    using namespace json_spirit;
-    boost::shared_ptr<ResolverQuery> rq;
-    try
-    {
-        Value mv;
-        if(!read(msg->payload(), mv)) 
-        {
-            cout << "Darknet: invalid JSON in this message, discarding." << endl;
-            return false; // invalid json = disconnect them.
-        }
-        Object qo = mv.get_obj();
-        rq = ResolverQuery::from_json(qo);
-    } 
-    catch (...) 
-    {
-        cout << "Darknet: invalid search json, discarding" << endl;
-        return true; //TODO maybe false - cut off the connection?
-    }
-    
-    if(resolver()->query_exists(rq->id()))
-    {
-        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
-        return true;
-    }
-
-    // register source for this query, so we know where to 
-    // send any replies to.
-    set_query_origin(rq->id(), conn);
-
-    // dispatch search with our callback handler:
-    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2);
-    query_uid qid = resolver()->dispatch(rq, cb);
-    
-    assert(rq->id() == qid);
-    
-    /*
-        schedule search to be fwded to our peers - this will abort if
-        the query has been solved before it fires anyway.
-          
-        The 100ms delay is intentional - it means cancellation messages
-        can reach the search frontier immediately (fwded with no delay)
-    */
-    boost::shared_ptr<boost::asio::deadline_timer> 
-        t(new boost::asio::deadline_timer( m_work->get_io_service() ));
-    t->expires_from_now(boost::posix_time::milliseconds(100));
-    // pass the timer pointer to the handler so it doesnt autodestruct:
-    t->async_wait(boost::bind(&darknet::fwd_search, this,
-                                boost::asio::placeholders::error, 
-                                conn, msg, t, qid));
-
+//    using namespace json_spirit;
+//    boost::shared_ptr<ResolverQuery> rq;
+//    try
+//    {
+//        Value mv;
+//        if(!read(msg->payload(), mv)) 
+//        {
+//            cout << "Darknet: invalid JSON in this message, discarding." << endl;
+//            return false; // invalid json = disconnect them.
+//        }
+//        Object qo = mv.get_obj();
+//        rq = ResolverQuery::from_json(qo);
+//    } 
+//    catch (...) 
+//    {
+//        cout << "Darknet: invalid search json, discarding" << endl;
+//        return true; //TODO maybe false - cut off the connection?
+//    }
+//    
+//    if(resolver()->query_exists(rq->id()))
+//    {
+//        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+//        return true;
+//    }
+//
+//    // register source for this query, so we know where to 
+//    // send any replies to.
+//    set_query_origin(rq->id(), conn);
+//
+//    // dispatch search with our callback handler:
+//    rq_callback_t cb = boost::bind(&darknet::send_response, this, _1, _2);
+//    query_uid qid = resolver()->dispatch(rq, cb);
+//    
+//    assert(rq->id() == qid);
+//    
+//    /*
+//        schedule search to be fwded to our peers - this will abort if
+//        the query has been solved before it fires anyway.
+//          
+//        The 100ms delay is intentional - it means cancellation messages
+//        can reach the search frontier immediately (fwded with no delay)
+//    */
+//    boost::shared_ptr<boost::asio::deadline_timer> 
+//        t(new boost::asio::deadline_timer( m_work->get_io_service() ));
+//    t->expires_from_now(boost::posix_time::milliseconds(100));
+//    // pass the timer pointer to the handler so it doesnt autodestruct:
+//    t->async_wait(boost::bind(&darknet::fwd_search, this,
+//                                boost::asio::placeholders::error, 
+//                                conn, msg, t, qid));
+//
     return true;
 }
 
@@ -253,26 +259,26 @@ darknet::fwd_search(const boost::system::error_code& e,
         cout << "Error from timer, not fwding: "<< e.value() << " = " << e.message() << endl;
         return;
     }
-    // bail if already solved (probably from our locallibrary resolver)
-    if(resolver()->rq(qid)->solved())
-    {
-        //cout << "Darknet: not relaying solved search: " << qid << endl;
-        return;
-    }
-    
-    // TODO check search is still active
-    cout << "Forwarding search.." << endl;
-    typedef std::pair<string,connection_ptr> pair_t;
-    BOOST_FOREACH(pair_t item, m_connections)
-    {
-        if(item.second == conn)
-        {
-            cout << "Skipping " << item.first << " (origin)" << endl;
-            continue;
-        }
-        cout << "\tFwding to: " << item.first << endl;
-        send_msg(item.second, msg);
-    }
+//    // bail if already solved (probably from our locallibrary resolver)
+//    if(resolver()->rq(qid)->solved())
+//    {
+//        //cout << "Darknet: not relaying solved search: " << qid << endl;
+//        return;
+//    }
+//    
+//    // TODO check search is still active
+//    cout << "Forwarding search.." << endl;
+//    typedef std::pair<string,connection_ptr> pair_t;
+//    BOOST_FOREACH(pair_t item, m_connections)
+//    {
+//        if(item.second == conn)
+//        {
+//            cout << "Skipping " << item.first << " (origin)" << endl;
+//            continue;
+//        }
+//        cout << "\tFwding to: " << item.first << endl;
+//        send_msg(item.second, msg);
+//    }
 }
 
 // fired when a new result is available for a running query:
@@ -300,7 +306,6 @@ bool
 darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
     //cout << "Got search result: " << msg->toString() << endl;
-    using namespace json_spirit;
     // try and parse it as json:
     Value v;
     if(!read(msg->payload(), v)) 
@@ -319,23 +324,23 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     query_uid qid = r["qid"].get_str();
     Object resobj = r["result"].get_obj();
     ri_ptr rip;
-    try
-    {
-        rip = resolver()->ri_from_json(resobj);
-        
-    }
-    catch (...)
-    {
-        cout << "Darknet: Missing fields in response json, discarding" << endl;
-        return true; // could just be incompatible version, not too bad. don't disconnect.
-    }
-    boost::shared_ptr<StreamingStrategy> s(
-                            new DarknetStreamingStrategy( this, conn, rip->id() ));
-    rip->set_streaming_strategy(s);
-    vector< boost::shared_ptr<ResolvedItem> > vr;
-    vr.push_back(rip);
-    report_results(qid, vr, name());
-    // we've already setup a callback, which will be fired when we call report_results.    
+    //try
+    //{
+    //    rip = resolver()->ri_from_json(resobj);
+    //    
+    //}
+    //catch (...)
+    //{
+    //    cout << "Darknet: Missing fields in response json, discarding" << endl;
+    //    return true; // could just be incompatible version, not too bad. don't disconnect.
+    //}
+    //boost::shared_ptr<StreamingStrategy> s(
+    //                        new DarknetStreamingStrategy( this, conn, rip->id() ));
+    //rip->set_streaming_strategy(s);
+    //vector< boost::shared_ptr<ResolvedItem> > vr;
+    //vr.push_back(rip);
+    //report_results(qid, vr, name());
+    //// we've already setup a callback, which will be fired when we call report_results.    
     return true;
 }
 
@@ -353,59 +358,59 @@ darknet::start_sidrequest(connection_ptr conn, source_uid sid,
 bool
 darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
-    source_uid sid = msg->payload();
-    cout << "Darknet request for sid: " << sid << endl;
-    boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
-    
-    pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-    if( !pip )
-        return false;
-    
-    // We send SIDDATA msgs, where the payload is a sid_header followed
-    // by the audio data.
-    char buf[8194]; // this is the lamemsg payload.
-    int len, total=0;
-    sid_header sheader;
-    memcpy((char*)&sheader.sid, sid.c_str(), 36);
-    // put sheader at the start of our buffer:
-    memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
-    
-    if(pip) // send data:
-    {
-        cout << "-> PlayableItem: " << pip->artist() 
-             << " - " << pip->track() << endl;
-        boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
-        cout << "-> " << ss->debug() << endl;
-        cout << "-> source: '"<< pip->source() <<"'" << endl;
-        cout << "Sending siddata packets: header.sid:'" 
-            << sid << "'" << endl;
-        // this will be the offset where we write audio data,
-        // to leave the sid_header intact at the start:
-        char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
-        // read audio data into buffer at the data offset:
-        while ((len = ss->read_bytes( buf_datapos,
-                                      sizeof(buf)-sizeof(sid_header))
-               )>0)
-        {
-            total+=len;
-            string payload((const char*)&buf, sizeof(sid_header)+len);
-            msg_ptr msgp(new LameMsg(payload, SIDDATA));
-            send_msg(conn, msgp);
-        }
-    }
-    else
-    {
-        cout << "No playableitem for sid '"<<sid<<"'" << endl;
-        // send empty packet anyway, to signify EOS
-        // TODO possibly send an msgtype=error msg
-    }
-    
-    // send empty siddata to signify end of stream
-    cout << "Sending end part. Transferred " << total << " bytes" << endl;
-    string eostream((char*)&buf, sizeof(sid_header));
-    msg_ptr msge(new LameMsg(eostream, SIDDATA));
-    send_msg(conn, msge);
-    cout << "Darknet: done streaming sid" << endl; 
+    //source_uid sid = msg->payload();
+    //cout << "Darknet request for sid: " << sid << endl;
+    //boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
+    //
+    //pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
+    //if( !pip )
+    //    return false;
+    //
+    //// We send SIDDATA msgs, where the payload is a sid_header followed
+    //// by the audio data.
+    //char buf[8194]; // this is the lamemsg payload.
+    //int len, total=0;
+    //sid_header sheader;
+    //memcpy((char*)&sheader.sid, sid.c_str(), 36);
+    //// put sheader at the start of our buffer:
+    //memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
+    //
+    //if(pip) // send data:
+    //{
+    //    cout << "-> PlayableItem: " << pip->artist() 
+    //         << " - " << pip->track() << endl;
+    //    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
+    //    cout << "-> " << ss->debug() << endl;
+    //    cout << "-> source: '"<< pip->source() <<"'" << endl;
+    //    cout << "Sending siddata packets: header.sid:'" 
+    //        << sid << "'" << endl;
+    //    // this will be the offset where we write audio data,
+    //    // to leave the sid_header intact at the start:
+    //    char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
+    //    // read audio data into buffer at the data offset:
+    //    while ((len = ss->read_bytes( buf_datapos,
+    //                                  sizeof(buf)-sizeof(sid_header))
+    //           )>0)
+    //    {
+    //        total+=len;
+    //        string payload((const char*)&buf, sizeof(sid_header)+len);
+    //        msg_ptr msgp(new LameMsg(payload, SIDDATA));
+    //        send_msg(conn, msgp);
+    //    }
+    //}
+    //else
+    //{
+    //    cout << "No playableitem for sid '"<<sid<<"'" << endl;
+    //    // send empty packet anyway, to signify EOS
+    //    // TODO possibly send an msgtype=error msg
+    //}
+    //
+    //// send empty siddata to signify end of stream
+    //cout << "Sending end part. Transferred " << total << " bytes" << endl;
+    //string eostream((char*)&buf, sizeof(sid_header));
+    //msg_ptr msge(new LameMsg(eostream, SIDDATA));
+    //send_msg(conn, msge);
+    //cout << "Darknet: done streaming sid" << endl; 
     return true;
 }
 
@@ -519,8 +524,8 @@ darknet::http_handler(const playdar_request& req,
     return os.str();
 }
 
+
 EXPORT_DYNAMIC_CLASS( darknet )
 
-}
-}
+} }
 
