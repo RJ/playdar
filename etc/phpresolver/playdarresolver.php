@@ -1,6 +1,7 @@
 <?php
 
 /**
+ * @author David Singleton (http://dsingleton.co.uk)
  * A base player resolver written in PHP.
  * Handles basic request/response, encoding.
  */
@@ -81,6 +82,13 @@ abstract class PlaydarResolver
             'weight' => $this->weight,
         );
         return $settings;
+    }
+    
+    public function log($message)
+    {
+        $fh = fopen("php://STDIN", 'w');
+        fwrite($fh, __CLASS__ . ' log: ' . $message);
+        fclose($fh);
     }
 }
 
