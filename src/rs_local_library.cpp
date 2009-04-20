@@ -80,9 +80,7 @@ RS_local_library::run()
 void
 RS_local_library::process( rq_ptr rq )
 {
-    typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
-    vector< result_pair > final_results;
-    
+    vector< json_spirit::Object > final_results;
     // get candidates (rough potential matches):
     vector<scorepair> candidates = find_candidates(rq, 10);
     // now do the "real" scoring of candidate results:
@@ -96,9 +94,7 @@ RS_local_library::process( rq_ptr rq )
         {
             pi_ptr pip = PlayableItem::create(*app()->library(), fid);
             pip->set_source( m_pap->hostname() );
-            boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
-            pip->set_url("");
-            final_results.push_back( result_pair(pip->get_json(), ss) );
+            final_results.push_back( pip->get_json() );
         }
     }
     if(final_results.size())

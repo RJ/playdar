@@ -25,17 +25,16 @@ namespace playdar { namespace resolvers {
     sends us a settings object, containing a name, weight and targettime.
 */
 bool
-rs_script::init(pa_ptr pap, string script) 
+rs_script::init(pa_ptr pap) 
 {
-    /*
-    m_resolver  = r;
-    m_conf = c;
+    assert( pap->script() );
+    m_pap = pap;
     m_dead = false;
     m_exiting = false;
     m_weight = 1;
     m_targettime = 1000;
     m_got_settings = false;
-    m_scriptpath = script;
+    m_scriptpath = m_pap->scriptpath();
     if(m_scriptpath=="")
     {
         cout << "No script path specified. gateway plugin failed." 
@@ -80,7 +79,6 @@ rs_script::init(pa_ptr pap, string script)
             return false;
         }
     }
-    */
     return true;
 }
 
@@ -260,7 +258,7 @@ rs_script::process_output()
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
             cout << "Got " << resultsA.size() << " results from script" << endl;
-            vector< ri_ptr > v;
+            vector< Object > v;
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
@@ -268,34 +266,9 @@ rs_script::process_output()
                 pip = PlayableItem::from_json(po);
                 cout << "Parserd pip from script: " << endl;
                 write_formatted(  pip->get_json(), cout );
-                map<string,Value> po_map;
-                obj_to_map(po, po_map);
-                string url   = po_map["url"].get_str();  
-                cout << "url=" << url << endl;
-                // we don't give this to the shared_ptr yet, because
-                // we need to call a method specific to curlss, not
-                // in the parent ss (to set headers):
-                CurlStreamingStrategy * curlss = new CurlStreamingStrategy(url);
-                try
-                {
-                    if( po_map.find("extra_headers")!=po_map.end() &&
-                        po_map["extra_headers"].type() == array_type )
-                    {
-                        Array a = po_map["extra_headers"].get_array();
-                        BOOST_FOREACH( Value &eh, a )
-                        {
-                            if(eh.type() != str_type) continue;
-                            // not implemented in curl strat yet
-                            //curlss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
-                        }
-                    }
-                } 
-                catch(...) { delete curlss; continue; }
-                boost::shared_ptr<StreamingStrategy> s(curlss);
-                pip->set_streaming_strategy(s);
-                v.push_back(pip);
+                v.push_back( pip->get_json() );
             }
-//            report_results(qid, v, name());
+            m_pap->report_results( qid, v );
         }
     }
     cout << "Gateway plugin read loop exited" << endl;

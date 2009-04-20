@@ -68,6 +68,9 @@ public:
     }
     void set_source(std::string s)   { m_source = s; }
     
+    virtual void set_url(std::string s)      { m_url = s; }
+    virtual const std::string & url() const  { return m_url; }
+    
     //TODO: move this into PlayableItem somehow
     virtual void set_streaming_strategy(boost::shared_ptr<class StreamingStrategy> s){}
     virtual boost::shared_ptr<class StreamingStrategy> streaming_strategy() const 
@@ -82,6 +85,7 @@ protected:
 private:
     float m_score;
     std::string m_source;
+    std::string m_url;
  
     mutable source_uid m_uuid;
 

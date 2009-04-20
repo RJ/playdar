@@ -184,7 +184,6 @@ public:
     void set_artist(std::string s)   { m_artist = s; }
     void set_album(std::string s)    { m_album  = s; }
     void set_track(std::string s)    { m_track  = s; }
-    void set_url(std::string s)      { m_url = s; }
     void set_mimetype(std::string s) { m_mimetype = s; }
     void set_duration(int s)         { m_duration = s; }
     void set_tracknum(int s)         { m_tracknum = s; }
@@ -196,7 +195,6 @@ public:
     const std::string & album() const    { return m_album; }
     const std::string & track() const    { return m_track; }
     const std::string & mimetype() const { return m_mimetype; }
-    const std::string & url() const      { return m_url; }
     const int duration() const           { return m_duration; }
     const int bitrate() const            { return m_bitrate; }
     const int tracknum() const           { return m_tracknum; }

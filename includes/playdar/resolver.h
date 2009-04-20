@@ -35,6 +35,7 @@ class Resolver
 public:
     Resolver(MyApplication * app);
     ~Resolver();
+    void detect_curl_capabilities();
     void load_resolver_plugins();
     void load_resolver_scripts();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
@@ -42,7 +43,7 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     const vector< std::pair<ri_ptr,ss_ptr> >& results,
+                     const vector< ri_ptr >& results,
                      string via);
     vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
@@ -111,7 +112,7 @@ private:
     MyApplication * m_app;
     
     map< query_uid, rq_ptr > m_queries;
-    map< source_uid, ss_ptr > m_sid2ss;
+    map< source_uid, ri_ptr > m_sid2ri;
     // timers used to auto-cancel queries that are inactive for long enough:
     map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     
@@ -135,9 +136,13 @@ private:
     boost::mutex m_mutex;
     boost::condition m_cond;
     
-    
     std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
+    // StreamingStrategy factories
+    std::map< std::string, boost::function<ss_ptr(std::string)> > m_ss_factories;
+    
+    template <class T>
+    boost::shared_ptr<T> ss_ptr_generator(string url);
 };
 
 }
