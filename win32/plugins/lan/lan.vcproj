@@ -2,11 +2,10 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="darknet"
-	ProjectGUID="{D2E0BB44-E9D6-4E08-8DB6-721C2EF605F6}"
-	RootNamespace="darknet"
+	Name="lan"
+	ProjectGUID="{D5D21915-3358-4992-BDA1-E50E2D5C7BCF}"
+	RootNamespace="lan"
 	Keyword="Win32Proj"
-	AssemblyReferenceSearchPaths="&quot;..\..\playdar\Debug&quot;"
 	>
 	<Platforms>
 		<Platform
@@ -42,10 +41,10 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/json_spirit_v3.00;&quot;../../../deps/pdl-0.3.0/include&quot;;&quot;../../../deps/sqlite3pp-read-only&quot;;&quot;../../../deps/sqlite-amalgamation-3_6_12&quot;;../../../deps/moost_http/include;&quot;../../../deps/libcurl-7.19.3/include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;DARKNET_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;NOMINMAX"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LAN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;NOMINMAX"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -62,10 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spiritd.lib curllib.lib"
-				OutputFile="..\..\..\plugins\$(ProjectName)d.dll"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -120,7 +116,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;DARKNET_EXPORTS"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LAN_EXPORTS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -180,19 +176,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\resolvers\darknet\darknet.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\src\playdar_request.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\darknet\servent.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\src\utils\uuid.cpp"
+				RelativePath="..\..\..\resolvers\lan\lan.cpp"
 				>
 			</File>
 		</Filter>
@@ -202,27 +186,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\..\resolvers\darknet\connection.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\darknet\darknet.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\darknet\msgs.h"
+				RelativePath="..\..\..\resolvers\lan\lan.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\..\includes\playdar\playdar_plugin_include.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\darknet\servent.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\darknet\ss_darknet.h"
 				>
 			</File>
 		</Filter>

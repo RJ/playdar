@@ -234,7 +234,7 @@ Resolver::load_resolver_plugins()
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
             cout << "Loading resolver: " << pluginfile << endl;
-            ResolverService * instance = 
+            ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
                     
