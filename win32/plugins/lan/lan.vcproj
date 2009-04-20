@@ -44,7 +44,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LAN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;NOMINMAX"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,7 +61,10 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="json_spiritd.lib curllib.lib"
+				OutputFile="..\..\..\plugins\$(ProjectName)d.dll"
 				LinkIncremental="2"
+				AdditionalLibraryDirectories="../../lib"
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				TargetMachine="1"
@@ -177,6 +180,10 @@
 			>
 			<File
 				RelativePath="..\..\..\resolvers\lan\lan.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\src\utils\uuid.cpp"
 				>
 			</File>
 		</Filter>
