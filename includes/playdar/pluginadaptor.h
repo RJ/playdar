@@ -12,7 +12,10 @@ class ResolverService;
 class PluginAdaptor
 {
 protected:
-    typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
+    // validator and generator functions to pass to the resolver in 
+    // order to generate the correct derived ResolvedItem type from json_spirit
+    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
+    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
     
 public:
     const unsigned int api_version() const 
@@ -40,6 +43,8 @@ public:
 
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
+    
+    virtual void register_resolved_item( const ri_validator&, const ri_generator& ) = 0;
     
     unsigned int targettime() const { return m_targettime; }
     unsigned short weight() const { return m_weight; }

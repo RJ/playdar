@@ -53,7 +53,13 @@ public:
 
     static pi_ptr create(Library& lib, int fid)
     {
-        LibraryFile_ptr file( lib.file_from_fid(fid) );
+        return create( lib.db(), fid );
+    }
+    
+    static pi_ptr create( sqlite3pp::database* db, int fid )
+    {
+        LibraryFile_ptr file( Library::file_from_fid( db, fid) );
+        
         pi_ptr pip( new PlayableItem() );
         pip->set_mimetype( file->mimetype );
         pip->set_size( file->size );
@@ -62,13 +68,13 @@ public:
         //    int m_tracknum;
         //    float m_score;
         //    string m_source;
-        artist_ptr artobj = lib.load_artist(file->piartid);
-        track_ptr trkobj = lib.load_track(file->pitrkid);
+        artist_ptr artobj = Library::load_artist( db, file->piartid);
+        track_ptr trkobj = Library::load_track( db, file->pitrkid);
         pip->set_artist(artobj->name());
         pip->set_track(trkobj->name());
         // album metadata kinda optional for now
         if (file->pialbid) {
-            album_ptr albobj = lib.load_album(file->pialbid);
+            album_ptr albobj = Library::load_album(db, file->pialbid);
             pip->set_album(albobj->name());
         }
         pip->set_url( file->url );

@@ -19,6 +19,7 @@
 #include "playdar/types.h"
 #include "playdar/utils/uuid.h"
 
+#include "json_spirit/json_spirit.h"
 namespace playdar {
 
 class ResolvedItem

@@ -267,6 +267,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         // TEMP!
                         final_results.push_back( pip->get_json() );
                     }
+                    else if( rip )
+                    {
+                        final_results.push_back( rip->get_json() );
+                    }
                 }
                 catch (...)
                 {
@@ -276,9 +280,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 if ( !final_results.empty() )
                     m_pap->report_results( qid, final_results );
                 //report_results(qid, v, name());
-                cout    << "INFO Result from '" << rip->source()
-                        <<"' for '"<< write_formatted( rip->get_json())
-                        << endl;
+                if( rip )
+                    cout    << "INFO Result from '" << rip->source()
+                            <<"' for '"<< write_formatted( rip->get_json())
+                            << endl;
             }
             else if(msgtype == "ping")
             {

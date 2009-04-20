@@ -12,7 +12,6 @@ SET_TARGET_PROPERTIES( boffin PROPERTIES
                        CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_DIR}/plugins" )
 
 TARGET_LINK_LIBRARIES(boffin
-							 playdarcore
                       ${OSSPUUID_LIBRARIES}
                       ${Boost_LIBRARIES}
                       ${PLAYDAR_PLUGIN_LDFLAGS}
