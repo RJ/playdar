@@ -53,7 +53,13 @@ public:
 
     static pi_ptr create(Library& lib, int fid)
     {
-        LibraryFile_ptr file( lib.file_from_fid(fid) );
+        return create( lib.db(), fid );
+    }
+    
+    static pi_ptr create( sqlite3pp::database* db, int fid )
+    {
+        LibraryFile_ptr file( Library::file_from_fid( db, fid) );
+        
         pi_ptr pip( new PlayableItem() );
         pip->set_mimetype( file->mimetype );
         pip->set_size( file->size );
@@ -62,13 +68,13 @@ public:
         //    int m_tracknum;
         //    float m_score;
         //    string m_source;
-        artist_ptr artobj = lib.load_artist(file->piartid);
-        track_ptr trkobj = lib.load_track(file->pitrkid);
+        artist_ptr artobj = Library::load_artist( db, file->piartid);
+        track_ptr trkobj = Library::load_track( db, file->pitrkid);
         pip->set_artist(artobj->name());
         pip->set_track(trkobj->name());
         // album metadata kinda optional for now
         if (file->pialbid) {
-            album_ptr albobj = lib.load_album(file->pialbid);
+            album_ptr albobj = Library::load_album(db, file->pialbid);
             pip->set_album(albobj->name());
         }
         pip->set_url( file->url );
@@ -178,7 +184,6 @@ public:
     void set_artist(std::string s)   { m_artist = s; }
     void set_album(std::string s)    { m_album  = s; }
     void set_track(std::string s)    { m_track  = s; }
-    void set_url(std::string s)      { m_url = s; }
     void set_mimetype(std::string s) { m_mimetype = s; }
     void set_duration(int s)         { m_duration = s; }
     void set_tracknum(int s)         { m_tracknum = s; }
@@ -190,7 +195,6 @@ public:
     const std::string & album() const    { return m_album; }
     const std::string & track() const    { return m_track; }
     const std::string & mimetype() const { return m_mimetype; }
-    const std::string & url() const      { return m_url; }
     const int duration() const           { return m_duration; }
     const int bitrate() const            { return m_bitrate; }
     const int tracknum() const           { return m_tracknum; }

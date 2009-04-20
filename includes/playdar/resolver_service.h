@@ -69,7 +69,7 @@ public:
 
 protected:
     
-    virtual ~ResolverServicePlugin() {}
+    virtual ~ResolverServicePlugin() throw () {}
 }; 
 
 

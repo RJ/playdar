@@ -8,6 +8,8 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/version.hpp>
+#include <boost/bind.hpp>
+#include <boost/function.hpp>
 
 #include "playdar/resolver.h"
 
@@ -47,7 +49,10 @@ Resolver::Resolver(MyApplication * app)
     m_iothr = new boost::thread(boost::bind(
                     &boost::asio::io_service::run,
                     m_io_service));
-             
+    
+    // Initialize built-in curl SS facts:
+    detect_curl_capabilities();
+    
     // Initialize built-in local library resolver:
     load_library_resolver();
 
@@ -92,6 +97,23 @@ Resolver::Resolver(MyApplication * app)
     cout << endl;
 }
 
+/// set up SS factories for every protocol curl can handle
+void
+Resolver::detect_curl_capabilities()
+{
+    curl_version_info_data * cv = curl_version_info(CURLVERSION_NOW);
+    assert( cv->age >= 0 ); // should never get this far without curl.
+    boost::function<boost::shared_ptr<CurlStreamingStrategy>(std::string)> 
+     ssf = boost::bind( &Resolver::ss_ptr_generator<CurlStreamingStrategy>, this, _1 );
+    const char * proto;
+    for(int i = 0; (proto = cv->protocols[i]) ; i++ )
+    {
+        string p(proto);
+        cout << "SS factory registered for: " << p << endl ;
+        m_ss_factories[ p ] = ssf; // add an SS factory for this protocol
+    }
+}
+
 void
 Resolver::load_library_resolver()
 {
@@ -103,7 +125,7 @@ Resolver::load_library_resolver()
                             boost::bind( &PlayableItem::from_json, _1 ));
     
     // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)rs)->set_app(m_app);
+    ((RS_local_library *)rs)->set_app(app());
     pap->set_rs( rs );
     pap->set_weight( rs->weight() );
     pap->set_targettime( rs->target_time() );
@@ -138,8 +160,6 @@ Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
 void 
 Resolver::load_resolver_scripts()
 {
-    cerr << "SCRIPTS TODO" << endl;
-/*
     using namespace boost::filesystem;
     
     path const etc = "etc"; //FIXME don't depend on working directory
@@ -170,28 +190,31 @@ Resolver::load_resolver_scripts()
 
             cout << "-> Loading: " << name << endl;
             
-            loaded_rs cr;
-            cr.script = true;
-            cr.rs = new playdar::resolvers::rs_script();
-            bool init = ((playdar::resolvers::rs_script*) cr.rs)->init(app()->conf(), this, i->path().string());
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pap->set_script( true );
+            pap->set_scriptpath( i->path().string() );
+            ResolverService * rs = new playdar::resolvers::rs_script();
+            bool init = rs->init( pap );
             if(!init) throw 1;
-
-            cr.targettime = app()->conf()->get<int>(conf+"targettime", cr.rs->target_time());            
-            cr.weight = app()->conf()->get<int>(conf+"weight", cr.rs->weight());
-            
-            if(cr.weight > 0) {
-                m_resolvers.push_back( cr );
-                cout << "-> OK [weight:" << cr.weight 
-                     <<  " target-time:" << cr.targettime
-                     << "] " << cr.rs->name() << endl;
-             }
+            pap->set_rs( rs );
+            pap->set_weight( app()->conf()->get<int>(conf+"weight",
+                             rs->weight()) ); 
+            pap->set_targettime( app()->conf()->get<int>(conf+"targettime",
+                             rs->target_time()) );
+            // if weight == 0, it doesnt resolve, but may handle HTTP calls etc.
+            if(pap->weight() > 0) 
+            {
+                m_resolvers.push_back( pap );
+                cout << "-> OK [weight:" << pap->weight() 
+                     <<  " target-time:" << pap->targettime()
+                     << "] " << pap->rs()->name() << endl;
+            }
         }
         catch(...)
         {
             cerr << "-> ERROR initializing script at: " << *i << endl;
         }
     }
-*/
 }
 
 /// dynamically load resolver plugins:
@@ -391,36 +414,41 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 /// false means give up on this query, it's over
 /// true means carry on as normal
 bool
-Resolver::add_results(query_uid qid, const vector< std::pair<ri_ptr,ss_ptr> >& results, string via)
+Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
+    cout << "add_results(" << results.size() << ")" << endl;
     if(results.size()==0)
     {
         return true;
     }
+    DebugMutex dm("add_results");
     boost::mutex::scoped_lock lock(m_mut_results);
+    
     if(!query_exists(qid)) return false; // query was deleted
     string reason;
-    typedef std::pair<ri_ptr,ss_ptr> rpair;
     // add these new results to the ResolverQuery object
-    BOOST_FOREACH(const rpair rp, results)
+    BOOST_FOREACH(const ri_ptr rip, results)
     {
         rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rp.first);
-        if(rp.first->score() < 0 &&
-           TrackRQBuilder::valid( rq ) &&
-           pip)
+        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
+        if(pip && rip->score() < 0 &&
+           TrackRQBuilder::valid( rq ) 
+          )
         {
             float score = calculate_score( rq, pip, reason );
             if( score == 0.0) continue;
             pip->set_score( score );
         }
         
-        m_queries[qid]->add_result(rp.first);
+        m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
-        m_sid2ss[rp.first->id()] = rp.second;
-    } 
+       /// m_sid2ri[rip->id()] = rip;
+        cout << "Adding: ";
+        json_spirit::write( rip->get_json(), cout );
+        cout << endl; 
+    }
     return true;
 }
 
@@ -507,6 +535,7 @@ Resolver::cancel_query(const query_uid & qid)
     rq_ptr cq;
     {
         // removing from m_queries map means no-one can find and get a new shared_ptr given a qid:
+        DebugMutex dm("cancel_query");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         cq = rq(qid);
@@ -526,7 +555,7 @@ Resolver::cancel_query(const query_uid & qid)
         vector< ri_ptr > results = cq->results();
         BOOST_FOREACH( ri_ptr rip, results )
         {
-            m_sid2ss.erase( rip->id() );
+            m_sid2ri.erase( rip->id() );
         }
     }
     // the RQ should not be referenced anywhere and will destruct now.
@@ -540,6 +569,7 @@ Resolver::cancel_query_timeout(query_uid qid)
     cout << "Stale timeout reached for QID: " << qid << endl;
     rq_ptr rq;
     {
+        DebugMutex dm("cancel timeout");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         rq = this->rq(qid);
@@ -566,6 +596,7 @@ Resolver::cancel_query_timeout(query_uid qid)
 vector< ri_ptr >
 Resolver::get_results(query_uid qid)
 {
+    DebugMutex dm("get_results");
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
@@ -576,6 +607,7 @@ int
 Resolver::num_results(query_uid qid)
 {
     {
+        DebugMutex dm("num_results");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(query_exists(qid)) 
         {
@@ -615,10 +647,23 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
+/// this creates a SS from the URL in the ResolvedItem
+/// it checks our map of protocol -> SS factory where protocol is the bit before the : in urls.
 ss_ptr
 Resolver::get_ss(const source_uid & sid)
 {
-    return m_sid2ss[sid];
+    ri_ptr rip = m_sid2ri[sid];
+    if( rip->url().empty() ) return ss_ptr();
+    size_t offset = rip->url().find(':');
+    if( offset == string::npos ) return ss_ptr();
+    string p = rip->url().substr(0, offset);
+    cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
+    if( !rip->url().empty() && 
+        m_ss_factories.find( p ) != m_ss_factories.end() )
+    {
+        return m_ss_factories[ p ](rip->url());
+    }
+    return ss_ptr();
 }
 
 
@@ -639,6 +684,13 @@ Resolver::ri_from_json( const json_spirit::Object& j ) const
             return pair.second( j );
     }
     return ri_ptr();
+}
+
+template <class T>
+boost::shared_ptr<T>
+Resolver::ss_ptr_generator(string url)
+{
+    return boost::shared_ptr<T>(new T(url));
 }
 
 }

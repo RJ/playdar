@@ -11,13 +11,14 @@
 
 #include "playdar/application.h"
 #include <curl/curl.h>
+
 #include "playdar/playdar_request_handler.h"
 
 using namespace std;
 using namespace playdar;
 namespace po = boost::program_options;
 
-// global !
+// global because the sighandler needs it
 MyApplication * app = 0;
 
 static void sigfunc(int sig)
@@ -162,32 +163,20 @@ int main(int ac, char *av[])
         cerr << "You must use a config file." << endl;
         return 1;
     }
-    string configfile = vm["config"].as<string>();
-    cout << "Using config file: " << configfile << endl;
-            
-    Config conf(configfile);
-    if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
-    {
-        cerr << "Please edit " << configfile << endl;
-        cerr << "YOURNAMEHERE is not a valid name." << endl;
-        cerr << "Autodetecting name: " << conf.name() << endl;
-    }
-    
+
     try 
     {
+        
         string configfile = vm["config"].as<string>();
         cout << "Using config file: " << configfile << endl;
-                
         Config conf(configfile);
         if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
         {
             cerr << "Please edit " << configfile << endl;
             cerr << "YOURNAMEHERE is not a valid name." << endl;
-            cout << "Autodetecting name: " << conf.name() << endl;
+            cerr << "Autodetecting name: " << conf.name() << endl;
         }
-        
-        app = new MyApplication(conf);
-        
+
 #ifndef WIN32
         /// this might not compile on windows?
         struct sigaction setmask;
@@ -210,6 +199,7 @@ int main(int ac, char *av[])
             return 9;
         }
         
+        app = new MyApplication(conf);
         // start http server:
         string ip = "0.0.0.0"; 
         boost::thread http_thread(

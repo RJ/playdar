@@ -32,6 +32,8 @@ typedef boost::shared_ptr<ResolverQuery>     rq_ptr;
 typedef boost::shared_ptr<PluginAdaptor>     pa_ptr;
 typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
 
+
+
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
 typedef boost::function< void (const query_uid& qid, ri_ptr pip)> rq_callback_t;

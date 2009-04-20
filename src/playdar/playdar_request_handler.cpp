@@ -140,7 +140,8 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     
     if(m_pauth->consume_formtoken(req.postvar("formtoken")))
     {
-        string tok = playdar::utils::gen_uuid(); 
+        playdar::utils::uuid_gen ug;
+        string tok = ug(); 
         m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"));
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )

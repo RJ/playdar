@@ -72,7 +72,8 @@ public:
     
     std::string gen_formtoken()
     {
-        std::string f = playdar::utils::gen_uuid();
+        playdar::utils::uuid_gen ug;
+        std::string f = ug();
         m_formtokens.insert(f);
         return f;
     }
@@ -89,7 +90,6 @@ public:
     
 private:
     std::set<std::string> m_formtokens;
-    
     sqlite3pp::database m_db;
     boost::mutex m_mut;
 };

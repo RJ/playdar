@@ -12,7 +12,10 @@ class ResolverService;
 class PluginAdaptor
 {
 protected:
-    typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
+    // validator and generator functions to pass to the resolver in 
+    // order to generate the correct derived ResolvedItem type from json_spirit
+    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
+    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
     
 public:
     const unsigned int api_version() const 
@@ -29,7 +32,8 @@ public:
     template <typename T>
     T get(const std::string& key, const T& def) const;
 
-    virtual bool report_results(const query_uid& qid, const std::vector< result_pair >&) = 0;
+    // results are a vector of json result objects
+    virtual bool report_results(const query_uid& qid, const std::vector< json_spirit::Object >&) = 0;
 
     virtual std::string gen_uuid() const = 0;
     virtual void set_rs( ResolverService * rs )
@@ -40,24 +44,33 @@ public:
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
+    virtual void register_resolved_item( const ri_validator&, const ri_generator& ) = 0;
+    
     unsigned int targettime() const { return m_targettime; }
     unsigned short weight() const { return m_weight; }
     const bool script() const { return m_script; }
+    /// TODO move to norman "get" settings API once done?:
+    const std::string& scriptpath() const { return m_scriptpath; }
     
     void set_weight(unsigned short w) { m_weight = w; }
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
+    void set_scriptpath(std::string s) { m_scriptpath = s; }
 
 
     // TEMP!
+    virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq) = 0;
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb) = 0;
+    
     virtual ri_ptr ri_from_json( const json_spirit::Object& ) const = 0;
 
 private:
     ResolverService * m_rs;    // instance of a plugin
     unsigned int m_targettime; // ms before passing to next resolver
     unsigned short m_weight;   // highest weight runs first.
+    
     bool m_script;
+    std::string m_scriptpath;
     
 };
 

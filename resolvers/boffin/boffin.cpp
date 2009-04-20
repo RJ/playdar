@@ -10,11 +10,11 @@
 #include "playdar/utils/urlencoding.hpp"
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
-
+#include "playdar/playdar_request.h"
 #include "BoffinRQUtil.h"
-
 using namespace fm::last::query_parser;
-
+using std::string;
+using std::ostringstream;
 
 static RqlOp root2op( const querynode_data& node )
 {
@@ -50,6 +50,7 @@ static RqlOp leaf2op( const querynode_data& node )
 
 ////////////////////////////////////////////////////////
 
+using namespace playdar;
 
 class TagCloudItem : public ResolvedItem
 {
@@ -131,19 +132,18 @@ boffin::name() const
 
 // return false to disable resolver
 bool 
-boffin::init(playdar::Config* c, Resolver* r)
+boffin::init( pa_ptr pap )
 {
-    m_conf = c;
-    m_resolver = r;
+    m_pap = pap;
     m_thread = new boost::thread( boost::bind(&boffin::thread_run, this) );
 
-    std::string playdarDb = r->app()->library()->dbfilepath();
-    std::string boffinDb = conf()->get<string>( "plugins.boffin.db", "boffin.db" );
+    std::string playdarDb = pap->get( "db" ).get_str();
+    std::string boffinDb = pap->get( "plugins.boffin.db" ).get_str();
 
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
 
-    r->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
+    m_pap->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
     return true;
 }
 
@@ -250,29 +250,31 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 boost::bind(&SampleAccumulator::pushdown, &sa, _1),
                 boost::bind(&SampleAccumulator::result, &sa, _1));
 
-            // look up results, turn them into PlayableItems:
-            std::vector< boost::shared_ptr<ResolvedItem> > playables;
-            Library *library = resolver()->app()->library();
-            assert(library);
+            // look up results, turn them into a vector of json objects
+            std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                pi_ptr pip = PlayableItem::create( *library, t.trackId );
-                pip->set_source(conf()->name());
-                playables.push_back( pip );
+                pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
+                pip->set_source(m_pap->hostname());
+                results.push_back( pip->get_json() );
             }
 
-            report_results(rq->id(), playables, "Boffin");
+            m_pap->report_results(rq->id(), results);
             return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
+     
     } else if (rq->param_exists("boffin_tags")) {
+        typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
         using namespace boost;
 
         shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
-        vector< shared_ptr<ResolvedItem> > results;
+        vector< json_spirit::Object > results;
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
-            results.push_back( makeTagCloudItem(tag) );
+            results.push_back( makeTagCloudItem( tag )->get_json() );
         }
-        report_results(rq->id(), results, "Boffin");
+        cout << "Boffin will now report resuilts" << endl;
+        m_pap->report_results(rq->id(), results);
+        cout << "Reported.."<< endl;
     }
 
 }
@@ -296,33 +298,40 @@ boffin::get_http_handlers()
 
 // handler for HTTP reqs we are registerd for:
 playdar_response 
-boffin::http_handler( const playdar_request& req, playdar::auth * pauth)
+boffin::http_handler( const playdar_request* req, playdar::auth * pauth)
 {
-    if(req.parts().size() <= 1)
+    if(req->parts().size() <= 1)
         return "This plugin has no web interface.";
     
     rq_ptr rq;
-    if( req.parts()[1] == "tagcloud" )
+    if( req->parts()[1] == "tagcloud" )
     {
         rq = BoffinRQUtil::buildTagCloudRequest();
     }
-    else if( req.parts()[1] == "rql" && req.parts().size() >= 2)
+    else if( req->parts()[1] == "rql" && req->parts().size() >= 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req->parts()[2] ) );
     }
 
     if( !rq )
         return "Error!";
     
-    rq->set_from_name( conf()->name() );
+    rq->set_from_name( m_pap->hostname() );
     
-    query_uid qid = resolver()->dispatch( rq );
+    query_uid qid = m_pap->dispatch( rq );
     
     using namespace json_spirit;
     Object r;
     r.push_back( Pair("qid", qid ));
     
+    
+    std::string s1, s2;
+    if(req->getvar_exists("jsonp")){ // wrap in js callback
+        s1 = req->getvar("jsonp") + "(";
+        s2 = ");\n";
+    }
+    
     ostringstream os;
     write_formatted( r, os );
-    return playdar_response( os.str(), false );
+    return playdar_response( s1 + os.str() + s2, false );
 }

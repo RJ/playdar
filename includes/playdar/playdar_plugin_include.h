@@ -1,4 +1,3 @@
-// all the stuff you need as a resolver plugin:
 #ifndef __PLAYDAR_PLUGIN_INCLUDE_H
 #define __PLAYDAR_PLUGIN_INCLUDE_H
 

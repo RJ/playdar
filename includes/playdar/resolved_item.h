@@ -19,6 +19,7 @@
 #include "playdar/types.h"
 #include "playdar/utils/uuid.h"
 
+#include "json_spirit/json_spirit.h"
 namespace playdar {
 
 class ResolvedItem
@@ -49,8 +50,10 @@ public:
     {
         if(m_uuid.length()==0) // generate it if not already specified
         {
-            m_uuid = playdar::utils::gen_uuid();
-            
+            // WARNING this is slow. best to only create once, then 
+            // call () in whatever code is creating the RIs
+            playdar::utils::uuid_gen ug;
+            m_uuid = ug();
         }
         return m_uuid; 
     }
@@ -67,6 +70,9 @@ public:
     }
     void set_source(std::string s)   { m_source = s; }
     
+    virtual void set_url(std::string s)      { m_url = s; }
+    virtual const std::string & url() const  { return m_url; }
+    
     //TODO: move this into PlayableItem somehow
     virtual void set_streaming_strategy(boost::shared_ptr<class StreamingStrategy> s){}
     virtual boost::shared_ptr<class StreamingStrategy> streaming_strategy() const 
@@ -81,6 +87,7 @@ protected:
 private:
     float m_score;
     std::string m_source;
+    std::string m_url;
  
     mutable source_uid m_uuid;
 
