@@ -35,8 +35,8 @@ void
 demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     //Only resolve if we have an artist and track to resolve against.
-    if( rq->param_type("artist") != json_spirit::str_type || !rq->param_exists("artist") ||
-        rq->param_type("track") != json_spirit::str_type || !rq->param_exists("track"))
+    if( !rq->param_exists("artist") || rq->param_type("artist") != json_spirit::str_type || 
+        !rq->param_exists("track") || rq->param_type("track") != json_spirit::str_type )
         return;
         
     // we'll only resolve an exact match to one song.
