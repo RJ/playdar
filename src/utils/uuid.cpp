@@ -6,17 +6,27 @@
 namespace playdar {
 namespace utils { 
 
-    std::string gen_uuid()
-    {
-       boost::uuids::random_generator<> gen1;
-       boost::uuids::uuid u = gen1();
+// use it like:
+// uuid_gen gen;
+// string val = gen();
 
-       std::ostringstream oss;
-       oss << boost::uuids::showbraces << u;
-       // output "{00000000-0000-0000-0000-000000000000}"
+class uuid_gen
+{
+public:
 
-       return oss.str();
-    }
+   std::string operator()()
+   {
+      boost::uuids::uuid u = m_gen();
+
+      std::ostringstream oss;
+      oss << boost::uuids::showbraces << u;
+      return oss.str();
+   }
+
+private:
+    boost::uuids::random_generator<> m_gen;
+};
+
 
 }} // ns
 
