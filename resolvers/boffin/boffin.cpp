@@ -251,15 +251,12 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 boost::bind(&SampleAccumulator::pushdown, &sa, _1),
                 boost::bind(&SampleAccumulator::result, &sa, _1));
 
-            // look up results, turn them into result_pairs:
-            typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
-            std::vector< result_pair > results;
+            // look up results, turn them into a vector of json objects
+            std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
                 pip->set_source(m_pap->hostname());
-                boost::shared_ptr<StreamingStrategy> ss(new CurlStreamingStrategy(pip->url()));
-                pip->set_url("");
-                results.push_back( result_pair( pip->get_json(), ss ));
+                results.push_back( pip->get_json() );
             }
 
             m_pap->report_results(rq->id(), results);
@@ -271,9 +268,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         using namespace boost;
 
         shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
-        vector< result_pair > results;
+        vector< json_spirit::Object > results;
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
-            results.push_back( result_pair( makeTagCloudItem( tag )->get_json(), ss_ptr() ) );
+            results.push_back( makeTagCloudItem( tag )->get_json() );
         }
         m_pap->report_results(rq->id(), results);
     }
