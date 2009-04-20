@@ -108,20 +108,15 @@ public:
         return rq;
     }
     
-    void set_id(query_uid q)
+    void set_id(const query_uid& q)
     {
         m_uuid = q;
     }
     
-    void set_from_name(string s) { m_from_name = s; }
+    void set_from_name(const string& s) { m_from_name = s; }
     
-    // create uuid on demand if one wasn't specified by now:
     const query_uid & id() const
     { 
-        if(!m_uuid.length())
-        {
-            m_uuid = playdar::utils::gen_uuid();
-        }
         return m_uuid; 
     }
 
@@ -231,8 +226,7 @@ private:
         
     // list of functors to fire on new result:
     vector<rq_callback_t> m_callbacks;
-    // mutable because created on-demand the first time it's needed
-    mutable query_uid   m_uuid;
+    query_uid m_uuid;
     boost::mutex m_mut;
     // set to true once we get a decent result
     bool m_solved;

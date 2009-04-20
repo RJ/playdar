@@ -71,7 +71,7 @@ TARGET_LINK_LIBRARIES(scanner
                       ${Boost_LIBRARIES}
                       ${OSSPUUID_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
-					  
+                      
 ADD_EXECUTABLE( playdar
                 ${SRC}/application.cpp
                 ${SRC}/resolver.cpp
@@ -79,9 +79,9 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_script.cpp
                 ${SRC}/library.cpp
                 
+                ${SRC}/utils/uuid.cpp
                 ${SRC}/utils/base64.cpp
                 ${SRC}/utils/levenshtein.cpp
-                ${SRC}/utils/uuid.cpp
 
                 ${SRC}/playdar/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
