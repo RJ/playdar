@@ -14,12 +14,15 @@ namespace resolvers {
 bool
 lan::init(pa_ptr pap)
 {
+    cout << "lan::init" << endl;
     m_pap = pap;
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
          (  boost::asio::ip::address::from_string
-            (pap->get<string> ("plugins.lan.multicast", "")), 
-             pap->get("plugins.lan.port", 0) );
+            ("239.255.0.1"),
+            8888 );
+            //(pap->get<string> ("plugins.lan.multicast", "")), 
+            // pap->get("plugins.lan.port", 0) );
 
     m_responder_thread.reset( new boost::thread(boost::bind(&lan::run, this)) );
     return true;
@@ -74,8 +77,10 @@ lan::run()
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    (m_pap->get<string>("plugins.lan.multicast", "")), 
-                     m_pap->get<int>("plugins.lan.port", 0)); 
+                    ("239.255.0.1"),
+                    8888 );
+                    //(m_pap->get<string>("plugins.lan.multicast", "")), 
+                    // m_pap->get<int>("plugins.lan.port", 0)); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -339,7 +344,7 @@ lan::send_ping()
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
     jq.push_back( Pair("from_name", m_pap->hostname()) );
-    jq.push_back( Pair("http_port", m_pap->get("http_port", 8888)) );
+    jq.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
@@ -355,7 +360,7 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
     o.push_back( Pair("from_name", m_pap->hostname()) );
-    o.push_back( Pair("http_port", m_pap->get("http_port", 8888)) );
+    o.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
     ostringstream os;
     write_formatted( o, os );
     async_send( &sender_endpoint, os.str() );
