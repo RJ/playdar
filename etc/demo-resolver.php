@@ -82,8 +82,8 @@ function get_settings(){
     $s = new stdclass;
     $s->_msgtype = "settings";
     $s->name = "php resolver script";
-    $s->targettime = 15; // fast atm, it's all hardcoded.
-    $s->weight = 80; // 1-100. higher means preferable.
+    $s->targettime = 20; // fast atm, it's all hardcoded.
+    $s->weight = 100; // 1-100. higher means preferable.
     return $s;
 }
 
