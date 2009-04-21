@@ -32,8 +32,7 @@ class HypeMachineResolver extends PlaydarResolver
         curl_close($ch);
         
         if (!$x) {
-            // you are offline...
-            return array();
+            return false;
         }   
         
         $headers = array();
@@ -47,12 +46,21 @@ class HypeMachineResolver extends PlaydarResolver
             list($key, $val) = explode(": ", $header);
             $headers[$key] = $val;
         }
+        
+        if (!($headers && isset($headers['Set-Cookie']))) {
+            return false;
+        }
+        
         list($cookies) = explode(";", $headers['Set-Cookie']);
         list($key, $val) = explode("=", $cookies);
         $aCookies = array($key => $val);
+    
+        if (!isset($aCookies['AUTH'])) {
+            return false;
+        }
         
         $auth = $aCookies['AUTH'];
-        // $auth = 'XXXX';
+        
 
         preg_match_all('/\({.*?}\)/s', $html, $matches);
         $results = array();
