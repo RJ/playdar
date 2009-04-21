@@ -138,8 +138,8 @@ boffin::init( pa_ptr pap )
     m_pap = pap;
     m_thread = new boost::thread( boost::bind(&boffin::thread_run, this) );
 
-    std::string playdarDb = pap->get( "db" ).get_str();
-    std::string boffinDb = pap->get( "plugins.boffin.db" ).get_str();
+    std::string playdarDb = pap->get<string>( "db", "collection.db" );
+    std::string boffinDb = pap->get<string>( "plugins.boffin.db", "boffin.db" );
 
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
