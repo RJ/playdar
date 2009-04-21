@@ -629,7 +629,13 @@ Resolver::query_exists(const query_uid & qid)
 bool 
 Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {
-    if(query_exists(rq->id())) return false;
+    if (rq->id().length() == 0) {
+        // create and assign an id to the request
+        rq->set_id( playdar::utils::uuid_gen()() );
+    } else if (query_exists(rq->id())) {
+        return false;
+    }
+
     m_queries[rq->id()] = rq;
     m_qidlist.push_front(rq->id());
     return true;

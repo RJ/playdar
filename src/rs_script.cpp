@@ -262,10 +262,14 @@ rs_script::process_output()
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
-                boost::shared_ptr<PlayableItem> pip;
-                pip = PlayableItem::from_json(po);
+                boost::shared_ptr<PlayableItem> pip( PlayableItem::from_json(po) );
+
                 cout << "Parserd pip from script: " << endl;
                 write_formatted(  pip->get_json(), cout );
+
+                if (pip->id().length() == 0) {
+                    pip->set_id( m_pap->gen_uuid() );
+                }
                 v.push_back( pip->get_json() );
             }
             m_pap->report_results( qid, v );

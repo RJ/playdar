@@ -4,6 +4,7 @@
 
 #include "playdar/application.h"
 #include "playdar/library.h"
+#include "playdar/utils/uuid.h"
 #include "playdar/utils/levenshtein.h"
 #include "playdar/resolver.h"
 
@@ -93,6 +94,7 @@ RS_local_library::process( rq_ptr rq )
         BOOST_FOREACH(int fid, fids)
         {
             pi_ptr pip = PlayableItem::create(*app()->library(), fid);
+            pip->set_id( m_pap->gen_uuid() );
             pip->set_source( m_pap->hostname() );
             final_results.push_back( pip->get_json() );
         }

@@ -7,11 +7,12 @@
 #include "SampleAccumulator.h"
 #include "SimilarArtists.h"
 
-#include "playdar/utils/urlencoding.hpp"
+#include "playdar/utils/urlencoding.hpp"        // maybe this should be part of the plugin api then?
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 #include "playdar/playdar_request.h"
 #include "BoffinRQUtil.h"
+
 using namespace fm::last::query_parser;
 using std::string;
 using std::ostringstream;
@@ -255,6 +256,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
                 pip->set_source(m_pap->hostname());
+                pip->set_id(m_pap->gen_uuid());
                 results.push_back( pip->get_json() );
             }
 

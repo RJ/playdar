@@ -8,6 +8,8 @@
 using namespace std;
 using namespace json_spirit;
 
+using namespace json_spirit;
+
 namespace playdar {
 namespace resolvers {
 
@@ -347,7 +349,6 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
 {
     cout << "LAN sending pong back to " 
          << sender_endpoint.address().to_string() <<".." << endl;
-    using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
     o.push_back( Pair("from_name", m_pap->hostname()) );
