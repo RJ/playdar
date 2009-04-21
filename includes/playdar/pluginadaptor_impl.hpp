@@ -28,8 +28,8 @@ class PluginAdaptorImpl : public PluginAdaptor
 {
 public:
     PluginAdaptorImpl(Config * c, Resolver * r)
-        : m_resolver(r),
-          m_config(c)
+        : m_config(c), 
+          m_resolver(r)
     {
     }
     
@@ -47,6 +47,13 @@ public:
     {
         // TODO
         json_spirit::Value v( m_config->get<string>(key, "") );
+        return v;
+    }
+    
+    virtual json_spirit::Value getint(const std::string& key) const
+    {
+        // TODO
+        json_spirit::Value v( m_config->get<int>(key, -1) );
         return v;
     }
     

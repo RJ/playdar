@@ -28,9 +28,10 @@ public:
 
     virtual void               set(const std::string& key, json_spirit::Value value) = 0;
     virtual json_spirit::Value get(const std::string& key) const = 0;
+    virtual json_spirit::Value getint(const std::string& key) const = 0;
     
     template <typename T>
-    T get(const std::string& key, const T& def) const;
+    inline T get(const std::string& key, const T& def) const = 0;
 
     // results are a vector of json result objects
     virtual bool report_results(const query_uid& qid, const std::vector< json_spirit::Object >&) = 0;
@@ -77,8 +78,8 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename T>
-T PluginAdaptor::get(const std::string& k, const T& def) const
+template < typename T >
+inline T PluginAdaptor::get(const std::string& k, const T& def) const
 {
     json_spirit::Value val = get(k);
     if (val.type() != json_spirit::obj_type) 
@@ -87,6 +88,16 @@ T PluginAdaptor::get(const std::string& k, const T& def) const
         return val.get_value<T>();
 }
 
+template <>
+inline int PluginAdaptor::get(const std::string& k, const int& def) const
+{
+    json_spirit::Value val = getint(k);
+    if (val.type() != json_spirit::obj_type || val.get_value<int>() < 0 ) 
+        return def;
+    else
+        return val.get_value<int>();
+}
+    
 ////////////////////////////////////////////////////////////////////////////////
 
 }
