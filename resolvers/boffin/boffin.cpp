@@ -7,7 +7,7 @@
 #include "SampleAccumulator.h"
 #include "SimilarArtists.h"
 
-#include "playdar/utils/urlencoding.hpp"
+#include "playdar/utils/urlencoding.hpp"        // maybe this should be part of the plugin api then?
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 #include "playdar/playdar_request.h"
