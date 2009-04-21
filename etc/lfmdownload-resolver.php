@@ -3,6 +3,10 @@
 
 require_once dirname(__FILE__) . '/phpresolver/playdarresolver.php';
 
+/**
+  * A resolver for Last.fm tracks available as free download
+  * @author David Singleton (http://dsingleton.co.uk)
+  */
 class LastfmDownloadResolver extends PlaydarResolver
 {
     protected $name = 'Last.fm Free Download';
@@ -12,7 +16,7 @@ class LastfmDownloadResolver extends PlaydarResolver
     public function resolve($request)
     {
         $source = sprintf("http://last.fm/music/%s/_/%s", urlencode($request->artist), urlencode($request->track));
-        $html = file_get_contents($source);
+        $html = @file_get_contents($source); // 404 triggers a notice.
         
         preg_match('/http:\/\/freedownloads.last.fm\/.*?.mp3/s', $html, $matches);
         
