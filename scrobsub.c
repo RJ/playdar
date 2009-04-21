@@ -32,6 +32,7 @@ static char* session_id = 0;
 static unsigned int N = 0;
 static char* np_url = 0;
 static char* submit_url = 0;
+static char rating = ' ';
 
 static char* artist;
 static char* track;
@@ -159,7 +160,7 @@ static void submit()
     if(now() - (start_time + pause_time) < scrobble_time(duration))
         return;
     
-    int n = 32+N+4+2+10+1 +2+9*6;
+    int n = 32+N+4+2+10+1+1 +2+9*6;
     char post_data[n];
     
     n = snprintf(post_data, n,
@@ -172,8 +173,8 @@ static void submit()
                  "&m[0]=%s"
                  "&i[0]=%d"
                  "&o[0]=%c"
-                 "&r[0]=",
-                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P');
+                 "&r[0]=%c",
+                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P', rating);
     
     for (int x=0; x<2; ++x){    
         char response[128];
@@ -210,6 +211,7 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
     mbid = strdup(_mbid);
     duration = _duration;
     track_number = _track_number;
+    rating = ' ';
 
     start_time = now();
     
@@ -283,8 +285,17 @@ void scrobsub_stop()
     }
 }
 
-
 int scrobsub_state()
 {
     return state;
+}
+
+void scrobsub_love()
+{
+    rating='L';
+}
+
+void scrobsub_rate( char c ) //undocumented ;)
+{
+    rating=c;
 }
