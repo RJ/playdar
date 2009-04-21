@@ -264,6 +264,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
+     
     } else if (rq->param_exists("boffin_tags")) {
         typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
         using namespace boost;
@@ -273,7 +274,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
             results.push_back( makeTagCloudItem( tag )->get_json() );
         }
+        cout << "Boffin will now report resuilts" << endl;
         m_pap->report_results(rq->id(), results);
+        cout << "Reported.."<< endl;
     }
 
 }
@@ -317,7 +320,7 @@ boffin::http_handler( const playdar_request* req, playdar::auth * pauth)
     
     rq->set_from_name( m_pap->hostname() );
     
-    query_uid qid = m_pap->dispatch( rq, rq_callback_t() );
+    query_uid qid = m_pap->dispatch( rq );
     
     using namespace json_spirit;
     Object r;

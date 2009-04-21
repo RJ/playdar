@@ -42,7 +42,6 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
 #add definitions, compiler switches, etc.
-#ADD_DEFINITIONS(-Wall -ggdb) 
 
 # PDL doesn't know apple mac = posix, this tells it:
 IF(APPLE)
@@ -56,6 +55,8 @@ ENDIF(WIN32)
 
 IF(NOT WIN32)
     # removes operators like "and", "or" and "not"
+    ADD_DEFINITIONS(-Wall) # -ggdb
+    ADD_DEFINITIONS(-g -O2 -DNDEBUG)
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 

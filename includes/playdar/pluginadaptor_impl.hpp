@@ -65,23 +65,36 @@ public:
     
     virtual std::string gen_uuid() const
     {
-        return playdar::utils::gen_uuid();
+        return m_uuidgen();
     }
 
     virtual bool query_exists(const query_uid & qid)
-    { return m_resolver->query_exists(qid); }
+    {
+        return m_resolver->query_exists(qid); 
+    }
 
+    virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq)
+    { 
+        return m_resolver->dispatch(rq); 
+    }
+    
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb)
-    { return m_resolver->dispatch(rq, cb); }
+    { 
+        return m_resolver->dispatch(rq, cb); 
+    }
 
     virtual ri_ptr ri_from_json( const json_spirit::Object& obj) const
-    { return m_resolver->ri_from_json(obj); }
+    {
+        return m_resolver->ri_from_json(obj); 
+    }
     
     virtual void register_resolved_item( const ri_validator& v, const ri_generator& g )
-    { return m_resolver->register_resolved_item( v, g );}
+    {
+        return m_resolver->register_resolved_item( v, g );
+    }
 
 private:
-    
+    mutable playdar::utils::uuid_gen m_uuidgen;
     Config*   m_config;
     Resolver* m_resolver;
 };
