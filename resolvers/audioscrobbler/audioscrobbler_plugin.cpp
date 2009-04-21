@@ -85,6 +85,7 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(action == "config") return config(auth_required);
     
     return "Unhandled"; // --warning
+
 }
 
 
