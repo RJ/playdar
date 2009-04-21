@@ -255,8 +255,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
-                pip->set_source(m_pap->hostname());
-                pip->set_id(m_pap->gen_uuid());
+                pip->set_score( t.weight );
+                pip->set_source( m_pap->hostname() );
+                pip->set_id( m_pap->gen_uuid() );
                 results.push_back( pip->get_json() );
             }
 
