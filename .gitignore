@@ -3,6 +3,7 @@ build/CMakeFiles
 build/cmake_install.cmake
 build/Makefile
 build/resolvers
+build/install_manifest.txt
 bin
 .DS_Store
 *.pyc
