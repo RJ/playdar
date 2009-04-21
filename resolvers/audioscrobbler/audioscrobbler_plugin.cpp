@@ -1,7 +1,12 @@
 #include "audioscrobbler_plugin.h"
+#include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 #include "scrobsub.h"
 
 using playdar::plugin::audioscrobbler;
+using playdar::playdar_request;
+using playdar::playdar_response;
+using namespace std;
 static audioscrobbler* instance = 0;
 
 
@@ -16,12 +21,11 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
 }
 
 bool
-audioscrobbler::init(playdar::Config* c, Resolver* r)
+audioscrobbler::init( pa_ptr pap )
 {
     if(instance) return false; //loading more than one scrobbling plugin is stupid
     instance = this;
     
-    ResolverService::init(c, r);
     scrobsub_init(scrobsub_callback);
     return true;
 }
