@@ -444,7 +444,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         
         m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
-       /// m_sid2ri[rip->id()] = rip;
+        m_sid2ri[rip->id()] = rip;
         cout << "Adding: ";
         json_spirit::write( rip->get_json(), cout );
         cout << endl; 
@@ -658,16 +658,21 @@ Resolver::num_seen_queries()
 ss_ptr
 Resolver::get_ss(const source_uid & sid)
 {
-    ri_ptr rip = m_sid2ri[sid];
-    if( rip->url().empty() ) return ss_ptr();
-    size_t offset = rip->url().find(':');
-    if( offset == string::npos ) return ss_ptr();
-    string p = rip->url().substr(0, offset);
-    cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
-    if( !rip->url().empty() && 
-        m_ss_factories.find( p ) != m_ss_factories.end() )
-    {
-        return m_ss_factories[ p ](rip->url());
+    map< source_uid, ri_ptr >::iterator it = m_sid2ri.find(sid);
+    if (it != m_sid2ri.end()) {
+        ri_ptr rip( it->second );
+        if( rip->url().empty() ) return ss_ptr();
+
+        size_t offset = rip->url().find(':');
+        if( offset == string::npos ) return ss_ptr();
+
+        string p = rip->url().substr(0, offset);
+        cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
+
+        std::map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
+            m_ss_factories.find(p);
+        if (itFac != m_ss_factories.end())
+            return itFac->second(rip->url());
     }
     return ss_ptr();
 }
