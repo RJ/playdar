@@ -693,19 +693,18 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             deque< query_uid>::const_iterator it =
                 app()->resolver()->qids().begin();
             Array qlist;
-            while(it != app()->resolver()->qids().end())
+            for (; it != app()->resolver()->qids().end(); it++)
             {
-                rq_ptr rq;
                 try
                 { 
-                    Object obj;
-                    rq = app()->resolver()->rq(*it);
-                    if(!rq) continue;
-                    obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
-                    obj.push_back( Pair("query", rq->get_json()) );
-                    qlist.push_back( obj );
+                    rq_ptr rq( app()->resolver()->rq(*it) );
+                    if (rq) {
+                        Object obj;
+                        obj.push_back( Pair("num_results", (int)rq->num_results()) ); 
+                        obj.push_back( Pair("query", rq->get_json()) );
+                        qlist.push_back( obj );
+                    }
                 } catch(...) { }
-                it++;
             }
             // wrap that in an object, so we can add stats to it later
             Object o;
