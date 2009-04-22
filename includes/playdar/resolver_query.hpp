@@ -39,7 +39,7 @@ public:
     
     virtual ~ResolverQuery()
     {
-        cout << "DTOR, resolver query: " << id() << " - " << str() << endl;
+        //cout << "DTOR, resolver query: " << id() << " - " << str() << endl;
     }
     
     /// caluclate score 0-1 based on how similar the similarity

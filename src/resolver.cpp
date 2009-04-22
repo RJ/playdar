@@ -355,8 +355,8 @@ Resolver::dispatch_runner()
 void
 Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
 {
-    unsigned short atweight;
-    unsigned int mintime;
+    unsigned short atweight = 0;
+    unsigned int mintime = 0;
     bool started = false;
     BOOST_FOREACH( pa_ptr pap, m_resolvers )
     {
@@ -366,7 +366,7 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
             atweight = pap->weight();
             mintime = pap->targettime();
             started = true;
-            cout << "Pipeline at weight: " << atweight << endl;
+            //cout << "Pipeline at weight: " << atweight << endl;
         }
         if(pap->weight() != atweight)
         {
@@ -374,7 +374,7 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
             // and the shortest targettime at that weight is "mintime"
             // so schedule a callaback after mintime to carry on down the
             // chain and dispatch to the next lowest weighted resolver services.
-            cout << "Will continue pipeline after " << mintime << "ms." << endl;
+            //cout << "Will continue pipeline after " << mintime << "ms." << endl;
             boost::shared_ptr<boost::asio::deadline_timer> 
                 t(new boost::asio::deadline_timer( m_work->get_io_service() ));
             t->expires_from_now(boost::posix_time::milliseconds(mintime));
@@ -385,8 +385,8 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
         }
         if(pap->targettime() < mintime) mintime = pap->targettime();
         // dispatch to this resolver:
-        cout << "Pipeline dispatching to " << pap->rs()->name() 
-             << " (lastweight: " << lastweight << ")" << endl;
+        //cout << "Pipeline dispatching to " << pap->rs()->name() 
+        //     << " (lastweight: " << lastweight << ")" << endl;
         pap->rs()->start_resolving(rq);
     }
 }
@@ -396,11 +396,11 @@ Resolver::run_pipeline_cont( rq_ptr rq,
                         unsigned short lastweight,
                         boost::shared_ptr<boost::asio::deadline_timer> oldtimer)
 {
-    cout << "Pipeline continues.." << endl;
+    //cout << "Pipeline continues.." << endl;
     if(rq->solved())
     {
-        cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
-             << endl;
+        //cout << "Bailing from pipeline: SOLVED @ lastweight: " << lastweight 
+        //     << endl;
     }
     else
     {
@@ -416,12 +416,11 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 bool
 Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
-    cout << "add_results(" << results.size() << ")" << endl;
+    cout << "add_results(" << results.size() << ", '"<< via << "')" << endl;
     if(results.size()==0)
     {
         return true;
     }
-    DebugMutex dm("add_results");
     boost::mutex::scoped_lock lock(m_mut_results);
     
     if(!query_exists(qid)) return false; // query was deleted
@@ -445,9 +444,9 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         m_queries[qid]->add_result(rip);
         // update map of source id -> playable item
         m_sid2ri[rip->id()] = rip;
-        cout << "Adding: ";
-        json_spirit::write( rip->get_json(), cout );
-        cout << endl; 
+        //cout << "Adding: ";
+        //json_spirit::write( rip->get_json(), cout );
+        //cout << endl; 
     }
     return true;
 }
@@ -535,7 +534,6 @@ Resolver::cancel_query(const query_uid & qid)
     rq_ptr cq;
     {
         // removing from m_queries map means no-one can find and get a new shared_ptr given a qid:
-        DebugMutex dm("cancel_query");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         cq = rq(qid);
@@ -569,7 +567,6 @@ Resolver::cancel_query_timeout(query_uid qid)
     cout << "Stale timeout reached for QID: " << qid << endl;
     rq_ptr rq;
     {
-        DebugMutex dm("cancel timeout");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(!query_exists(qid)) return;
         rq = this->rq(qid);
@@ -596,7 +593,6 @@ Resolver::cancel_query_timeout(query_uid qid)
 vector< ri_ptr >
 Resolver::get_results(query_uid qid)
 {
-    DebugMutex dm("get_results");
     boost::mutex::scoped_lock lock(m_mut_results);
     if(!query_exists(qid)) throw; // query was deleted
     return m_queries[qid]->results();
@@ -607,7 +603,6 @@ int
 Resolver::num_results(query_uid qid)
 {
     {
-        DebugMutex dm("num_results");
         boost::mutex::scoped_lock lock(m_mut_results);
         if(query_exists(qid)) 
         {

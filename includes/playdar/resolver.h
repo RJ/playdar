@@ -148,11 +148,6 @@ private:
     template <class T>
     boost::shared_ptr<T> ss_ptr_generator(string url);
     
-    struct DebugMutex{
-        DebugMutex(string aa):m(aa) { cout << "CTOR DebugMutex: " << m << endl;}
-        ~DebugMutex(){ cout << "DTOR DebugMutex: "<< m << endl; }
-        string m;
-    };
 };
 
 }
