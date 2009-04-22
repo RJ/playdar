@@ -56,14 +56,11 @@ struct reply
   /// true if handler will stream body after headers sent
   /// false means entire body prepared up-front.
   bool m_streaming;
-  size_t m_streaming_len;
   boost::shared_ptr<playdar::StreamingStrategy> m_ss;
   
-  void set_streaming(boost::shared_ptr<playdar::StreamingStrategy> ss, 
-                     size_t len)
+  void set_streaming(boost::shared_ptr<playdar::StreamingStrategy> ss)
   { 
     m_streaming=true; 
-    m_streaming_len = len;
     m_ss = ss;
   }
   
@@ -78,7 +75,7 @@ struct reply
     return m_ss;
   }
   
-  size_t streaming_length() { return m_streaming_len; }
+  size_t streaming_length() { return m_ss->content_length(); }
   bool streaming() { return m_streaming; }
   
 };

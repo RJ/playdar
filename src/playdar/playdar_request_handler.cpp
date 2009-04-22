@@ -865,7 +865,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     }
     */
     // hand off the streaming strategy for the http server to do:
-    rep.set_streaming(ss, 99999999); // pip->size());
+    rep.set_streaming(ss); // pip->size());
     return;  
 }
 
