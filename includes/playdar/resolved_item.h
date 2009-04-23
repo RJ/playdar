@@ -1,25 +1,11 @@
 #ifndef __RESOLVED_ITEM_H__
 #define __RESOLVED_ITEM_H__
 
-//// must be first because ossp uuid.h is stubborn and name-conflicts with
-//// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-//// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-//// to you guys at OSSP. *claps*
-//#ifdef HAS_OSSP_UUID_H
-//#include <ossp/uuid.h>
-//#else
-//// default source package for ossp-uuid doesn't namespace itself
-//#include <uuid.h> 
-//#endif
-
 #include <string>
-#include "playdar/config.hpp"
 #include <boost/function.hpp>
-
 #include "playdar/types.h"
-#include "playdar/utils/uuid.h"
-
 #include "json_spirit/json_spirit.h"
+
 namespace playdar {
 
 class ResolvedItem
@@ -44,23 +30,11 @@ public:
         return j;
     }
     
+    const source_uid& id() const        { return m_uuid; }
+    void set_id(const source_uid& s)    { m_uuid = s; }
 
-    
-    const source_uid & id() const
-    {
-        if(m_uuid.length()==0) // generate it if not already specified
-        {
-            // WARNING this is slow. best to only create once, then 
-            // call () in whatever code is creating the RIs
-            playdar::utils::uuid_gen ug;
-            m_uuid = ug();
-        }
-        return m_uuid; 
-    }
-    
-    void set_id(std::string s) { m_uuid = s; }
-    const float score() const       { return m_score; }
-    const std::string & source() const   { return m_source; }
+    const float score() const           { return m_score; }
+    const std::string& source() const   { return m_source; }
     
     void set_score(float s)
     { 
@@ -89,8 +63,7 @@ private:
     std::string m_source;
     std::string m_url;
  
-    mutable source_uid m_uuid;
-
+    source_uid m_uuid;
 };
 
 }

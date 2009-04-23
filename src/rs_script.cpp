@@ -191,7 +191,7 @@ rs_script::process_output()
         is.read( (char*)&len, 4 );
         if(is.fail() || is.eof()) break;
         len = ntohl(len);
-        cout << "Incoming msg of length " << len << endl;
+        //cout << "Incoming msg of length " << len << endl;
         if(len > sizeof(buffer))
         {
             cerr << "Gateway plugin aborting, payload too big" << endl;
@@ -200,7 +200,7 @@ rs_script::process_output()
         is.read( (char*)&buffer, len );
         if(is.fail() || is.eof()) break;
         string msg((char*)&buffer, len);
-        std::cout << "Msg: '" << msg << "'"<< endl;
+        //std::cout << "Msg: '" << msg << "'"<< endl;
         if(!read(msg, j) || j.type() != obj_type)
         {
             cerr << "Aborting, invalid JSON." << endl;
@@ -257,19 +257,23 @@ rs_script::process_output()
         {
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
-            cout << "Got " << resultsA.size() << " results from script" << endl;
+            //cout << "Got " << resultsA.size() << " results from script" << endl;
             vector< Object > v;
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
-                boost::shared_ptr<PlayableItem> pip;
-                pip = PlayableItem::from_json(po);
-                cout << "Parserd pip from script: " << endl;
-                write_formatted(  pip->get_json(), cout );
+                boost::shared_ptr<PlayableItem> pip( PlayableItem::from_json(po) );
+
+                //cout << "Parserd pip from script: " << endl;
+                //write_formatted(  pip->get_json(), cout );
+
+                if (pip->id().length() == 0) {
+                    pip->set_id( m_pap->gen_uuid() );
+                }
                 v.push_back( pip->get_json() );
             }
             m_pap->report_results( qid, v );
-        }
+        }   
     }
     cout << "Gateway plugin read loop exited" << endl;
     m_dead = true;

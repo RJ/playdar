@@ -1,7 +1,12 @@
 #include "audioscrobbler_plugin.h"
+#include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 #include "scrobsub.h"
 
 using playdar::plugin::audioscrobbler;
+using playdar::playdar_request;
+using playdar::playdar_response;
+using namespace std;
 static audioscrobbler* instance = 0;
 
 
@@ -16,12 +21,11 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
 }
 
 bool
-audioscrobbler::init(playdar::Config* c, Resolver* r)
+audioscrobbler::init( pa_ptr pap )
 {
     if(instance) return false; //loading more than one scrobbling plugin is stupid
     instance = this;
     
-    ResolverService::init(c, r);
     scrobsub_init(scrobsub_callback);
     return true;
 }
@@ -60,20 +64,20 @@ static string config(bool auth_required)
 }
 
 playdar_response 
-audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
+audioscrobbler::http_handler(const playdar_request* rq, playdar::auth* pauth)
 {
-    if(rq.parts().size()<2) return "Hi index!";
-    string action = rq.parts()[1];
+    if(rq->parts().size()<2) return "Hi index!";
+    string action = rq->parts()[1];
 
     std::string s1, s2;
-    if(rq.getvar_exists("jsonp")){ // wrap in js callback
-        s1 = rq.getvar("jsonp") + "(";
+    if(rq->getvar_exists("jsonp")){ // wrap in js callback
+        s1 = rq->getvar("jsonp") + "(";
         s2 = ");\n";
     }
     // TODO, use json_spirit
     playdar_response ok( s1 + "{\"success\" : true, \"action\" : \"" + action + "\"}" + s2, false );
     
-    if(action == "start")  { start(rq); return ok; }
+    if(action == "start")  { start(*rq); return ok; }
     if(action == "pause")  { scrobsub_pause(); return ok; }
     if(action == "resume") { scrobsub_resume(); return ok; }
     if(action == "stop")   { scrobsub_stop(); return ok; }
@@ -81,6 +85,7 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(action == "config") return config(auth_required);
     
     return "Unhandled"; // --warning
+
 }
 
 

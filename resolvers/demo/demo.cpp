@@ -1,5 +1,7 @@
 #include "demo.h"
 #include <boost/algorithm/string.hpp>
+#include "playdar/playable_item.hpp"
+#include "playdar/resolver_query.hpp"
 
 namespace playdar {
 namespace resolvers {
@@ -8,13 +10,12 @@ namespace resolvers {
     Called once when plugin is loaded when playdar starts up.
 */
 bool
-demo::init(Config * c, Resolver * r)
+demo::init( pa_ptr pap )
 {
-    m_resolver  = r;
-    m_conf = c;
-    cout << "Demo resolver init(): "
-         << "this only finds 'Sweet Melissa' by the artist 'Big Bad Sun'"
-         << endl;
+    m_pap = pap;
+    std::cout << "Demo resolver init(): "
+              << "this only finds 'Sweet Melissa' by the artist 'Big Bad Sun'"
+              << std::endl;
     return true;
 }
 
@@ -35,8 +36,8 @@ void
 demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
     //Only resolve if we have an artist and track to resolve against.
-    if( rq->param_type("artist") != json_spirit::str_type || !rq->param_exists("artist") ||
-        rq->param_type("track") != json_spirit::str_type || !rq->param_exists("track"))
+    if( !rq->param_exists("artist") || rq->param_type("artist") != json_spirit::str_type || 
+        !rq->param_exists("track") || rq->param_type("track") != json_spirit::str_type )
         return;
         
     // we'll only resolve an exact match to one song.
@@ -58,17 +59,13 @@ demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         pip->set_duration(203); // play duration, seconds
         
         // Create streaming strategy for accessing the track:
-        string url = "http://he3.magnatune.com/all/01-Sweet%20Melissa-Big%20Bad%20Sun.mp3";
-        boost::shared_ptr<StreamingStrategy> 
-                    s(new CurlStreamingStrategy(url));
-        // Attach streamingstrat to the playable item:
-        pip->set_streaming_strategy(s);
+        pip->set_url( "http://he3.magnatune.com/all/01-Sweet%20Melissa-Big%20Bad%20Sun.mp3" );
         // Results are a list of resolveditems:
-        vector< boost::shared_ptr<ResolvedItem> > v;
+        vector< json_spirit::Object> v;
         // .. containing just the one match we found:
-        v.push_back(pip);
+        v.push_back(pip->get_json());
         // tell the resolver what we found:
-        report_results(rq->id(), v, name());
+        m_pap->report_results(rq->id(), v);
     }
     else
     {

@@ -7,11 +7,12 @@
 #include "SampleAccumulator.h"
 #include "SimilarArtists.h"
 
-#include "playdar/utils/urlencoding.hpp"
+#include "playdar/utils/urlencoding.hpp"        // maybe this should be part of the plugin api then?
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 #include "playdar/playdar_request.h"
 #include "BoffinRQUtil.h"
+
 using namespace fm::last::query_parser;
 using std::string;
 using std::ostringstream;
@@ -137,8 +138,8 @@ boffin::init( pa_ptr pap )
     m_pap = pap;
     m_thread = new boost::thread( boost::bind(&boffin::thread_run, this) );
 
-    std::string playdarDb = pap->get( "db" ).get_str();
-    std::string boffinDb = pap->get( "plugins.boffin.db" ).get_str();
+    std::string playdarDb = pap->get<string>( "db", "collection.db" );
+    std::string boffinDb = pap->get<string>( "plugins.boffin.db", "boffin.db" );
 
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
@@ -254,7 +255,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
-                pip->set_source(m_pap->hostname());
+                pip->set_score( t.weight );
+                pip->set_source( m_pap->hostname() );
+                pip->set_id( m_pap->gen_uuid() );
                 results.push_back( pip->get_json() );
             }
 

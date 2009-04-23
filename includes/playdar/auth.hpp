@@ -1,11 +1,12 @@
 #ifndef _PLAYDAR_AUTH_HPP_
 #define _PLAYDAR_AUTH_HPP_
-//#include "playdar/application.h"
+
 #include "sqlite3pp.h"
 #include <map>
 #include <string>
 #include <vector>
 #include <set>
+#include "playdar/utils/uuid.h"
 
 namespace playdar {
 // deals with authcodes etc

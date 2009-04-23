@@ -61,7 +61,7 @@ class lan : public ResolverPlugin<lan>
         return 99;
     }
         
-    playdar_response http_handler( const playdar_request& req,
+    playdar_response http_handler( const playdar_request* req,
                                    playdar::auth * pauth);
     
 protected:    

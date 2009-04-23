@@ -8,7 +8,7 @@ namespace playdar
 {
     namespace plugin //TODO not a resolver
     {
-        class audioscrobbler : public ResolverServicePlugin
+        class audioscrobbler : public ResolverPlugin<audioscrobbler>
         {
             bool auth_required;
             
@@ -18,10 +18,10 @@ namespace playdar
             audioscrobbler() : auth_required(false)
             {}
             
-            virtual bool init(playdar::Config*, Resolver*);
+            virtual bool init( pa_ptr );
             virtual void Destroy();
-            virtual string name() const { return "Audioscrobbler"; }
-            virtual playdar_response http_handler(const playdar_request&, playdar::auth* pauth);
+            virtual std::string name() const { return "Audioscrobbler"; }
+            virtual playdar_response http_handler(const playdar_request*, playdar::auth* pauth);
 
         private:
             /** pure virtual, so reimplemented but does nothing */
