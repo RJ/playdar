@@ -40,7 +40,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/pdl-0.3.0/include;../../../deps/moost_http/include;../../../deps/uriparser-0.7.5/include;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;&quot;../../../deps/sqlite3pp-read-only&quot;;&quot;../../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../../deps/pdl-0.3.0/include&quot;;../../../deps/moost_http/include;&quot;../../../deps/uriparser-0.7.5/include&quot;;&quot;../../../deps/taglib-1.5&quot;;&quot;../../../deps/taglib-1.5/taglib/toolkit&quot;;&quot;../../../deps/libcurl-7.19.3/include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -104,7 +104,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/pdl-0.3.0/include;../../../deps/moost_http/include;../../../deps/uriparser-0.7.5/include;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/pdl-0.3.0/include;../../../deps/moost_http/include;../../../deps/uriparser-0.7.5/include;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
