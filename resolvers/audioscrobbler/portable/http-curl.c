@@ -18,4 +18,45 @@
  ***************************************************************************/
 
 #include "scrobsub.h"
+#include <string.h>
+#include <curl/curl.h>
 
+//TODO user-agent
+
+static int n;
+
+static size_t curl_writer(void* in, size_t size, size_t N, void* out)
+{
+    size_t x;
+    N *= size;
+    for(x=0; x<N; ++x){
+        if (n-- <= 0) break;
+        *(char*)out++ = *(char*)in++;
+    }
+    
+    return x;
+}
+
+void scrobsub_get(char response[256], const char* url)
+{
+    n = 256;
+    
+    CURL* h = curl_easy_init(); //TODO may return NULL
+    curl_easy_setopt(h, CURLOPT_URL, url);
+    curl_easy_setopt(h, CURLOPT_WRITEFUNCTION, curl_writer);
+    curl_easy_setopt(h, CURLOPT_WRITEDATA, response);
+    CURLcode result = curl_easy_perform(h);
+    curl_easy_cleanup(h);
+    
+    response[255-n] = '\0'; // curl_writer won't null terminate
+}
+
+void scrobsub_post(char response[256], const char* url, const char* post_data)
+{   
+    CURL* h = curl_easy_init(); //TODO may return NULL
+    curl_easy_setopt(h, CURLOPT_POSTFIELDS, post_data);
+    curl_easy_setopt(h, CURLOPT_URL, url);
+    curl_easy_perform(h);
+    curl_easy_cleanup(h);
+    strcpy(response, "OK\n"); //TODO
+}
