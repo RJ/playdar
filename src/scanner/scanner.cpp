@@ -119,9 +119,9 @@ bool add_file(const bfs::path &p, int mtime)
             duration = properties->length();
             bitrate = properties->bitrate();
         }
-        string artist = tag->artist().toCString();
-        string album  = tag->album().toCString();
-        string track  = tag->title().toCString();
+        string artist = tag->artist().toCString(true);
+        string album  = tag->album().toCString(true);
+        string track  = tag->title().toCString(true);
         boost::trim(artist);
         boost::trim(album);
         boost::trim(track);
