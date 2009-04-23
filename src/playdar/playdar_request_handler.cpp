@@ -611,12 +611,16 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     do
     {
         if(req.getvar("method") == "stat") {
+            bool authed = permissions.length() > 0;
             Object r;
             r.push_back( Pair("name", "playdar") );
             r.push_back( Pair("version", VERSION) );
-            r.push_back( Pair("authenticated", permissions.length()>0 ) );
-            //r.push_back( Pair("permissions", permissions) );
-            //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
+            r.push_back( Pair("authenticated", authed) );
+            if (authed) {
+                r.push_back( Pair("hostname", m_app->conf()->name()) );
+                //r.push_back( Pair("permissions", permissions) );
+                //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
+            }
             write_formatted( r, response );
             break;
         }
