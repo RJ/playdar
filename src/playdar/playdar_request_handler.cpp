@@ -156,8 +156,9 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         else
         {
             ostringstream os;
-            os  << req.postvar("receiverurl")
-            << ( strstr(req.postvar("receiverurl").c_str(), "?")==0 ? "?" : "&" )
+            const string& recvurl = req.postvar( "receiverurl" );
+            os  << recvurl
+            << ( recvurl.find( "?" ) == string::npos ? "?" : "&" )
             << "authtoken=" << tok
             << "#" << tok;
             rep = rep.stock_reply(moost::http::reply::moved_permanently); 
