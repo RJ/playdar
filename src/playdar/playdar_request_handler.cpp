@@ -356,10 +356,12 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
         app()->resolver()->cancel_query( req.postvar("qid") );
     }
 
-    size_t numqueries = app()->resolver()->qids().size();
+    deque< query_uid > queries;
+    app()->resolver()->qids(queries);
+
     ostringstream os;
     os  << "<h2>Current Queries ("
-        << numqueries <<")</h2>"
+        << queries.size() <<")</h2>"
 
         << "<table>"
         << "<tr style=\"font-weight:bold;\">"
@@ -372,24 +374,19 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
         << "<td>Results</td>"
         << "</tr>"
         ;
-    int i  = 0;
-    deque< query_uid>::const_iterator it( app()->resolver()->qids().begin() );
-    for(; it != app()->resolver()->qids().end(); it++)
+
+    
+    deque< query_uid>::const_iterator it( queries.begin() );
+    for(int i = 0; it != queries.end(); it++, i++)
     {
         try
         { 
             rq_ptr rq( app()->resolver()->rq(*it) );
-            string bgc( (++i%2) ? "lightgrey" : "" );
+            string bgc( i%2 ? "lightgrey" : "" );
             os  << "<tr style=\"background-color: "<< bgc << "\">";
-            if(!rq)
-            {
+            if(!rq) {
              os << "<td colspan=\"7\"><i>cancelled query</i></td>";
-            }
-            else
-            {
-            if( !TrackRQBuilder::valid( rq ))
-                continue;
-
+            } else if( TrackRQBuilder::valid( rq )) {
              os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
@@ -695,10 +692,11 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         }
         else if(req.getvar("method") == "list_queries")
         {
-            deque< query_uid>::const_iterator it =
-                app()->resolver()->qids().begin();
+            deque<query_uid> qids;
+            app()->resolver()->qids(qids);
+
             Array qlist;
-            for (; it != app()->resolver()->qids().end(); it++)
+            for (deque<query_uid>::const_iterator it = qids.begin(); it != qids.end(); it++)
             {
                 try
                 { 
