@@ -109,7 +109,7 @@ bool add_dir(const bfs::path &p)
 bool add_file(const bfs::path &p, int mtime)
 {
     TagLib::FileRef f(p.string().c_str());
-    if(!f.isNull() && f.tag()) {
+    if( !f.isNull() && f.tag()) {
         TagLib::Tag *tag = f.tag();
         int filesize = bfs::file_size(p);
         int bitrate = 0;
@@ -119,9 +119,9 @@ bool add_file(const bfs::path &p, int mtime)
             duration = properties->length();
             bitrate = properties->bitrate();
         }
-        string artist = tag->artist().to8Bit(true);
-        string album  = tag->album().to8Bit(true);
-        string track  = tag->title().to8Bit(true);
+        string artist = tag->artist().toCString();
+        string album  = tag->album().toCString();
+        string track  = tag->title().toCString();
         boost::trim(artist);
         boost::trim(album);
         boost::trim(track);
