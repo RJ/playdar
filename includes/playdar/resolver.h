@@ -78,9 +78,10 @@ public:
         return m_pluginNameMap[ name ];
     }
 
-    const deque< query_uid > & qids() const
+    void qids(deque< query_uid >& out)
     {
-        return m_qidlist;
+        boost::mutex::scoped_lock lock(m_mut_qidlist);
+        out = m_qidlist;
     }
     
     /// number of seconds queries should survive for since last being used/accessed.
@@ -122,6 +123,7 @@ private:
     
     // newest-first list of dispatched qids:
     deque< query_uid > m_qidlist;
+    boost::mutex m_mut_qidlist;
     
     bool m_exiting;
     boost::thread * m_t;
