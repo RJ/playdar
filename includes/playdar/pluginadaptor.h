@@ -27,8 +27,8 @@ public:
     virtual ~PluginAdaptor(){};
 
     virtual void               set(const std::string& key, json_spirit::Value value) = 0;
-    virtual json_spirit::Value get(const std::string& key) const = 0;
-    virtual json_spirit::Value getint(const std::string& key) const = 0;
+    virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const = 0;
+    virtual json_spirit::Value getint(const std::string& key, const int def) const = 0;
     
     template <typename T>
     inline T get(const std::string& key, const T& def) const;
@@ -78,24 +78,24 @@ private:
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-template < typename T >
-inline T PluginAdaptor::get(const std::string& k, const T& def) const
+template <>
+inline std::string PluginAdaptor::get(const std::string& k, const std::string& def) const
 {
-    json_spirit::Value val = get(k);
-    if (val.type() != json_spirit::obj_type) 
+    json_spirit::Value v = getstring(k, def);
+    if( v.type() != json_spirit::str_type )
         return def;
-    else
-        return val.get_value<T>();
+
+    return v.get_str();
 }
 
 template <>
 inline int PluginAdaptor::get(const std::string& k, const int& def) const
 {
-    json_spirit::Value val = getint(k);
-    if (val.type() != json_spirit::obj_type || val.get_value<int>() < 0 ) 
+    json_spirit::Value v = getint(k, def);
+    if( v.type() != json_spirit::int_type )
         return def;
-    else
-        return val.get_value<int>();
+    
+    return v.get_int();
 }
     
 ////////////////////////////////////////////////////////////////////////////////

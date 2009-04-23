@@ -42,6 +42,7 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
 #add definitions, compiler switches, etc.
+ADD_DEFINITIONS(-DBOOST_SPIRIT_THREADSAFE)
 
 # PDL doesn't know apple mac = posix, this tells it:
 IF(APPLE)

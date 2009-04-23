@@ -458,10 +458,10 @@ lan::receive_pang(map<string,Value> & om,
 }
 
 playdar_response 
-lan::http_handler( const playdar_request& req,
+lan::http_handler( const playdar_request* req,
                          playdar::auth * pauth)
 {
-    cout << "request handler on lan for url: " << req.url() << endl;
+    cout << "request handler on lan for url: " << req->url() << endl;
     time_t now;
     time(&now);
     ostringstream os;
