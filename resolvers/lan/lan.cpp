@@ -52,7 +52,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     using namespace json_spirit;
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
-    cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
+    //cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
     async_send(broadcast_endpoint_, querystr.str());
 }
 
@@ -177,9 +177,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 break;
             }
             
-            cout    << "lan: Received multicast message (from " 
-                    << sender_address.to_string() << "):" 
-                    << endl << msg << endl;
+            //cout    << "lan: Received multicast message (from " 
+            //        << sender_address.to_string() << "):" 
+            //        << endl << msg << endl;
             
             using namespace json_spirit;
             // try and parse it as json:
@@ -268,9 +268,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     }
                     final_results.push_back( rip->get_json() );
                     m_pap->report_results( qid, final_results );
-                    cout    << "INFO Result from '" << rip->source()
-                            <<"' for '"<< write_formatted( rip->get_json())
-                            << endl;
+                    //cout    << "INFO Result from '" << rip->source()
+                    //        <<"' for '"<< write_formatted( rip->get_json())
+                    //        << endl;
                 }
                 catch (...)
                 {

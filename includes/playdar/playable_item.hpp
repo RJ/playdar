@@ -83,7 +83,7 @@ public:
 
     ~PlayableItem()
     {
-        std::cout << "dtor, playableitem: " << id() << std::endl;
+        //std::cout << "dtor, playableitem: " << id() << std::endl;
     }
     
     static bool is_valid_json( const json_spirit::Object& obj )
