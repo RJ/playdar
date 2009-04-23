@@ -1,4 +1,4 @@
-#!/usr/local/php5/bin/php
+#!/usr/bin/php
 <?php
 
 require_once dirname(__FILE__) . '/phpresolver/playdarresolver.php';
