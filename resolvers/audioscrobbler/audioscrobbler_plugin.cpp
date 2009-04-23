@@ -67,7 +67,7 @@ static string config(bool auth_required)
 }
 
 playdar_response 
-audioscrobbler::http_handler(const playdar_request* rq, playdar::auth* pauth)
+audioscrobbler::authed_http_handler(const playdar_request* rq, playdar::auth* pauth)
 {
     if(rq->parts().size()<2) return "Hi index!";
     string action = rq->parts()[1];

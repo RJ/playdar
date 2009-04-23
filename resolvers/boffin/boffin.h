@@ -25,11 +25,8 @@ public:
 
     virtual void start_resolving(boost::shared_ptr<playdar::ResolverQuery> rq);
 
-    // default is empty, ie no http urls handle
-    virtual std::vector<std::string> get_http_handlers();
-
     // handler for HTTP reqs we are registerd for:
-    virtual playdar::playdar_response http_handler( const playdar::playdar_request*, playdar::auth * pauth);
+    virtual playdar::playdar_response authed_http_handler(const playdar::playdar_request* rq, playdar::auth* pauth);
 
 protected:
     virtual ~boffin() throw();

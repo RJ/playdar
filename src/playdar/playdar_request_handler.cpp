@@ -266,8 +266,30 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         return;
     }
 
-    const playdar_response& response = rs->http_handler( &req, m_pauth );
-    serve_body( response, rep );
+    /// Auth stuff
+    string permissions = "";
+    if(m_disableAuth || req.getvar_exists("auth"))
+    {
+        string whom;
+        if(m_disableAuth || m_pauth->is_valid(req.getvar("auth"), whom) )
+        {
+            //cout << "AUTH: validated " << whom << endl;
+            permissions = "*"; // allow all.
+        }
+        else
+        {
+            //cout << "AUTH: Invalid authtoken." << endl;
+        }
+    }
+    else
+    {
+        //cout << "AUTH: no auth value provided." << endl;
+    }
+    
+    if( permissions == "*" )
+        serve_body( rs->authed_http_handler( &req, m_pauth ), rep );
+    else
+        serve_body( rs->anon_http_handler( &req ), rep );
 }
 
 void 

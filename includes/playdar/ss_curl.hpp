@@ -142,7 +142,6 @@ public:
             m_headthread = 0;
         }
         
-        std::cout << "***** "   << m_url << " content length: " << m_contentlen << std::endl;
         return m_contentlen;
     }
 

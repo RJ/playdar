@@ -298,18 +298,9 @@ boffin::parseFail(std::string line, int error_offset)
 }
 
 
-// default is empty, ie no http urls handle
-vector<string> 
-boffin::get_http_handlers()
-{
-    vector<string> h;
-    h.push_back("boffin");
-    return h;
-}
-
 // handler for HTTP reqs we are registerd for:
 playdar_response 
-boffin::http_handler( const playdar_request* req, playdar::auth * pauth)
+boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 {
     if(req->parts().size() <= 1)
         return "This plugin has no web interface.";
