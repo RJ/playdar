@@ -4,12 +4,15 @@
 #include <taglib/tag.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
 
 #include "playdar/application.h"
 #include "playdar/library.h"
+
+#include "playdar/utils/urlencoding.hpp"
 
 #include <iostream>
 #include <cstdio>
@@ -50,6 +53,20 @@ Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
 
+string url_encode( const string& p )
+{
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep( "/" );
+    tokenizer toks( p, sep );
+    
+    string ret = "";
+    for( tokenizer::iterator tok_iter = toks.begin(); tok_iter != toks.end(); ++tok_iter )
+    {
+        ret += "/" + playdar::utils::url_encode( *tok_iter );
+    }
+    return ret;
+}
+
 string urlify(const string& p)
 {
     // turn it into a url by prepending file://
@@ -57,16 +74,18 @@ string urlify(const string& p)
     string urlpath("file://");
     if (p.at(0)=='/') // posix path starting with /
     {
-        urlpath += p;
+        urlpath += url_encode( p );
     }
     else if (p.at(1)==':') // windows style filepath
     {
         urlpath += "/";
-        urlpath += p;
+        urlpath += url_encode( p );
     }
     else
     {
         // could be anything, hopefully something curl understands:
+        // (presume that it's already encoded as we don't want to 
+        //  encode the protocol part of the url )
         urlpath = p;
     }
     return urlpath;

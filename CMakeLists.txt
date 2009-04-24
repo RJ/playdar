@@ -69,6 +69,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
                       ${Boost_LIBRARIES}
+                      ${CURL_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
                       
 ADD_EXECUTABLE( playdar
