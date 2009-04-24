@@ -34,7 +34,6 @@ class LastfmDownloadResolver extends PlaydarResolver
                 $result = (Object) array(
                     'artist' => $request->artist,
                     'track' => $request->track,
-                    'score' => 1,
                     'source' => 'Last.fm Free Downloads',
                     'url' => $url,
                     'bitrate' => 128,
