@@ -6,6 +6,8 @@
 namespace playdar {
 namespace resolvers {
 
+using namespace std;
+    
 /*
     Called once when plugin is loaded when playdar starts up.
 */

@@ -14,8 +14,7 @@
 #include "BoffinRQUtil.h"
 
 using namespace fm::last::query_parser;
-using std::string;
-using std::ostringstream;
+using namespace std;
 
 static RqlOp root2op( const querynode_data& node )
 {

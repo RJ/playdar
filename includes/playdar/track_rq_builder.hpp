@@ -7,7 +7,7 @@ namespace playdar {
 
 class TrackRQBuilder {
 public:
-    static rq_ptr build( const string& artist, const string& album, const string& track )
+    static rq_ptr build( const std::string& artist, const std::string& album, const std::string& track )
     {
         rq_ptr rq = rq_ptr( new ResolverQuery );
         rq->set_param( "artist", artist );

@@ -18,7 +18,6 @@ namespace playdar {
 
 // Represents a search query to resolve a particular track
 // Contains results, as they are found
-using namespace std;
 
 class ResolverQuery
 {
@@ -47,7 +46,7 @@ public:
     /// @return score between 0-1 or == 0 if there's an error
     /// @param reason will be set to the fail reason.
     virtual float calculate_score( const pi_ptr & pi,
-                                  string & reason )
+                                  std::string & reason )
     {
         return 1.0f;
     }
@@ -57,7 +56,7 @@ public:
     {
         m_cancelled = true;
         m_callbacks.clear();
-        cout << "RQ::cancel() for " << id() << endl;
+        std::cout << "RQ::cancel() for " << id() << std::endl;
     }
     
     /// returns true if query cancelled and pending destruction. (hint, release your ptr)
@@ -71,7 +70,7 @@ public:
         j.push_back( Pair("_msgtype", "rq")   );
         j.push_back( Pair("qid",    id())     );
 
-        for( map<string,Value>::const_iterator i = m_qryobj_map.begin();
+        for( std::map<std::string,Value>::const_iterator i = m_qryobj_map.begin();
             i != m_qryobj_map.end(); i++ )
         {
             if( i->first != "_msgtype" &&
@@ -87,10 +86,10 @@ public:
     
     static boost::shared_ptr<ResolverQuery> from_json(json_spirit::Object qryobj)
     {
-        string qid, from_name;
+        std::string qid, from_name;
         
         using namespace json_spirit;
-        map<string,Value> qryobj_map;
+        std::map<std::string,Value> qryobj_map;
         obj_to_map(qryobj, qryobj_map);
         
         if(qryobj_map.find("qid")!=qryobj_map.end()) 
@@ -113,7 +112,7 @@ public:
         m_uuid = q;
     }
     
-    void set_from_name(const string& s) { m_from_name = s; }
+    void set_from_name(const std::string& s) { m_from_name = s; }
     
     const query_uid & id() const
     { 
@@ -125,7 +124,7 @@ public:
         return m_results.size();
     }
 
-    vector< ri_ptr > results()
+    std::vector< ri_ptr > results()
     {
         time(&m_atime);
         // sort results on score/preference.
@@ -179,21 +178,21 @@ public:
     }
     
     bool solved()   const { return m_solved; }
-    string from_name() const { return m_from_name;  }
+    std::string from_name() const { return m_from_name;  }
 
-    bool param_exists( const string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
-    const json_spirit::Value& param( const string& param ) const { return m_qryobj_map.find( param )->second; }
-    const json_spirit::Value_type param_type( const string& param ) const { return m_qryobj_map.find( param )->second.type(); }
+    bool param_exists( const std::string& param ) const { return m_qryobj_map.find( param ) != m_qryobj_map.end(); }
+    const json_spirit::Value& param( const std::string& param ) const { return m_qryobj_map.find( param )->second; }
+    const json_spirit::Value_type param_type( const std::string& param ) const { return m_qryobj_map.find( param )->second.type(); }
     
     template<typename T>
-    void set_param( const string& param, const T& value ){ m_qryobj_map[param] = value; }
+    void set_param( const std::string& param, const T& value ){ m_qryobj_map[param] = value; }
     
-    string str() const
+    std::string str() const
     {
-        ostringstream os;
+        std::ostringstream os;
         os << "{ ";
         
-        pair<string,json_spirit::Value> i;
+        std::pair<std::string,json_spirit::Value> i;
         BOOST_FOREACH( i, m_qryobj_map )
         {
             // This should return a pretty string
@@ -218,14 +217,14 @@ public:
     }
     
 protected:
-    map<string,json_spirit::Value> m_qryobj_map;
+    std::map<std::string,json_spirit::Value> m_qryobj_map;
 
 private:
-    vector< ri_ptr > m_results;
-    string      m_from_name;
+    std::vector< ri_ptr > m_results;
+    std::string      m_from_name;
         
     // list of functors to fire on new result:
-    vector<rq_callback_t> m_callbacks;
+    std::vector<rq_callback_t> m_callbacks;
     query_uid m_uuid;
     boost::mutex m_mut;
     // set to true once we get a decent result

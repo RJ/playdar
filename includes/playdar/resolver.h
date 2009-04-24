@@ -49,9 +49,9 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     const vector< ri_ptr >& results,
-                     string via);
-    vector< ri_ptr > get_results(query_uid qid);
+                     const std::vector< ri_ptr >& results,
+                     std::string via);
+    std::vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
     
     bool query_exists(const query_uid & qid);
@@ -67,10 +67,10 @@ public:
     
     size_t num_seen_queries();
     
-    const vector< pa_ptr >& resolvers() const
+    const std::vector< pa_ptr >& resolvers() const
     { return m_resolvers; }
 
-    ResolverService * get_resolver(string name)
+    ResolverService * get_resolver(std::string name)
     {
         if( m_pluginNameMap.find( name ) == m_pluginNameMap.end())
             return 0;
@@ -78,7 +78,7 @@ public:
         return m_pluginNameMap[ name ];
     }
 
-    void qids(deque< query_uid >& out)
+    void qids(std::deque< query_uid >& out)
     {
         boost::mutex::scoped_lock lock(m_mut_qidlist);
         out = m_qidlist;
@@ -103,7 +103,7 @@ public:
 protected:
     float calculate_score( const rq_ptr & rq,  // query
                           const pi_ptr & pi,  // candidate
-                          string & reason );  // fail reason
+                          std::string & reason );  // fail reason
 
 private:
     void load_library_resolver();
@@ -116,13 +116,13 @@ private:
     
     MyApplication * m_app;
     
-    map< query_uid, rq_ptr > m_queries;
-    map< source_uid, ri_ptr > m_sid2ri;
+    std::map< query_uid, rq_ptr > m_queries;
+    std::map< source_uid, ri_ptr > m_sid2ri;
     // timers used to auto-cancel queries that are inactive for long enough:
-    map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
+    std::map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     
     // newest-first list of dispatched qids:
-    deque< query_uid > m_qidlist;
+    std::deque< query_uid > m_qidlist;
     boost::mutex m_mut_qidlist;
     
     bool m_exiting;
@@ -131,14 +131,14 @@ private:
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:
-    vector< pa_ptr > m_resolvers;
+    std::vector< pa_ptr > m_resolvers;
 
-    map< string, ResolverService* > m_pluginNameMap;
+    std::map< std::string, ResolverService* > m_pluginNameMap;
     
     boost::mutex m_mut_results; // when adding results
     
     // for dispatching to the pipeline:
-    deque< pair<rq_ptr, unsigned short> > m_pending;
+    std::deque< std::pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
     
@@ -148,7 +148,7 @@ private:
     std::map< std::string, boost::function<ss_ptr(std::string)> > m_ss_factories;
     
     template <class T>
-    boost::shared_ptr<T> ss_ptr_generator(string url);
+    boost::shared_ptr<T> ss_ptr_generator(std::string url);
     
 };
 

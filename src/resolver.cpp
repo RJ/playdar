@@ -34,6 +34,7 @@
 namespace playdar { 
 
 using namespace resolvers;
+using namespace std;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
