@@ -654,9 +654,9 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
         
         if(req.getvar("method") == "resolve")
         {
-            string artist = req.getvar("artist");
-            string album  = req.getvar("album");
-            string track  = req.getvar("track");
+            string artist = req.getvar_exists("artist") ? req.getvar("artist") : "";
+            string album  = req.getvar_exists("album") ? req.getvar("album") : "";
+            string track  = req.getvar_exists("track") ? req.getvar("track") : "";
             // create a new query and start resolving it:
             boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
 
@@ -797,7 +797,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     rep.headers[0].name = "Content-Length";
     rep.headers[0].value = retval.length();
     rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = req.getvar_exists("jsonp") ? "text/javascript" : "text/plain";
+    rep.headers[1].value = req.getvar_exists("jsonp") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8";
     rep.content = retval;
 }
 

@@ -181,28 +181,53 @@ namespace
             {
                 String_t result;
 
-                const Iter_t end( s.end() );
+                Iter_t i ( s.begin() );
+                Iter_t end ( s.end() );
 
-                for( Iter_t i = s.begin(); i != end; ++i )
+                while ( i < end )
                 {
-                    const Char_t c( *i );
-
-                    if( add_esc_char( c, result ) ) continue;
-
-                    const wint_t unsigned_c( ( c >= 0 ) ? c : 256 + c );
-
-                    if( iswprint( unsigned_c ) )
-                    {
-                        result += c;
-                    }
-                    else
-                    {
-                        result += non_printable_to_string( unsigned_c );
+                    Iter_t i_uni ( i );
+                    unsigned unichar = get_unichar_from_std_iterator(i_uni);
+                    if (unichar <= 127) {
+                        if( !add_esc_char( unichar, result ) ) 
+                            result += *i;
+                        i = i_uni;
+                    } else {
+                        for (; i != i_uni; i++) {
+                            result += *i;
+                        } 
                     }
                 }
 
                 return result;
             }
+
+            // this method inspired by glibmm's ustring.cc (GPL v2)
+            //
+            // pos will be left at the byte/character following the utf-8 char returned
+            static unsigned int get_unichar_from_std_iterator(Iter_t& pos)
+            {
+                unsigned int result = static_cast<unsigned char>(*pos++);
+
+                if((result & 0x80) != 0)
+                {
+                    unsigned int mask = 0x40;
+
+                    do
+                    {
+                        result <<= 6;
+                        const unsigned int c = static_cast<unsigned char>(*pos++);
+                        mask   <<= 5;
+                        result  += c - 0x80;
+                    }
+                    while((result & mask) != 0);
+
+                    result &= mask - 1;
+                }
+
+                return result;
+            }
+
 
             Ostream_t& os_;
             int indentation_level_;
