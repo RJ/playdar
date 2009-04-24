@@ -35,6 +35,11 @@ abstract class PlaydarResolver
             // read $len bytes for the actual payload and assume it's a JSON object.
             $request = json_decode(fread($fh, $len));
             
+            // Malformed request
+            if (!isset($request->artist, $request->album)) {
+                continue;
+            }
+            
             // Let's resolve this bitch
             $results = $this->resolve($request);
             
