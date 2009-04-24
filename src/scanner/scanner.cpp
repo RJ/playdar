@@ -207,7 +207,7 @@ string ext2mime(const string& ext)
 #ifdef WIN32
 int wmain(int argc, wchar_t* argv[])
 #else
-int main(int argc, char** argv[])
+int main(int argc, char* argv[])
 #endif
 {
     if (argc<3 || argc==1) {
