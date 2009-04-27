@@ -79,7 +79,7 @@ string urlify(const string& p)
     else if (p.at(1)==':') // windows style filepath
     {
         urlpath += "/";
-        urlpath += url_encode( p );
+        urlpath += p.substr(0, 2) + url_encode( p.substr(2) );  // encode the part after the drive-letter
     }
     else
     {
