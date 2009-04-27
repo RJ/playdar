@@ -24,7 +24,8 @@ public:
         using namespace json_spirit;
         Object j;
         j.push_back( Pair("_msgtype", "ri") );
-        j.push_back( Pair("score", (double)score()) );
+        j.push_back( Pair("score", (double) m_score) );
+        j.push_back( Pair("source", m_source) );
         
         create_json( j );
         return j;
@@ -42,9 +43,9 @@ public:
         assert(s >= 0);
         m_score  = s; 
     }
-    void set_source(std::string s)   { m_source = s; }
+    void set_source(const std::string& s)   { m_source = s; }
     
-    virtual void set_url(std::string s)      { m_url = s; }
+    virtual void set_url(const std::string& s)      { m_url = s; }
     virtual const std::string & url() const  { return m_url; }
     
     //TODO: move this into PlayableItem somehow

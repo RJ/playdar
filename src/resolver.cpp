@@ -34,6 +34,7 @@
 namespace playdar { 
 
 using namespace resolvers;
+using namespace std;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
@@ -632,14 +633,18 @@ Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
     }
 
     m_queries[rq->id()] = rq;
-    m_qidlist.push_front(rq->id());
+    {
+        boost::mutex::scoped_lock lock(m_mut_qidlist);
+        m_qidlist.push_front(rq->id());
+    }
     return true;
 }
 
 boost::shared_ptr<ResolverQuery>
 Resolver::rq(const query_uid & qid)
 {
-    return m_queries[qid];
+    map< query_uid, rq_ptr >::iterator it = m_queries.find(qid);
+    return it == m_queries.end() ? boost::shared_ptr<ResolverQuery>() : it->second;
 }
 
 size_t

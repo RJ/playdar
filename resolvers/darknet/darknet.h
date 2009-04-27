@@ -132,16 +132,8 @@ public:
         { return conn; }
     }
     
-    playdar_response http_handler( const playdar_request& req,
-                        playdar::auth * pauth);
+    playdar_response authed_http_handler(const playdar_request* rq, playdar::auth* pauth);
                            
-    std::vector<std::string> get_http_handlers()
-    {
-        std::vector<std::string> h;
-        h.push_back ( "/darknet/config/" );
-        return h;
-    }
-
 protected:
     virtual ~darknet() throw();
     

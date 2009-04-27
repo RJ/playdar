@@ -16,12 +16,10 @@ SET(Boost_USE_STATIC_LIBS ON)
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
-FIND_PACKAGE(OsspUuid REQUIRED)
 FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
-                    ${OSSPUUID_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
@@ -42,6 +40,7 @@ SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)
 
 #add definitions, compiler switches, etc.
+ADD_DEFINITIONS(-DBOOST_SPIRIT_THREADSAFE)
 
 # PDL doesn't know apple mac = posix, this tells it:
 IF(APPLE)
@@ -56,7 +55,7 @@ ENDIF(WIN32)
 IF(NOT WIN32)
     # removes operators like "and", "or" and "not"
     ADD_DEFINITIONS(-Wall) # -ggdb
-    ADD_DEFINITIONS(-g -O2 -DNDEBUG)
+    ADD_DEFINITIONS(-g )
     ADD_DEFINITIONS(-fno-operator-names)
 ENDIF(NOT WIN32)
 
@@ -70,7 +69,7 @@ ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
 TARGET_LINK_LIBRARIES(scanner 
                       ${SQLITE3_LIBRARIES}
                       ${Boost_LIBRARIES}
-                      ${OSSPUUID_LIBRARIES}
+                      ${CURL_LIBRARIES}
                       ${TAGLIB_LIBRARIES})
                       
 ADD_EXECUTABLE( playdar
@@ -114,7 +113,6 @@ TARGET_LINK_LIBRARIES( playdar
                        ${CURL_LIBRARIES}			
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
-                       ${OSSPUUID_LIBRARIES}  # BSD-like
 					   ${Boost_LIBRARIES}	  # Boost license
                      )
 

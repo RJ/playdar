@@ -18,10 +18,10 @@ namespace playdar
             audioscrobbler() : auth_required(false)
             {}
             
-            virtual bool init( pa_ptr );
+            virtual bool init(pa_ptr);
             virtual void Destroy();
             virtual std::string name() const { return "Audioscrobbler"; }
-            virtual playdar_response http_handler(const playdar_request*, playdar::auth* pauth);
+            virtual playdar_response authed_http_handler(const playdar_request*, playdar::auth* pauth);
 
         private:
             /** pure virtual, so reimplemented but does nothing */

@@ -1,4 +1,4 @@
-#!/usr/local/php5/bin/php
+#!/usr/bin/php
 <?php
 
 require_once dirname(__FILE__) . '/phpresolver/playdarresolver.php';
@@ -27,20 +27,20 @@ class LastfmDownloadResolver extends PlaydarResolver
             // get duration
             
             preg_match('/\((.:..)\)/', $html, $matches);
+            if ($matches) {
+                list($m, $s) = explode(":", $matches[1]);
+                $duration = ($m * 60) + $s;
             
-            list($m, $s) = explode(":", $matches[1]);
-            $duration = ($m * 60) + $s;
-            
-            $result = (Object) array(
-                'artist' => $request->artist,
-                'track' => $request->track,
-                'score' => 1,
-                'source' => 'Last.fm Free Downloads',
-                'url' => $url,
-                'bitrate' => 128,
-                'duration' => $duration,
-            );
-            return array($result);
+                $result = (Object) array(
+                    'artist' => $request->artist,
+                    'track' => $request->track,
+                    'source' => 'Last.fm Free Downloads',
+                    'url' => $url,
+                    'bitrate' => 128,
+                    'duration' => $duration,
+                );
+                return array($result);
+            }
         }
         return array();
     }

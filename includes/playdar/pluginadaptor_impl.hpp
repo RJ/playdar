@@ -46,7 +46,7 @@ public:
     virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const
     {
         // TODO
-        json_spirit::Value v( m_config->get<string>(key, def) );
+        json_spirit::Value v( m_config->get<std::string>(key, def) );
         return v;
     }
     

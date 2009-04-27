@@ -1,4 +1,4 @@
-#!/usr/local/php5/bin/php
+#!/usr/bin/php
 <?php
 
 require_once dirname(__FILE__) . '/phpresolver/playdarresolver.php';
@@ -71,7 +71,6 @@ class HypeMachineResolver extends PlaydarResolver
             if (!$result) {
                 continue;
             }
-            $result->score = $this->calculateRelevancy($request, $result);
             $result->url = sprintf("http://hypem.com/serve/play/%s/%s", $result->id, $result->key);
             $result->track = $result->song;
 
@@ -112,20 +111,6 @@ class HypeMachineResolver extends PlaydarResolver
 
         $json = substr($json, 0, -1);
         return '{' . $json . '}';
-    }
-    
-    private function calculateRelevancy($request, $result)
-    {
-        similar_text($request->artist, $result->artist, $artistSimilarity);
-        similar_text($request->track, $result->song, $trackSimilarity);
-        
-        // Artist or track has nothing in common? Fuck this, i'm out.
-        if (!($artistSimilarity && $trackSimilarity)) {
-            return 0;
-        }
-
-        // Out of 100
-        return ($artistSimilarity + $trackSimilarity) / 200;
     }
 }
 

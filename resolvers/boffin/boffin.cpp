@@ -14,8 +14,7 @@
 #include "BoffinRQUtil.h"
 
 using namespace fm::last::query_parser;
-using std::string;
-using std::ostringstream;
+using namespace std;
 
 static RqlOp root2op( const querynode_data& node )
 {
@@ -56,12 +55,13 @@ using namespace playdar;
 class TagCloudItem : public ResolvedItem
 {
 public:
-    TagCloudItem(const std::string& name, float weight, int trackCount)
+    TagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
         :m_name(name)
         ,m_weight(weight)
         ,m_trackCount(trackCount)
     {
         set_score(m_weight);
+        set_source(source);
     }
 
     void create_json(json_spirit::Object &o) const
@@ -90,11 +90,16 @@ public:
     {
         map<string, json_spirit::Value> m;
         obj_to_map(o, m);
-        
+
+        // source is optional (?)
+        map<string, json_spirit::Value>::const_iterator it( m.find("source") );
+        std::string source( it == m.end() ? "" : it->second.get_str() );
+
         return ri_ptr(new TagCloudItem(
             m.find("name")->second.get_str(), 
             m.find("score")->second.get_real(), 
-            m.find("count")->second.get_int() ) );
+            m.find("count")->second.get_int(),
+            source ) );              // source not always essential/present.
     }
 
 
@@ -221,10 +226,10 @@ boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 
 static
 boost::shared_ptr<TagCloudItem> 
-makeTagCloudItem(const boost::tuple<std::string, float, int>& in)
+makeTagCloudItem(const boost::tuple<std::string, float, int>& in, const std::string& source)
 {
     return boost::shared_ptr<TagCloudItem>(
-        new TagCloudItem(in.get<0>(), in.get<1>(), in.get<2>()) );
+        new TagCloudItem(in.get<0>(), in.get<1>(), in.get<2>(), source));
 }
 
 
@@ -272,8 +277,10 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 
         shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
         vector< json_spirit::Object > results;
+        const std::string source( m_pap->hostname() );
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
-            results.push_back( makeTagCloudItem( tag )->get_json() );
+            results.push_back( makeTagCloudItem( tag, source )->get_json() );
+
         }
         cout << "Boffin will now report resuilts" << endl;
         m_pap->report_results(rq->id(), results);
@@ -290,18 +297,9 @@ boffin::parseFail(std::string line, int error_offset)
 }
 
 
-// default is empty, ie no http urls handle
-vector<string> 
-boffin::get_http_handlers()
-{
-    vector<string> h;
-    h.push_back("boffin");
-    return h;
-}
-
 // handler for HTTP reqs we are registerd for:
 playdar_response 
-boffin::http_handler( const playdar_request* req, playdar::auth * pauth)
+boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 {
     if(req->parts().size() <= 1)
         return "This plugin has no web interface.";

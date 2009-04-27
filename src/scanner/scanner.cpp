@@ -4,12 +4,15 @@
 #include <taglib/tag.h>
 
 #include <boost/filesystem.hpp>
+#include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
 
 #include "playdar/application.h"
 #include "playdar/library.h"
+
+#include "playdar/utils/urlencoding.hpp"
 
 #include <iostream>
 #include <cstdio>
@@ -20,64 +23,104 @@ using namespace playdar;
 
 namespace bfs = boost::filesystem; 
 
-bool add_file(const bfs::path &, int mtime);
-bool add_dir(const bfs::path &);
-string ext2mime(string ext);
+
+#ifdef WIN32
+
+// to handle unicode file/pathnames on windows, we use wpath
+
+typedef bfs::wpath Path;
+typedef bfs::wdirectory_iterator DirIt;
+wstring fromUtf8(const string& i);
+string toUtf8(const wstring& i);
+
+#else
+
+// things are easier
+
+typedef bfs::path Path;
+typedef bfs::directory_iterator DirIt;
+#define fromUtf8(s) (s)
+#define toUtf8(s) (s)
+
+#endif
+
+
+bool add_file(const Path&, int mtime);
+bool add_dir(const Path&);
+string ext2mime(const string& ext);
 
 Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
 
-string urlify(const bfs::path &p)
+string url_encode( const string& p )
+{
+    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+    boost::char_separator<char> sep( "/" );
+    tokenizer toks( p, sep );
+    
+    string ret = "";
+    for( tokenizer::iterator tok_iter = toks.begin(); tok_iter != toks.end(); ++tok_iter )
+    {
+        ret += "/" + playdar::utils::url_encode( *tok_iter );
+    }
+    return ret;
+}
+
+string urlify(const string& p)
 {
     // turn it into a url by prepending file://
     // because we pass all urls to curl:
-    string urlpath = "file://";
-    if( p.string().at(0)=='/' ) // posix path starting with /
+    string urlpath("file://");
+    if (p.at(0)=='/') // posix path starting with /
     {
-        urlpath += p.string();
+        urlpath += url_encode( p );
     }
-    else if(p.string().at(1)==':') // windows style filepath
+    else if (p.at(1)==':') // windows style filepath
     {
         urlpath += "/";
-        urlpath += p.string();
+        urlpath += url_encode( p );
     }
     else
     {
         // could be anything, hopefully something curl understands:
-        urlpath = p.string();
+        // (presume that it's already encoded as we don't want to 
+        //  encode the protocol part of the url )
+        urlpath = p;
     }
     return urlpath;
 }
 
-bool scan(const bfs::path &p, map<string,int> & mtimes)
+bool scan(const Path& p, map<string, int>& mtimes)
 {
     try
     {
-        map<string, int>::iterator mtimeit;
-        if(!exists(p)) return false;
-        bfs::directory_iterator end_itr;
-        for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr){
-            if ( bfs::is_directory(itr->status()) ){
-                cout << "DIR: " << itr->path() << endl;
+        if(!exists(p)) 
+            return false;
+
+        DirIt end_itr;
+        for(DirIt itr( p ); itr != end_itr; ++itr){
+            if ( bfs::is_directory( itr->status() ) ){
+                cout << "DIR: " << toUtf8(itr->path().string()) << endl;
                 scan(itr->path(), mtimes);
             } else {
                 // is this file an audio file we understand?
-                string extu(bfs::extension(itr->path()));
+                string extu(toUtf8(bfs::extension(itr->path())));
                 string ext = to_lower_copy(extu);
                 if( ext == ".mp3" ||
                     ext == ".m4a" || 
                     ext == ".mp4" ||  
                     ext == ".aac" )
                 {
-                    string url = urlify( itr->string() );
+                    string url = urlify( toUtf8(itr->string()) );
                     int mtime = bfs::last_write_time(itr->path());
-                    mtimeit = mtimes.find(url);
-                    if(    mtimeit == mtimes.end() // not scanned previously
+
+                    map<string, int>::iterator mtimeit = mtimes.find(url);
+                    if (mtimeit == mtimes.end() // not scanned previously
                         || mtimes[url] != mtime) // modified since last time
                     {
                         add_file(itr->path(), mtime);
-                    }else{
+                    } else {
                         ignored++;
                     }
                 } else {
@@ -93,49 +136,53 @@ bool scan(const bfs::path &p, map<string,int> & mtimes)
     return true;
 }
 
-bool add_dir(const bfs::path &p)
+bool add_dir(const Path &p)
 {
     try
     {
         int mtime = bfs::last_write_time(p);
-        gLibrary->add_dir(p.string(), mtime);
+        gLibrary->add_dir(toUtf8(p.string()), mtime);
         return true;
     }
-    catch(std::exception const& e) { cerr << e.what() << endl;}
-    catch(...) { cout << "Fail at " << p.string() << endl; }
+    catch(const std::exception& e) { 
+        cerr << e.what() << endl;
+    }
+    catch(...) { 
+        cout << "Fail at " << p.string() << endl; 
+    }
     return false;
 }
 
-bool add_file(const bfs::path &p, int mtime)
+bool add_file(const Path& p, int mtime)
 {
     TagLib::FileRef f(p.string().c_str());
-    if(!f.isNull() && f.tag()) {
+    if (!f.isNull() && f.tag()) {
         TagLib::Tag *tag = f.tag();
         int filesize = bfs::file_size(p);
         int bitrate = 0;
         int duration = 0;
-        if(f.audioProperties()) {
+        if (f.audioProperties()) {
             TagLib::AudioProperties *properties = f.audioProperties();
             duration = properties->length();
             bitrate = properties->bitrate();
         }
-        string artist = tag->artist().to8Bit(true);
-        string album  = tag->album().to8Bit(true);
-        string track  = tag->title().to8Bit(true);
+        string artist = tag->artist().toCString(true);
+        string album  = tag->album().toCString(true);
+        string track  = tag->title().toCString(true);
         boost::trim(artist);
         boost::trim(album);
         boost::trim(track);
-        if(artist.length()==0 || track.length()==0) 
-        {
+        if (artist.length()==0 || track.length()==0) {
             ignored++;
             return false;
         }
-        string ext(bfs::extension(p));
+
+        string ext(toUtf8(bfs::extension(p)));
         string mimetype = ext2mime(to_lower_copy(ext));
         
         // turn it into a url by prepending file://
         // because we pass all urls to curl:
-        string urlpath = urlify( p );
+        string urlpath = urlify( toUtf8(p.string()) );
         
         gLibrary->add_file( urlpath, 
                             mtime, 
@@ -165,7 +212,7 @@ bool add_file(const bfs::path &p, int mtime)
     }
 }
 
-string ext2mime(string ext)
+string ext2mime(const string& ext)
 { 
     if(ext==".mp3") return "audio/mpeg";
     if(ext==".aac") return "audio/mp4";
@@ -176,21 +223,25 @@ string ext2mime(string ext)
     return "application/octet-stream";
 }
 
-int main(int argc, char *argv[])
+#ifdef WIN32
+int wmain(int argc, wchar_t* argv[])
+#else
+int main(int argc, char* argv[])
+#endif
 {
-    if(argc<3 || argc==1){
+    if (argc<3 || argc==1) {
         cerr<<"Usage: "<<argv[0] << " <collection.db> <scan_dir>"<<endl;
         return 1;
     }
     try {
-        gLibrary = new Library(argv[1]);
+        gLibrary = new Library(toUtf8(argv[1]));
 
         // get last scan date:
         cout << "Loading data from last scan..." << flush;
-        map<string,int> mtimes = gLibrary->file_mtimes();
+        map<string, int> mtimes = gLibrary->file_mtimes();
         cout << mtimes.size() << " files+dir mtimes loaded" << endl;
         cout << "Scanning for changes..." << endl;
-        bfs::path dir(argv[2]);
+        Path dir(argv[2]);
         sqlite3pp::transaction xct(*(gLibrary->db()));
         {
             // first scan for mp3/aac/etc files:
@@ -235,3 +286,42 @@ int main(int argc, char *argv[])
     }
     return 0;
 }
+
+
+#ifdef WIN32
+
+wstring fromUtf8(const string& s)
+{
+    wstring r;
+    const int len = s.length();
+    if (len) {
+        int chars = MultiByteToWideChar(CP_UTF8, 0, s.data(), len, NULL, 0);
+        if (!chars) throw std::runtime_error("fixme: string conversion error");
+        wchar_t* buffer = new wchar_t[chars];
+
+        int result = MultiByteToWideChar(CP_UTF8, 0, s.data(), len, buffer, chars);
+        if (result > 0) r.assign(buffer, result);
+        delete [] buffer;
+        if (result == 0) throw std::runtime_error("fixme: string conversion error");
+    }
+    return r;
+}
+
+string toUtf8(const wstring& s)
+{
+    string r;
+    const int len = s.length();
+    if (len) {
+        int bytes = WideCharToMultiByte(CP_UTF8, 0, s.data(), len, NULL, 0, NULL, NULL);
+        if (!bytes) throw std::runtime_error("fixme: string conversion error");
+        char* buffer = new char[bytes];
+
+        int result = WideCharToMultiByte(CP_UTF8, 0, s.data(), len, buffer, bytes, NULL, NULL);
+        if (result > 0) r.assign(buffer, result);
+        delete [] buffer;
+        if (result == 0) throw std::runtime_error("fixme: string conversion error");
+    }
+    return r;
+}
+
+#endif

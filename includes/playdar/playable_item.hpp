@@ -108,34 +108,34 @@ public:
         std::map<std::string,Value> resobj_map;
         obj_to_map(resobj, resobj_map);
             
-        if(resobj_map.find("artist")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "artist"))
             artist  = resobj_map["artist"].get_str();
             
-        if(resobj_map.find("album")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "album"))
             album   = resobj_map["album"].get_str();
             
-        if(resobj_map.find("track")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "track"))
             track   = resobj_map["track"].get_str();
             
-        if(resobj_map.find("sid")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "sid"))
             sid     = resobj_map["sid"].get_str();
             
-        if(resobj_map.find("source")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "source"))
             source  = resobj_map["source"].get_str();
             
-        if(resobj_map.find("mimetype")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "mimetype"))
             mimetype= resobj_map["mimetype"].get_str();
             
-        if(resobj_map.find("url")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "url"))
             url = resobj_map["url"].get_str();
             
-        if(resobj_map.find("size")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "size", int_type))
             size    = resobj_map["size"].get_int();
             
-        if(resobj_map.find("bitrate")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "bitrate", int_type))
             bitrate = resobj_map["bitrate"].get_int();
             
-        if(resobj_map.find("duration")!=resobj_map.end())
+        if(in_map_and_is_type( resobj_map, "duration", int_type))
             duration= resobj_map["duration"].get_int();
         
         if(resobj_map.find("score")!=resobj_map.end())
@@ -210,7 +210,15 @@ public:
     }
     
 private:
-
+    
+    inline static bool in_map_and_is_type( std::map<std::string, json_spirit::Value >& map, 
+                                          const std::string& key, 
+                                          json_spirit::Value_type t = json_spirit::str_type)
+    {
+        return map.find( key ) != map.end() && 
+        map[key].type() == t;
+    }
+    
     std::string m_artist;
     std::string m_album;
     std::string m_track;

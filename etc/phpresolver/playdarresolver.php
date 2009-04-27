@@ -12,6 +12,12 @@ abstract class PlaydarResolver
     protected $targetTime; // Lower is better
     protected $weight; // 1-100. higher means preferable.
     
+    
+    public function __construct()
+    {
+        set_error_handler(array($this, 'errorHandler'), E_ALL);
+    }
+    
     /**
      * 
      */
@@ -34,6 +40,11 @@ abstract class PlaydarResolver
             
             // read $len bytes for the actual payload and assume it's a JSON object.
             $request = json_decode(fread($fh, $len));
+            
+            // Malformed request
+            if (!isset($request->artist, $request->album)) {
+                continue;
+            }
             
             // Let's resolve this bitch
             $results = $this->resolve($request);
@@ -86,9 +97,47 @@ abstract class PlaydarResolver
     
     public function log($message)
     {
-        $fh = fopen("php://STDIN", 'w');
-        fwrite($fh, __CLASS__ . ' log: ' . $message);
+        $fh = fopen("php://STDERR", 'w');
+        fwrite($fh, $message . "\n");
         fclose($fh);
+    }
+    
+    public function errorHandler($errno, $errstr, $errfile, $errline)
+    {
+        $exit = false;
+        
+        switch ($errno) {
+            case E_USER_ERROR:
+                $type = "Fatal";
+                $exit = true;
+
+            case E_WARNING:
+            case E_USER_WARNING:
+                $type = "Warning";
+                break;
+
+            case E_NOTICE:
+            case E_USER_NOTICE:
+                $type = "Notice";
+                break;
+
+            default:
+                $type = "Unknown";
+                break;
+        }
+        
+        $format = 'PHP ' . $type . ' Error: "%s" (line %s in %s)';
+        $error = sprintf($format, $errstr, $errline, $errfile);
+        
+        $this->log($error);
+        
+        if ($exit) {
+            exit(1);
+        }
+        else {
+            /* Don't execute PHP internal error handler */
+            return true;
+        }
     }
 }
 
