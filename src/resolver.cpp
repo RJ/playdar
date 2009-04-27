@@ -163,7 +163,7 @@ Resolver::load_resolver_scripts()
 {
     using namespace boost::filesystem;
     
-    path const etc = "etc"; //FIXME don't depend on working directory
+    path const etc = "scripts"; //FIXME don't depend on working directory
     cout << "Loading resolver scripts from: " << etc << endl;
 
     if (!exists(etc) || !is_directory(etc)) return;     // avoid the throw
@@ -182,7 +182,7 @@ Resolver::load_resolver_scripts()
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
             //FIXME more sensible place to put resolving scripts
-            if (name=="playdar.conf" || name=="schema.sql" || name=="mock-input.pl")
+            if (name=="README.txt")
                 continue;
             if (app()->conf()->get<bool>(conf+"enabled", true) == false){
                 cout << "-> Skipping '"+name+"' - disabled in config file";
