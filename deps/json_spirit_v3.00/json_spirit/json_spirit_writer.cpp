@@ -177,7 +177,38 @@ namespace
                 return false;
             }
 
-            String_t add_esc_chars( const String_t& s )
+            // this is the original add_esc_chars,
+            // but now it is specialised for wide-strings
+            // it is utf-8 unaware... which is reasonable.
+            std::wstring add_esc_chars( const std::wstring& s )
+            {
+                String_t result;
+
+                const Iter_t end( s.end() );
+
+                for( Iter_t i = s.begin(); i != end; ++i )
+                {
+                    const Char_t c( *i );
+
+                    if( add_esc_char( c, result ) ) continue;
+
+                    const wint_t unsigned_c( ( c >= 0 ) ? c : 256 + c );
+
+                    if( iswprint( unsigned_c ) )
+                    {
+                        result += c;
+                    }
+                    else
+                    {
+                        result += non_printable_to_string( unsigned_c );
+                    }
+                }
+
+                return result;
+            }
+
+            // this is the narrow-string version which groks utf-8
+            std::string add_esc_chars( const std::string& s )
             {
                 String_t result;
 
@@ -201,6 +232,7 @@ namespace
 
                 return result;
             }
+
 
             // this method inspired by glibmm's ustring.cc (GPL v2)
             //
