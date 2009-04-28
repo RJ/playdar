@@ -57,9 +57,10 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-Wall) # -ggdb
     ADD_DEFINITIONS(-g )
     ADD_DEFINITIONS(-fno-operator-names)
+    ADD_DEFINITIONS(-fPIC)
 ENDIF(NOT WIN32)
 
-ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl
+ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl means "don't build this target if they just type 'make'"-rj
                ${SRC}/scanner/scanner.cpp
                ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
                ${SRC}/library.cpp         # because library.cpp uses HTTPStreamingStrategy
