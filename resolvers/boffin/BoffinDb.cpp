@@ -1,14 +1,73 @@
 #include "BoffinDb.h"
+#include "boffin_sql.h"
 
 #include <string>
 #include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/split.hpp>
 
 using namespace std;
 
 BoffinDb::BoffinDb(const std::string& boffinDbFilePath, const std::string& playdarDbFilePath)
 : m_db( boffinDbFilePath.c_str() )
 {
+    // confirm DB is correct version, or create schema if first run
+    check_db();
     m_db.attach( playdarDbFilePath.c_str(), "pd" );     // pd = playdar :)
+}
+
+void
+BoffinDb::check_db()
+{
+    try
+    {
+      sqlite3pp::query qry(m_db, "SELECT value FROM boffin_system WHERE key = 'schema_version'");
+      sqlite3pp::query::iterator i = qry.begin();
+      if( i == qry.end() )
+      {
+        // unusual - table exists but doesn't contain this row.
+        // could have been created wrongly
+        cerr << "Errror, boffin_system table missing schema_version key!" << endl
+             << "Maybe you created the database wrong, or it's corrupt." << endl
+             << "Try deleting it and re-scanning?" << endl;
+        throw; // not caught here.
+      }
+      string val = (*i).get<string>(0);
+      cout << "Boffin database schema detected as version " << val << endl;
+      // check the schema version is what we expect
+      // TODO auto-upgrade to newest schema version as needed.
+      if( val != "1" )
+      {
+        cerr << "Boffin schema version too old. TODO handle auto-upgrades" << endl;
+        throw; // not caught here
+      }
+      // OK.
+    }
+    catch(sqlite3pp::database_error err)
+    {
+      // probably doesn't exist yet, try and create it
+      // 
+      cout << "database_error: " << err.what() << endl;
+      create_db_schema();
+    }
+    
+}
+
+void
+BoffinDb::create_db_schema()
+{
+    cout << "Attempting to create boffin DB schema..." << endl;
+    string sql(  playdar::get_boffin_sql() );
+    vector<string> statements;
+    boost::split( statements, sql, boost::is_any_of(";") );
+    BOOST_FOREACH( string s, statements )
+    {
+        boost::trim( s );
+        if(s.empty()) continue;
+        cout << "Executing: " << s << endl;
+        sqlite3pp::command cmd(m_db, s.c_str());
+        cmd.execute();
+    }
+    cout << "Schema created." << endl;
 }
 
 boost::shared_ptr<BoffinDb::TagCloudVec> 

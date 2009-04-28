@@ -477,8 +477,7 @@ lan::anon_http_handler(const playdar_request* req)
             Object o;
             o.push_back( Pair("name", p.first) );
             o.push_back( Pair("address", p.second.http_base) );
-            
-            //FIXME not safe on compilers where sizeof (long) > sizeof(int)
+            //FIXME not safe on compilers where sizeof (long) > sizeof(int) after the year 2038
             o.push_back( Pair("age", (int)(now - p.second.lastdate)) );
             a.push_back(o);
         }

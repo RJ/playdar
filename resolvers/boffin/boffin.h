@@ -41,8 +41,9 @@ private:
     void queue_work(boost::function< void() > work);
     boost::function< void() > get_work();
 
-    volatile bool m_thread_stop;
     boost::thread* m_thread;
+    volatile bool m_thread_stop;
+    
     boost::mutex m_queue_mutex;
     boost::condition_variable m_queue_wake;
     std::queue< boost::function< void() > > m_queue;

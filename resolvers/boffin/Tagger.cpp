@@ -100,15 +100,14 @@ int main(int argc, char *argv[])
         cc("POSTREDIR") = curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL );  // keep on posting when redir'd (301 or 302)
 #endif
         cc("POST") = curl_easy_setopt(curl, CURLOPT_POST, 1);
-        cc("POSTFIELDSIZE") = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, ssreq.rdbuf()->in_avail());
+        cc("POSTFIELDSIZE") = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, ssreq.str().length()); //yuk, but beware the server doesn't support expect:
         cc("USERAGENT") = curl_easy_setopt(curl, CURLOPT_USERAGENT, "playdar boffin tagger");
         struct curl_slist *headers = 0;
         headers = curl_slist_append(headers, "content-type: text/plain; charset=utf-8");
         headers = curl_slist_append(headers, "expect:");
         cc("HTTPHEADER") = curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-
+        
         cc("easy_perform") = curl_easy_perform(curl);
-
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
 

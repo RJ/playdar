@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS track_search_index (
     ngram TEXT NOT NULL,
     id INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE ON UPDATE CASCADE,
     num INTEGER NOT NULL DEFAULT 1
-);
+); 
 CREATE UNIQUE INDEX track_search_index_ngram_track ON track_search_index(ngram, id);
 
 
@@ -85,14 +85,22 @@ CREATE TABLE IF NOT EXISTS playdar_auth (
     permissions TEXT NOT NULL
 );
 
--- Settings
+-- Schema version, and misc playdar settings
 
-CREATE TABLE IF NOT EXISTS playdar_settings (
-    ns TEXT,
-    name TEXT NOT NULL,
-    value TEXT,
-    defaultvalue TEXT NOT NULL,
-    description TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS playdar_system (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
 );
-CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
+INSERT INTO playdar_system(key,value) VALUES('schema_version', '1');
+
+-- Settings NOT USED
+
+--CREATE TABLE IF NOT EXISTS playdar_settings (
+--    ns TEXT,
+--    name TEXT NOT NULL,
+--    value TEXT,
+--    defaultvalue TEXT NOT NULL,
+--    description TEXT NOT NULL
+--);
+--CREATE UNIQUE INDEX playdar_settings_idx ON playdar_settings(ns,value);
 
