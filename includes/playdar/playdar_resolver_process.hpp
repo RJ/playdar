@@ -14,7 +14,6 @@
 
 #include "json_spirit/json_spirit.h"
 #include "playdar/resolver_query.hpp"
-#include "playdar/playable_item.hpp"
 
 #define MAXBUF 4096 // max size of msg payload
 

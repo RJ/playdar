@@ -75,8 +75,8 @@ BoffinDb::get_tag_cloud(int limit)
 {
     sqlite3pp::query qry(m_db, 
         "SELECT name, sum(weight), count(weight) "
-        "FROM file_tag "
-        "INNER JOIN tag ON file_tag.tag = tag.rowid "
+        "FROM track_tag "
+        "INNER JOIN tag ON track_tag.tag = tag.rowid "
         "GROUP BY tag.rowid");
 
     boost::shared_ptr<TagCloudVec> p( new TagCloudVec() );
@@ -100,8 +100,8 @@ BoffinDb::get_all_artist_tags(BoffinDb::ArtistTagMap& out)
 {
     sqlite3pp::query qry(m_db, 
         "SELECT artist, tag, avg(weight) "
-        "FROM file_tag "
-        "INNER JOIN pd.file_join ON file_tag.file = pd.file_join.file "
+        "FROM track_tag "
+        "INNER JOIN pd.file_join ON track_tag.file = pd.file_join.track "
         "GROUP BY artist, tag "
         "ORDER BY artist, tag ");
 

@@ -22,11 +22,9 @@ typedef boost::shared_ptr<Album>        album_ptr;
 typedef boost::shared_ptr<LibraryFile>  LibraryFile_ptr;
 
 class ResolvedItem;
-class PlayableItem;
 class ResolverQuery;
 class PluginAdaptor;
 class StreamingStrategy;
-typedef boost::shared_ptr<PlayableItem>      pi_ptr;
 typedef boost::shared_ptr<ResolvedItem>      ri_ptr;
 typedef boost::shared_ptr<ResolverQuery>     rq_ptr;
 typedef boost::shared_ptr<PluginAdaptor>     pa_ptr;

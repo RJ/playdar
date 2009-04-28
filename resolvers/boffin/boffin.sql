@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS tag (
 CREATE UNIQUE INDEX tag_name_idx ON tag(name);
 
 
-CREATE TABLE IF NOT EXISTS file_tag (
-	file INTEGER NOT NULL,
+CREATE TABLE IF NOT EXISTS track_tag (
+	track INTEGER NOT NULL,
 	tag INTEGER NOT NULL,
 	weight FLOAT NOT NULL
 );
@@ -23,4 +23,3 @@ CREATE TABLE IF NOT EXISTS boffin_system (
     value TEXT NOT NULL DEFAULT ''
 );
 INSERT INTO boffin_system(key,value) VALUES('schema_version', '1');
-

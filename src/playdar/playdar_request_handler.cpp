@@ -488,22 +488,23 @@ playdar_request_handler::handle_queries( const playdar_request& req,
            int i = 0;
            BOOST_FOREACH(ri_ptr ri, results)
            {
-               pi_ptr pi = boost::dynamic_pointer_cast<PlayableItem>(ri);
-               if( !pi ) continue;
+               if( !ri->has_json_value<string>( "artist" ) ||
+                   !ri->has_json_value<string>( "track" ))
+                  continue;
                
                bgc = ++i%2 ? "lightgrey" : "";
                os  << "<tr style=\"background-color:" << bgc << "\">"
                    << "<td style=\"font-size:60%\">"
-                   << "<a href=\"/sid/"<< pi->id() << "\">" 
-                   << pi->id() << "</a></td>"
-                   << "<td>" << pi->artist()   << "</td>"
-                   << "<td>" << pi->album()    << "</td>"
-                   << "<td>" << pi->track()    << "</td>"
-                   << "<td>" << pi->duration() << "</td>"
-                   << "<td>" << pi->bitrate()  << "</td>"
-                   << "<td>" << pi->size()     << "</td>"
-                   << "<td>" << pi->source()   << "</td>"
-                   << "<td>" << pi->score()    << "</td>"
+                   << "<a href=\"/sid/"<< ri->id() << "\">" 
+                   << ri->id() << "</a></td>"
+                   << "<td>" << ri->json_value("artist", "" )  << "</td>"
+                   << "<td>" << ri->json_value("album", "" )   << "</td>"
+                   << "<td>" << ri->json_value("track", "" )   << "</td>"
+                   << "<td>" << ri->json_value("duration", "" )<< "</td>"
+                   << "<td>" << ri->json_value("bitrate", "" ) << "</td>"
+                   << "<td>" << ri->json_value("size", "" )    << "</td>"
+                   << "<td>" << ri->json_value("source", "" )  << "</td>"
+                   << "<td>" << ri->json_value("score", "" )   << "</td>"
                    << "</tr>"
                    ;
            }
@@ -562,16 +563,14 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     
     if( !results.size() ) return;
     
-    pi_ptr result = boost::dynamic_pointer_cast<PlayableItem>(results[0]);
-
-    if( !result) return;
+    if( results[0]->json_value( "url", "" ).empty()) return;
 
     json_spirit::Object ro = results[0]->get_json();
     cout << "Top result:" <<endl;
     json_spirit::write_formatted( ro, cout );
     cout << endl;
     string url = "/sid/";
-    url += result->id();
+    url += results[0]->id();
     rep.headers.resize(3);
     rep.status = moost::http::reply::moved_temporarily;
     moost::http::header h;

@@ -10,8 +10,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include "playdar/application.h"
-#include "playdar/playable_item.hpp"
-#include "playdar/library_sql.h"
 
 using namespace std;
 

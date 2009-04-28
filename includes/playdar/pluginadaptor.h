@@ -45,8 +45,6 @@ public:
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
-    virtual void register_resolved_item( const ri_validator&, const ri_generator& ) = 0;
-    
     unsigned int targettime() const { return m_targettime; }
     unsigned short weight() const { return m_weight; }
     const bool script() const { return m_script; }
