@@ -215,10 +215,11 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 boost::bind(&SampleAccumulator::result, &sa, _1));
 
             // look up results, turn them into a vector of json objects
+            int sequence = 0;
             std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
                 ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_score( t.weight );
+                rip->set_json_value( "seq", sequence++ );
                 rip->set_source( m_pap->hostname() );
                 rip->set_id( m_pap->gen_uuid() );
                 results.push_back( rip->get_json() );
