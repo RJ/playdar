@@ -7,6 +7,7 @@
 #include "playdar/utils/uuid.h"
 #include "playdar/utils/levenshtein.h"
 #include "playdar/resolver.h"
+#include "playdar/resolved_item_builder.hpp"
 
 using namespace std;
 
@@ -93,10 +94,10 @@ RS_local_library::process( rq_ptr rq )
         vector<int> fids = app()->library()->get_fids_for_tid(sp.id);
         BOOST_FOREACH(int fid, fids)
         {
-            pi_ptr pip = PlayableItem::create(*app()->library(), fid);
-            pip->set_id( m_pap->gen_uuid() );
-            pip->set_source( m_pap->hostname() );
-            final_results.push_back( pip->get_json() );
+            ri_ptr rip = ResolvedItemBuilder::createFromFid(*app()->library(), fid);
+            rip->set_id( m_pap->gen_uuid() );
+            rip->set_source( m_pap->hostname() );
+            final_results.push_back( rip->get_json() );
         }
     }
     if(final_results.size())

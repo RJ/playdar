@@ -8,10 +8,8 @@
 #include <string>
 #include <boost/function.hpp>
 
-#include "playdar/playable_item.hpp"
 #include "playdar/config.hpp"
 #include "playdar/types.h"
-#include "playdar/playable_item.hpp"
 
 #define VERSION "0.1.0"
 //:::

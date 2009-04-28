@@ -10,7 +10,6 @@
 #include <boost/algorithm/string.hpp>
 
 #include "playdar/application.h"
-#include "playdar/playable_item.hpp"
 
 using namespace std;
 

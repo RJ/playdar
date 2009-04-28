@@ -262,7 +262,7 @@ rs_script::process_output()
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
-                boost::shared_ptr<PlayableItem> pip( PlayableItem::from_json(po) );
+                boost::shared_ptr<ResolvedItem> pip( new ResolvedItem( po ) );
 
                 //cout << "Parserd pip from script: " << endl;
                 //write_formatted(  pip->get_json(), cout );

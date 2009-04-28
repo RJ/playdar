@@ -11,11 +11,11 @@
 #include "playdar/resolved_item.h"
 #include "playdar/library.h"
 #include "playdar/playdar_request.h"
+#include "playdar/resolved_item_builder.hpp"
 #include "BoffinRQUtil.h"
 
 using namespace fm::last::query_parser;
-using std::string;
-using std::ostringstream;
+using namespace std;
 
 static RqlOp root2op( const querynode_data& node )
 {
@@ -53,61 +53,20 @@ static RqlOp leaf2op( const querynode_data& node )
 
 using namespace playdar;
 
-class TagCloudItem : public ResolvedItem
+namespace TagCloudItem
 {
-public:
-    TagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
-        :m_name(name)
-        ,m_weight(weight)
-        ,m_trackCount(trackCount)
+
+    static ri_ptr createTagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
     {
-        set_score(m_weight);
-        set_source(source);
+        ri_ptr rip( new ResolvedItem );
+        rip->set_score( weight );
+        rip->set_json_value( "name", name );
+        rip->set_json_value( "source", source );
+        rip->set_json_value( "count", trackCount );
+
+        return rip;
     }
 
-    void create_json(json_spirit::Object &o) const
-    {
-        using namespace json_spirit;
-        o.push_back( Pair("name", m_name) );
-        o.push_back( Pair("count", m_trackCount) );        
-    }
-
-    static bool validator(const json_spirit::Object& o)
-    {
-        map<string, json_spirit::Value> m;
-        obj_to_map(o, m);
-        
-        if( m.find("name") != m.end() && m.find("name")->second.type() == json_spirit::str_type &&
-            m.find("score") != m.end() && m.find("score")->second.type() == json_spirit::real_type &&
-            m.find("count") != m.end() && m.find("count")->second.type() == json_spirit::int_type )
-        {
-            return true;
-        }
-        
-        return false;
-    }
-
-    static ri_ptr generator(const json_spirit::Object& o)
-    {
-        map<string, json_spirit::Value> m;
-        obj_to_map(o, m);
-
-        // source is optional (?)
-        map<string, json_spirit::Value>::const_iterator it( m.find("source") );
-        std::string source( it == m.end() ? "" : it->second.get_str() );
-
-        return ri_ptr(new TagCloudItem(
-            m.find("name")->second.get_str(), 
-            m.find("score")->second.get_real(), 
-            m.find("count")->second.get_int(),
-            source ) );              // source not always essential/present.
-    }
-
-
-private:
-    std::string m_name;
-    float m_weight;
-    int m_trackCount;
 };
 
 
@@ -150,7 +109,6 @@ boffin::init( pa_ptr pap )
     m_db = boost::shared_ptr<BoffinDb>( new BoffinDb(boffinDb, playdarDb) );
     m_sa = boost::shared_ptr<SimilarArtists>( new SimilarArtists() );
 
-    m_pap->register_resolved_item(&TagCloudItem::validator, &TagCloudItem::generator);
     return true;
 }
 
@@ -226,11 +184,10 @@ boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 
 
 static
-boost::shared_ptr<TagCloudItem> 
+ri_ptr 
 makeTagCloudItem(const boost::tuple<std::string, float, int>& in, const std::string& source)
 {
-    return boost::shared_ptr<TagCloudItem>(
-        new TagCloudItem(in.get<0>(), in.get<1>(), in.get<2>(), source));
+    return TagCloudItem::createTagCloudItem(in.get<0>(), in.get<1>(), in.get<2>(), source);
 }
 
 
@@ -260,11 +217,11 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             // look up results, turn them into a vector of json objects
             std::vector< json_spirit::Object > results;
             BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                pi_ptr pip = PlayableItem::create( m_db->db(), t.trackId );
-                pip->set_score( t.weight );
-                pip->set_source( m_pap->hostname() );
-                pip->set_id( m_pap->gen_uuid() );
-                results.push_back( pip->get_json() );
+                ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
+                rip->set_score( t.weight );
+                rip->set_source( m_pap->hostname() );
+                rip->set_id( m_pap->gen_uuid() );
+                results.push_back( rip->get_json() );
             }
 
             m_pap->report_results(rq->id(), results);

@@ -46,7 +46,7 @@ public:
     virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const
     {
         // TODO
-        json_spirit::Value v( m_config->get<string>(key, def) );
+        json_spirit::Value v( m_config->get<std::string>(key, def) );
         return v;
     }
     
@@ -93,11 +93,6 @@ public:
     virtual ri_ptr ri_from_json( const json_spirit::Object& obj) const
     {
         return m_resolver->ri_from_json(obj); 
-    }
-    
-    virtual void register_resolved_item( const ri_validator& v, const ri_generator& g )
-    {
-        return m_resolver->register_resolved_item( v, g );
     }
 
 private:

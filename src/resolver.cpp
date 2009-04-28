@@ -34,6 +34,7 @@
 namespace playdar { 
 
 using namespace resolvers;
+using namespace std;
 
 Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
@@ -120,9 +121,6 @@ Resolver::load_library_resolver()
     pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
     
     ResolverService * rs = new RS_local_library();
-    
-    register_resolved_item( boost::bind( &PlayableItem::is_valid_json, _1 ),
-                            boost::bind( &PlayableItem::from_json, _1 ));
     
     // local library resolver is special, it gets a handle to app:
     ((RS_local_library *)rs)->set_app(app());
@@ -431,14 +429,15 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-        if(pip && rip->score() < 0 &&
-           TrackRQBuilder::valid( rq ) 
+        if(rip->score() < 0 &&
+           TrackRQBuilder::valid( rq ) &&
+           rip->has_json_value<string>( "artist" ) &&
+           rip->has_json_value<string>( "track" )
           )
         {
-            float score = calculate_score( rq, pip, reason );
+            float score = calculate_score( rq, rip, reason );
             if( score == 0.0) continue;
-            pip->set_score( score );
+            rip->set_score( score );
         }
         
         m_queries[qid]->add_result(rip);
@@ -459,7 +458,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
 /// TODO albums are ignored atm.
 float 
 Resolver::calculate_score( const rq_ptr & rq, // query
-                                  const pi_ptr & pi, // candidate
+                                  const ri_ptr & ri, // candidate
                                   string & reason )  // fail reason
 {
     using namespace boost;
@@ -469,9 +468,9 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     string o_alb    = trim_copy(to_lower_copy(rq->param( "album" ).get_str()));
 
     // names from candidate result:
-    string art      = trim_copy(to_lower_copy(pi->artist()));
-    string trk      = trim_copy(to_lower_copy(pi->track()));
-    string alb      = trim_copy(to_lower_copy(pi->album()));
+    string art      = trim_copy(to_lower_copy(ri->json_value("artist", "" )));
+    string trk      = trim_copy(to_lower_copy(ri->json_value("track", "")));
+    string alb      = trim_copy(to_lower_copy(ri->json_value("album","")));
     // short-circuit for exact match
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
@@ -677,23 +676,11 @@ Resolver::get_ss(const source_uid & sid)
 }
 
 
-void 
-Resolver::register_resolved_item( const ri_validator& val, const ri_generator& gen)
-{
-    m_riList.push_back( std::pair<ri_validator, ri_generator>( val, gen ));
-}
-
+//TODO: probably a redundant function now.
 ri_ptr
 Resolver::ri_from_json( const json_spirit::Object& j ) const
 {
-    std::pair< ri_validator , ri_generator> pair;
-    
-    BOOST_FOREACH( pair, m_riList )
-    {
-        if( pair.first( j ) )
-            return pair.second( j );
-    }
-    return ri_ptr();
+    return ri_ptr( new ResolvedItem( j ));
 }
 
 template <class T>
