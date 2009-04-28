@@ -224,6 +224,7 @@ Resolver::load_resolver_plugins()
     bfs::path p( m_app->conf()->get(string("plugin_path"), string("plugins")) );
     cout << "Loading resolver plugins from: " 
          << p.string() << endl;
+
     for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
     {
         if ( bfs::is_directory(itr->status()) ) continue;
@@ -258,20 +259,15 @@ Resolver::load_resolver_plugins()
             ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-                    
             pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
-            
             if( ! instance->init(pap) )
             {
                 cerr << "-> ERROR couldn't initialize." << endl;
                 instance->Destroy();
                 continue;
             }
-            
             m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
             cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
-            
-            
             pap->set_script( false );
             pap->set_rs( instance );
             string rsopt = "resolvers."+classname;
@@ -625,7 +621,7 @@ Resolver::add_new_query(boost::shared_ptr<ResolverQuery> rq)
 {
     if (rq->id().length() == 0) {
         // create and assign an id to the request
-        rq->set_id( playdar::utils::uuid_gen()() );
+        rq->set_id( gen_uuid() );
     } else if (query_exists(rq->id())) {
         return false;
     }

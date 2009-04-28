@@ -163,8 +163,6 @@ lan::handle_receive_from(const boost::system::error_code& error,
         std::string msg = msgs.str();
 
         boost::asio::ip::address sender_address = sender_endpoint_.address();
-        boost::asio::ip::address local_address = socket_->local_endpoint().address();
-        cout << "LAN Received message on interface with address: " << local_address.to_string() << endl;
 
         do
         {

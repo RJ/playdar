@@ -20,7 +20,6 @@
 #include "json_spirit/json_spirit.h"
 #include "playdar/config.hpp"
 #include "playdar/resolver.h"
-#include "playdar/utils/uuid.h"
 
 namespace playdar {
 
@@ -71,7 +70,7 @@ public:
     
     virtual std::string gen_uuid() const
     {
-        return m_uuidgen();
+        return m_resolver->gen_uuid();
     }
 
     virtual bool query_exists(const query_uid & qid)
@@ -91,7 +90,6 @@ public:
 
 
 private:
-    mutable playdar::utils::uuid_gen m_uuidgen;
     Config*   m_config;
     Resolver* m_resolver;
 };

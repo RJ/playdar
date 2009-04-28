@@ -9,6 +9,7 @@
 #include "playdar/types.h"
 #include "playdar/resolver_query.hpp"
 #include "playdar/resolver_service.h"
+#include "playdar/utils/uuid.h"
 
 #include <DynamicClass.hpp>
 
@@ -81,6 +82,11 @@ public:
         return 21600; // 6 hours.
     }
     
+    std::string gen_uuid() const
+    {
+        return m_uuid_gen();
+    }
+    
     bool pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs);
     
     void run_pipeline_cont( rq_ptr rq, 
@@ -138,6 +144,7 @@ private:
     template <class T>
     boost::shared_ptr<T> ss_ptr_generator(std::string url);
     
+    mutable playdar::utils::uuid_gen m_uuid_gen;
 };
 
 }
