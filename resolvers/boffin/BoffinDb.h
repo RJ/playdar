@@ -28,16 +28,16 @@ public:
     int get_tag_id(const std::string& tag, CreateFlag create = Create );
     int get_artist_id(const std::string& artist);
 
-    // for each file without tags, call f(fileid, artist, album, track)
+    // for each track without tags, call f(track_id, artist_sortname, album_sortname, track_sortname)
     template<typename Functor>
     void map_files_without_tags(Functor f)
     {
         sqlite3pp::query qry(m_db, 
-            "SELECT pd.file_join.file, pd.artist.sortname, pd.album.sortname, pd.track.sortname FROM pd.file_join "
+            "SELECT pd.file_join.track, pd.artist.sortname, pd.album.sortname, pd.track.sortname FROM pd.file_join "
             "INNER JOIN pd.artist ON pd.file_join.artist = pd.artist.id "
             "LEFT JOIN pd.album ON pd.file_join.album = pd.album.id "
             "INNER JOIN pd.track ON pd.file_join.track = pd.track.id "
-            "WHERE pd.file_join.file NOT IN( SELECT file_tag.file FROM file_tag )");
+            "WHERE pd.file_join.track NOT IN( SELECT track_tag.track FROM track_tag )");
         for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
             if (! f( i->get<int>(0), i->get<std::string>(1), i->get<std::string>(2), i->get<std::string>(3) ) ) {
                 break;
@@ -45,7 +45,7 @@ public:
         }
     }
 
-    // Functor is: bool getResultLine(int& fileId, std::vector<Tag>& tags)
+    // Functor is: bool getResultLine(int& trackId, std::vector<Tag>& tags)
     template<typename Functor>
     void update_tags(Functor getResultLine)
     {
@@ -57,7 +57,7 @@ public:
             std::vector<Tag> tags;
             while (getResultLine( fileId, tags )) {
                 BOOST_FOREACH(Tag& tag, tags) {
-                    sqlite3pp::command cmd( m_db, "INSERT INTO file_tag (rowid, file, tag, weight) VALUES (null, ?, ?, ?)" );
+                    sqlite3pp::command cmd( m_db, "INSERT INTO track_tag (rowid, track, tag, weight) VALUES (null, ?, ?, ?)" );
                     cmd.bind(1, fileId);
                     cmd.bind(2, get_tag_id( tag.first ));
                     cmd.bind(3, tag.second);
@@ -69,18 +69,19 @@ public:
         xct.commit();
     }
 
-    // Functor is: void onFile(int track, int artist, float weight)
+    // Functor is: void onFile(int file_id, int artist_id, float weight)
     template<typename Functor>
-    void files_with_tag(const std::string& tag, Functor onFile)
+    void files_with_tag(const std::string& tag, float minWeight, Functor onFile)
     {
         int tagId = get_tag_id(tag, NoCreate);
         if (tagId > 0) {
             sqlite3pp::query qry( m_db,
-                "SELECT file_tag.file, artist, file_tag.weight FROM pd.file_join "
-                "INNER JOIN file_tag ON pd.file_join.file = file_tag.file "
-                "WHERE tag = ?");
+                "SELECT pd.file_join.file, artist, track_tag.weight FROM pd.file_join "
+                "INNER JOIN track_tag ON pd.file_join.track = track_tag.track "
+                "WHERE tag = ? AND weight > ?");
             
             qry.bind(1, tagId);
+            qry.bind(2, minWeight);
             for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
                 onFile( i->get<int>(0), i->get<int>(1), i->get<float>(2) );
             }
