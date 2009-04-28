@@ -15,3 +15,12 @@ CREATE TABLE IF NOT EXISTS file_tag (
 
 CREATE INDEX file_tag_track_idx ON file_tag(file);
 CREATE INDEX file_tag_tag_idx ON file_tag(tag);
+
+-- Schema version, and misc settings
+
+CREATE TABLE IF NOT EXISTS boffin_system (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL DEFAULT ''
+);
+INSERT INTO boffin_system(key,value) VALUES('schema_version', '1');
+

@@ -124,6 +124,8 @@ public:
     }
 
 private:
+    void check_db();
+    void create_db_schema();
     sqlite3pp::database m_db;
 };
 

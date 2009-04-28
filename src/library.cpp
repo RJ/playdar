@@ -73,7 +73,7 @@ void
 Library::create_db_schema()
 {
     cout << "Attempting to create DB schema..." << endl;
-    string sql(  playdar::sql::get_sql() );
+    string sql(  playdar::get_playdar_sql() );
     vector<string> statements;
     boost::split( statements, sql, boost::is_any_of(";") );
     BOOST_FOREACH( string s, statements )
