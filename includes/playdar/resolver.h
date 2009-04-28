@@ -52,8 +52,6 @@ public:
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
 
-    ri_ptr ri_from_json( const json_spirit::Object& ) const;
-
     rq_ptr rq(const query_uid & qid);
     ss_ptr get_ss(const source_uid & sid);
     

@@ -675,14 +675,6 @@ Resolver::get_ss(const source_uid & sid)
     return ss_ptr();
 }
 
-
-//TODO: probably a redundant function now.
-ri_ptr
-Resolver::ri_from_json( const json_spirit::Object& j ) const
-{
-    return ri_ptr( new ResolvedItem( j ));
-}
-
 template <class T>
 boost::shared_ptr<T>
 Resolver::ss_ptr_generator(string url)

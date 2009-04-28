@@ -30,6 +30,9 @@ public:
         
         Object o;
         map_to_obj( m_jsonmap, o);
+        std::cout << "ResolvedItem::get_json():" << std::endl;
+        write_formatted( o, std::cout );
+        std::cout << std::endl;
         return o;
     }
     

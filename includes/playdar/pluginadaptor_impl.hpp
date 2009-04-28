@@ -62,8 +62,7 @@ public:
         std::vector< ri_ptr > v;
         BOOST_FOREACH( const json_spirit::Object & o, results )
         {
-            ri_ptr rip = m_resolver->ri_from_json( o );
-            if(!rip) continue;
+            ri_ptr rip(new ResolvedItem( o ));
             v.push_back( rip );
         }
         m_resolver->add_results( qid, v, rs()->name() );
@@ -90,10 +89,6 @@ public:
         return m_resolver->dispatch(rq, cb); 
     }
 
-    virtual ri_ptr ri_from_json( const json_spirit::Object& obj) const
-    {
-        return m_resolver->ri_from_json(obj); 
-    }
 
 private:
     mutable playdar::utils::uuid_gen m_uuidgen;

@@ -163,6 +163,8 @@ lan::handle_receive_from(const boost::system::error_code& error,
         std::string msg = msgs.str();
 
         boost::asio::ip::address sender_address = sender_endpoint_.address();
+        boost::asio::ip::address local_address = socket_->local_endpoint().address();
+        cout << "LAN Received message on interface with address: " << local_address.to_string() << endl;
 
         do
         {
@@ -245,16 +247,14 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     break;
                 }
                 //cout << "lan: Got udp response." <<endl;
-                ri_ptr rip;
 
                 vector< Object > final_results;
                 try
                 {
-                    rip = m_pap->ri_from_json(resobj);
-                    if(!rip) break;
+                    ResolvedItem ri(resobj);
                     //FIXME this could be moved into the PlayableItem class perhaps
                     //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( rip->has_json_value<string>("url")) 
+                    if( ri.has_json_value<string>("url")) 
                     {
                         ostringstream rbs;
                         rbs << "http://"
@@ -262,10 +262,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         << ":"
                         << sender_endpoint_.port()
                         << "/sid/"
-                        << rip->id();
-                        rip->set_url( rbs.str() );
+                        << ri.id();
+                        ri.set_url( rbs.str() );
                     }
-                    final_results.push_back( rip->get_json() );
+                    final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
                     //cout    << "INFO Result from '" << rip->source()
                     //        <<"' for '"<< write_formatted( rip->get_json())
@@ -479,7 +479,9 @@ lan::anon_http_handler(const playdar_request* req)
             Object o;
             o.push_back( Pair("name", p.first) );
             o.push_back( Pair("address", p.second.http_base) );
-            o.push_back( Pair("age", now - p.second.lastdate) );
+            
+            //FIXME not safe on compilers where sizeof (long) > sizeof(int)
+            o.push_back( Pair("age", (int)(now - p.second.lastdate)) );
             a.push_back(o);
         }
         ostringstream os;
