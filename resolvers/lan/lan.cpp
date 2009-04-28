@@ -260,11 +260,10 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         rbs << "http://"
                         << sender_endpoint_.address()
                         << ":"
-                        << sender_endpoint_.port();
-                        string url = rbs.str();
-                        url += "/sid/";
-                        url += rip->id();
-                        pip->set_url( url );
+                        << sender_endpoint_.port()
+                        << "/sid/"
+                        << rip->id();
+                        pip->set_url( rbs.str() );
                     }
                     final_results.push_back( rip->get_json() );
                     m_pap->report_results( qid, final_results );
@@ -457,12 +456,37 @@ lan::receive_pang(map<string,Value> & om,
     m_lannodes.erase(from_name);
 }
 
+
+bool endsWith(const std::string& s, const std::string& tail)
+{
+    const std::string::size_type slen = s.length(), tlen = tail.length();
+    return slen >= tlen ? (s.substr(slen - tlen) == tail) : false;
+}
+
 playdar_response 
 lan::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 {
     cout << "request handler on lan for url: " << req->url() << endl;
+
     time_t now;
     time(&now);
+    typedef std::pair<string, lannode> LanPair;
+
+    if (endsWith(req->url(), "roster")) { 
+        Array a;
+        BOOST_FOREACH(const LanPair& p, m_lannodes)
+        {
+            Object o;
+            o.push_back( Pair("name", p.first) );
+            o.push_back( Pair("address", p.second.http_base) );
+            o.push_back( Pair("age", now - p.second.lastdate) );
+            a.push_back(o);
+        }
+        ostringstream os;
+        write_formatted(a, os);
+        return playdar_response(os.str(), false);
+    }
+
     ostringstream os;
     os  << "<h2>LAN</h2>"
         << "<p>Detected nodes:"
@@ -471,8 +495,7 @@ lan::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
         << "<td>Name</td> <td>Address</td> <td>Seconds since last ping</td>"
         << "</td>"
         << endl;
-    typedef std::pair<string,lannode> pair_t;
-    BOOST_FOREACH( pair_t p, m_lannodes )
+    BOOST_FOREACH( const LanPair& p, m_lannodes )
     {
         os  << "<tr><td>" << p.first << "</td>"
             << "<td><a href=\"" << p.second.http_base << "/\">"<< p.second.http_base <<"</a></td>"
