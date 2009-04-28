@@ -61,12 +61,12 @@ public:
     template< typename T >
     T json_value( const std::string& s, const T& def ) const
     {
-        if( !has_json_value<T>(s) )
-            return def;
+        std::map< std::string, json_spirit::Value >::const_iterator i = 
+            m_jsonmap.find( s );
         
-        //Hmm ideally we can make use of the iterator from the has_json_value method...
-        std::map< std::string, json_spirit::Value >::const_iterator i = m_jsonmap.find( s );
-        return i->second.get_value<T>();        
+        return i != m_jsonmap.end() && i->second.type() == json_type<T>() 
+            ? i->second.get_value<T>()
+            : def;
     }
     
     template< typename T >
