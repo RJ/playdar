@@ -421,8 +421,9 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     }
     boost::mutex::scoped_lock lock(m_mut_results);
     
-    if(!query_exists(qid)) return false; // query was deleted
-    string reason;
+    if(!query_exists(qid)) 
+        return false; // query was deleted
+
     // add these new results to the ResolverQuery object
     BOOST_FOREACH(const ri_ptr rip, results)
     {
@@ -435,14 +436,20 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
            rip->has_json_value<string>( "track" )
           )
         {
+            string reason;
             float score = calculate_score( rq, rip, reason );
-            if( score == 0.0) continue;
+            if( score == 0.0) 
+                continue;
             rip->set_score( score );
         }
         
         m_queries[qid]->add_result(rip);
+
         // update map of source id -> playable item
-        m_sid2ri[rip->id()] = rip;
+        string sid = rip->id();
+        if (sid.length()) {
+            m_sid2ri[sid] = rip;
+        }
         //cout << "Adding: ";
         //json_spirit::write( rip->get_json(), cout );
         //cout << endl; 
