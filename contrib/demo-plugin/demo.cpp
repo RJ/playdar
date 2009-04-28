@@ -1,6 +1,6 @@
 #include "demo.h"
 #include <boost/algorithm/string.hpp>
-#include "playdar/playable_item.hpp"
+#include "playdar/resolved_item_builder.hpp"
 #include "playdar/resolver_query.hpp"
 
 namespace playdar {
@@ -50,22 +50,23 @@ demo::start_resolving(boost::shared_ptr<ResolverQuery> rq)
         // for the track we resolved the search to, and extra data
         // such as the score (how good a match was it?)
         // the bitrate, filesize, etc.
-        boost::shared_ptr<PlayableItem> pip
-            (new PlayableItem("Big Bad Sun", 
-                              "", // no album name specified
-                              "Sweet Melissa"));
+        ResolvedItem ri;
+
+        ri.set_json_value( "artist", "Big Bad Sun" );
+        ri.set_json_value( "track", "Sweet Melissa");
                               
-        pip->set_score(1.0);    // Exact match, so set maximum score
-        pip->set_bitrate(128);  // avg. bitrate in kbps
-        pip->set_size(3401187); // filesize
-        pip->set_duration(203); // play duration, seconds
+        ri.set_score(1.0);    // Exact match, so set maximum score
+        ri.set_json_value( "bitrate", 128 );  // avg. bitrate in kbps
+        ri.set_json_value( "size", 3401187 ); // filesize
+        ri.set_json_value( "duration", 203 ); // play duration, seconds
+        ri.set_id( m_pap->gen_uuid());
         
         // Create streaming strategy for accessing the track:
-        pip->set_url( "http://he3.magnatune.com/all/01-Sweet%20Melissa-Big%20Bad%20Sun.mp3" );
+        ri.set_url( "http://he3.magnatune.com/all/01-Sweet%20Melissa-Big%20Bad%20Sun.mp3" );
         // Results are a list of resolveditems:
         vector< json_spirit::Object> v;
         // .. containing just the one match we found:
-        v.push_back(pip->get_json());
+        v.push_back(ri.get_json());
         // tell the resolver what we found:
         m_pap->report_results(rq->id(), v);
     }

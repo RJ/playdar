@@ -20,7 +20,6 @@
 #include "json_spirit/json_spirit.h"
 #include "playdar/config.hpp"
 #include "playdar/resolver.h"
-#include "playdar/utils/uuid.h"
 
 namespace playdar {
 
@@ -62,8 +61,7 @@ public:
         std::vector< ri_ptr > v;
         BOOST_FOREACH( const json_spirit::Object & o, results )
         {
-            ri_ptr rip = m_resolver->ri_from_json( o );
-            if(!rip) continue;
+            ri_ptr rip(new ResolvedItem( o ));
             v.push_back( rip );
         }
         m_resolver->add_results( qid, v, rs()->name() );
@@ -72,7 +70,7 @@ public:
     
     virtual std::string gen_uuid() const
     {
-        return m_uuidgen();
+        return m_resolver->gen_uuid();
     }
 
     virtual bool query_exists(const query_uid & qid)
@@ -90,13 +88,8 @@ public:
         return m_resolver->dispatch(rq, cb); 
     }
 
-    virtual ri_ptr ri_from_json( const json_spirit::Object& obj) const
-    {
-        return m_resolver->ri_from_json(obj); 
-    }
 
 private:
-    mutable playdar::utils::uuid_gen m_uuidgen;
     Config*   m_config;
     Resolver* m_resolver;
 };

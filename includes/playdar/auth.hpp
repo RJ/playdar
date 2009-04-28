@@ -71,15 +71,12 @@ public:
         cmd.execute();
     }
     
-    std::string gen_formtoken()
+    void add_formtoken( const std::string& ft )
     {
-        playdar::utils::uuid_gen ug;
-        std::string f = ug();
-        m_formtokens.insert(f);
-        return f;
+        m_formtokens.insert( ft );
     }
     
-    bool consume_formtoken(std::string ft)
+    bool consume_formtoken(const std::string& ft)
     {
         if(m_formtokens.find(ft) == m_formtokens.end())
         { 

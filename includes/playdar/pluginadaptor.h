@@ -60,8 +60,6 @@ public:
     // TEMP!
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq) = 0;
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb) = 0;
-    
-    virtual ri_ptr ri_from_json( const json_spirit::Object& ) const = 0;
 
 private:
     ResolverService * m_rs;    // instance of a plugin
