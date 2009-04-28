@@ -126,7 +126,8 @@ RqlOpProcessor::globalTag()
 {
     ResultSetPtr rs( new ResultSet() );
     m_library.files_with_tag(
-        m_it->name, 
+        m_it->name,
+        0.05,
         boost::bind( &ResultSet::insertTrackResult, rs.get(), _1, _2, _3 ) );
     normalise(m_it->weight, rs);
     return rs;
