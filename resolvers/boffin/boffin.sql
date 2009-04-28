@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS track_tag (
 	weight FLOAT NOT NULL
 );
 
-CREATE INDEX file_tag_track_idx ON file_tag(file);
-CREATE INDEX file_tag_tag_idx ON file_tag(tag);
+CREATE INDEX track_tag_track_idx ON track_tag(track);
+CREATE INDEX track_tag_tag_idx ON track_tag(tag);
 
 -- Schema version, and misc settings
 
