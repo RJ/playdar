@@ -9,7 +9,6 @@
 #include "playdar/types.h"
 #include "playdar/resolver_query.hpp"
 #include "playdar/resolver_service.h"
-#include "playdar/playable_item.hpp"
 
 #include <DynamicClass.hpp>
 
@@ -32,12 +31,6 @@ class ResolverService;
  */
 class Resolver
 {
-private:
-    // validator and generator functions to pass to the resolver in 
-    // order to generate the correct derived ResolvedItem type from json_spirit
-    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
-    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
-    
 public:
     Resolver(MyApplication * app);
     ~Resolver();
@@ -58,8 +51,7 @@ public:
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
-    
-    void register_resolved_item( const ri_validator&, const ri_generator& );
+
     ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
@@ -102,8 +94,8 @@ public:
     
 protected:
     float calculate_score( const rq_ptr & rq,  // query
-                          const pi_ptr & pi,  // candidate
-                          std::string & reason );  // fail reason
+                           const ri_ptr & ri,  // candidate
+                           std::string & reason );  // fail reason
 
 private:
     void load_library_resolver();
@@ -141,8 +133,6 @@ private:
     std::deque< std::pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
-    
-    std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
     // StreamingStrategy factories
     std::map< std::string, boost::function<ss_ptr(std::string)> > m_ss_factories;

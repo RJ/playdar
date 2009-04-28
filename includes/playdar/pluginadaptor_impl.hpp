@@ -94,11 +94,6 @@ public:
     {
         return m_resolver->ri_from_json(obj); 
     }
-    
-    virtual void register_resolved_item( const ri_validator& v, const ri_generator& g )
-    {
-        return m_resolver->register_resolved_item( v, g );
-    }
 
 private:
     mutable playdar::utils::uuid_gen m_uuidgen;

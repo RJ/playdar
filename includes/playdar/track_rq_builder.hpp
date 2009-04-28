@@ -5,8 +5,7 @@
 
 namespace playdar {
 
-class TrackRQBuilder {
-public:
+namespace TrackRQBuilder {
     static rq_ptr build( const std::string& artist, const std::string& album, const std::string& track )
     {
         rq_ptr rq = rq_ptr( new ResolverQuery );
@@ -27,9 +26,8 @@ public:
             rq->param_type( "track" ) == json_spirit::str_type &&
             rq->param( "track" ).get_str().length();
     }
-    
-};
+} //namespace TrackRQBuilder
 
-}
+} //namespace playdar
 
 #endif //__TRACK_RESOLVER_QUERY__

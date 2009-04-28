@@ -254,7 +254,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     if(!rip) break;
                     //FIXME this could be moved into the PlayableItem class perhaps
                     //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip)) 
+                    if( rip->has_json_value<string>("url")) 
                     {
                         ostringstream rbs;
                         rbs << "http://"
@@ -264,7 +264,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                         string url = rbs.str();
                         url += "/sid/";
                         url += rip->id();
-                        pip->set_url( url );
+                        rip->set_url( url );
                     }
                     final_results.push_back( rip->get_json() );
                     m_pap->report_results( qid, final_results );

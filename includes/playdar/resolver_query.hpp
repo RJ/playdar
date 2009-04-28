@@ -4,7 +4,7 @@
 //#include "playdar/application.h"
 #include "playdar/types.h"
 #include "playdar/config.hpp"
-#include "playdar/playable_item.hpp"
+#include "playdar/resolved_item.h"
 
 #include "json_spirit/json_spirit.h"
 #include <boost/algorithm/string.hpp>
@@ -45,7 +45,7 @@ public:
     /// between playable item and the original request.
     /// @return score between 0-1 or == 0 if there's an error
     /// @param reason will be set to the fail reason.
-    virtual float calculate_score( const pi_ptr & pi,
+    virtual float calculate_score( const ri_ptr & pi,
                                   std::string & reason )
     {
         return 1.0f;
