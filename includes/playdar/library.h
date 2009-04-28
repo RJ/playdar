@@ -136,6 +136,8 @@ public:
     template <typename T> T db_get_one(std::string sql, T def);
     
 private:
+    void check_db();
+    void create_db_schema();
     sqlite3pp::database m_db;
     boost::mutex m_mut;
     std::string m_dbfilepath;

@@ -11,6 +11,7 @@
 
 #include "playdar/application.h"
 #include "playdar/playable_item.hpp"
+#include "playdar/library_sql.h"
 
 using namespace std;
 
@@ -18,9 +19,12 @@ namespace playdar {
 
 
 Library::Library(const string& dbfilepath)
-: m_db(dbfilepath.c_str())
+ : m_db( dbfilepath.c_str() )
 {
     m_dbfilepath = dbfilepath;
+    // confirm DB is correct version, or create schema if first run
+    check_db();
+    cout << "library DB opened ok" << endl;
 }
 
 Library::~Library()
@@ -28,6 +32,60 @@ Library::~Library()
     cout << "DTOR library" << endl;
 }
 
+void
+Library::check_db()
+{
+    try
+    {
+      sqlite3pp::query qry(m_db, "SELECT value FROM playdar_system WHERE key = 'schema_version'");
+      sqlite3pp::query::iterator i = qry.begin();
+      if( i == qry.end() )
+      {
+        // unusual - table exists but doesn't contain this row.
+        // could have been created wrongly
+        cerr << "Errror, playdar_system table missing schema_version key!" << endl
+             << "Maybe you created the database wrong, or it's corrupt." << endl
+             << "Try deleting it and re-scanning?" << endl;
+        throw; // not caught here.
+      }
+      string val = (*i).get<string>(0);
+      cout << "Database schema detected as version " << val << endl;
+      // check the schema version is what we expect
+      // TODO auto-upgrade to newest schema version as needed.
+      if( val != "1" )
+      {
+        cerr << "Schema version too old. TODO handle auto-upgrades" << endl;
+        throw; // not caught here
+      }
+      // OK.
+    }
+    catch(sqlite3pp::database_error err)
+    {
+      // probably doesn't exist yet, try and create it
+      // 
+      cout << "database_error: " << err.what() << endl;
+      create_db_schema();
+    }
+    
+}
+
+void
+Library::create_db_schema()
+{
+    cout << "Attempting to create DB schema..." << endl;
+    string sql(  playdar::sql::get_sql() );
+    vector<string> statements;
+    boost::split( statements, sql, boost::is_any_of(";") );
+    BOOST_FOREACH( string s, statements )
+    {
+        boost::trim( s );
+        if(s.empty()) continue;
+        cout << "Executing: " << s << endl;
+        sqlite3pp::command cmd(m_db, s.c_str());
+        cmd.execute();
+    }
+    cout << "Schema created." << endl;
+}
 
 bool
 Library::remove_file( const string& url )
