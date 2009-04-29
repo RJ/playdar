@@ -44,6 +44,11 @@ public:
         return m_weight;
     }
     
+    unsigned short preference() const
+    {
+        return m_preference;
+    }
+    
     void run();
     
 protected:
@@ -54,6 +59,7 @@ private:
     pa_ptr m_pap;
     
     int m_weight;
+    int m_preference;
     int m_targettime;
     std::string m_name;
 

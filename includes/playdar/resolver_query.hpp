@@ -143,10 +143,12 @@ public:
 
     bool sorter(const ri_ptr & lhs, const ri_ptr & rhs)
     {
-        // if equal scores, prefer item with higher preference (ie, network reliability)
-        //if(lhs->score() == rhs->score()) return lhs->preference() > rhs->preference();
-        // TODO: the one that came from the resolverservice with the
-        // highest weight should win if there is a tie.
+        // if equal scores, prefer item with higher preference 
+        // usually this indicates network reliability or user-configured preference
+        if( lhs->score() == rhs->score() )
+        {
+            return lhs->preference() > rhs->preference();
+        }
         return lhs->score() > rhs->score();
     }
 

@@ -91,7 +91,8 @@ Resolver::Resolver(MyApplication * app)
     cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
     BOOST_FOREACH( pa_ptr & pa, m_resolvers )
     {
-        cout << "RESOLVER w:" << pa->weight() << "\tt:" << pa->targettime() 
+        cout << "RESOLVER w:" << pa->weight() << "\tp:" << pa->preference() 
+             << "\tt:" << pa->targettime() 
              << "\t[" << (pa->script()?"script":"plugin") << "]  " 
              << pa->rs()->name() << endl;
     }
@@ -126,6 +127,7 @@ Resolver::load_library_resolver()
     ((RS_local_library *)rs)->set_app(app());
     pap->set_rs( rs );
     pap->set_weight( rs->weight() );
+    pap->set_preference( rs->preference() );
     pap->set_targettime( rs->target_time() );
     
     if( rs->init(pap) )
@@ -197,15 +199,19 @@ Resolver::load_resolver_scripts()
             pap->set_rs( rs );
             pap->set_weight( app()->conf()->get<int>(conf+"weight",
                              rs->weight()) ); 
+            pap->set_preference( app()->conf()->get<int>(conf+"preference",
+                             rs->preference()) );
             pap->set_targettime( app()->conf()->get<int>(conf+"targettime",
                              rs->target_time()) );
             // if weight == 0, it doesnt resolve, but may handle HTTP calls etc.
             if(pap->weight() > 0) 
             {
                 m_resolvers.push_back( pap );
-                cout << "-> OK [weight:" << pap->weight() 
-                     <<  " target-time:" << pap->targettime()
-                     << "] " << pap->rs()->name() << endl;
+                cout << "-> OK [w:" << pap->weight() 
+                       << " p:" << pap->preference() 
+                       << " t:" << pap->targettime() 
+                       << "] " 
+                 << pap->rs()->name() << endl;
             }
         }
         catch(...)
@@ -270,13 +276,18 @@ Resolver::load_resolver_plugins()
             cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
             pap->set_script( false );
             pap->set_rs( instance );
-            string rsopt = "resolvers."+classname;
+            string rsopt = "plugins."+classname;
             pap->set_weight( app()->conf()->get<int>(rsopt + ".weight", 
                                                 instance->weight()) );
+            pap->set_preference( app()->conf()->get<int>(rsopt + ".preference", 
+                                                instance->preference()) );
             pap->set_targettime( app()->conf()->get<int>(rsopt + ".targettime", 
                                                     instance->target_time()) );
             m_resolvers.push_back( pap );
-            cout << "-> OK [w:" << pap->weight() << " t:" << pap->targettime() << "] " 
+            cout << "-> OK [w:" << pap->weight() 
+                       << " p:" << pap->preference() 
+                       << " t:" << pap->targettime() 
+                       << "] " 
                  << pap->rs()->name() << endl;
         }
         catch( PDL::LoaderException & ex )

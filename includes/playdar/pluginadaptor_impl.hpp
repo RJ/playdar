@@ -62,6 +62,22 @@ public:
         BOOST_FOREACH( const json_spirit::Object & o, results )
         {
             ri_ptr rip(new ResolvedItem( o ));
+            // if no preference specified, set to preference of this plugin.
+            // in some cases, plugins will know varied preferences per-result
+            // eg: a p2p plugin would know certain peers are less reliable
+            // but normally you just use a global value per plugin.
+            // ie Local > LAN > some web service
+            if( rip->preference() == -1 )
+            {
+                // not set, use global pref of this plugin:
+                rip->set_preference( preference() );
+            }
+            else
+            {
+                // use lowest preference of reported, or our own for this plugin
+                if( preference() < rip->preference() )
+                    rip->set_preference( preference() );
+            }
             v.push_back( rip );
         }
         m_resolver->add_results( qid, v, rs()->name() );

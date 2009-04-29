@@ -36,8 +36,11 @@ public:
     const source_uid id() const         { return json_value( "sid", ""); }
     void set_id(const source_uid& s)    { set_json_value( "sid", s ); }
 
-    void set_score( const double s )     { set_json_value( "score", s ); }
+    void set_score( const double s )    { set_json_value( "score", s ); }
     const float score() const           { return json_value( "score",  -1.0); }
+    void set_preference( const short p ){ set_json_value( "preference", p ); }
+    const short preference() const      { return json_value( "preference",  -1); }
+    
     const std::string source() const    { return json_value( "source", "" ); }
     
     virtual void set_url(const std::string& s)  { m_jsonmap["url"] = s; }

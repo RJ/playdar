@@ -32,6 +32,7 @@ rs_script::init(pa_ptr pap)
     m_dead = false;
     m_exiting = false;
     m_weight = 1;
+    m_preference = 1;
     m_targettime = 1000;
     m_got_settings = false;
     m_scriptpath = m_pap->scriptpath();
@@ -227,21 +228,25 @@ rs_script::process_output()
                 rr["weight"].type() == int_type )
             {
                 m_weight = rr["weight"].get_int();
-                //cout << "Gateway setting w:" << m_weight << endl;
+                m_preference = m_weight; // default preference
+            }
+            
+            if( rr.find("preference") != rr.end() &&
+                rr["preference"].type() == int_type )
+            {
+                m_preference = rr["preference"].get_int();
             }
             
             if( rr.find("targettime") != rr.end() &&
                 rr["targettime"].type() == int_type )
             {
                 m_targettime = rr["targettime"].get_int();
-                //cout << "Gateway setting t:" << m_targettime << endl;
             }
             
             if( rr.find("name") != rr.end() &&
                 rr["name"].type() == str_type )
             {
                 m_name = rr["name"].get_str();
-                //cout << "Gateway setting name:" << m_name << endl;
             }
             m_got_settings = true;
             m_cond_settings.notify_one();

@@ -20,7 +20,7 @@ protected:
 public:
     const unsigned int api_version() const 
     { 
-        // must match the version in class name
+        // we'll use this if we make ABI changes later.
         return 1; 
     }
     
@@ -47,11 +47,13 @@ public:
     
     unsigned int targettime() const { return m_targettime; }
     unsigned short weight() const { return m_weight; }
+    unsigned short preference() const { return m_preference; }
     const bool script() const { return m_script; }
-    /// TODO move to norman "get" settings API once done?:
+    /// TODO move to normal "get" settings API once done?:
     const std::string& scriptpath() const { return m_scriptpath; }
     
     void set_weight(unsigned short w) { m_weight = w; }
+    void set_preference(unsigned short p) { m_preference = p; }
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
     void set_scriptpath(std::string s) { m_scriptpath = s; }
@@ -65,6 +67,7 @@ private:
     ResolverService * m_rs;    // instance of a plugin
     unsigned int m_targettime; // ms before passing to next resolver
     unsigned short m_weight;   // highest weight runs first.
+    unsigned short m_preference;// secondary sort value. indicates network reliability or other user preference setting
     
     bool m_script;
     std::string m_scriptpath;
