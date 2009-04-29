@@ -230,7 +230,7 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc<3 || argc==1) {
-        cerr<<"Usage: "<<argv[0] << " <collection.db> <scan_dir>"<<endl;
+        cerr<<"Usage: "<< toUtf8(argv[0]) << " <collection.db> <scan_dir>"<<endl;
         return 1;
     }
     try {
