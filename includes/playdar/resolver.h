@@ -9,6 +9,7 @@
 #include "playdar/types.h"
 #include "playdar/resolver_query.hpp"
 #include "playdar/resolver_service.h"
+#include "playdar/utils/uuid.h"
 
 #include <DynamicClass.hpp>
 
@@ -52,8 +53,6 @@ public:
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
 
-    ri_ptr ri_from_json( const json_spirit::Object& ) const;
-
     rq_ptr rq(const query_uid & qid);
     ss_ptr get_ss(const source_uid & sid);
     
@@ -81,6 +80,11 @@ public:
     const time_t max_query_lifetime() const
     {
         return 21600; // 6 hours.
+    }
+    
+    std::string gen_uuid() const
+    {
+        return m_uuid_gen();
     }
     
     bool pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs);
@@ -140,6 +144,7 @@ private:
     template <class T>
     boost::shared_ptr<T> ss_ptr_generator(std::string url);
     
+    mutable playdar::utils::uuid_gen m_uuid_gen;
 };
 
 }

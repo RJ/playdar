@@ -113,7 +113,8 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
 
     map<string, string> vars;
     string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
-    string ftoken   = m_pauth->gen_formtoken();
+    string ftoken   = app()->resolver()->gen_uuid();
+    m_pauth->add_formtoken( ftoken );
     vars["<%URL%>"]="";
     if(req.getvar_exists("receiverurl"))
     {
@@ -350,7 +351,8 @@ playdar_request_handler::handle_settings( const playdar_request& req,
             <<  "</tr>"
             << endl;
         int i = 0;
-        string formtoken = m_pauth->gen_formtoken();
+        string formtoken = app()->resolver()->gen_uuid();
+        m_pauth->add_formtoken( formtoken );
         BOOST_FOREACH( auth_t &m, v )
         {
             os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
