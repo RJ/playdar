@@ -12,7 +12,12 @@ SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_PATH}/bin")
 # Don't really do 'make install' properly yet:
 SET(CMAKE_INSTALL_PREFIX "/usr/local")
 
+# on linux x86-64 set this to OFF if you are having (-fPIC...) build problems.
+# then: cd build/ && rm -rf CMakeCache.txt CMakeFiles/ cmake_install.cmake resolvers/
+# then: cmake .. ; make
+# alternatively, recompile boost with -fPIC
 SET(Boost_USE_STATIC_LIBS ON)
+
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)
 FIND_PACKAGE(Taglib 1.5.0 REQUIRED)
@@ -25,10 +30,10 @@ INCLUDE_DIRECTORIES(
                     ${TAGLIB_INCLUDES}
                     ${CURL_INCLUDE_DIR}
                     /usr/local/include
-                    ${DEPS}/moost_http/include     # our httpd server, from erikf's moost
-                    ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api
-                    ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit
-                    ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries
+                    ${DEPS}/moost_http/include     # httpd server component, GPL, forked from code from fawx.com
+                    ${DEPS}/sqlite3pp-read-only    # cpp wrapper for sqlite api, patched for 64bit compile fix
+                    ${DEPS}/json_spirit_v3.00      # json parser, using boost spirit, patched for better utf8
+                    ${DEPS}/pdl-0.3.0/include      # x-platform dynamic loading of libraries, minor fixes applied
                     ${DEPS}/boost.process          # (unofficial) spawning resolver scripts
                     ${DEPS}/boost.uuid             # (unofficial) UUID generation library
                    )
@@ -60,7 +65,7 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-fPIC)
 ENDIF(NOT WIN32)
 
-ADD_EXECUTABLE(scanner # EXCLUDE_FROM_ALL <--whatdoesthismean?--mxcl means "don't build this target if they just type 'make'"-rj
+ADD_EXECUTABLE(scanner
                ${SRC}/scanner/scanner.cpp
                ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
                ${SRC}/library.cpp         # because library.cpp uses HTTPStreamingStrategy
@@ -111,7 +116,6 @@ ADD_EXECUTABLE( playdar
 TARGET_LINK_LIBRARIES( playdar 
                        ${CURL_LIBRARIES}
                        ${SQLITE3_LIBRARIES}
-                       ${CURL_LIBRARIES}			
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
 					   ${Boost_LIBRARIES}	  # Boost license
