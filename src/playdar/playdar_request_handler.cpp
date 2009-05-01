@@ -220,6 +220,7 @@ playdar_request_handler::handle_root( const playdar_request& req,
            "<tr style=\"font-weight: bold;\">"
            "<td>Plugin Name</td>"
            "<td>Weight</td>"
+           "<td>Preference</td>"
            "<td>Target Time</td>"
            "<td>Configuration</td>"
            "</tr>"
@@ -236,6 +237,7 @@ playdar_request_handler::handle_root( const playdar_request& req,
         os  << "<tr style=\"background-color: " << bgc << "\">"
             << "<td>" << pap->rs()->name() << "</td>"
             << "<td>" << pap->weight() << "</td>"
+            << "<td>" << pap->preference() << "</td>"
             << "<td>" << pap->targettime() << "ms</td>";
         os << "<td>" ;
 
