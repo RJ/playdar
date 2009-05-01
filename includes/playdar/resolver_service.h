@@ -57,7 +57,6 @@ public:
     /// this is important if you are holding any state, or a copy of the RQ pointer.
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
-    /// handler for HTTP reqs we are registered for:
     virtual playdar_response authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     { return "This plugin has no web interface. TODO: change me to a 404"; }
     

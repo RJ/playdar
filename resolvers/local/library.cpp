@@ -1,4 +1,4 @@
-#include "playdar/library.h"
+#include "library.h"
 
 //#include <boost/asio.hpp>
 
@@ -9,8 +9,7 @@
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "playdar/application.h"
-#include "playdar/library_sql.h"
+#include "library_sql.h"
 
 using namespace std;
 

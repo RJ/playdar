@@ -13,9 +13,7 @@
 
 #include "playdar/resolver.h"
 
-#include "playdar/rs_local_library.h"
 #include "playdar/rs_script.h"
-#include "playdar/library.h"
 
 // Generic track calculation stuff:
 #include "playdar/track_rq_builder.hpp"
@@ -53,9 +51,6 @@ Resolver::Resolver(MyApplication * app)
     
     // Initialize built-in curl SS facts:
     detect_curl_capabilities();
-    
-    // Initialize built-in local library resolver:
-    load_library_resolver();
 
     // Load all non built-in resolvers:
     try
@@ -113,29 +108,6 @@ Resolver::detect_curl_capabilities()
         string p(proto);
         cout << "SS factory registered for: " << p << endl ;
         m_ss_factories[ p ] = ssf; // add an SS factory for this protocol
-    }
-}
-
-void
-Resolver::load_library_resolver()
-{
-    pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
-    
-    ResolverService * rs = new RS_local_library();
-    
-    // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)rs)->set_app(app());
-    pap->set_rs( rs );
-    pap->set_weight( rs->weight() );
-    pap->set_preference( rs->preference() );
-    pap->set_targettime( rs->target_time() );
-    
-    if( rs->init(pap) )
-    {
-        m_resolvers.push_back( pap );
-    }else{
-        cerr << "Couldn't load local library resolver. This is bad." 
-             << endl;
     }
 }
 
@@ -465,6 +437,16 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
 }
 
 
+string 
+Resolver::sortname(const string& name) 
+{ 
+    string data(name); 
+    std::transform(data.begin(), data.end(), data.begin(), ::tolower); 
+    boost::trim(data); 
+    return data; 
+}
+
+
 /// caluclate score 0-1 based on how similar the names are.
 /// string similarity algo that combines art,alb,trk from the original
 /// query (rq) against a potential match (pi).
@@ -489,11 +471,11 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
     unsigned int trked = playdar::utils::levenshtein( 
-                                                     Library::sortname(trk),
-                                                     Library::sortname(o_trk));
+                                                     sortname(trk),
+                                                     sortname(o_trk));
     unsigned int arted = playdar::utils::levenshtein( 
-                                                     Library::sortname(art),
-                                                     Library::sortname(o_art));
+                                                     sortname(art),
+                                                     sortname(o_art));
     // tolerances:
     float tol_art = 1.5;
     float tol_trk = 1.5;

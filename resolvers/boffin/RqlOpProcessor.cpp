@@ -20,7 +20,7 @@
 
 #include "RqlOpProcessor.h"
 #include "parser/enums.h"
-#include "playdar/library.h"
+#include "../local/library.h"
 #include "SimilarArtists.h"
 #include <boost/bind.hpp>
 

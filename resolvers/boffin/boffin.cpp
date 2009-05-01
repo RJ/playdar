@@ -9,9 +9,9 @@
 
 #include "playdar/utils/urlencoding.hpp"        // maybe this should be part of the plugin api then?
 #include "playdar/resolved_item.h"
-#include "playdar/library.h"
+#include "../local/library.h"
+#include "../local/resolved_item_builder.hpp"
 #include "playdar/playdar_request.h"
-#include "playdar/resolved_item_builder.hpp"
 #include "BoffinRQUtil.h"
 
 using namespace fm::last::query_parser;

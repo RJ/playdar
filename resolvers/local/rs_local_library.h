@@ -7,24 +7,19 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
 
-#include "playdar/resolver_service.h"
-#include "playdar/pluginadaptor.h"
-#include "playdar/types.h"
-#include "playdar/application.h"
+// All resolver plugins should include this header: 
+#include "playdar/playdar_plugin_include.h"
 
-namespace playdar { namespace resolvers {
+namespace playdar {
+    class Library;
+namespace resolvers {
 
-class RS_local_library : public ResolverService
+
+class local : public ResolverPlugin<local>
 {
 public:
-    RS_local_library(){}
-
+    local(){}
     bool init(pa_ptr pap);
-    void set_app(MyApplication * a)
-    {
-        m_app = a;
-    }
-
     void start_resolving(rq_ptr rq);
     void run();
     void process(rq_ptr rq);
@@ -45,12 +40,13 @@ public:
     {
         return 100;
     }
-    
+
+    playdar_response authed_http_handler(const playdar_request* req, playdar::auth* pauth);
+    playdar_response anon_http_handler(const playdar_request*);
+
 protected:
 
-    MyApplication * app() { return m_app; }
-    MyApplication * m_app;
-    ~RS_local_library() throw() 
+    ~local() throw() 
     {
         m_exiting = true;
         m_cond.notify_all();
@@ -58,7 +54,7 @@ protected:
     };
     
 private:
-
+    Library* m_library;
     pa_ptr m_pap;
 
     bool m_exiting;
@@ -73,6 +69,7 @@ private:
 
 };
 
-}}
+EXPORT_DYNAMIC_CLASS( local )
 
+}}
 #endif

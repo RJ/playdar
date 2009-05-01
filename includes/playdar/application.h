@@ -19,7 +19,6 @@
 
 namespace playdar {
 
-class Library;
 class Resolver;
 class playdar_request_handler;
 
@@ -35,7 +34,6 @@ public:
     MyApplication(Config c);
     ~MyApplication();
 
-    Library * library();
     Resolver * resolver();
     
     Config * conf()
@@ -63,7 +61,6 @@ private:
     
     boost::function<void()> m_stop_http;
     Config m_config;
-    Library * m_library;
     Resolver * m_resolver;
 
 };

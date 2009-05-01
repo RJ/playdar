@@ -65,33 +65,19 @@ IF(NOT WIN32)
     ADD_DEFINITIONS(-fPIC)
 ENDIF(NOT WIN32)
 
-ADD_EXECUTABLE(scanner
-               ${SRC}/scanner/scanner.cpp
-               ${SRC}/utils/base64.cpp    # not needed, but won't compile on mac
-               ${SRC}/library.cpp         # because library.cpp uses HTTPStreamingStrategy
-               ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
-              )
-			  
-TARGET_LINK_LIBRARIES(scanner 
-                      ${SQLITE3_LIBRARIES}
-                      ${Boost_LIBRARIES}
-                      ${CURL_LIBRARIES}
-                      ${TAGLIB_LIBRARIES})
-                      
+                     
 ADD_EXECUTABLE( playdar
                 ${SRC}/application.cpp
                 ${SRC}/resolver.cpp
-                ${SRC}/rs_local_library.cpp
                 ${SRC}/rs_script.cpp
-                ${SRC}/library.cpp
                 
                 ${SRC}/utils/uuid.cpp
                 ${SRC}/utils/base64.cpp
                 ${SRC}/utils/levenshtein.cpp
 
-                ${SRC}/playdar/playdar_request_handler.cpp
+                ${SRC}/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
-                ${SRC}/playdar/main.cpp
+                ${SRC}/main.cpp
 
                 # json parser:
                 ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
@@ -121,7 +107,6 @@ TARGET_LINK_LIBRARIES( playdar
 					   ${Boost_LIBRARIES}	  # Boost license
                      )
 
-INSTALL(TARGETS scanner RUNTIME DESTINATION bin)
 INSTALL(TARGETS playdar RUNTIME DESTINATION bin)
 
 #

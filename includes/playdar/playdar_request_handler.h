@@ -7,7 +7,7 @@
 
 #include <moost/http.hpp>
 
-#include "playdar/library.h"
+#include "playdar/playdarDb.h"
 #include "playdar/application.h"
 #include "playdar/auth.hpp"
 

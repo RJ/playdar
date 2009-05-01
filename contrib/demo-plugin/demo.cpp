@@ -1,6 +1,6 @@
 #include "demo.h"
 #include <boost/algorithm/string.hpp>
-#include "playdar/resolved_item_builder.hpp"
+#include "../../resolvers/local/resolved_item_builder.hpp"
 #include "playdar/resolver_query.hpp"
 
 namespace playdar {
