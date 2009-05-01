@@ -81,6 +81,8 @@ int main(int argc, char *argv[])
             
         // build up the request:
         db.map_files_without_tags(track_out);
+        ssreq.flush();
+        ssreq.seekg( 0 );
 
         // setup curl:
         CURL* curl = curl_easy_init();
@@ -100,7 +102,7 @@ int main(int argc, char *argv[])
         cc("POSTREDIR") = curl_easy_setopt(curl, CURLOPT_POSTREDIR, CURL_REDIR_POST_ALL );  // keep on posting when redir'd (301 or 302)
 #endif
         cc("POST") = curl_easy_setopt(curl, CURLOPT_POST, 1);
-        cc("POSTFIELDSIZE") = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, ssreq.str().length()); //yuk, but beware the server doesn't support expect:
+        cc("POSTFIELDSIZE") = curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, ssreq.rdbuf()->in_avail()); //yuk, but beware the server doesn't support expect:
         cc("USERAGENT") = curl_easy_setopt(curl, CURLOPT_USERAGENT, "playdar boffin tagger");
         struct curl_slist *headers = 0;
         headers = curl_slist_append(headers, "content-type: text/plain; charset=utf-8");
