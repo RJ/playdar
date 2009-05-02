@@ -44,6 +44,12 @@ public:
     virtual unsigned short weight() const
     { return 100; }
 
+    /// results are sorted by score, then preference (descending)
+    /// should be 1-100 indicating likely network reliability of sources
+    /// or some other user preference used to adjust ranking.
+    virtual unsigned short preference() const
+    { return weight(); }
+    
     /// start searching for matches for this query
     virtual void start_resolving(boost::shared_ptr<ResolverQuery> rq) = 0;
     

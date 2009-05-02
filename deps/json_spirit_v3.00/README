@@ -1,4 +1,4 @@
-From:
-http://www.codeproject.com/KB/recipes/JSON_Spirit.aspx
+Downloaded from: http://spirit.sourceforge.net/repository/applications/show_contents.php
+License is just "do what you want, just leave my comment at the top".
 
-
+We have made minor patches to this for better utf8 support.
