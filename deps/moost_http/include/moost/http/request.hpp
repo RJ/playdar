@@ -1,11 +1,12 @@
 #ifndef __MOOST_HTTP_REQUEST_HPP__
 #define __MOOST_HTTP_REQUEST_HPP__
 
-#include "moost/http/header.hpp"
-#include <boost/algorithm/string/predicate.hpp>
 #include <string>
 #include <vector>
 
+#include <boost/algorithm/string/predicate.hpp>
+
+#include "moost/http/header.hpp"
 
 namespace moost { namespace http {
 

@@ -3,16 +3,16 @@
 #include <sstream>
 
 #include <boost/foreach.hpp>
-#include <moost/http/filesystem_request_handler.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <moost/http.hpp>
+
 #include "json_spirit/json_spirit.h"
 #include "playdar/application.h"
-
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
 #include "playdar/playdar_response.h"
@@ -80,7 +80,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     //TODO: Handle % encodings
     
     cout << "HTTP " << req.method << " " << req.uri << endl;
-    rep.unset_streaming();
     
     boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
     string base;
@@ -163,9 +162,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
             << "authtoken=" << tok
             << "#" << tok;
             rep = rep.stock_reply(moost::http::reply::moved_permanently); 
-            rep.headers.resize(3);
-            rep.headers[2].name = "Location";
-            rep.headers[2].value = os.str();
+            rep.add_header( "Location", os.str() );
         }
     }
     else
@@ -184,11 +181,7 @@ playdar_request_handler::handle_crossdomain( const playdar_request& req,
     os  << "<?xml version=\"1.0\"?>" << endl
         << "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"
         << "<cross-domain-policy><allow-access-from domain=\"*\" /></cross-domain-policy>" << endl;
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = os.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/xml";
+    rep.add_header( "Content-Type", "text/xml" );
     rep.content = os.str();
 }
 
@@ -575,12 +568,8 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     cout << endl;
     string url = "/sid/";
     url += results[0]->id();
-    rep.headers.resize(3);
     rep.status = moost::http::reply::moved_temporarily;
-    moost::http::header h;
-    h.name = "Location";
-    h.value = url;
-    rep.headers[2] = h;
+    rep.add_header( "Location", url );
     rep.content = "";
 }
 
@@ -795,12 +784,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     {
         retval = response.str();
     }
-        
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = retval.length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = req.getvar_exists("jsonp") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8";
+    rep.add_header( "Content-Type", req.getvar_exists("jsonp") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8" );
     rep.content = retval;
 }
 
@@ -826,11 +810,7 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 void
 playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = response.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/html";
+    rep.add_header( "Content-Type", "text/html" );
     rep.content = response; 
 }
 
@@ -877,23 +857,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-    /*
-    rep.headers.resize(2);
-    if(pip->mimetype().length())
-    {
-        
-        rep.headers[1].name = "Content-Type";
-        rep.headers[1].value = pip->mimetype();
-    }
-    if(pip->size())
-    {
-        rep.headers[0].name = "Content-Length";
-        rep.headers[0].value = boost::lexical_cast<string>(pip->size());
-    }
-    */
-    // hand off the streaming strategy for the http server to do:
-    rep.set_streaming(ss); // pip->size());
-    return;  
+    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
 }
 
 
@@ -921,11 +885,7 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = os.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/html";
+    rep.add_header( "Content-Type", "text/html" );
     rep.content = os.str(); 
 }
 

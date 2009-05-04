@@ -24,11 +24,11 @@ public:
         reset();
     }
     
-    int read_bytes(char * buf, size_t size)
+    size_t read_bytes(char * buf, size_t size)
     {
         if(!m_connected) do_connect();
         if(!m_connected) return 0;
-        int len = m_is.read(buf, size).gcount();
+        size_t len = m_is.read(buf, size).gcount();
         if(len==0) reset();
         return m_is.gcount();
     }
