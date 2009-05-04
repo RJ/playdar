@@ -16,29 +16,29 @@
  *   Free Software Foundation, Inc.,                                       *
  *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
  ***************************************************************************/
-
+ 
 #ifndef RQL_OP_PROCESSOR_H
 #define RQL_OP_PROCESSOR_H
-
+ 
 #include "RqlOp.h"
 #include "ResultSet.h"
 #include <vector>
-
+ 
 class BoffinDb;
 class SimilarArtists;
-
+ 
 class RqlOpProcessor
 {
 public:
     typedef std::vector<RqlOp>::const_iterator Iterator;
-
+ 
     static ResultSetPtr process(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
-
+ 
 private:
     Iterator m_it, m_end;
     BoffinDb& m_library;
     SimilarArtists& m_similarArtists;
-
+ 
     RqlOpProcessor(Iterator begin, Iterator end, BoffinDb& library, SimilarArtists& similarArtists);
     void next();
     ResultSetPtr process();
@@ -47,8 +47,8 @@ private:
     ResultSetPtr userTag();
     ResultSetPtr artist();
     ResultSetPtr similarArtist();
-
+ 
     void normalise(float weight, ResultSetPtr rs);
 };
-
+ 
 #endif

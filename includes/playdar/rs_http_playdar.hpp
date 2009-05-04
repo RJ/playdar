@@ -12,6 +12,7 @@
 #include "json_spirit/json_spirit.h"
 #include <boost/foreach.hpp>
 
+namespace playdar { namespace resolvers {
 
 class RS_http_playdar  : public ResolverService
 {
@@ -93,14 +94,14 @@ class RS_http_playdar  : public ResolverService
                         //cout << "Proceeding.." << endl;
                     }
                     Array resultsA = rr["results"].get_array();
-                    vector< boost::shared_ptr<PlayableItem> > v;
+                    vector< boost::shared_ptr<ResolvedItem> > v;
                     BOOST_FOREACH(Value & result, resultsA)
                     {
                         Object reso = result.get_obj();
-                        boost::shared_ptr<PlayableItem> pip;
+                        boost::shared_ptr<ResolvedItem> rip;
                         try
                         {
-                            pip = PlayableItem::from_json(reso);
+                            rip = new ResolvedItem( reso );
                             // make sure to use whichever ip:port we are actually talking to them via:
                             string url = remote_httpbase();
                             url += "/sid/";
@@ -223,5 +224,6 @@ class RS_http_playdar  : public ResolverService
         }
 };
 
+}}
 
 #endif

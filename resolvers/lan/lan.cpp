@@ -1,21 +1,31 @@
 #include "lan.h"
-#include <time.h>
-#include "playdar/types.h"
+
+#include "playdar/resolver_query.hpp"
+#include "playdar/playdar_request.h"
+
+#include <ctime>
+
+using namespace std;
+using namespace json_spirit;
+
+using namespace json_spirit;
 
 namespace playdar {
 namespace resolvers {
 
 bool
-lan::init(playdar::Config * c, Resolver * r)
+lan::init(pa_ptr pap)
 {
-    m_resolver  = r;
-    m_conf = c;
+    m_pap = pap;
     broadcast_endpoint_ = 
         new boost::asio::ip::udp::endpoint
          (  boost::asio::ip::address::from_string
-            (conf()->get<string> ("plugins.lan.multicast", "")), 
-           conf()->get<int>("plugins.lan.port", 0));
-    m_responder_thread = new boost::thread(boost::bind(&lan::run, this));
+            ("239.255.0.1"),
+            8888 );
+            //(pap->get<string> ("plugins.lan.multicast", "")), 
+            // pap->get("plugins.lan.port", 0) );
+
+    m_responder_thread.reset( new boost::thread(boost::bind(&lan::run, this)) );
     return true;
 }
 
@@ -42,7 +52,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     using namespace json_spirit;
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
-    cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
+    //cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
     async_send(broadcast_endpoint_, querystr.str());
 }
 
@@ -64,12 +74,14 @@ lan::cancel_query(query_uid qid)
 void 
 lan::run()
 {
-    m_io_service = new boost::asio::io_service;
+    m_io_service.reset( new boost::asio::io_service );
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    (conf()->get<string>("plugins.lan.multicast", "")), 
-                    conf()->get<int>("plugins.lan.port", 0)); 
+                    ("239.255.0.1"),
+                    8888 );
+                    //(m_pap->get<string>("plugins.lan.multicast", "")), 
+                    // m_pap->get<int>("plugins.lan.port", 0)); 
     
     cout << "DL UDP Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -165,9 +177,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 break;
             }
             
-            cout    << "lan: Received multicast message (from " 
-                    << sender_address.to_string() << "):" 
-                    << endl << msg << endl;
+            //cout    << "lan: Received multicast message (from " 
+            //        << sender_address.to_string() << "):" 
+            //        << endl << msg << endl;
             
             using namespace json_spirit;
             // try and parse it as json:
@@ -208,7 +220,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     break; 
                 }
                 
-                if(resolver()->query_exists(rq->id()))
+                if(m_pap->query_exists(rq->id()))
                 {
                     //cout << "lan: discarding message, QID already exists: " << rq->id() << endl;
                     break;
@@ -219,7 +231,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 rq_callback_t cb =
                  boost::bind(&lan::send_response, this, _1, _2,
                              sender_endpoint_);
-                query_uid qid = resolver()->dispatch(rq, cb);
+                query_uid qid = m_pap->dispatch(rq, cb);
             }
             else if(msgtype == "result") // RESPONSE 
             {
@@ -227,44 +239,41 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 map<string,Value> resobj_map;
                 obj_to_map(resobj, resobj_map);
                 query_uid qid = r["qid"].get_str();
-                if(!resolver()->query_exists(qid))
+                if(!m_pap->query_exists(qid))
                 {
                     cout << "lan: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
                 //cout << "lan: Got udp response." <<endl;
-                ri_ptr rip;
+
+                vector< Object > final_results;
                 try
                 {
-                    rip = resolver()->ri_from_json(resobj);
-
+                    ResolvedItem ri(resobj);
                     //FIXME this could be moved into the PlayableItem class perhaps
                     //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip)) {
+                    if( ri.has_json_value<string>("url")) 
+                    {
                         ostringstream rbs;
                         rbs << "http://"
                         << sender_endpoint_.address()
                         << ":"
-                        << sender_endpoint_.port();
-                        string url = rbs.str();
-                        url += "/sid/";
-                        url += rip->id();
-                        boost::shared_ptr<StreamingStrategy> 
-                        s(new CurlStreamingStrategy(url));
-                        pip->set_streaming_strategy(s);
+                        << sender_endpoint_.port()
+                        << "/sid/"
+                        << ri.id();
+                        ri.set_url( rbs.str() );
                     }
+                    final_results.push_back( ri.get_json() );
+                    m_pap->report_results( qid, final_results );
+                    //cout    << "INFO Result from '" << rip->source()
+                    //        <<"' for '"<< write_formatted( rip->get_json())
+                    //        << endl;
                 }
                 catch (...)
                 {
                     cout << "lan: Missing fields in response json, discarding" << endl;
                     break;
                 }
-                vector< ri_ptr > v;
-                v.push_back(rip);
-                report_results(qid, v, name());
-                cout    << "INFO Result from '" << rip->source()
-                        <<"' for '"<< write_formatted( rip->get_json())
-                        << endl;
             }
             else if(msgtype == "ping")
             {
@@ -299,10 +308,10 @@ lan::send_response( query_uid qid,
                         ri_ptr rip,
                         boost::asio::ip::udp::endpoint sep )
 {
-    cout << "lan responding for " << qid << " to: " 
-         << sep.address().to_string() 
-         << " score: " << rip->score()
-         << endl;
+    //cout << "lan responding for " << qid << " to: " 
+    //     << sep.address().to_string() 
+    //     << " score: " << rip->score()
+    //     << endl;
     using namespace json_spirit;
     Object response;
     response.push_back( Pair("_msgtype", "result") );
@@ -324,8 +333,8 @@ lan::send_ping()
     using namespace json_spirit;
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
-    jq.push_back( Pair("from_name", conf()->name()) );
-    jq.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
+    jq.push_back( Pair("from_name", m_pap->hostname()) );
+    jq.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
     ostringstream os;
     write_formatted( jq, os );
     async_send(broadcast_endpoint_, os.str());
@@ -337,11 +346,10 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
 {
     cout << "LAN sending pong back to " 
          << sender_endpoint.address().to_string() <<".." << endl;
-    using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
-    o.push_back( Pair("from_name", conf()->name()) );
-    o.push_back( Pair("http_port", conf()->get<int>("http_port", 8888)) );
+    o.push_back( Pair("from_name", m_pap->hostname()) );
+    o.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
     ostringstream os;
     write_formatted( o, os );
     async_send( &sender_endpoint, os.str() );
@@ -355,7 +363,7 @@ lan::send_pang()
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pang") );
-    o.push_back( Pair("from_name", conf()->name()) );
+    o.push_back( Pair("from_name", m_pap->hostname()) );
     ostringstream os;
     write_formatted( o, os );
     async_send(broadcast_endpoint_, os.str());
@@ -371,7 +379,7 @@ lan::receive_ping(map<string,Value> & om,
         return;
     }
     // ignore pings sent from ourselves:
-    if(om["from_name"]==conf()->name()) return;
+    if(om["from_name"]==m_pap->hostname()) return;
     if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
         cout << "Malformed UDP PING dropped." << endl;
@@ -446,13 +454,38 @@ lan::receive_pang(map<string,Value> & om,
     m_lannodes.erase(from_name);
 }
 
-playdar_response 
-lan::http_handler( const playdar_request& req,
-                         playdar::auth * pauth)
+
+bool endsWith(const std::string& s, const std::string& tail)
 {
-    cout << "request handler on lan for url: " << req.url() << endl;
+    const std::string::size_type slen = s.length(), tlen = tail.length();
+    return slen >= tlen ? (s.substr(slen - tlen) == tail) : false;
+}
+
+playdar_response 
+lan::anon_http_handler(const playdar_request* req)
+{
+    cout << "request handler on lan for url: " << req->url() << endl;
+
     time_t now;
     time(&now);
+    typedef std::pair<string, lannode> LanPair;
+
+    if (endsWith(req->url(), "roster")) { 
+        Array a;
+        BOOST_FOREACH(const LanPair& p, m_lannodes)
+        {
+            Object o;
+            o.push_back( Pair("name", p.first) );
+            o.push_back( Pair("address", p.second.http_base) );
+            //FIXME not safe on compilers where sizeof (long) > sizeof(int) after the year 2038
+            o.push_back( Pair("age", (int)(now - p.second.lastdate)) );
+            a.push_back(o);
+        }
+        ostringstream os;
+        write_formatted(a, os);
+        return playdar_response(os.str(), false);
+    }
+
     ostringstream os;
     os  << "<h2>LAN</h2>"
         << "<p>Detected nodes:"
@@ -461,8 +494,7 @@ lan::http_handler( const playdar_request& req,
         << "<td>Name</td> <td>Address</td> <td>Seconds since last ping</td>"
         << "</td>"
         << endl;
-    typedef std::pair<string,lannode> pair_t;
-    BOOST_FOREACH( pair_t p, m_lannodes )
+    BOOST_FOREACH( const LanPair& p, m_lannodes )
     {
         os  << "<tr><td>" << p.first << "</td>"
             << "<td><a href=\"" << p.second.http_base << "/\">"<< p.second.http_base <<"</a></td>"

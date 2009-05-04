@@ -1,33 +1,41 @@
 #include "playdar/rs_script.h"
+
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/algorithm/string.hpp>
+
+#include "playdar/resolver.h"
+
 /*
 This resolver spawns an external process, typically a python/ruby script
 which will do the actual resolving. Messages are passed to the script down
 stdin, results expected from stdout of the script.
 
-Messages sent via stdin/out are framed with a 4-byte integer (big endian) denoting the length of the message. Actual protocol msgs are JSON objects.
+Messages sent via stdin/out are framed with a 4-byte integer (big endian) 
+denoting the length of the message. Actual protocol msgs are JSON objects.
 */
-namespace playdar {
-namespace resolvers {
+
+using namespace std;
+
+namespace playdar { namespace resolvers {
 
 /*
     init() will spawn the external script and block until the script
     sends us a settings object, containing a name, weight and targettime.
 */
 bool
-rs_script::init(playdar::Config * c, Resolver * r, string script) 
+rs_script::init(pa_ptr pap) 
 {
-    m_resolver  = r;
-    m_conf = c;
+    assert( pap->script() );
+    m_pap = pap;
     m_dead = false;
     m_exiting = false;
     m_weight = 1;
+    m_preference = 1;
     m_targettime = 1000;
     m_got_settings = false;
-    m_scriptpath = script;
+    m_scriptpath = m_pap->scriptpath();
     if(m_scriptpath=="")
     {
         cout << "No script path specified. gateway plugin failed." 
@@ -56,9 +64,6 @@ rs_script::init(playdar::Config * c, Resolver * r, string script)
             boost::xtime_get(&time,boost::TIME_UTC); 
             time.sec += 5;
             m_cond_settings.timed_wait(lk, time);
-            /* doesn't work on boost 1.35, but new way is this:
-            m_cond_settings.timed_wait(lk, boost::posix_time::seconds(5));
-            */
         }
         
         if(m_got_settings)
@@ -187,7 +192,7 @@ rs_script::process_output()
         is.read( (char*)&len, 4 );
         if(is.fail() || is.eof()) break;
         len = ntohl(len);
-        cout << "Incoming msg of length " << len << endl;
+        //cout << "Incoming msg of length " << len << endl;
         if(len > sizeof(buffer))
         {
             cerr << "Gateway plugin aborting, payload too big" << endl;
@@ -196,7 +201,7 @@ rs_script::process_output()
         is.read( (char*)&buffer, len );
         if(is.fail() || is.eof()) break;
         string msg((char*)&buffer, len);
-        std::cout << "Msg: '" << msg << "'"<< endl;
+        //std::cout << "Msg: '" << msg << "'"<< endl;
         if(!read(msg, j) || j.type() != obj_type)
         {
             cerr << "Aborting, invalid JSON." << endl;
@@ -223,21 +228,25 @@ rs_script::process_output()
                 rr["weight"].type() == int_type )
             {
                 m_weight = rr["weight"].get_int();
-                //cout << "Gateway setting w:" << m_weight << endl;
+                m_preference = m_weight; // default preference
+            }
+            
+            if( rr.find("preference") != rr.end() &&
+                rr["preference"].type() == int_type )
+            {
+                m_preference = rr["preference"].get_int();
             }
             
             if( rr.find("targettime") != rr.end() &&
                 rr["targettime"].type() == int_type )
             {
                 m_targettime = rr["targettime"].get_int();
-                //cout << "Gateway setting t:" << m_targettime << endl;
             }
             
             if( rr.find("name") != rr.end() &&
                 rr["name"].type() == str_type )
             {
                 m_name = rr["name"].get_str();
-                //cout << "Gateway setting name:" << m_name << endl;
             }
             m_got_settings = true;
             m_cond_settings.notify_one();
@@ -253,44 +262,23 @@ rs_script::process_output()
         {
             query_uid qid = rr["qid"].get_str();
             Array resultsA = rr["results"].get_array();
-            cout << "Got " << resultsA.size() << " results from script" << endl;
-            vector< ri_ptr > v;
+            //cout << "Got " << resultsA.size() << " results from script" << endl;
+            vector< Object > v;
             BOOST_FOREACH(Value & result, resultsA)
             {
                 Object po = result.get_obj();
-                boost::shared_ptr<PlayableItem> pip;
-                pip = PlayableItem::from_json(po);
-                cout << "Parserd pip from script: " << endl;
-                write_formatted(  pip->get_json(), cout );
-                map<string,Value> po_map;
-                obj_to_map(po, po_map);
-                string url   = po_map["url"].get_str();  
-                cout << "url=" << url << endl;
-                // we don't give this to the shared_ptr yet, because
-                // we need to call a method specific to curlss, not
-                // in the parent ss (to set headers):
-                CurlStreamingStrategy * curlss = new CurlStreamingStrategy(url);
-                try
-                {
-                    if( po_map.find("extra_headers")!=po_map.end() &&
-                        po_map["extra_headers"].type() == array_type )
-                    {
-                        Array a = po_map["extra_headers"].get_array();
-                        BOOST_FOREACH( Value &eh, a )
-                        {
-                            if(eh.type() != str_type) continue;
-                            // not implemented in curl strat yet
-                            //curlss->extra_headers().push_back(boost::trim_copy(eh.get_str()));
-                        }
-                    }
-                } 
-                catch(...) { delete curlss; continue; }
-                boost::shared_ptr<StreamingStrategy> s(curlss);
-                pip->set_streaming_strategy(s);
-                v.push_back(pip);
+                boost::shared_ptr<ResolvedItem> pip( new ResolvedItem( po ) );
+
+                //cout << "Parserd pip from script: " << endl;
+                //write_formatted(  pip->get_json(), cout );
+
+                if (pip->id().length() == 0) {
+                    pip->set_id( m_pap->gen_uuid() );
+                }
+                v.push_back( pip->get_json() );
             }
-            report_results(qid, v, name());
-        }
+            m_pap->report_results( qid, v );
+        }   
     }
     cout << "Gateway plugin read loop exited" << endl;
     m_dead = true;

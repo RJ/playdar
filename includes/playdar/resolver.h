@@ -9,7 +9,7 @@
 #include "playdar/types.h"
 #include "playdar/resolver_query.hpp"
 #include "playdar/resolver_service.h"
-#include "playdar/playable_item.hpp"
+#include "playdar/utils/uuid.h"
 
 #include <DynamicClass.hpp>
 
@@ -17,20 +17,10 @@
 #include "playdar/ss_localfile.hpp"
 #include "playdar/ss_curl.hpp"
 
+namespace playdar {
 
 class MyApplication;
 class ResolverService;
-
-// This struct adds weights to the ResolverService so the resolver pipeline
-// can run them in the appropriate sequence:
-struct loaded_rs
-{
-    ResolverService * rs; 
-    unsigned int targettime; // ms before passing to next resolver
-    unsigned short weight;   // highest weight runs first.
-    bool script;             // true if external process, false if plugin.
-};
-
 
 /*
  *  Acts as a container for all content-resolution queries that are running
@@ -45,6 +35,7 @@ class Resolver
 public:
     Resolver(MyApplication * app);
     ~Resolver();
+    void detect_curl_capabilities();
     void load_resolver_plugins();
     void load_resolver_scripts();
     query_uid dispatch(boost::shared_ptr<ResolverQuery> rq);
@@ -52,29 +43,25 @@ public:
                     
     MyApplication * app(){ return m_app; }
     bool add_results(query_uid qid,  
-                     vector< ri_ptr > results,
-                     string via);
-    vector< ri_ptr > get_results(query_uid qid);
+                     const std::vector< ri_ptr >& results,
+                     std::string via);
+    std::vector< ri_ptr > get_results(query_uid qid);
     int num_results(query_uid qid);
     
     bool query_exists(const query_uid & qid);
     bool add_new_query(boost::shared_ptr<ResolverQuery> rq);
     void cancel_query(const query_uid & qid);
     void cancel_query_timeout(query_uid qid);
-    
-    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
-    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
-    void register_resolved_item( const ri_validator&, const ri_generator& );
-    ri_ptr ri_from_json( const json_spirit::Object& ) const;
 
     rq_ptr rq(const query_uid & qid);
-    ri_ptr get_ri(const source_uid & sid);
+    ss_ptr get_ss(const source_uid & sid);
     
     size_t num_seen_queries();
     
-    vector<loaded_rs> * resolvers() { return &m_resolvers; }
+    const std::vector< pa_ptr >& resolvers() const
+    { return m_resolvers; }
 
-    ResolverService * get_resolver(string name)
+    ResolverService * get_resolver(std::string name)
     {
         if( m_pluginNameMap.find( name ) == m_pluginNameMap.end())
             return 0;
@@ -82,9 +69,10 @@ public:
         return m_pluginNameMap[ name ];
     }
 
-    const deque< query_uid > & qids() const
+    void qids(std::deque< query_uid >& out)
     {
-        return m_qidlist;
+        boost::mutex::scoped_lock lock(m_mut_qidlist);
+        out = m_qidlist;
     }
     
     /// number of seconds queries should survive for since last being used/accessed.
@@ -94,7 +82,12 @@ public:
         return 21600; // 6 hours.
     }
     
-    bool loaded_rs_sorter(const loaded_rs & lhs, const loaded_rs & rhs);
+    std::string gen_uuid() const
+    {
+        return m_uuid_gen();
+    }
+    
+    bool pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs);
     
     void run_pipeline_cont( rq_ptr rq, 
                        unsigned short lastweight,
@@ -102,11 +95,11 @@ public:
     void run_pipeline( rq_ptr rq, unsigned short lastweight );
     
     void dispatch_runner();
-
+    
 protected:
     float calculate_score( const rq_ptr & rq,  // query
-                          const pi_ptr & pi,  // candidate
-                          string & reason );  // fail reason
+                           const ri_ptr & ri,  // candidate
+                           std::string & reason );  // fail reason
 
 private:
     void load_library_resolver();
@@ -119,13 +112,14 @@ private:
     
     MyApplication * m_app;
     
-    map< query_uid, rq_ptr > m_queries;
-    map< source_uid, ri_ptr > m_ris;
+    std::map< query_uid, rq_ptr > m_queries;
+    std::map< source_uid, ri_ptr > m_sid2ri;
     // timers used to auto-cancel queries that are inactive for long enough:
-    map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
+    std::map< query_uid, boost::asio::deadline_timer* > m_qidtimers;
     
     // newest-first list of dispatched qids:
-    deque< query_uid > m_qidlist;
+    std::deque< query_uid > m_qidlist;
+    boost::mutex m_mut_qidlist;
     
     bool m_exiting;
     boost::thread * m_t;
@@ -133,21 +127,27 @@ private:
     unsigned int m_id_counter;
 
     // resolver plugin pipeline:
-    vector<loaded_rs> m_resolvers;
+    std::vector< pa_ptr > m_resolvers;
 
-    map< string, ResolverService* > m_pluginNameMap;
+    std::map< std::string, ResolverService* > m_pluginNameMap;
     
     boost::mutex m_mut_results; // when adding results
     
     // for dispatching to the pipeline:
-    deque< pair<rq_ptr, unsigned short> > m_pending;
+    std::deque< std::pair<rq_ptr, unsigned short> > m_pending;
     boost::mutex m_mutex;
     boost::condition m_cond;
-    
-    
-    std::vector<std::pair< ri_validator, ri_generator> > m_riList;
 
+    // StreamingStrategy factories
+    std::map< std::string, boost::function<ss_ptr(std::string)> > m_ss_factories;
+    
+    template <class T>
+    boost::shared_ptr<T> ss_ptr_generator(std::string url);
+    
+    mutable playdar::utils::uuid_gen m_uuid_gen;
 };
+
+}
 
 #endif
 

@@ -7,7 +7,9 @@
 
 using namespace std;
 
-MyApplication::MyApplication(playdar::Config c)
+namespace playdar {
+
+MyApplication::MyApplication(Config c)
     : m_config(c)
 {
     string db_path = conf()->get<string>("db", "");
@@ -44,8 +46,4 @@ MyApplication::resolver()
     return m_resolver;
 }
 
-
-
-
-
-
+} // ns

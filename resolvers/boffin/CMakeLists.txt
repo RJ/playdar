@@ -4,7 +4,10 @@ ADD_LIBRARY( boffin SHARED
              ResultSet.cpp
              SimilarArtists.cpp
              parser/parser.cpp 
-				 RqlOpProcessor.cpp )
+             RqlOpProcessor.cpp 
+             ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
+             ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp             
+             )
 
 SET_TARGET_PROPERTIES( boffin PROPERTIES
                        PREFIX ""
@@ -12,11 +15,11 @@ SET_TARGET_PROPERTIES( boffin PROPERTIES
                        CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_DIR}/plugins" )
 
 TARGET_LINK_LIBRARIES(boffin
-							 playdarcore
-                      ${OSSPUUID_LIBRARIES}
                       ${Boost_LIBRARIES}
                       ${PLAYDAR_PLUGIN_LDFLAGS}
-                      ${SQLITE3_LIBRARIES} )
+                      ${SQLITE3_LIBRARIES}
+                      ${CURL_LIBRARIES}
+					  )
                     
 ADD_EXECUTABLE( tagger
                 Tagger.cpp

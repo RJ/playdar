@@ -1,28 +1,25 @@
 #ifndef __RESOLVED_ITEM_H__
 #define __RESOLVED_ITEM_H__
 
-// must be first because ossp uuid.h is stubborn and name-conflicts with
-// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-// to you guys at OSSP. *claps*
-#ifdef HAS_OSSP_UUID_H
-#include <ossp/uuid.h>
-#else
-// default source package for ossp-uuid doesn't namespace itself
-#include <uuid.h> 
-#endif
-
 #include <string>
-#include "playdar/types.h"
 #include <boost/function.hpp>
+#include "playdar/types.h"
+#include "json_spirit/json_spirit.h"
+
+namespace playdar {
 
 class ResolvedItem
 {
 public:
 
-    ResolvedItem():m_score( -1.0f )
+    ResolvedItem()
     {
         
+    }
+    
+    ResolvedItem( const json_spirit::Object& jsonobj )
+    {
+        json_spirit::obj_to_map( jsonobj, m_jsonmap );
     }
     
     virtual ~ResolvedItem(){};
@@ -30,54 +27,80 @@ public:
     json_spirit::Object get_json() const
     {
         using namespace json_spirit;
-        Object j;
-        j.push_back( Pair("_msgtype", "ri") );
-        j.push_back( Pair("score", (double)score()) );
         
-        create_json( j );
-        return j;
+        Object o;
+        map_to_obj( m_jsonmap, o);
+        return o;
     }
     
+    const source_uid id() const         { return json_value( "sid", ""); }
+    void set_id(const source_uid& s)    { set_json_value( "sid", s ); }
 
+    void set_score( const double s )    { set_json_value( "score", s ); }
+    const float score() const           { return json_value( "score",  -1.0); }
+    void set_preference( const short p ){ set_json_value( "preference", p ); }
+    const short preference() const      { return json_value( "preference",  -1); }
     
-    const source_uid & id() const
+    const std::string source() const    { return json_value( "source", "" ); }
+    
+    virtual void set_url(const std::string& s)  { m_jsonmap["url"] = s; }
+    virtual const std::string url() const  { return json_value( "url", "" ); }
+    
+    template< typename T >
+    bool has_json_value( const std::string& s ) const
     {
-        if(m_uuid.length()==0) // generate it if not already specified
-        {
-            m_uuid = playdar::Config::gen_uuid();
-        }
-        return m_uuid; 
+        std::map< std::string, json_spirit::Value >::const_iterator i = 
+            m_jsonmap.find( s );
+        
+        return i != m_jsonmap.end() &&
+        i->second.type() == json_type<T>();
     }
     
-    void set_id(std::string s) { m_uuid = s; }
-    const float score() const       { return m_score; }
-    const std::string & source() const   { return m_source; }
-    
-    void set_score(float s)
-    { 
-        assert(s <= 1.0);
-        assert(s >= 0);
-        m_score  = s; 
-    }
-    void set_source(std::string s)   { m_source = s; }
-    
-    //TODO: move this into PlayableItem somehow
-    virtual void set_streaming_strategy(boost::shared_ptr<class StreamingStrategy> s){}
-    virtual boost::shared_ptr<class StreamingStrategy> streaming_strategy() const 
+    std::string json_value( const std::string& s, const char* def ) const
     {
-        return boost::shared_ptr<class StreamingStrategy>();
+        return json_value( s, std::string( def ));
     }
     
-protected:
-    virtual void create_json( json_spirit::Object& ) const = 0;
+    template< typename T >
+    T json_value( const std::string& s, const T& def ) const
+    {
+        std::map< std::string, json_spirit::Value >::const_iterator i = 
+            m_jsonmap.find( s );
+        
+        return i != m_jsonmap.end() && i->second.type() == json_type<T>() 
+            ? i->second.get_value<T>()
+            : def;
+    }
+    
+    template< typename T >
+    void set_json_value( const std::string& k, const T& v )
+    {
+        m_jsonmap[k] = v;
+    }
+
+    void set_source(const std::string& s)   { m_jsonmap["source"] = s; }
 
     
 private:
-    float m_score;
-    std::string m_source;
- 
-    mutable source_uid m_uuid;
-
+    std::map< std::string, json_spirit::Value > m_jsonmap;
+    
+    template< typename T > 
+    static json_spirit::Value_type json_type();
+    
 };
+    
+template<>
+inline json_spirit::Value_type ResolvedItem::json_type<int>() { return json_spirit::int_type; }
+
+template<>
+inline json_spirit::Value_type ResolvedItem::json_type<std::string>() { return json_spirit::str_type; }
+
+template<>
+inline json_spirit::Value_type ResolvedItem::json_type<double>() { return json_spirit::real_type; }
+
+template<>
+inline json_spirit::Value_type ResolvedItem::json_type<bool>() { return json_spirit::bool_type; }
+    
+}
 
 #endif //__RESOLVED_ITEM_H__

@@ -11,9 +11,8 @@
 #include <boost/bind.hpp>
 
 #include <vector>
+#include <deque>
 #include <iostream>
-
-
 
 namespace playdar {
 namespace resolvers {
@@ -22,10 +21,10 @@ namespace bp = ::boost::process;
 
 class rs_script : public ResolverService
 {
-    public:
+public:
     rs_script(){}
     
-    bool init(playdar::Config * c, Resolver * r, string script);
+    bool init(pa_ptr pap);
     
     void start_resolving(rq_ptr rq);
     std::string name() const
@@ -45,41 +44,48 @@ class rs_script : public ResolverService
         return m_weight;
     }
     
+    unsigned short preference() const
+    {
+        return m_preference;
+    }
+    
     void run();
     
-    protected:
-        ~rs_script() throw();
+protected:
+    ~rs_script() throw();
         
-    private:
+private:
     
-        int m_weight;
-        int m_targettime;
-        string m_name;
+    pa_ptr m_pap;
     
-        void init_worker();
-        void process_output();
-        void process_stderr();
-        
-        bool m_dead;
-        bool m_got_settings;
-        string m_scriptpath;
-        bp::child * m_c;
-        boost::thread * m_t; // std out (main comms)
-        boost::thread * m_e; // std error (logging)
-        bp::postream * m_os;
-        
-        bool m_exiting;
-        boost::thread * m_dt;
-        deque<rq_ptr> m_pending;
-        boost::mutex m_mutex;
-        boost::condition m_cond;
-        
-        // used to wait for settings object from script:
-        boost::mutex m_mutex_settings;
-        boost::condition m_cond_settings;
+    int m_weight;
+    int m_preference;
+    int m_targettime;
+    std::string m_name;
+
+    void init_worker();
+    void process_output();
+    void process_stderr();
+    
+    bool m_dead;
+    bool m_got_settings;
+    std::string m_scriptpath;
+    bp::child * m_c;
+    boost::thread * m_t; // std out (main comms)
+    boost::thread * m_e; // std error (logging)
+    bp::postream * m_os;
+    
+    bool m_exiting;
+    boost::thread * m_dt;
+    std::deque<rq_ptr> m_pending;
+    boost::mutex m_mutex;
+    boost::condition m_cond;
+    
+    // used to wait for settings object from script:
+    boost::mutex m_mutex_settings;
+    boost::condition m_cond_settings;
 };
 
-
-
 }}
-#endif
+
+#endif // __RS_HTTP_rs_script_H__

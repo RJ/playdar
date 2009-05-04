@@ -1,5 +1,8 @@
 ADD_LIBRARY( lan SHARED
              lan.cpp
+             ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp             
+             ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp             
+             ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_value.cpp             
             )
 
 #
@@ -11,7 +14,6 @@ SET_TARGET_PROPERTIES( lan PROPERTIES
                        SUFFIX ".resolver" )
 
 TARGET_LINK_LIBRARIES( lan
-                       ${OSSPUUID_LIBRARIES}
                        ${PLAYDAR_PLUGIN_LDFLAGS}
                        ${Boost_LIBRARIES}
                        )

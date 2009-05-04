@@ -81,7 +81,9 @@ boffinSample(int count, const ResultSet& rs, PushdownFactorFunctor pushdown, Res
     std::vector<Entry> tracks;
     tracks.reserve(trackCount);
     for (ResultSet::const_iterator it = rs.begin(); it != rs.end(); it++) {
-        tracks.push_back(std::make_pair(&(*it), it->weight));
+        tracks.push_back(std::make_pair(
+            &(*it), 
+            0 /* reweighting, below, will set this */));
     }
 
     // pull out a single sample

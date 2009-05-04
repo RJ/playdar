@@ -177,7 +177,10 @@ namespace
                 return false;
             }
 
-            String_t add_esc_chars( const String_t& s )
+            // this is the original add_esc_chars,
+            // but now it is specialised for wide-strings
+            // it is utf-8 unaware... which is reasonable.
+            std::wstring add_esc_chars( const std::wstring& s )
             {
                 String_t result;
 
@@ -203,6 +206,60 @@ namespace
 
                 return result;
             }
+
+            // this is the narrow-string version which groks utf-8
+            std::string add_esc_chars( const std::string& s )
+            {
+                String_t result;
+
+                Iter_t i ( s.begin() );
+                Iter_t end ( s.end() );
+
+                while ( i < end )
+                {
+                    Iter_t i_uni ( i );
+                    unsigned unichar = get_unichar_from_std_iterator(i_uni);
+                    if (unichar <= 127) {
+                        if( !add_esc_char( unichar, result ) ) 
+                            result += *i;
+                        i = i_uni;
+                    } else {
+                        for (; i != i_uni; i++) {
+                            result += *i;
+                        } 
+                    }
+                }
+
+                return result;
+            }
+
+
+            // this method inspired by glibmm's ustring.cc (GPL v2)
+            //
+            // pos will be left at the byte/character following the utf-8 char returned
+            static unsigned int get_unichar_from_std_iterator(Iter_t& pos)
+            {
+                unsigned int result = static_cast<unsigned char>(*pos++);
+
+                if((result & 0x80) != 0)
+                {
+                    unsigned int mask = 0x40;
+
+                    do
+                    {
+                        result <<= 6;
+                        const unsigned int c = static_cast<unsigned char>(*pos++);
+                        mask   <<= 5;
+                        result  += c - 0x80;
+                    }
+                    while((result & mask) != 0);
+
+                    result &= mask - 1;
+                }
+
+                return result;
+            }
+
 
             Ostream_t& os_;
             int indentation_level_;

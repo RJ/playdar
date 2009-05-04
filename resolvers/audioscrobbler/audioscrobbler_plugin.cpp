@@ -1,6 +1,12 @@
 #include "audioscrobbler_plugin.h"
 #include "scrobsub.h"
-
+#include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
+using std::cout;
+using std::endl;
+using std::string;
+using playdar::playdar_request;
+using playdar::playdar_response;
 using playdar::plugin::audioscrobbler;
 static audioscrobbler* instance = 0;
 
@@ -16,12 +22,11 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
 }
 
 bool
-audioscrobbler::init(playdar::Config* c, Resolver* r)
+audioscrobbler::init(pa_ptr pap)
 {
-    if(instance) return false; //loading more than one scrobbling plugin is stupid
+    if(instance)return false; //loading more than one scrobbling plugin is stupid
     instance = this;
-    
-    ResolverService::init(c, r);
+
     scrobsub_init(scrobsub_callback);
     return true;
 }
@@ -43,9 +48,11 @@ static void start(const playdar_request& rq)
     const char* album = GET("b");
     const char* mbid = GET("m");
     uint duration = atoi(GET("l")); // zero on error, which scrobsub will reject, so all good
+    
+    // todo shouldn't return 0 for errors as 0 can be valid
     uint track_number = atoi(GET("n"));
 
-    scrobsub_start(artist, track, album, duration, track_number, mbid);
+    scrobsub_start(artist, track, duration, album, track_number, mbid);
 }
 
 static string config(bool auth_required)
@@ -60,14 +67,20 @@ static string config(bool auth_required)
 }
 
 playdar_response 
-audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
+audioscrobbler::authed_http_handler(const playdar_request* rq, playdar::auth* pauth)
 {
-    if(rq.parts().size()<2) return "Hi index!";
-    string action = rq.parts()[1];
+    if(rq->parts().size()<2) return "Hi index!";
+    string action = rq->parts()[1];
+
+    std::string s1, s2;
+    if(rq->getvar_exists("jsonp")){ // wrap in js callback
+        s1 = rq->getvar("jsonp") + "(";
+        s2 = ");\n";
+    }
+    // TODO, use json_spirit
+    playdar_response ok( s1 + "{\"success\" : true, \"action\" : \"" + action + "\"}" + s2, false );
     
-    playdar_response ok( "{\"success\" : true}", false );
-    
-    if(action == "start")  { start(rq); return ok; }
+    if(action == "start")  { start(*rq); return ok; }
     if(action == "pause")  { scrobsub_pause(); return ok; }
     if(action == "resume") { scrobsub_resume(); return ok; }
     if(action == "stop")   { scrobsub_stop(); return ok; }
@@ -75,6 +88,7 @@ audioscrobbler::http_handler(const playdar_request& rq, playdar::auth* pauth)
     if(action == "config") return config(auth_required);
     
     return "Unhandled"; // --warning
+
 }
 
 

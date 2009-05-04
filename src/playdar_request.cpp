@@ -1,6 +1,11 @@
 #include "playdar/playdar_request.h"
 #include "playdar/utils/urlencoding.hpp"
 #include <boost/tokenizer.hpp>
+#include <boost/foreach.hpp>
+
+using namespace std;
+
+namespace playdar {
 
 playdar_request::playdar_request( const moost::http::request& req )
 {
@@ -11,7 +16,7 @@ playdar_request::playdar_request( const moost::http::request& req )
     }
     
     // Parse params from post body, for form submission
-    if( req.content.length() && collect_params( string("/?")+req.content, m_postvars ) == -1 )
+    if( req.content.length() && collect_params( std::string("/?")+req.content, m_postvars ) == -1 )
     {
         //TODO: handle bad_request
         //rep = rep.stock_reply(moost::http::reply::bad_request);
@@ -27,13 +32,13 @@ playdar_request::playdar_request( const moost::http::request& req )
 }
 
 void 
-playdar_request::collect_parts( const string & url, vector<string>& parts )
+playdar_request::collect_parts( const std::string & url, std::vector<std::string>& parts )
 {
-    const string& path = url.substr(0, url.find("?"));
+    const std::string& path = url.substr(0, url.find("?"));
     
     boost::split(parts, path, boost::is_any_of("/"));
     
-    BOOST_FOREACH( string& part, parts )
+    BOOST_FOREACH( std::string& part, parts )
     {
         part = playdar::utils::url_decode( part );
     }
@@ -45,20 +50,20 @@ playdar_request::collect_parts( const string & url, vector<string>& parts )
 
 /// parse a querystring or form post body into a variables map
 int
-playdar_request::collect_params(const string & url, map<string,string> & vars)
+playdar_request::collect_params(const std::string & url, std::map<std::string,std::string> & vars)
 {
     size_t pos = url.find( "?" );
     
-    if( pos == string::npos )
+    if( pos == std::string::npos )
         return 0;
     
-    string querystring = url.substr( pos + 1, url.length());
+    std::string querystring = url.substr( pos + 1, url.length());
     
     typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
     boost::char_separator<char> sep("&");
     tokenizer tokens(querystring, sep);
 
-    vector<string> paramParts;
+    std::vector<std::string> paramParts;
     for( tokenizer::iterator tok_iter = tokens.begin();
          tok_iter != tokens.end(); ++tok_iter )
     {
@@ -70,4 +75,6 @@ playdar_request::collect_params(const string & url, map<string,string> & vars)
         vars[ playdar::utils::url_decode( paramParts[0] )] = playdar::utils::url_decode( paramParts[1] );
     }
     return vars.size();
+}
+
 }

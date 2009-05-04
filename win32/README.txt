@@ -1,0 +1,1 @@
+First open and compile the solution in win32_libs (release and/or debug), then you can compile the one in playdar!
