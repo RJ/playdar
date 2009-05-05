@@ -27,7 +27,22 @@ api::anon_http_handler(const playdar_request* req)
         r.push_back( Pair("authenticated", false) );
         write_formatted( r, response );
     }
-    playdar_response r(response.str(), false);
+    
+    string retval;
+    if(req->getvar_exists("jsonp")) // wrap in js callback
+    {
+        retval = req->getvar("jsonp");
+        retval += "(" ;
+        string s = response.str();
+        //while((pos = s.find("\n"))!=string::npos) s.erase(pos,1);
+        retval += s + ");\n";
+    } 
+    else 
+    {
+        retval = response.str();
+    }
+        
+    playdar_response r(retval, false);
     return r;
 }
 
