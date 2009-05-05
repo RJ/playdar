@@ -1,10 +1,9 @@
 #ifndef __MOOST_HTTP_REQUEST_HANDLER_BASE_HPP__
 #define __MOOST_HTTP_REQUEST_HANDLER_BASE_HPP__
 
+#include <string>
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
-#include <string>
-#include <deque>
 
 #include "moost/http/reply.hpp"
 #include "moost/http/request.hpp"
@@ -20,27 +19,19 @@ struct request_handler_base
   void handle_request_base(const request& req, reply& rep)
   {
     rep.status = reply::ok;
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/plain";
-
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
-
-    size_t clen = rep.content.size();
-    if(rep.streaming())
+    if( !rep.has_content_fun() )
     {
-        clen = rep.streaming_length();
+        rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.size()), false );
     }
-    rep.headers[0].value = boost::lexical_cast<std::string>(clen);
+    rep.add_header( "Content-Type", "text/plain", false );
+    rep.add_header( "X-server", "moost_http_new", false );
   }
 
   void handle_request(const request& req, reply& rep)
   {
     // default base implementation does nothing
   }
-  
-
 };
 
 }} // moost::http
