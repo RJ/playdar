@@ -125,6 +125,11 @@ Resolver::~Resolver()
 bool
 Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
 {
+    // this first check is really just cosmetic
+    // the sorting looks nicer this way:
+    if( lhs->weight() == rhs->weight() )
+        return lhs->targettime() < rhs->targettime();
+    // this is the important bit that orders the pipeline:
     return lhs->weight() > rhs->weight();
 }
 
