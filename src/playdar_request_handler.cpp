@@ -279,7 +279,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
     {
         //cout << "AUTH: no auth value provided." << endl;
     }
-    
+   
     if( permissions == "*" )
         serve_body( rs->authed_http_handler( &req, m_pauth ), rep );
     else
@@ -773,8 +773,14 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 void
 playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    rep.add_header( "Content-Type", "text/html" );
-    rep.content = response; 
+    rep = moost::http::reply::stock_reply( (moost::http::reply::status_type)response.response_code() );
+    typedef pair<string, string> SPair;
+    BOOST_FOREACH( SPair p, response.headers() )
+    {
+        rep.add_header( p.first, p.second );
+    }
+    if( !response.str().empty() )
+        rep.content = response; 
 }
 
 void

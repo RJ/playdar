@@ -58,10 +58,18 @@ public:
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
     virtual playdar_response authed_http_handler(const playdar_request* req, playdar::auth* pauth)
-    { return "This plugin has no web interface. TODO: change me to a 404"; }
+    { 
+        playdar_response r( "", false );
+        r.set_response_code( 404 ); 
+        return r;
+    }
     
     virtual playdar_response anon_http_handler(const playdar_request*)
-    { return "This plugin has no web interface. TODO: change me to a 404"; }
+    { 
+        playdar_response r( "", false );
+        r.set_response_code( 404 );
+        return r;
+    }
 
 };
 
