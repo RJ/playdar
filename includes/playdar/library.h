@@ -55,9 +55,9 @@ public:
     // catalogue items
     artist_ptr  load_artist(std::string n);
     artist_ptr  load_artist(int n);
-    inline static artist_ptr load_artist( sqlite3pp::database* db, int n )
+    inline static artist_ptr load_artist( sqlite3pp::database& db, int n )
     {
-        sqlite3pp::query qry(*db, "SELECT id,name FROM artist WHERE id = ?");
+        sqlite3pp::query qry(db, "SELECT id,name FROM artist WHERE id = ?");
         qry.bind(1, n);
         artist_ptr ptr;
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
@@ -69,9 +69,9 @@ public:
     
     album_ptr   load_album(artist_ptr artp, std::string n);
     album_ptr   load_album(int n);
-    inline static album_ptr load_album( sqlite3pp::database* db, int n )
+    inline static album_ptr load_album( sqlite3pp::database& db, int n )
     {
-        sqlite3pp::query qry(*db, "SELECT id,name,artist FROM album WHERE id = ?");
+        sqlite3pp::query qry(db, "SELECT id,name,artist FROM album WHERE id = ?");
         qry.bind(1, n);
         album_ptr ptr;
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
@@ -83,9 +83,9 @@ public:
     
     track_ptr   load_track(artist_ptr artp, std::string n);
     track_ptr   load_track(int n);
-    inline static track_ptr load_track( sqlite3pp::database* db, int n )
+    inline static track_ptr load_track( sqlite3pp::database& db, int n )
     {
-        sqlite3pp::query qry(*db, "SELECT id,name,artist FROM track WHERE id = ?");
+        sqlite3pp::query qry(db, "SELECT id,name,artist FROM track WHERE id = ?");
         qry.bind(1, n);
         track_ptr ptr;
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
@@ -104,9 +104,10 @@ public:
 
     std::vector<int> get_fids_for_tid(int tid);
     LibraryFile_ptr file_from_fid(int fid);
-    inline static LibraryFile_ptr file_from_fid( sqlite3pp::database* db, int fid )
+
+    inline static LibraryFile_ptr file_from_fid( sqlite3pp::database& db, int fid )
     {
-        sqlite3pp::query qry(*db,
+        sqlite3pp::query qry(db,
                              "SELECT file.url, file.size, file.mimetype, file.duration, file.bitrate, "
                              "file_join.artist, file_join.album, file_join.track "
                              "FROM file, file_join "
@@ -129,7 +130,7 @@ public:
         return p;   
     }
     
-    sqlite3pp::database * db() { return &m_db; }
+    sqlite3pp::database& db() { return m_db; }
     std::string dbfilepath() const { return m_dbfilepath; }
     
     // DB helper:

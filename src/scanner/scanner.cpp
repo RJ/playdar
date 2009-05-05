@@ -242,7 +242,7 @@ int main(int argc, char* argv[])
         cout << mtimes.size() << " files+dir mtimes loaded" << endl;
         cout << "Scanning for changes..." << endl;
         Path dir(argv[2]);
-        sqlite3pp::transaction xct(*(gLibrary->db()));
+        sqlite3pp::transaction xct(gLibrary->db());
         {
             // first scan for mp3/aac/etc files:
             try

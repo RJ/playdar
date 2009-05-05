@@ -469,7 +469,7 @@ Library::num_tracks()
 LibraryFile_ptr
 Library::file_from_fid(int fid)
 {
-    return file_from_fid( &m_db, fid );
+    return file_from_fid( m_db, fid );
 }
 
 
@@ -573,7 +573,7 @@ Library::load_artist(string n)
 artist_ptr
 Library::load_artist(int n)
 {
-    return load_artist( &m_db, n );
+    return load_artist( m_db, n );
 }
 
 track_ptr
@@ -594,7 +594,7 @@ Library::load_track(artist_ptr artp, string n)
 track_ptr
 Library::load_track(int n)
 {
-    return load_track( &m_db, n );
+    return load_track( m_db, n );
 }
 
 album_ptr
@@ -615,7 +615,7 @@ Library::load_album(artist_ptr artp, string n)
 album_ptr
 Library::load_album(int n)
 {
-    return load_album( &m_db, n );
+    return load_album( m_db, n );
 }
 
 }
