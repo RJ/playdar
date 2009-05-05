@@ -592,7 +592,8 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 void
 playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    rep = moost::http::reply::stock_reply( (moost::http::reply::status_type)response.response_code() );
+    rep.set_status( response.response_code() );
+    
     typedef pair<string, string> SPair;
     BOOST_FOREACH( SPair p, response.headers() )
     {

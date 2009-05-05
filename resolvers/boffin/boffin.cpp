@@ -60,10 +60,10 @@ namespace TagCloudItem
     static ri_ptr createTagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
     {
         ri_ptr rip( new ResolvedItem );
-        rip->set_score( weight );
         rip->set_json_value( "name", name );
-        rip->set_json_value( "source", source );
+        rip->set_json_value( "weight", weight );
         rip->set_json_value( "count", trackCount );
+        rip->set_json_value( "source", source );
 
         return rip;
     }
@@ -261,7 +261,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
             results.push_back( makeTagCloudItem( tag, source )->get_json() );
         }
-        cout << "Boffin will now report resuilts" << endl;
+        cout << "Boffin will now report results" << endl;
         m_pap->report_results(rq->id(), results);
         cout << "Reported.."<< endl;
     }
@@ -276,7 +276,12 @@ boffin::parseFail(std::string line, int error_offset)
 }
 
 
-// handler for HTTP reqs we are registerd for:
+// handler for boffin HTTP reqs we are registerd for:
+//
+// req->parts()[0] = "boffin"
+//             [1] = "tagcloud" or "rql"
+//             [2] = rql (optional)
+//
 playdar_response 
 boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 {
@@ -287,11 +292,11 @@ boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     if( req->parts()[1] == "tagcloud" )
     {
         rq = BoffinRQUtil::buildTagCloudRequest(
-            req->parts().size() >= 2 ? 
+            req->parts().size() > 2 ? 
                 playdar::utils::url_decode( req->parts()[2] ) : 
                 "*" );
     }
-    else if( req->parts()[1] == "rql" && req->parts().size() >= 2)
+    else if( req->parts()[1] == "rql" && req->parts().size() > 2)
     {
         rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req->parts()[2] ) );
     }

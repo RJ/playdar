@@ -138,7 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib moost_http.lib pdl.lib uriparser.lib  curllib.lib"
+				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib moost_http.lib pdl.lib uriparser.lib curllib.lib"
 				OutputFile="..\bin\$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../lib"
