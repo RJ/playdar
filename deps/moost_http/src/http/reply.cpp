@@ -1,7 +1,6 @@
 #include "moost/http/reply.hpp"
-
 #include <string>
-#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 namespace moost { namespace http {
 
@@ -90,25 +89,22 @@ const char crlf[] = { '\r', '\n' };
 
 } // misc_strings
 
-/// if inc_body is false, only headers are returned.
-/// (used when streaming responses is enabled)
-std::vector<boost::asio::const_buffer> reply::to_buffers(bool inc_body /*=true*/)
+std::vector<boost::asio::const_buffer> reply::to_buffers_headers()
 {
   std::vector<boost::asio::const_buffer> buffers;
   buffers.push_back(status_strings::to_buffer(status));
-  for (std::size_t i = 0; i < headers.size(); ++i)
+  for (std::size_t i = 0; i < headers_.size(); ++i)
   {
-    header& h = headers[i];
+    header& h = headers_[i];
     buffers.push_back(boost::asio::buffer(h.name));
     buffers.push_back(boost::asio::buffer(misc_strings::name_value_separator));
     buffers.push_back(boost::asio::buffer(h.value));
     buffers.push_back(boost::asio::buffer(misc_strings::crlf));
   }
   buffers.push_back(boost::asio::buffer(misc_strings::crlf));
-  if(inc_body)
-  {
+
+  if ( !content.empty() )
     buffers.push_back(boost::asio::buffer(content));
-  }
   return buffers;
 }
 
@@ -239,13 +235,33 @@ reply reply::stock_reply(reply::status_type status)
   reply rep;
   rep.status = status;
   rep.content = stock_replies::to_string(status);
-  rep.headers.resize(2);
-  rep.headers[0].name = "Content-Length";
-  rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
-  rep.headers[1].name = "Content-Type";
-  rep.headers[1].value = "text/html";
-  rep.m_streaming = false;
+
+  rep.add_header("Content-Length", rep.content.size());
+  rep.add_header("Content-Type", "text/html");
+
+  //rep.headers.resize(2);
+  //rep.headers[0].name = "Content-Length";
+  //rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
+  //rep.headers[1].name = "Content-Type";
+  //rep.headers[1].value = "text/html";
   return rep;
+}
+
+void reply::add_header( const std::string& name, const std::string& value, bool overwrite )
+{
+  std::string name_lc = boost::to_lower_copy(name);
+  std::map<std::string, size_t>::const_iterator it = headersGuard_.find(name_lc);
+
+  if ( it == headersGuard_.end() )
+  {
+    header newHeader;
+    newHeader.name = name;
+    newHeader.value = value;
+    headers_.push_back(newHeader);
+    headersGuard_[name_lc] = headers_.size()-1;
+  }
+  else if( overwrite )
+    headers_[it->second].value = value;
 }
 
 }} // moost::http

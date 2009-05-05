@@ -1,11 +1,12 @@
 #include "moost/http/filesystem_request_handler.hpp"
-
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <boost/lexical_cast.hpp>
 
 #include "moost/http/mime_types.hpp"
+#include "moost/http/reply.hpp"
+#include "moost/http/request.hpp"
 
 using namespace moost::http;
 
@@ -56,11 +57,15 @@ void filesystem_request_handler::handle_request(const request& req, reply& rep)
   char buf[512];
   while (is.read(buf, sizeof(buf)).gcount() > 0)
     rep.content.append(buf, is.gcount());
-  rep.headers.resize(2);
-  rep.headers[0].name = "Content-Length";
-  rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
-  rep.headers[1].name = "Content-Type";
-  rep.headers[1].value = mime_types::extension_to_type(extension);
+   
+  rep.add_header("Content-Length", rep.content.size());
+  rep.add_header("Content-Type", mime_types::extension_to_type(extension));
+
+  //rep.headers.resize(2);
+  //rep.headers[0].name = "Content-Length";
+  //rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
+  //rep.headers[1].name = "Content-Type";
+  //rep.headers[1].value = mime_types::extension_to_type(extension);
 }
 
 bool filesystem_request_handler::url_decode(const std::string& in, std::string& out)

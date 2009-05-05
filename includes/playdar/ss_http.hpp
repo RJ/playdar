@@ -86,7 +86,7 @@ public:
     std::vector<std::string>& extra_headers() { return m_extra_headers; }
 
     // this should return size_t, really (as well as having size of the same type).. 
-    int read_bytes(char * buf, int size)
+    size_t read_bytes(char * buf, int size)
     {
         if(!m_connected) do_connect();
         if(!m_connected)
@@ -96,7 +96,7 @@ public:
             return 0;
         }
 
-        int p = static_cast<int>( m_partial.length() );
+        int size_t = static_cast<size_t>( m_partial.length() );
         if(p)
         {
             if(p <= size)

@@ -83,7 +83,7 @@ public:
     
     std::vector<std::string> & extra_headers() { return m_extra_headers; }
 
-    int read_bytes(char * buf, size_t size)
+    size_t read_bytes(char * buf, size_t size)
     {
         if(!m_connected) connect();
         if(!m_connected)
