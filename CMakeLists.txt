@@ -72,7 +72,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_script.cpp
                 
                 ${SRC}/utils/uuid.cpp
-                ${SRC}/utils/base64.cpp
+#                ${SRC}/utils/base64.cpp
                 ${SRC}/utils/levenshtein.cpp
 
                 ${SRC}/playdar_request_handler.cpp
