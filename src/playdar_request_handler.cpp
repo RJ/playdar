@@ -58,7 +58,7 @@ playdar_request_handler::init(MyApplication * app)
     // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
     BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
     {
-        string name = pap->rs()->name();
+        string name = pap->classname();
         boost::algorithm::to_lower( name );
         m_urlHandlers[ playdar::utils::url_encode(name) ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
     }

@@ -23,7 +23,6 @@ private:
     };
 
 public:
-
     // automatic cloning: do NOT override unless you know what you're doing!
     virtual boost::shared_ptr<ResolverService> clone()
     { return boost::shared_ptr<TPluginType>( new TPluginType(), custom_deleter<TPluginType>() ); };

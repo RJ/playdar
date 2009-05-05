@@ -162,7 +162,7 @@ Resolver::load_resolver_scripts()
 
             cout << "-> Loading: " << name << endl;
             
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, name ) );
             pap->set_script( true );
             pap->set_scriptpath( i->path().string() );
             ResolverService * rs = new playdar::resolvers::rs_script();
@@ -237,7 +237,7 @@ Resolver::load_resolver_plugins()
             ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, classname ) );
             if( ! instance->init(pap) )
             {
                 cerr << "-> ERROR couldn't initialize." << endl;
