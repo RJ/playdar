@@ -47,7 +47,6 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "shutdown" ] = boost::bind( &playdar_request_handler::handle_shutdown, this, _1, _2 );
     m_urlHandlers[ "settings" ] = boost::bind( &playdar_request_handler::handle_settings, this, _1, _2 );
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
-    m_urlHandlers[ "stats" ] = boost::bind( &playdar_request_handler::serve_stats, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     
@@ -727,42 +726,6 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             o.push_back( Pair("queries", qlist) );
             write_formatted( o, response );
         }
-        //TODO: Move into local plugin
-//        else if(req.getvar("method") == "list_artists")
-//        {
-//            vector< artist_ptr > artists = app()->library()->list_artists();
-//            Array qresults;
-//            BOOST_FOREACH(artist_ptr artist, artists)
-//            {
-//                Object a;
-//                a.push_back( Pair("name", artist->name()) );
-//                qresults.push_back(a);
-//            }
-//            // wrap that in an object, so we can add stats to it later
-//            Object jq;
-//            jq.push_back( Pair("results", qresults) );
-//            write_formatted( jq, response );
-//        }
-//        else if(req.getvar("method") == "list_artist_tracks" &&
-//                req.getvar_exists("artistname"))
-//        {
-//            Array qresults;
-//            artist_ptr artist = app()->library()->load_artist( req.getvar("artistname") );
-//            if(artist)
-//            {
-//                vector< track_ptr > tracks = app()->library()->list_artist_tracks(artist);
-//                BOOST_FOREACH(track_ptr t, tracks)
-//                {
-//                    Object a;
-//                    a.push_back( Pair("name", t->name()) );
-//                    qresults.push_back(a);
-//                }
-//            }
-//            // wrap that in an object, so we can cram in stats etc later
-//            Object jq;
-//            jq.push_back( Pair("results", qresults) );
-//            write_formatted( jq, response );
-//        }
         else
         {
             response << "FAIL";
@@ -812,28 +775,6 @@ playdar_request_handler::serve_body(const playdar_response& response, moost::htt
 {
     rep.add_header( "Content-Type", "text/html" );
     rep.content = response; 
-}
-
-void
-playdar_request_handler::serve_stats(const moost::http::request& req, moost::http::reply& rep)
-{
-//TODO fix stats (move into local plugin?!)
-    std::ostringstream reply;
-    reply   << "<h2>Local Library Stats</h2>"
-            << "<table>"
-//            << "<tr><td>Num Files</td><td>" << app()->library()->num_files() << "</td></tr>\n"
-//            << "<tr><td>Artists</td><td>" << app()->library()->num_artists() << "</td></tr>\n"
-//            << "<tr><td>Albums</td><td>" << app()->library()->num_albums() << "</td></tr>\n"
-//            << "<tr><td>Tracks</td><td>" << app()->library()->num_tracks() << "</td></tr>\n"
-            << "</table>"
-            << "<h2>Resolver Stats</h2>"
-            << "<table>"
-            << "<tr><td>Num queries seen</td><td><a href=\"/queries/\">" 
-            << app()->resolver()->num_seen_queries() 
-            << "</a></td></tr>\n"
-            << "</table>"
-            ;
-    serve_body(reply.str(), rep);
 }
 
 void

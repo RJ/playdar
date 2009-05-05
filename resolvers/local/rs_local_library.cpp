@@ -156,13 +156,6 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
 playdar_response 
 local::authed_http_handler(const playdar_request* req, playdar::auth* pauth) 
 { 
-    return "This plugin has no web interface. TODO: change me to a 404"; 
-} 
-
-playdar_response 
-local::anon_http_handler(const playdar_request* req) 
-{ 
-    std::cout << "Here!" << std::endl;
     using namespace json_spirit;
     ostringstream response;
     if( req->parts().size() > 1 &&
@@ -180,7 +173,30 @@ local::anon_http_handler(const playdar_request* req)
         Object jq;
         jq.push_back( Pair("results", qresults) );
         write_formatted( jq, response );
+    } else if(req->parts()[1] == "list_artist_tracks" && 
+                req->getvar_exists("artistname")) 
+    { 
+        Array qresults; 
+        artist_ptr artist = m_library->load_artist( req->getvar("artistname") ); 
+        if(artist) 
+        { 
+            vector< track_ptr > tracks = m_library->list_artist_tracks(artist); 
+            BOOST_FOREACH(track_ptr t, tracks) 
+            { 
+                Object a; 
+                a.push_back( Pair("name", t->name()) ); 
+                qresults.push_back(a); 
+            } 
+        } 
+        // wrap that in an object, so we can cram in stats etc later 
+        Object jq; 
+        jq.push_back( Pair("results", qresults) ); 
+        write_formatted( jq, response ); 
+    } else {
+        return "FAIL";
     }
+
+
     string retval;
     if( req->getvar_exists( "jsonp" ))
     {
@@ -194,6 +210,25 @@ local::anon_http_handler(const playdar_request* req)
         retval = response.str();
     }
     return playdar_response( retval, false );
+} 
+
+playdar_response 
+local::anon_http_handler(const playdar_request* req) 
+{ 
+   if( req->parts().size() > 1 &&
+       req->parts()[1] == "stats" )
+   {
+       std::ostringstream reply; 
+       reply   << "<h2>Local Library Stats</h2>" 
+               << "<table>" 
+                           << "<tr><td>Num Files</td><td>" << m_library->num_files() << "</td></tr>\n" 
+                           << "<tr><td>Artists</td><td>" << m_library->num_artists() << "</td></tr>\n" 
+                           << "<tr><td>Albums</td><td>" << m_library->num_albums() << "</td></tr>\n" 
+                           << "<tr><td>Tracks</td><td>" << m_library->num_tracks() << "</td></tr>\n" 
+               << "</table>";
+       return reply.str();
+   }
+   return "This plugin has no web interface. TODO: change me to a 404"; 
 }
 
 }}

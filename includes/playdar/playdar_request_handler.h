@@ -33,7 +33,6 @@ private:
     void handle_rest_api( const playdar_request& req, moost::http::reply& rep, std::string permissions);
 
     void serve_body(const class playdar_response&, moost::http::reply& rep);
-    void serve_stats(const moost::http::request& req, moost::http::reply& rep);
     void serve_static_file(const moost::http::request&, moost::http::reply& rep);
     void serve_track( moost::http::reply& rep, int tid);
     void serve_sid( moost::http::reply& rep, source_uid sid);

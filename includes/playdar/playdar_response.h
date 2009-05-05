@@ -34,7 +34,7 @@ public:
         << "<h1>Local Playdar Server</h1>"
         << "<a href=\"/\">Home</a>"
         << "&nbsp; | &nbsp;"
-        << "<a href=\"/stats/\">Stats</a>"
+        << "<a href=\"/local/stats\">Stats</a>"
         << "&nbsp; | &nbsp;"
         << "<a href=\"/settings/auth/\">Authentication</a>"
         << "&nbsp; | &nbsp;"
