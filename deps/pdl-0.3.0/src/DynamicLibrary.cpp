@@ -83,18 +83,6 @@ bool DynamicLibrary::Open( const PDL_CHAR * libName, bool resolveSymbols )
 #endif
 
 	if ( library_ ) { libraryName_ = libName; }
-	else
-	{
-		const pdl_string nameWithExt( pdl_string( libName ) + pdl_string( GetDefaultExt() ) );
-		library_ =
-#if PLATFORM_WIN32
-			::LoadLibraryExA( nameWithExt.c_str(), NULL,
-		                      ( resolveSymbols ) ? 0 : DONT_RESOLVE_DLL_REFERENCES );
-#elif PLATFORM_POSIX
-			dlopen( nameWithExt.c_str(), RTLD_GLOBAL | ( ( resolveSymbols ) ? RTLD_NOW : RTLD_LAZY ) );
-#endif
-		if ( library_ ) { libraryName_ = libName; }
-	}
 
 	return ( library_ );
 }
