@@ -174,7 +174,7 @@ boffin::target_time() const
 unsigned short 
 boffin::weight() const
 {
-    return 80;
+    return 100;
 }
 
 void 
