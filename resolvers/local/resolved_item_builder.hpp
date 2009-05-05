@@ -1,7 +1,7 @@
 #ifndef __RESOLVED_ITEM_BUILDER_H__
 #define __RESOLVED_ITEM_BUILDER_H__
 #include "playdar/resolved_item.h"
-#include "playdar/library.h"
+#include "library.h"
 
 namespace playdar {
 

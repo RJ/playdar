@@ -1,13 +1,12 @@
-#include "playdar/rs_local_library.h"
-
+#include "rs_local_library.h"
 #include <boost/foreach.hpp>
 
-#include "playdar/application.h"
-#include "playdar/library.h"
-#include "playdar/utils/uuid.h"
+#include "library.h"
 #include "playdar/utils/levenshtein.h"
-#include "playdar/resolver.h"
-#include "playdar/resolved_item_builder.hpp"
+#include "resolved_item_builder.hpp"
+#include "playdar/resolver_query.hpp"
+#include "playdar/playdar_request.h"
+#include "playdar/playdar_response.h"
 
 using namespace std;
 
@@ -21,35 +20,37 @@ namespace playdar { namespace resolvers {
 */
     
 bool
-RS_local_library::init(pa_ptr pap)
+local::init(pa_ptr pap)
 {
     m_pap = pap;
-    
+   
+    m_library = new Library( pap->getstring( "db", "" ).get_str());
+
     m_exiting = false;
-    cout << "Local library resolver: " << app()->library()->num_files() 
+    cout << "Local library resolver: " << m_library->num_files() 
          << " files indexed." << endl;
-    if(app()->library()->num_files() == 0)
+    if(m_library->num_files() == 0)
     {
         cout << endl << "WARNING! You don't have any files in your database!"
              << "Run the scanner, then restart Playdar." << endl << endl;
     }
     // worker thread for doing actual resolving:
-    m_t = new boost::thread(boost::bind(&RS_local_library::run, this));
+    m_t = new boost::thread(boost::bind(&local::run, this));
     
     return true;
 }
 
 void
-RS_local_library::start_resolving( rq_ptr rq )
+local::start_resolving( rq_ptr rq )
 {
     boost::mutex::scoped_lock lk(m_mutex);
     m_pending.push_front( rq );
     m_cond.notify_one();
 }
 
-/// thread that loops forever processing incoming queries:
+// thread that loops forever processing incoming queries:
 void
-RS_local_library::run()
+local::run()
 {
     try
     {
@@ -71,7 +72,7 @@ RS_local_library::run()
     }
     catch(...)
     {
-        cout << "RS_local_library runner exiting." << endl;
+        cout << "local runner exiting." << endl;
     }
 }
 
@@ -80,7 +81,7 @@ RS_local_library::run()
 /// this is some what fugly atm, but gets the job done for now.
 /// it does the fuzzy library search using the ngram table from the db:
 void
-RS_local_library::process( rq_ptr rq )
+local::process( rq_ptr rq )
 {
     vector< json_spirit::Object > final_results;
     // get candidates (rough potential matches):
@@ -91,10 +92,10 @@ RS_local_library::process( rq_ptr rq )
     {
         // multiple files in our collection may have matching metadata.
         // add them all to the results.
-        vector<int> fids = app()->library()->get_fids_for_tid(sp.id);
+        vector<int> fids = m_library->get_fids_for_tid(sp.id);
         BOOST_FOREACH(int fid, fids)
         {
-            ri_ptr rip = ResolvedItemBuilder::createFromFid(*app()->library(), fid);
+            ri_ptr rip = ResolvedItemBuilder::createFromFid(*m_library, fid);
             rip->set_id( m_pap->gen_uuid() );
             rip->set_source( m_pap->hostname() );
             final_results.push_back( rip->get_json() );
@@ -113,7 +114,7 @@ RS_local_library::process( rq_ptr rq )
 ///
 /// First find suitable artists, then collect matching tracks for each artist.
 vector<scorepair> 
-RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
+local::find_candidates(rq_ptr rq, unsigned int limit)
 { 
     vector<scorepair> candidates;
     float maxartscore = 0;
@@ -124,14 +125,14 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
         return candidates;
     
     vector<scorepair> artistresults =
-        app()->library()->search_catalogue("artist", rq->param( "artist" ).get_str());
+        m_library->search_catalogue("artist", rq->param( "artist" ).get_str());
     BOOST_FOREACH( scorepair & sp, artistresults )
     {
         if(maxartscore==0) maxartscore = sp.score;
         float artist_multiplier = (float)sp.score / maxartscore;
         float maxtrkscore = 0;
         vector<scorepair> trackresults = 
-            app()->library()->search_catalogue_for_artist(sp.id, 
+            m_library->search_catalogue_for_artist(sp.id, 
                                                           "track",
                                                           rq->param( "track" ).get_str());
         BOOST_FOREACH( scorepair & sptrk, trackresults )
@@ -150,6 +151,84 @@ RS_local_library::find_candidates(rq_ptr rq, unsigned int limit)
     sort(candidates.begin(), candidates.end(), sortbyscore()); 
     if(limit > 0 && candidates.size()>limit) candidates.resize(limit);
     return candidates;
+}
+
+playdar_response 
+local::authed_http_handler(const playdar_request* req, playdar::auth* pauth) 
+{ 
+    using namespace json_spirit;
+    ostringstream response;
+    if( req->parts().size() > 1 &&
+        req->parts()[1] == "list_artists" )
+    {
+        vector< artist_ptr > artists = m_library->list_artists();
+        Array qresults;
+        BOOST_FOREACH(artist_ptr artist, artists)
+        {
+            Object a;
+            a.push_back( Pair("name", artist->name()) );
+            qresults.push_back(a);
+        }
+        // wrap that in an object, so we can add stats to it later
+        Object jq;
+        jq.push_back( Pair("results", qresults) );
+        write_formatted( jq, response );
+    } else if(req->parts()[1] == "list_artist_tracks" && 
+                req->getvar_exists("artistname")) 
+    { 
+        Array qresults; 
+        artist_ptr artist = m_library->load_artist( req->getvar("artistname") ); 
+        if(artist) 
+        { 
+            vector< track_ptr > tracks = m_library->list_artist_tracks(artist); 
+            BOOST_FOREACH(track_ptr t, tracks) 
+            { 
+                Object a; 
+                a.push_back( Pair("name", t->name()) ); 
+                qresults.push_back(a); 
+            } 
+        } 
+        // wrap that in an object, so we can cram in stats etc later 
+        Object jq; 
+        jq.push_back( Pair("results", qresults) ); 
+        write_formatted( jq, response ); 
+    } else {
+        return "FAIL";
+    }
+
+
+    string retval;
+    if( req->getvar_exists( "jsonp" ))
+    {
+        retval = req->getvar( "jsonp" );
+        retval += "(" ;
+        retval += response.str();
+        retval += ");\n";
+    }
+    else
+    {
+        retval = response.str();
+    }
+    return playdar_response( retval, false );
+} 
+
+playdar_response 
+local::anon_http_handler(const playdar_request* req) 
+{ 
+   if( req->parts().size() > 1 &&
+       req->parts()[1] == "stats" )
+   {
+       std::ostringstream reply; 
+       reply   << "<h2>Local Library Stats</h2>" 
+               << "<table>" 
+                           << "<tr><td>Num Files</td><td>" << m_library->num_files() << "</td></tr>\n" 
+                           << "<tr><td>Artists</td><td>" << m_library->num_artists() << "</td></tr>\n" 
+                           << "<tr><td>Albums</td><td>" << m_library->num_albums() << "</td></tr>\n" 
+                           << "<tr><td>Tracks</td><td>" << m_library->num_tracks() << "</td></tr>\n" 
+               << "</table>";
+       return reply.str();
+   }
+   return "This plugin has no web interface. TODO: change me to a 404"; 
 }
 
 }}

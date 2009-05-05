@@ -26,9 +26,10 @@ namespace playdar {
 class PluginAdaptorImpl : public PluginAdaptor
 {
 public:
-    PluginAdaptorImpl(Config * c, Resolver * r)
+    PluginAdaptorImpl(Config * c, Resolver * r, const std::string& className)
         : m_config(c), 
-          m_resolver(r)
+          m_resolver(r),
+          m_className( className )
     {
     }
     
@@ -37,6 +38,12 @@ public:
         // TODO
     }
     
+    // A short name used eg in url handler
+    virtual std::string classname() const
+    {
+        return m_className;
+    }
+
     virtual const std::string hostname() const
     {
         return m_config->name();
@@ -108,6 +115,7 @@ public:
 private:
     Config*   m_config;
     Resolver* m_resolver;
+    std::string m_className;
 };
 
 } // ns

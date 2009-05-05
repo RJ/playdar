@@ -7,8 +7,7 @@
 
 #include <sqlite3.h>
 
-#include "playdar/application.h"
-#include "playdar/library.h"
+#include "../library.h"
 
 #include "playdar/utils/urlencoding.hpp"
 

@@ -3,23 +3,23 @@
 #include <sstream>
 
 #include <boost/foreach.hpp>
-#include <moost/http/filesystem_request_handler.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/foreach.hpp>
 #include <boost/tokenizer.hpp>
 
+#include <moost/http.hpp>
+
 #include "json_spirit/json_spirit.h"
 #include "playdar/application.h"
-
 #include "playdar/playdar_request_handler.h"
 #include "playdar/playdar_request.h"
 #include "playdar/playdar_response.h"
-#include "playdar/library.h"
 #include "playdar/resolver.h"
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/pluginadaptor.h"
+#include "playdar/utils/urlencoding.hpp"
 
 namespace playdar {
 
@@ -37,7 +37,7 @@ playdar_request_handler::init(MyApplication * app)
 {
     m_disableAuth = app->conf()->get<bool>( "disableauth", false );
     cout << "HTTP handler online." << endl;
-    m_pauth = new playdar::auth(app->library()->dbfilepath());
+    m_pauth = new playdar::auth(app->conf()->get<string>( "db", "" ));
     m_app = app;
     // built-in handlers:
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
@@ -47,7 +47,6 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "shutdown" ] = boost::bind( &playdar_request_handler::handle_shutdown, this, _1, _2 );
     m_urlHandlers[ "settings" ] = boost::bind( &playdar_request_handler::handle_settings, this, _1, _2 );
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
-    m_urlHandlers[ "stats" ] = boost::bind( &playdar_request_handler::serve_stats, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     
@@ -58,9 +57,9 @@ playdar_request_handler::init(MyApplication * app)
     // handlers provided by plugins TODO ask plugin if/what they actually handle anything?
     BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
     {
-        string name = pap->rs()->name();
+        string name = pap->classname();
         boost::algorithm::to_lower( name );
-        m_urlHandlers[ name ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
+        m_urlHandlers[ playdar::utils::url_encode(name) ] = boost::bind( &playdar_request_handler::handle_pluginurl, this, _1, _2 );
     }
 }
 
@@ -80,7 +79,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     //TODO: Handle % encodings
     
     cout << "HTTP " << req.method << " " << req.uri << endl;
-    rep.unset_streaming();
     
     boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
     string base;
@@ -162,9 +160,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
             << "authtoken=" << tok
             << "#" << tok;
             rep = rep.stock_reply(moost::http::reply::moved_permanently); 
-            rep.headers.resize(3);
-            rep.headers[2].name = "Location";
-            rep.headers[2].value = os.str();
+            rep.add_header( "Location", os.str() );
         }
     }
     else
@@ -183,11 +179,7 @@ playdar_request_handler::handle_crossdomain( const playdar_request& req,
     os  << "<?xml version=\"1.0\"?>" << endl
         << "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"
         << "<cross-domain-policy><allow-access-from domain=\"*\" /></cross-domain-policy>" << endl;
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = os.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/xml";
+    rep.add_header( "Content-Type", "text/xml" );
     rep.content = os.str();
 }
 
@@ -574,12 +566,8 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     cout << endl;
     string url = "/sid/";
     url += results[0]->id();
-    rep.headers.resize(3);
     rep.status = moost::http::reply::moved_temporarily;
-    moost::http::header h;
-    h.name = "Location";
-    h.value = url;
-    rep.headers[2] = h;
+    rep.add_header( "Location", url );
     rep.content = "";
 }
 
@@ -738,41 +726,6 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
             o.push_back( Pair("queries", qlist) );
             write_formatted( o, response );
         }
-        else if(req.getvar("method") == "list_artists")
-        {
-            vector< artist_ptr > artists = app()->library()->list_artists();
-            Array qresults;
-            BOOST_FOREACH(artist_ptr artist, artists)
-            {
-                Object a;
-                a.push_back( Pair("name", artist->name()) );
-                qresults.push_back(a);
-            }
-            // wrap that in an object, so we can add stats to it later
-            Object jq;
-            jq.push_back( Pair("results", qresults) );
-            write_formatted( jq, response );
-        }
-        else if(req.getvar("method") == "list_artist_tracks" &&
-                req.getvar_exists("artistname"))
-        {
-            Array qresults;
-            artist_ptr artist = app()->library()->load_artist( req.getvar("artistname") );
-            if(artist)
-            {
-                vector< track_ptr > tracks = app()->library()->list_artist_tracks(artist);
-                BOOST_FOREACH(track_ptr t, tracks)
-                {
-                    Object a;
-                    a.push_back( Pair("name", t->name()) );
-                    qresults.push_back(a);
-                }
-            }
-            // wrap that in an object, so we can cram in stats etc later
-            Object jq;
-            jq.push_back( Pair("results", qresults) );
-            write_formatted( jq, response );
-        }
         else
         {
             response << "FAIL";
@@ -794,12 +747,7 @@ playdar_request_handler::handle_rest_api(   const playdar_request& req,
     {
         retval = response.str();
     }
-        
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = retval.length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = req.getvar_exists("jsonp") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8";
+    rep.add_header( "Content-Type", req.getvar_exists("jsonp") ? "text/javascript; charset=utf-8" : "text/plain; charset=utf-8" );
     rep.content = retval;
 }
 
@@ -825,33 +773,8 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
 void
 playdar_request_handler::serve_body(const playdar_response& response, moost::http::reply& rep)
 {
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = response.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/html";
+    rep.add_header( "Content-Type", "text/html" );
     rep.content = response; 
-}
-
-void
-playdar_request_handler::serve_stats(const moost::http::request& req, moost::http::reply& rep)
-{
-    std::ostringstream reply;
-    reply   << "<h2>Local Library Stats</h2>"
-            << "<table>"
-            << "<tr><td>Num Files</td><td>" << app()->library()->num_files() << "</td></tr>\n"
-            << "<tr><td>Artists</td><td>" << app()->library()->num_artists() << "</td></tr>\n"
-            << "<tr><td>Albums</td><td>" << app()->library()->num_albums() << "</td></tr>\n"
-            << "<tr><td>Tracks</td><td>" << app()->library()->num_tracks() << "</td></tr>\n"
-            << "</table>"
-            << "<h2>Resolver Stats</h2>"
-            << "<table>"
-            << "<tr><td>Num queries seen</td><td><a href=\"/queries/\">" 
-            << app()->resolver()->num_seen_queries() 
-            << "</a></td></tr>\n"
-            << "</table>"
-            ;
-    serve_body(reply.str(), rep);
 }
 
 void
@@ -876,23 +799,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-    /*
-    rep.headers.resize(2);
-    if(pip->mimetype().length())
-    {
-        
-        rep.headers[1].name = "Content-Type";
-        rep.headers[1].value = pip->mimetype();
-    }
-    if(pip->size())
-    {
-        rep.headers[0].name = "Content-Length";
-        rep.headers[0].value = boost::lexical_cast<string>(pip->size());
-    }
-    */
-    // hand off the streaming strategy for the http server to do:
-    rep.set_streaming(ss); // pip->size());
-    return;  
+    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
 }
 
 
@@ -920,11 +827,7 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.headers.resize(2);
-    rep.headers[0].name = "Content-Length";
-    rep.headers[0].value = os.str().length();
-    rep.headers[1].name = "Content-Type";
-    rep.headers[1].value = "text/html";
+    rep.add_header( "Content-Type", "text/html" );
     rep.content = os.str(); 
 }
 

@@ -11,12 +11,9 @@
 #include "playdar/artist.h"
 #include "playdar/album.h"
 #include "playdar/track.h"
-#include "playdar/library_file.h"
+#include "library_file.h"
 
 #include "sqlite3pp.h"
-
-#include "playdar/streaming_strategy.h"
-#include "playdar/ss_localfile.hpp"
 
 namespace playdar {
 

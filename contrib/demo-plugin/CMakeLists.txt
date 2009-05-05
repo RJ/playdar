@@ -10,7 +10,6 @@ SET_TARGET_PROPERTIES( demo PROPERTIES
                        SUFFIX ".resolver" )
 
 TARGET_LINK_LIBRARIES( demo
-                       ${OSSPUUID_LIBRARIES}
                        ${PLAYDAR_PLUGIN_LDFLAGS}
                        ${Boost_LIBRARIES}
                      )
