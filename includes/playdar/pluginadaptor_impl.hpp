@@ -33,6 +33,11 @@ public:
     {
     }
     
+    virtual std::string playdar_version() const 
+    {
+        return VERSION;
+    }
+    
     virtual void set(const std::string& key, json_spirit::Value value)
     {
         // TODO
@@ -99,6 +104,26 @@ public:
     virtual bool query_exists(const query_uid & qid)
     {
         return m_resolver->query_exists(qid); 
+    }
+    
+    virtual std::vector< ri_ptr > get_results(query_uid qid)
+    {
+        return m_resolver->get_results(qid); 
+    }
+    
+    virtual rq_ptr rq(const query_uid & qid)
+    {
+        return m_resolver->rq(qid); 
+    }
+    
+    virtual int num_results(query_uid qid)
+    {
+        return m_resolver->num_results(qid); 
+    }
+    
+    virtual void cancel_query(const query_uid & qid)
+    {
+        m_resolver->cancel_query(qid); 
     }
 
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq)

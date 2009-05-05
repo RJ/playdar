@@ -22,10 +22,9 @@ struct request_handler_base
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
     if( !rep.has_content_fun() )
     {
-        rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.size()), false );
+        rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.length()) );
     }
     rep.add_header( "Content-Type", "text/plain", false );
-    rep.add_header( "X-server", "moost_http_new", false );
   }
 
   void handle_request(const request& req, reply& rep)

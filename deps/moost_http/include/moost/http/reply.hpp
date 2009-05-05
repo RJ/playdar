@@ -73,7 +73,7 @@ public:
    { add_header(name, boost::lexical_cast<std::string>(value), overwrite); }
 
    void add_header( const std::string& name, const std::string& value, bool overwrite );
-
+   void set_status( int s ){ status = (status_type)s; }
 private:
 
    boost::function< size_t(char*, size_t) > content_fun_;

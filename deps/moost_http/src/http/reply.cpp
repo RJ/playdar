@@ -239,11 +239,6 @@ reply reply::stock_reply(reply::status_type status)
   rep.add_header("Content-Length", rep.content.size());
   rep.add_header("Content-Type", "text/html");
 
-  //rep.headers.resize(2);
-  //rep.headers[0].name = "Content-Length";
-  //rep.headers[0].value = boost::lexical_cast<std::string>(rep.content.size());
-  //rep.headers[1].name = "Content-Type";
-  //rep.headers[1].value = "text/html";
   return rep;
 }
 

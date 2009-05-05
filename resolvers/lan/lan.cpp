@@ -317,6 +317,7 @@ lan::send_response( query_uid qid,
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     Object result = rip->get_json();
+    //FIXME strip "url" (filename) from result object before sending!
     response.push_back( Pair("result", result) );
     ostringstream ss;
     write_formatted( response, ss );

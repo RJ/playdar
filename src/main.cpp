@@ -154,7 +154,8 @@ int main(int ac, char *av[])
         return error ? 1 : 0;
     }
     if (vm.count("version")) {
-        cout << VERSION << endl;
+        cout << VERSION << endl
+             << "Compiled: " << __DATE__ << " " << __TIME__ << endl;
         return 0;
     }
     
