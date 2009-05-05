@@ -97,13 +97,15 @@ public:
     void dispatch_runner();
     
 protected:
+
+
+    std::string sortname(const std::string& name);
+
     float calculate_score( const rq_ptr & rq,  // query
                            const ri_ptr & ri,  // candidate
                            std::string & reason );  // fail reason
 
 private:
-    void load_library_resolver();
-    
     boost::asio::io_service::work * m_work;
     boost::asio::io_service * m_io_service;
     

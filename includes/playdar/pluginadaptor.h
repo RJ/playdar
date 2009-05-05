@@ -11,12 +11,6 @@ class ResolverService;
 
 class PluginAdaptor
 {
-protected:
-    // validator and generator functions to pass to the resolver in 
-    // order to generate the correct derived ResolvedItem type from json_spirit
-    typedef boost::function<bool( const json_spirit::Object& )> ri_validator;
-    typedef boost::function<ri_ptr( const json_spirit::Object& )> ri_generator;
-    
 public:
     const unsigned int api_version() const 
     { 
@@ -25,6 +19,9 @@ public:
     }
     
     virtual ~PluginAdaptor(){};
+
+    // A short name used eg in url handler
+    virtual std::string classname() const = 0;
 
     virtual void               set(const std::string& key, json_spirit::Value value) = 0;
     virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const = 0;

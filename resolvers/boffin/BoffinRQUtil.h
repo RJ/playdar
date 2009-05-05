@@ -5,10 +5,10 @@
 
 namespace BoffinRQUtil
 {
-    playdar::rq_ptr buildTagCloudRequest()
+    playdar::rq_ptr buildTagCloudRequest( const std::string& rql )
     {
         playdar::rq_ptr rq( new playdar::ResolverQuery );
-        rq->set_param( "boffin_tags", "*" );
+        rq->set_param( "boffin_tags", rql );
         return rq;
     }
     

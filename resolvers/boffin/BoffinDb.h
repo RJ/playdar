@@ -10,6 +10,7 @@
 
 #include "sqlite3pp.h"
 #include <iostream>
+
 class BoffinDb
 {
 public:
@@ -119,9 +120,9 @@ public:
         return count;
     }
     
-    sqlite3pp::database* db()
+    sqlite3pp::database& db()
     {
-        return &m_db;
+        return m_db;
     }
 
 private:

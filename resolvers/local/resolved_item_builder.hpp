@@ -1,7 +1,7 @@
 #ifndef __RESOLVED_ITEM_BUILDER_H__
 #define __RESOLVED_ITEM_BUILDER_H__
 #include "playdar/resolved_item.h"
-#include "playdar/library.h"
+#include "library.h"
 
 namespace playdar {
 
@@ -18,9 +18,9 @@ public:
         return createFromFid( lib.db(), fid );
     }
     
-    static ri_ptr createFromFid( sqlite3pp::database* db, int fid )
+    static ri_ptr createFromFid( sqlite3pp::database& db, int fid )
     {
-        LibraryFile_ptr file( Library::file_from_fid( db, fid) );
+        LibraryFile_ptr file( Library::file_from_fid(db, fid) );
         
         ri_ptr rip( new ResolvedItem() );
         rip->set_json_value( "mimetype", file->mimetype );
