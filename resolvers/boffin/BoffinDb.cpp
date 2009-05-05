@@ -77,7 +77,9 @@ BoffinDb::get_tag_cloud(int limit)
         "SELECT name, sum(weight), count(weight) "
         "FROM track_tag "
         "INNER JOIN tag ON track_tag.tag = tag.rowid "
-        "GROUP BY tag.rowid");
+        "GROUP BY tag.rowid "
+        "LIMIT ?");
+    qry.bind(1, limit);
 
     boost::shared_ptr<TagCloudVec> p( new TagCloudVec() );
     float maxWeight = 0;
