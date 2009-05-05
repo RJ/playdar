@@ -18,9 +18,9 @@ public:
         return createFromFid( lib.db(), fid );
     }
     
-    static ri_ptr createFromFid( sqlite3pp::database* db, int fid )
+    static ri_ptr createFromFid( sqlite3pp::database& db, int fid )
     {
-        LibraryFile_ptr file( Library::file_from_fid( db, fid) );
+        LibraryFile_ptr file( Library::file_from_fid(db, fid) );
         
         ri_ptr rip( new ResolvedItem() );
         rip->set_json_value( "mimetype", file->mimetype );

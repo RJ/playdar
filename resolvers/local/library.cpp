@@ -468,7 +468,7 @@ Library::num_tracks()
 LibraryFile_ptr
 Library::file_from_fid(int fid)
 {
-    return file_from_fid( &m_db, fid );
+    return file_from_fid( m_db, fid );
 }
 
 
@@ -519,13 +519,37 @@ Library::get_field(string table, int id, string field)
     return result;
 }
 
+
+// replace whitespace with ' ' and replace multiple whitespace with single
+static
+string 
+fixspaces(const string& s)
+{
+    string r;
+    bool prevWasSpace = false;
+    r.reserve(s.length());
+    for (string::const_iterator i = s.begin(); i != s.end(); i++) {
+        if (*i > 0 && isspace(*i)) {
+            if (!prevWasSpace) {
+                r += ' ';
+                prevWasSpace = true;
+            }
+        } else {
+            r += *i;
+            prevWasSpace = false;
+        }
+    }
+    return r;
+}
+
+
 string
 Library::sortname(const string& name)
 {
     string data(name);
     std::transform(data.begin(), data.end(), data.begin(), ::tolower);
     boost::trim(data);
-    return data;
+    return fixspaces(data);
 }
 
 // CATALOGUE LOADING (TODO) some factory of singletons->shared pointers, so only one lookup
@@ -548,7 +572,7 @@ Library::load_artist(string n)
 artist_ptr
 Library::load_artist(int n)
 {
-    return load_artist( &m_db, n );
+    return load_artist( m_db, n );
 }
 
 track_ptr
@@ -569,7 +593,7 @@ Library::load_track(artist_ptr artp, string n)
 track_ptr
 Library::load_track(int n)
 {
-    return load_track( &m_db, n );
+    return load_track( m_db, n );
 }
 
 album_ptr
@@ -590,7 +614,7 @@ Library::load_album(artist_ptr artp, string n)
 album_ptr
 Library::load_album(int n)
 {
-    return load_album( &m_db, n );
+    return load_album( m_db, n );
 }
 
 }

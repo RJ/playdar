@@ -1,6 +1,7 @@
 #include "boffin.h"
 #include "BoffinDb.h"
 #include "RqlOpProcessor.h"
+#include "RqlOpProcessorTagCloud.h"
 #include "parser/parser.h"
 #include "RqlOp.h"
 #include "BoffinSample.h"
@@ -230,16 +231,35 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
      
-    } else if (rq->param_exists("boffin_tags")) {
+    } else if (rq->param_exists("boffin_tags") && rq->param_type("boffin_tags") == json_spirit::str_type) {
         typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
         using namespace boost;
 
-        shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
+        string rql( rq->param("boffin_tags").get_str() );
+
+        shared_ptr< BoffinDb::TagCloudVec > tv;
+        
+        if (rql == "*") {
+            tv = m_db->get_tag_cloud(limit);
+        } else {
+            parser p;
+            if (p.parse(rql)) {
+                std::vector<RqlOp> ops;
+                p.getOperations<RqlOp>(
+                    boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
+                    &root2op, 
+                    &leaf2op);
+                tv = RqlOpProcessorTagCloud::process(ops.begin(), ops.end(), *m_db, *m_sa);
+            } else {
+                parseFail(p.getErrorLine(), p.getErrorOffset());
+                return;
+            }
+        }
+
         vector< json_spirit::Object > results;
         const std::string source( m_pap->hostname() );
         BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
             results.push_back( makeTagCloudItem( tag, source )->get_json() );
-
         }
         cout << "Boffin will now report resuilts" << endl;
         m_pap->report_results(rq->id(), results);
@@ -266,7 +286,10 @@ boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     rq_ptr rq;
     if( req->parts()[1] == "tagcloud" )
     {
-        rq = BoffinRQUtil::buildTagCloudRequest();
+        rq = BoffinRQUtil::buildTagCloudRequest(
+            req->parts().size() >= 2 ? 
+                playdar::utils::url_decode( req->parts()[2] ) : 
+                "*" );
     }
     else if( req->parts()[1] == "rql" && req->parts().size() >= 2)
     {
