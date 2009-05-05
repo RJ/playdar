@@ -86,11 +86,11 @@ BoffinDb::get_tag_cloud(int limit)
         maxWeight = max( maxWeight, p->back().get<1>() );
     }
     
-    if (maxWeight > 0) {
-        for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
-            i->get<1>() = i->get<1>() / maxWeight;
-        }
-    }
+    //if (maxWeight > 0) {
+    //    for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
+    //        i->get<1>() = i->get<1>() / maxWeight;
+    //    }
+    //}
     
     return p;
 }
