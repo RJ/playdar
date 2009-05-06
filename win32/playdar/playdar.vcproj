@@ -187,7 +187,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\library.cpp"
+				RelativePath="..\..\src\main.cpp"
 				>
 			</File>
 			<File
@@ -195,46 +195,26 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\playdar_request_handler.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\resolver.cpp"
 				>
 			</File>
-			<Filter
-				Name="playdar"
+			<File
+				RelativePath="..\..\src\rs_script.cpp"
 				>
-				<File
-					RelativePath="..\..\src\playdar\main.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\playdar\playdar_request_handler.cpp"
-					>
-				</File>
-			</Filter>
+			</File>
 			<Filter
 				Name="utils"
 				>
-				<File
-					RelativePath="..\..\src\utils\base64.cpp"
-					>
-				</File>
 				<File
 					RelativePath="..\..\src\utils\levenshtein.cpp"
 					>
 				</File>
 				<File
 					RelativePath="..\..\src\utils\uuid.cpp"
-					>
-				</File>
-			</Filter>
-			<Filter
-				Name="resolvers"
-				>
-				<File
-					RelativePath="..\..\src\rs_local_library.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\src\rs_script.cpp"
 					>
 				</File>
 			</Filter>
@@ -262,14 +242,6 @@
 			</File>
 			<File
 				RelativePath="..\..\includes\playdar\config.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\includes\playdar\library.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\includes\playdar\library_file.h"
 				>
 			</File>
 			<File
@@ -351,10 +323,6 @@
 			<Filter
 				Name="utils"
 				>
-				<File
-					RelativePath="..\..\includes\playdar\utils\base64.h"
-					>
-				</File>
 				<File
 					RelativePath="..\..\includes\playdar\utils\levenshtein.h"
 					>

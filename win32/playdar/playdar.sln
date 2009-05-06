@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 9.00
 # Visual Studio 2005
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "playdar", "playdar.vcproj", "{2CD0560C-1D77-4A67-B8A1-9B3A6FB767B3}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scanner", "..\scanner\scanner.vcproj", "{0788484F-E6F4-4EED-973F-864896B4F09C}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -15,10 +13,6 @@ Global
 		{2CD0560C-1D77-4A67-B8A1-9B3A6FB767B3}.Debug|Win32.Build.0 = Debug|Win32
 		{2CD0560C-1D77-4A67-B8A1-9B3A6FB767B3}.Release|Win32.ActiveCfg = Release|Win32
 		{2CD0560C-1D77-4A67-B8A1-9B3A6FB767B3}.Release|Win32.Build.0 = Release|Win32
-		{0788484F-E6F4-4EED-973F-864896B4F09C}.Debug|Win32.ActiveCfg = Debug|Win32
-		{0788484F-E6F4-4EED-973F-864896B4F09C}.Debug|Win32.Build.0 = Debug|Win32
-		{0788484F-E6F4-4EED-973F-864896B4F09C}.Release|Win32.ActiveCfg = Release|Win32
-		{0788484F-E6F4-4EED-973F-864896B4F09C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
