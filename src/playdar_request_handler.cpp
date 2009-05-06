@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -206,7 +224,7 @@ playdar_request_handler::handle_root( const playdar_request& req,
            "</p>"
 
            "<p>"
-           "<h3>Resolver Pipeline</h3>"
+           "<h3>Resolver Plugins</h3>"
            "<table>"
            "<tr style=\"font-weight: bold;\">"
            "<td>Plugin Name</td>"
@@ -222,6 +240,7 @@ playdar_request_handler::handle_root( const playdar_request& req,
     string bgc="";
     BOOST_FOREACH(const pa_ptr pap, app()->resolver()->resolvers())
     {
+        if(pap->weight() == 0) break;
         if(lw == pap->weight()) dupe = true; else dupe = false;
         if(lw==0) lw = pap->weight();
         if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
@@ -241,6 +260,28 @@ playdar_request_handler::handle_root( const playdar_request& req,
     os  << "</table>"
         << "</p>"
         ;
+    
+    os  << "<p>"
+           "<h3>Other Plugins</h3>"
+           "<table>"
+           "<tr style=\"font-weight: bold;\">"
+           "<td>Plugin Name</td>"
+           "<td>Configuration</td>"
+           "</tr>" ;
+    bgc=""; i = 0;
+    BOOST_FOREACH(const pa_ptr pap, app()->resolver()->resolvers())
+    {
+        if(pap->weight()>0) continue;
+        if(!dupe) bgc = (i++%2==0) ? "lightgrey" : "" ;
+        string name = pap->rs()->name();
+        boost::algorithm::to_lower( name );
+        os  <<  "<tr style=\"background-color: " << bgc << "\">"
+                "<td>" << pap->rs()->name() << "</td>"
+                "<td><a href=\"" << name << "/config" <<"\">" 
+                << name << " config</a>" 
+                "</td></tr>" << endl;
+    }
+    os  << "</table></p>" << endl;
     serve_body(os.str(), rep);
 
 }
