@@ -75,14 +75,14 @@ public:
     /// this is important if you are holding any state, or a copy of the RQ pointer.
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
-    virtual playdar_response authed_http_handler(const playdar_request* req, playdar::auth* pauth)
+    virtual playdar_response authed_http_handler(const playdar_request& req, playdar::auth* pauth)
     { 
         playdar_response r( "", false );
         r.set_response_code( 404 ); 
         return r;
     }
     
-    virtual playdar_response anon_http_handler(const playdar_request*)
+    virtual playdar_response anon_http_handler(const playdar_request&)
     { 
         playdar_response r( "", false );
         r.set_response_code( 404 );

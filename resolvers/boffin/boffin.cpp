@@ -300,22 +300,22 @@ boffin::parseFail(std::string line, int error_offset)
 //             [2] = rql (optional)
 //
 playdar_response 
-boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
+boffin::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
 {
-    if(req->parts().size() <= 1)
+    if(req.parts().size() <= 1)
         return "This plugin has no web interface.";
     
     rq_ptr rq;
-    if( req->parts()[1] == "tagcloud" )
+    if( req.parts()[1] == "tagcloud" )
     {
         rq = BoffinRQUtil::buildTagCloudRequest(
-            req->parts().size() > 2 ? 
-                playdar::utils::url_decode( req->parts()[2] ) : 
+            req.parts().size() > 2 ? 
+                playdar::utils::url_decode( req.parts()[2] ) : 
                 "*" );
     }
-    else if( req->parts()[1] == "rql" && req->parts().size() > 2)
+    else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req->parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
     }
 
     if( !rq )
@@ -331,8 +331,8 @@ boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     
     
     std::string s1, s2;
-    if(req->getvar_exists("jsonp")){ // wrap in js callback
-        s1 = req->getvar("jsonp") + "(";
+    if(req.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = req.getvar("jsonp") + "(";
         s2 = ");\n";
     }
     

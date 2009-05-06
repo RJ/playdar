@@ -172,12 +172,12 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
 }
 
 playdar_response 
-local::authed_http_handler(const playdar_request* req, playdar::auth* pauth) 
+local::authed_http_handler(const playdar_request& req, playdar::auth* pauth) 
 { 
     using namespace json_spirit;
     ostringstream response;
-    if( req->parts().size() > 1 &&
-        req->parts()[1] == "list_artists" )
+    if( req.parts().size() > 1 &&
+        req.parts()[1] == "list_artists" )
     {
         vector< artist_ptr > artists = m_library->list_artists();
         Array qresults;
@@ -191,11 +191,11 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
         Object jq;
         jq.push_back( Pair("results", qresults) );
         write_formatted( jq, response );
-    } else if(req->parts()[1] == "list_artist_tracks" && 
-                req->getvar_exists("artistname")) 
+    } else if(req.parts()[1] == "list_artist_tracks" && 
+                req.getvar_exists("artistname")) 
     { 
         Array qresults; 
-        artist_ptr artist = m_library->load_artist( req->getvar("artistname") ); 
+        artist_ptr artist = m_library->load_artist( req.getvar("artistname") ); 
         if(artist) 
         { 
             vector< track_ptr > tracks = m_library->list_artist_tracks(artist); 
@@ -216,9 +216,9 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 
 
     string retval;
-    if( req->getvar_exists( "jsonp" ))
+    if( req.getvar_exists( "jsonp" ))
     {
-        retval = req->getvar( "jsonp" );
+        retval = req.getvar( "jsonp" );
         retval += "(" ;
         retval += response.str();
         retval += ");\n";
@@ -231,10 +231,10 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
 } 
 
 playdar_response 
-local::anon_http_handler(const playdar_request* req) 
+local::anon_http_handler(const playdar_request& req) 
 { 
-   if( req->parts().size() > 1 &&
-       req->parts()[1] == "stats" )
+   if( req.parts().size() > 1 &&
+       req.parts()[1] == "stats" )
    {
        std::ostringstream reply; 
        reply   << "<h2>Local Library Stats</h2>" 

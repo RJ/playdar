@@ -43,7 +43,7 @@ public:
     virtual void start_resolving(boost::shared_ptr<playdar::ResolverQuery> rq);
 
     // handler for HTTP reqs we are registerd for:
-    virtual playdar::playdar_response authed_http_handler(const playdar::playdar_request* rq, playdar::auth* pauth);
+    virtual playdar::playdar_response authed_http_handler(const playdar::playdar_request& rq, playdar::auth* pauth);
 
 protected:
     virtual ~boffin() throw();

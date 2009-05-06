@@ -321,9 +321,9 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
     }
 
     if( permissions == "*" )
-        serve_body( rs->authed_http_handler( &req, m_pauth ), rep );
+        serve_body( rs->authed_http_handler( req, m_pauth ), rep );
     else
-        serve_body( rs->anon_http_handler( &req ), rep );
+        serve_body( rs->anon_http_handler( req ), rep );
 }
 
 void 

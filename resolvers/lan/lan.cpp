@@ -481,15 +481,15 @@ bool endsWith(const std::string& s, const std::string& tail)
 }
 
 playdar_response 
-lan::anon_http_handler(const playdar_request* req)
+lan::anon_http_handler(const playdar_request& req)
 {
-    cout << "request handler on lan for url: " << req->url() << endl;
+    cout << "request handler on lan for url: " << req.url() << endl;
 
     time_t now;
     time(&now);
     typedef std::pair<string, lannode> LanPair;
 
-    if (endsWith(req->url(), "roster")) { 
+    if (endsWith(req.url(), "roster")) { 
         Array a;
         BOOST_FOREACH(const LanPair& p, m_lannodes)
         {

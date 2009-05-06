@@ -38,7 +38,8 @@ namespace playdar
             virtual bool init(pa_ptr);
             virtual void Destroy();
             virtual std::string name() const { return "Audioscrobbler"; }
-            virtual playdar_response authed_http_handler(const playdar_request*, playdar::auth* pauth);
+            virtual playdar_response authed_http_handler(const playdar_request&, playdar::auth* pauth);
+            virtual playdar_response anon_http_handler(const playdar_request&);
 
         private:
             /** pure virtual, so reimplemented but does nothing */

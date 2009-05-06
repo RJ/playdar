@@ -79,7 +79,7 @@ class lan : public ResolverPlugin<lan>
         return 99;
     }
         
-    playdar_response anon_http_handler(const playdar_request*);
+    playdar_response anon_http_handler(const playdar_request&);
     
 protected:    
     virtual ~lan() throw();
