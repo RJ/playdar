@@ -5,6 +5,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lan", "lan\lan.vcproj", "{D
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "api", "api\api.vcproj", "{85DC1DE6-385F-44F8-954F-C8A55E950A3F}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "local", "local\local.vcproj", "{DA39DD41-8006-4817-9758-6393DBCE9F36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,10 @@ Global
 		{85DC1DE6-385F-44F8-954F-C8A55E950A3F}.Debug|Win32.Build.0 = Debug|Win32
 		{85DC1DE6-385F-44F8-954F-C8A55E950A3F}.Release|Win32.ActiveCfg = Release|Win32
 		{85DC1DE6-385F-44F8-954F-C8A55E950A3F}.Release|Win32.Build.0 = Release|Win32
+		{DA39DD41-8006-4817-9758-6393DBCE9F36}.Debug|Win32.ActiveCfg = Debug|Win32
+		{DA39DD41-8006-4817-9758-6393DBCE9F36}.Debug|Win32.Build.0 = Debug|Win32
+		{DA39DD41-8006-4817-9758-6393DBCE9F36}.Release|Win32.ActiveCfg = Release|Win32
+		{DA39DD41-8006-4817-9758-6393DBCE9F36}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
