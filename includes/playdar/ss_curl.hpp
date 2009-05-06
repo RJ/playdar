@@ -29,7 +29,6 @@
 #include <curl/curl.h>
 
 #include "playdar/streaming_strategy.h"
-#include "playdar/utils/base64.h"
 
 namespace playdar {
 
