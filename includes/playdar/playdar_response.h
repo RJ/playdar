@@ -27,12 +27,15 @@ namespace playdar {
 
 class playdar_response {
 public:
-    playdar_response( const char* s, bool isBody = true ): m_string( s ), m_responseCode( 200 )
+
+    playdar_response() : m_valid( false ){};
+
+    playdar_response( const char* s, bool isBody = true ): m_string( s ), m_responseCode( 200 ), m_valid( true )
     {
         init( s, isBody );
     }
 
-    playdar_response( const std::string& s, bool isBody = true ): m_string( s ), m_responseCode( 200 )
+    playdar_response( const std::string& s, bool isBody = true ): m_string( s ), m_responseCode( 200 ), m_valid( true )
     {
         init( s.c_str(), isBody );
     }
@@ -92,11 +95,15 @@ public:
 
     int response_code() const{ return m_responseCode; }
     const std::map<std::string,std::string>& headers() const{ return m_headers; }
+
+    bool is_valid(){ return m_valid; }
     
 private:
     std::string m_string;
     std::map<std::string,std::string> m_headers;
     int m_responseCode;
+
+    bool m_valid;
 };
 
 }

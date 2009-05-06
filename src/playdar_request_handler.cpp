@@ -320,13 +320,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         //cout << "AUTH: no auth value provided." << endl;
     }
 
-    playdar_response resp( "", false );
+    playdar_response resp;
     if( permissions == "*" )
         rs->authed_http_handler( req, resp, m_pauth ) || rs->anon_http_handler( req, resp );
     else
         rs->anon_http_handler( req, resp );
 
-    serve_body( resp, rep );
+    if( resp.is_valid() )
+        serve_body( resp, rep );
+    else
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+    
 }
 
 void 
