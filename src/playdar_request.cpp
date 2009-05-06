@@ -20,6 +20,7 @@
 #include "playdar/utils/urlencoding.hpp"
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
+#include <moost/http.hpp>
 
 using namespace std;
 
