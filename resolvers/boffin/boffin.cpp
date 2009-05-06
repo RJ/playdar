@@ -299,8 +299,8 @@ boffin::parseFail(std::string line, int error_offset)
 //             [1] = "tagcloud" or "rql"
 //             [2] = rql (optional)
 //
-playdar_response 
-boffin::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
+bool
+boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth)
 {
     if(req.parts().size() <= 1)
         return "This plugin has no web interface.";
@@ -317,9 +317,16 @@ boffin::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
     {
         rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
     }
+    else
+    {
+        return false;
+    }
 
     if( !rq )
-        return "Error!";
+    {
+        resp = "Error!";
+        return true;
+    }
     
     rq->set_from_name( m_pap->hostname() );
     
@@ -338,5 +345,6 @@ boffin::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
     
     ostringstream os;
     write_formatted( r, os );
-    return playdar_response( s1 + os.str() + s2, false );
+    resp = playdar_response( s1 + os.str() + s2, false );
+    return true;
 }

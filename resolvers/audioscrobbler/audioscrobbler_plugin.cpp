@@ -83,15 +83,12 @@ static string config(bool auth_required)
     return string("<p>You need to <a href='") + url + "'>authenticate</a> in order to scrobble.</p>";
 }
 
-playdar_response 
-audioscrobbler::authed_http_handler(const playdar_request& rq, playdar::auth* pauth)
+bool
+audioscrobbler::authed_http_handler(const playdar_request& rq, playdar_response& resp,  playdar::auth* pauth)
 {
     cout << "audioscrobbler: Authed HTTP" << endl;
     
-    playdar_response r404( "", false );
-    r404.set_response_code( 404 );
-
-    if(rq.parts().size()<2) return r404;
+    if(rq.parts().size()<2) return false;
 
     string action = rq.parts()[1];
 
@@ -103,26 +100,14 @@ audioscrobbler::authed_http_handler(const playdar_request& rq, playdar::auth* pa
     // TODO, use json_spirit
     playdar_response ok( s1 + "{\"success\" : true, \"action\" : \"" + action + "\"}" + s2, false );
     
-    if(action == "start")  { start(rq); return ok; }
-    if(action == "pause")  { scrobsub_pause(); return ok; }
-    if(action == "resume") { scrobsub_resume(); return ok; }
-    if(action == "stop")   { scrobsub_stop(); return ok; }
+    if(action == "start")  { start(rq); resp = ok; return true;}
+    if(action == "pause")  { scrobsub_pause(); resp = ok; return true;}
+    if(action == "resume") { scrobsub_resume(); resp = ok; return true;}
+    if(action == "stop")   { scrobsub_stop(); resp = ok; return true;}
     
-    if(action == "config") return config(auth_required);
+    if(action == "config"){ resp = config(auth_required); return true; }
     
-    return "Unhandled"; // --warning
-
-}
-
-
-playdar_response 
-audioscrobbler::anon_http_handler(const playdar_request& rq)
-{
-    cout << "audioscrobbler: Anon HTTP" << endl;
-    playdar_response r404( "", false );
-    r404.set_response_code( 404 );
-
-    return r404;
+    return false;
 }
 
 EXPORT_DYNAMIC_CLASS( audioscrobbler )

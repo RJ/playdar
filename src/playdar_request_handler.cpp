@@ -320,10 +320,13 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         //cout << "AUTH: no auth value provided." << endl;
     }
 
+    playdar_response resp( "", false );
     if( permissions == "*" )
-        serve_body( rs->authed_http_handler( req, m_pauth ), rep );
+        rs->authed_http_handler( req, resp, m_pauth ) || rs->anon_http_handler( req, resp );
     else
-        serve_body( rs->anon_http_handler( req ), rep );
+        rs->anon_http_handler( req, resp );
+
+    serve_body( resp, rep );
 }
 
 void 

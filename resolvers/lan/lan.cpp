@@ -480,8 +480,8 @@ bool endsWith(const std::string& s, const std::string& tail)
     return slen >= tlen ? (s.substr(slen - tlen) == tail) : false;
 }
 
-playdar_response 
-lan::anon_http_handler(const playdar_request& req)
+bool
+lan::anon_http_handler(const playdar_request& req, playdar_response& resp)
 {
     cout << "request handler on lan for url: " << req.url() << endl;
 
@@ -502,7 +502,8 @@ lan::anon_http_handler(const playdar_request& req)
         }
         ostringstream os;
         write_formatted(a, os);
-        return playdar_response(os.str(), false);
+        resp = playdar_response(os.str(), false);
+        return true;
     }
 
     ostringstream os;
@@ -522,7 +523,8 @@ lan::anon_http_handler(const playdar_request& req)
     }
     os  << "</ul></p>" << endl;
     
-    return os.str();
+    resp = os.str();
+    return true;
 }
 
 

@@ -33,8 +33,8 @@ api::init( pa_ptr pap )
     return true;
 }
 
-playdar_response 
-api::anon_http_handler(const playdar_request& req)
+bool
+api::anon_http_handler(const playdar_request& req, playdar_response& resp)
 {
     using namespace json_spirit;
     ostringstream response; 
@@ -44,6 +44,10 @@ api::anon_http_handler(const playdar_request& req)
         r.push_back( Pair("version", m_pap->playdar_version()) );
         r.push_back( Pair("authenticated", false) );
         write_formatted( r, response );
+    }
+    else
+    {
+        return false;
     }
     
     string retval;
@@ -60,12 +64,12 @@ api::anon_http_handler(const playdar_request& req)
         retval = response.str();
     }
         
-    playdar_response r(retval, false);
-    return r;
+    resp = playdar_response(retval, false);
+    return true;
 }
 
-playdar_response 
-api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
+bool
+api::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth)
 {
     using namespace json_spirit;
     
@@ -85,8 +89,7 @@ api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
             write_formatted( r, response );
             break;
         }
-        
-        if(req.getvar("method") == "resolve")
+        else if(req.getvar("method") == "resolve")
         {
             string artist = req.getvar_exists("artist") ? req.getvar("artist") : "";
             string album  = req.getvar_exists("album") ? req.getvar("album") : "";
@@ -112,7 +115,8 @@ api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
                 cout << "Tried to dispatch an invalid query, failing." << endl;
                 playdar_response r("");
                 r.set_response_code( 400 ); // bad_request
-                return r;
+                resp = r;
+                return true;
             }
             rq->set_from_name(m_pap->hostname());
             query_uid qid = m_pap->dispatch(rq);
@@ -134,7 +138,8 @@ api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
                 cerr << "Error get_results(" << req.getvar("qid") << ") - qid went away." << endl;
                 playdar_response r("");
                 r.set_response_code( 404 ); // bad_request
-                return r;
+                resp = r;
+                return true;
             }
             Object r;
             Array qresults;
@@ -152,7 +157,7 @@ api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
         }
         else
         {
-            response << "FAIL";
+            return false;
         }
 
     }while(false);
@@ -171,11 +176,11 @@ api::authed_http_handler(const playdar_request& req, playdar::auth* pauth)
     {
         retval = response.str();
     }
-    playdar_response r(retval, false);
-    r.add_header( "Content-Type", req.getvar_exists("jsonp") ?
+    resp = playdar_response(retval, false);
+    resp.add_header( "Content-Type", req.getvar_exists("jsonp") ?
                                   "text/javascript; charset=utf-8" :
                                   "text/plain; charset=utf-8" );
-    return r;
+    return true;
 }
 
 

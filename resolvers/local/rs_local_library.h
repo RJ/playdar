@@ -59,8 +59,8 @@ public:
         return 100;
     }
 
-    playdar_response authed_http_handler(const playdar_request& req, playdar::auth* pauth);
-    playdar_response anon_http_handler(const playdar_request&);
+    bool authed_http_handler(const playdar_request& req, playdar_response&, playdar::auth* pauth);
+    bool anon_http_handler(const playdar_request&, playdar_response&);
 
 protected:
 
