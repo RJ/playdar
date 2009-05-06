@@ -100,7 +100,14 @@ void start_http_server(string ip, int port, int conc, MyApplication* app)
     // tell app how to stop the http server:
     app->set_http_stopper( 
         boost::bind(&moost::http::server<playdar_request_handler>::stop, &s));
-    s.run();
+    try 
+    {
+        s.run();
+    }
+    catch( const boost::system::system_error& e )
+    {
+        cerr << "HTTP server error: " << e.what() << endl;
+    }
     cout << "http_server thread exiting." << endl; 
 }
 
