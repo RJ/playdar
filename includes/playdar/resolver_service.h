@@ -92,6 +92,8 @@ public:
        return false;
     }
 
+    virtual json_spirit::Object get_capabilities() const{ return json_spirit::Object();}
+
 };
 
 ////////////////////////////////////////////////////////////////////////

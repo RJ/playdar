@@ -251,4 +251,13 @@ local::anon_http_handler(const playdar_request& req, playdar_response& resp)
    return false; 
 }
 
+json_spirit::Object 
+local::get_capabilities() const
+{
+    json_spirit::Object o;
+    o.push_back( json_spirit::Pair( "plugin", name() ));
+    o.push_back( json_spirit::Pair( "description", "Resolve music tracks against your local library."));
+    return o;
+}
+
 }}
