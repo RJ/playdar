@@ -45,6 +45,8 @@ public:
     // handler for HTTP reqs we are registerd for:
     virtual bool authed_http_handler(const playdar::playdar_request& rq, playdar::playdar_response&, playdar::auth* pauth);
 
+    virtual json_spirit::Object boffin::get_capabilities() const;
+
 protected:
     virtual ~boffin() throw();
 
