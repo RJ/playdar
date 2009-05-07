@@ -64,10 +64,10 @@ static void start(const playdar_request& rq)
     const char* source = GET("o");
     const char* album = GET("b");
     const char* mbid = GET("m");
-    uint duration = atoi(GET("l")); // zero on error, which scrobsub will reject, so all good
+    unsigned int duration = atoi(GET("l")); // zero on error, which scrobsub will reject, so all good
     
     // todo shouldn't return 0 for errors as 0 can be valid
-    uint track_number = atoi(GET("n"));
+    unsigned int track_number = atoi(GET("n"));
 
     scrobsub_start(artist, track, duration, album, track_number, mbid);
 }
