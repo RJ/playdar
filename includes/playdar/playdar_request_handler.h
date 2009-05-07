@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __PLAYDAR_REQUEST_HANDLER_H__
 #define __PLAYDAR_REQUEST_HANDLER_H__
 
@@ -48,8 +66,8 @@ private:
     void handle_serve( const playdar_request&, moost::http::reply& );
     void handle_sid( const playdar_request&, moost::http::reply& );
     void handle_quickplay( const playdar_request&, moost::http::reply& );
-    void handle_api( const playdar_request&, moost::http::reply& );
     void handle_pluginurl( const playdar_request&, moost::http::reply& );
+    void handle_capabilities( const playdar_request&, moost::http::reply& );
 
     std::string handle_queries_root(const playdar_request& req);
     MyApplication * m_app;

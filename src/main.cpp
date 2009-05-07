@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/foreach.hpp>
@@ -82,7 +100,14 @@ void start_http_server(string ip, int port, int conc, MyApplication* app)
     // tell app how to stop the http server:
     app->set_http_stopper( 
         boost::bind(&moost::http::server<playdar_request_handler>::stop, &s));
-    s.run();
+    try 
+    {
+        s.run();
+    }
+    catch( const boost::system::system_error& e )
+    {
+        cerr << "HTTP server error: " << e.what() << endl;
+    }
     cout << "http_server thread exiting." << endl; 
 }
 

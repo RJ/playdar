@@ -1,3 +1,20 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "audioscrobbler_plugin.h"
 #include "scrobsub.h"
 #include "playdar/playdar_request.h"
@@ -17,7 +34,7 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
     if (e == SCROBSUB_AUTH_REQUIRED && !instance->auth_required)
     {
         instance->auth_required = true;
-        cout << "You need to authenticate scrobbling, visit http://localhost:8888/audioscrobbler/config/" << endl;
+        cout << "You need to authenticate scrobbling, visit http://localhost:8888/audioscrobbler/config/" << endl; //FIXME hardcoded url
     }
 }
 
@@ -66,30 +83,31 @@ static string config(bool auth_required)
     return string("<p>You need to <a href='") + url + "'>authenticate</a> in order to scrobble.</p>";
 }
 
-playdar_response 
-audioscrobbler::authed_http_handler(const playdar_request* rq, playdar::auth* pauth)
+bool
+audioscrobbler::authed_http_handler(const playdar_request& rq, playdar_response& resp,  playdar::auth* pauth)
 {
-    if(rq->parts().size()<2) return "Hi index!";
-    string action = rq->parts()[1];
+    cout << "audioscrobbler: Authed HTTP" << endl;
+    
+    if(rq.parts().size()<2) return false;
+
+    string action = rq.parts()[1];
 
     std::string s1, s2;
-    if(rq->getvar_exists("jsonp")){ // wrap in js callback
-        s1 = rq->getvar("jsonp") + "(";
+    if(rq.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = rq.getvar("jsonp") + "(";
         s2 = ");\n";
     }
     // TODO, use json_spirit
     playdar_response ok( s1 + "{\"success\" : true, \"action\" : \"" + action + "\"}" + s2, false );
     
-    if(action == "start")  { start(*rq); return ok; }
-    if(action == "pause")  { scrobsub_pause(); return ok; }
-    if(action == "resume") { scrobsub_resume(); return ok; }
-    if(action == "stop")   { scrobsub_stop(); return ok; }
+    if(action == "start")  { start(rq); resp = ok; return true;}
+    if(action == "pause")  { scrobsub_pause(); resp = ok; return true;}
+    if(action == "resume") { scrobsub_resume(); resp = ok; return true;}
+    if(action == "stop")   { scrobsub_stop(); resp = ok; return true;}
     
-    if(action == "config") return config(auth_required);
+    if(action == "config"){ resp = config(auth_required); return true; }
     
-    return "Unhandled"; // --warning
-
+    return false;
 }
-
 
 EXPORT_DYNAMIC_CLASS( audioscrobbler )
