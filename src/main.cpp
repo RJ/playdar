@@ -94,13 +94,20 @@ string default_config_path()
 
 void start_http_server(string ip, int port, int conc, MyApplication* app)
 {
-    cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << endl;
+    cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << " with " << conc << " threads" << endl;
     moost::http::server<playdar_request_handler> s(ip, port, conc);
     s.request_handler().init(app);
     // tell app how to stop the http server:
     app->set_http_stopper( 
         boost::bind(&moost::http::server<playdar_request_handler>::stop, &s));
-    s.run();
+    try 
+    {
+        s.run();
+    }
+    catch( const boost::system::system_error& e )
+    {
+        cerr << "HTTP server error: " << e.what() << endl;
+    }
     cout << "http_server thread exiting." << endl; 
 }
 

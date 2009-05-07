@@ -299,27 +299,34 @@ boffin::parseFail(std::string line, int error_offset)
 //             [1] = "tagcloud" or "rql"
 //             [2] = rql (optional)
 //
-playdar_response 
-boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
+bool
+boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth)
 {
-    if(req->parts().size() <= 1)
+    if(req.parts().size() <= 1)
         return "This plugin has no web interface.";
     
     rq_ptr rq;
-    if( req->parts()[1] == "tagcloud" )
+    if( req.parts()[1] == "tagcloud" )
     {
         rq = BoffinRQUtil::buildTagCloudRequest(
-            req->parts().size() > 2 ? 
-                playdar::utils::url_decode( req->parts()[2] ) : 
+            req.parts().size() > 2 ? 
+                playdar::utils::url_decode( req.parts()[2] ) : 
                 "*" );
     }
-    else if( req->parts()[1] == "rql" && req->parts().size() > 2)
+    else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req->parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
+    }
+    else
+    {
+        return false;
     }
 
     if( !rq )
-        return "Error!";
+    {
+        resp = "Error!";
+        return true;
+    }
     
     rq->set_from_name( m_pap->hostname() );
     
@@ -331,12 +338,23 @@ boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     
     
     std::string s1, s2;
-    if(req->getvar_exists("jsonp")){ // wrap in js callback
-        s1 = req->getvar("jsonp") + "(";
+    if(req.getvar_exists("jsonp")){ // wrap in js callback
+        s1 = req.getvar("jsonp") + "(";
         s2 = ");\n";
     }
     
     ostringstream os;
     write_formatted( r, os );
-    return playdar_response( s1 + os.str() + s2, false );
+    resp = playdar_response( s1 + os.str() + s2, false );
+    return true;
 }
+
+json_spirit::Object 
+boffin::get_capabilities() const
+{
+    json_spirit::Object o;
+    o.push_back( json_spirit::Pair( "plugin", name() ));
+    o.push_back( json_spirit::Pair( "description", "Tag and RQL goodness."));
+    return o;
+}
+

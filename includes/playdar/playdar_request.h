@@ -19,10 +19,14 @@
 #ifndef __PLAYDAR_REQUEST_H__
 #define __PLAYDAR_REQUEST_H__
 
-#include <moost/http.hpp>
 #include <vector>
 #include <map>
 #include <string>
+
+// forward declaration
+namespace moost { namespace http {
+    struct request;
+}}
 
 namespace playdar {
 

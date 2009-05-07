@@ -1,5 +1,6 @@
 ADD_LIBRARY( api SHARED
              api.cpp
+             ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp             
            )
 
 # Ensure the shared library file is called <CLASS NAME>.resolver

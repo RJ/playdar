@@ -171,13 +171,13 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
     return candidates;
 }
 
-playdar_response 
-local::authed_http_handler(const playdar_request* req, playdar::auth* pauth) 
+bool
+local::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth) 
 { 
     using namespace json_spirit;
     ostringstream response;
-    if( req->parts().size() > 1 &&
-        req->parts()[1] == "list_artists" )
+    if( req.parts().size() > 1 &&
+        req.parts()[1] == "list_artists" )
     {
         vector< artist_ptr > artists = m_library->list_artists();
         Array qresults;
@@ -191,11 +191,11 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
         Object jq;
         jq.push_back( Pair("results", qresults) );
         write_formatted( jq, response );
-    } else if(req->parts()[1] == "list_artist_tracks" && 
-                req->getvar_exists("artistname")) 
+    } else if(req.parts()[1] == "list_artist_tracks" && 
+                req.getvar_exists("artistname")) 
     { 
         Array qresults; 
-        artist_ptr artist = m_library->load_artist( req->getvar("artistname") ); 
+        artist_ptr artist = m_library->load_artist( req.getvar("artistname") ); 
         if(artist) 
         { 
             vector< track_ptr > tracks = m_library->list_artist_tracks(artist); 
@@ -211,14 +211,14 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
         jq.push_back( Pair("results", qresults) ); 
         write_formatted( jq, response ); 
     } else {
-        return "FAIL";
+        return false;
     }
 
 
     string retval;
-    if( req->getvar_exists( "jsonp" ))
+    if( req.getvar_exists( "jsonp" ))
     {
-        retval = req->getvar( "jsonp" );
+        retval = req.getvar( "jsonp" );
         retval += "(" ;
         retval += response.str();
         retval += ");\n";
@@ -227,14 +227,15 @@ local::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
     {
         retval = response.str();
     }
-    return playdar_response( retval, false );
+    resp = playdar_response( retval, false );
+    return true;
 } 
 
-playdar_response 
-local::anon_http_handler(const playdar_request* req) 
+bool 
+local::anon_http_handler(const playdar_request& req, playdar_response& resp) 
 { 
-   if( req->parts().size() > 1 &&
-       req->parts()[1] == "stats" )
+   if( req.parts().size() > 1 &&
+       req.parts()[1] == "stats" )
    {
        std::ostringstream reply; 
        reply   << "<h2>Local Library Stats</h2>" 
@@ -244,9 +245,19 @@ local::anon_http_handler(const playdar_request* req)
                            << "<tr><td>Albums</td><td>" << m_library->num_albums() << "</td></tr>\n" 
                            << "<tr><td>Tracks</td><td>" << m_library->num_tracks() << "</td></tr>\n" 
                << "</table>";
-       return reply.str();
+       resp = reply.str();
+       return true;
    }
-   return "This plugin has no web interface. TODO: change me to a 404"; 
+   return false; 
+}
+
+json_spirit::Object 
+local::get_capabilities() const
+{
+    json_spirit::Object o;
+    o.push_back( json_spirit::Pair( "plugin", name() ));
+    o.push_back( json_spirit::Pair( "description", "Resolve music tracks against your local library."));
+    return o;
 }
 
 }}

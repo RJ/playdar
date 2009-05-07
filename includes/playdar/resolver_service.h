@@ -75,19 +75,24 @@ public:
     /// this is important if you are holding any state, or a copy of the RQ pointer.
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
-    virtual playdar_response authed_http_handler(const playdar_request* req, playdar::auth* pauth)
+    /// Called when an authenticated http request is made.
+    /// @return true if http request is handled. 
+    /// @param out should be set to the required http response
+    virtual bool authed_http_handler(const playdar_request& req, playdar_response& out, playdar::auth* pauth)
     { 
-        playdar_response r( "", false );
-        r.set_response_code( 404 ); 
-        return r;
+       return false;
     }
     
-    virtual playdar_response anon_http_handler(const playdar_request*)
+    /// Called when a non authenticated http request is made or an
+    /// authenticated request is made but not handled by authed_http_handler.
+    /// @return true if http request is handled. 
+    /// @param out should be set to the required http response
+    virtual bool anon_http_handler(const playdar_request&, playdar_response& out)
     { 
-        playdar_response r( "", false );
-        r.set_response_code( 404 );
-        return r;
+       return false;
     }
+
+    virtual json_spirit::Object get_capabilities() const{ return json_spirit::Object();}
 
 };
 

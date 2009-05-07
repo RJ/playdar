@@ -67,6 +67,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
+    m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
@@ -127,19 +128,29 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
         !req.getvar_exists("name") )
                 return;
 
-    map<string, string> vars;
-    string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
-    string ftoken   = app()->resolver()->gen_uuid();
+    string ftoken = app()->resolver()->gen_uuid();
     m_pauth->add_formtoken( ftoken );
-    vars["<%URL%>"]="";
-    if(req.getvar_exists("receiverurl"))
-    {
-        vars["<%URL%>"] = req.getvar("receiverurl");
+
+    if (req.getvar_exists("json")) {
+        // json response
+        json_spirit::Object o;
+        o.push_back( json_spirit::Pair( "formtoken", ftoken ));
+        rep.content = json_spirit::write_formatted(o);
+        rep.set_status( moost::http::reply::ok );
+    } else {
+        // webpage response
+        map<string, string> vars;
+        vars["<%URL%>"]="";
+        if(req.getvar_exists("receiverurl"))
+        {
+            vars["<%URL%>"] = req.getvar("receiverurl");
+        }
+        vars["<%FORMTOKEN%>"]=ftoken;
+        vars["<%WEBSITE%>"]=req.getvar("website");
+        vars["<%NAME%>"]=req.getvar("name");
+        string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
+        serve_dynamic(rep, filename, vars);
     }
-    vars["<%FORMTOKEN%>"]=ftoken;
-    vars["<%WEBSITE%>"]=req.getvar("website");
-    vars["<%NAME%>"]=req.getvar("name");
-    serve_dynamic(rep, filename, vars);
 }
 
 
@@ -162,12 +173,21 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )
         {
-            map<string,string> vars;
-            string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
-            vars["<%WEBSITE%>"]=req.postvar("website");
-            vars["<%NAME%>"]=req.postvar("name");
-            vars["<%AUTHCODE%>"]=tok;
-            serve_dynamic(rep, filename, vars);
+            if (req.postvar_exists("json")) {
+                // json response
+                json_spirit::Object o;
+                o.push_back( json_spirit::Pair( "authtoken", tok ));
+                rep.content = json_spirit::write_formatted(o);
+                rep.set_status( moost::http::reply::ok );
+            } else {
+                // webpage response
+                map<string,string> vars;
+                vars["<%WEBSITE%>"]=req.postvar("website");
+                vars["<%NAME%>"]=req.postvar("name");
+                vars["<%AUTHCODE%>"]=tok;
+                string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
+                serve_dynamic(rep, filename, vars);
+            }
         }
         else
         {
@@ -320,10 +340,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         //cout << "AUTH: no auth value provided." << endl;
     }
 
+    playdar_response resp;
     if( permissions == "*" )
-        serve_body( rs->authed_http_handler( &req, m_pauth ), rep );
+        rs->authed_http_handler( req, resp, m_pauth ) || rs->anon_http_handler( req, resp );
     else
-        serve_body( rs->anon_http_handler( &req ), rep );
+        rs->anon_http_handler( req, resp );
+
+    if( resp.is_valid() )
+        serve_body( resp, rep );
+    else
+        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+    
 }
 
 void 
@@ -628,6 +655,23 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
     cerr << "Failed to parse JSON" << endl;
     rep.content = "error";
     return;
+}
+
+void 
+playdar_request_handler::handle_capabilities(const playdar_request& req, moost::http::reply& rep)
+{
+    using namespace json_spirit;
+    ostringstream responsestream;
+    json_spirit::Array a;
+    BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
+    {
+        json_spirit::Object o = pap->rs()->get_capabilities();
+        if( !o.empty() )
+            a.push_back( o );
+    }
+    write_formatted( a, responsestream );
+
+    rep.content = responsestream.str();
 }
 
 void
