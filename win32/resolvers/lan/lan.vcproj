@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="playdar-scanner"
-	ProjectGUID="{0788484F-E6F4-4EED-973F-864896B4F09C}"
-	RootNamespace="scanner"
+	Name="lan"
+	ProjectGUID="{D5D21915-3358-4992-BDA1-E50E2D5C7BCF}"
+	RootNamespace="lan"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,8 +40,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;;../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN;NOMINMAX"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LAN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -61,12 +61,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="tag.lib sqlite3ppd.lib sqlite-amalgamationd.lib json_spiritd.lib"
-				OutputFile="..\bin\$(ProjectName)d.exe"
+				AdditionalDependencies="json_spiritd.lib"
+				OutputFile="..\..\..\plugins\$(ProjectName)d.resolver"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../lib"
+				AdditionalLibraryDirectories="../../lib"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -98,7 +98,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -119,8 +119,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../includes;../../deps/boost.uuid;../../deps/boost.process;../../deps/json_spirit_v3.00;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/pdl-0.3.0/include&quot;;../../deps/moost_http/include;&quot;../../deps/uriparser-0.7.5/include&quot;;&quot;../../deps/taglib-1.5&quot;;&quot;../../deps/taglib-1.5/taglib/toolkit&quot;;../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN;NOMINMAX"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LAN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -138,13 +138,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib  curllib.lib tag.lib"
-				OutputFile="..\bin\$(ProjectName).exe"
+				AdditionalDependencies="json_spirit.lib"
+				OutputFile="..\..\..\plugins\$(ProjectName).resolver"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../lib"
-				IgnoreDefaultLibraryNames=""
+				AdditionalLibraryDirectories="../../lib"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -184,11 +183,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\src\library.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\scanner\scanner.cpp"
+				RelativePath="..\..\..\resolvers\lan\lan.cpp"
 				>
 			</File>
 		</Filter>
@@ -197,6 +192,14 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\..\resolvers\lan\lan.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\includes\playdar\playdar_plugin_include.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
