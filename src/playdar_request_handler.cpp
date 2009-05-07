@@ -128,19 +128,29 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
         !req.getvar_exists("name") )
                 return;
 
-    map<string, string> vars;
-    string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
-    string ftoken   = app()->resolver()->gen_uuid();
+    string ftoken = app()->resolver()->gen_uuid();
     m_pauth->add_formtoken( ftoken );
-    vars["<%URL%>"]="";
-    if(req.getvar_exists("receiverurl"))
-    {
-        vars["<%URL%>"] = req.getvar("receiverurl");
+
+    if (req.getvar_exists("json")) {
+        // json response
+        json_spirit::Object o;
+        o.push_back( json_spirit::Pair( "formtoken", ftoken ));
+        rep.content = json_spirit::write_formatted(o);
+        rep.set_status( moost::http::reply::ok );
+    } else {
+        // webpage response
+        map<string, string> vars;
+        vars["<%URL%>"]="";
+        if(req.getvar_exists("receiverurl"))
+        {
+            vars["<%URL%>"] = req.getvar("receiverurl");
+        }
+        vars["<%FORMTOKEN%>"]=ftoken;
+        vars["<%WEBSITE%>"]=req.getvar("website");
+        vars["<%NAME%>"]=req.getvar("name");
+        string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
+        serve_dynamic(rep, filename, vars);
     }
-    vars["<%FORMTOKEN%>"]=ftoken;
-    vars["<%WEBSITE%>"]=req.getvar("website");
-    vars["<%NAME%>"]=req.getvar("name");
-    serve_dynamic(rep, filename, vars);
 }
 
 
@@ -163,12 +173,21 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )
         {
-            map<string,string> vars;
-            string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
-            vars["<%WEBSITE%>"]=req.postvar("website");
-            vars["<%NAME%>"]=req.postvar("name");
-            vars["<%AUTHCODE%>"]=tok;
-            serve_dynamic(rep, filename, vars);
+            if (req.postvar_exists("json")) {
+                // json response
+                json_spirit::Object o;
+                o.push_back( json_spirit::Pair( "authtoken", tok ));
+                rep.content = json_spirit::write_formatted(o);
+                rep.set_status( moost::http::reply::ok );
+            } else {
+                // webpage response
+                map<string,string> vars;
+                vars["<%WEBSITE%>"]=req.postvar("website");
+                vars["<%NAME%>"]=req.postvar("name");
+                vars["<%AUTHCODE%>"]=tok;
+                string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
+                serve_dynamic(rep, filename, vars);
+            }
         }
         else
         {
