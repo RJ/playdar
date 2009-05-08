@@ -42,15 +42,16 @@ public:
     
     virtual ~ResolvedItem(){};
     
-    json_spirit::Object get_json() const
+    json_spirit::Object get_json( bool stripUrl = false ) const
     {
         using namespace json_spirit;
         
         Object o;
-        map_to_obj( m_jsonmap, o);
+        map_to_obj( m_jsonmap, o );
         return o;
     }
     
+    void rm_json_value( const std::string& v ){ m_jsonmap.erase( v ); }
     const source_uid id() const         { return json_value( "sid", ""); }
     void set_id(const source_uid& s)    { set_json_value( "sid", s ); }
 
