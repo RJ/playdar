@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef _PLUGIN_ADAPTOR_IMPL_H_
 #define _PLUGIN_ADAPTOR_IMPL_H_
 
@@ -26,10 +44,16 @@ namespace playdar {
 class PluginAdaptorImpl : public PluginAdaptor
 {
 public:
-    PluginAdaptorImpl(Config * c, Resolver * r)
+    PluginAdaptorImpl(Config * c, Resolver * r, const std::string& className)
         : m_config(c), 
-          m_resolver(r)
+          m_resolver(r),
+          m_className( className )
     {
+    }
+    
+    virtual std::string playdar_version() const 
+    {
+        return VERSION;
     }
     
     virtual void set(const std::string& key, json_spirit::Value value)
@@ -37,6 +61,12 @@ public:
         // TODO
     }
     
+    // A short name used eg in url handler
+    virtual std::string classname() const
+    {
+        return m_className;
+    }
+
     virtual const std::string hostname() const
     {
         return m_config->name();
@@ -93,6 +123,26 @@ public:
     {
         return m_resolver->query_exists(qid); 
     }
+    
+    virtual std::vector< ri_ptr > get_results(query_uid qid)
+    {
+        return m_resolver->get_results(qid); 
+    }
+    
+    virtual rq_ptr rq(const query_uid & qid)
+    {
+        return m_resolver->rq(qid); 
+    }
+    
+    virtual int num_results(query_uid qid)
+    {
+        return m_resolver->num_results(qid); 
+    }
+    
+    virtual void cancel_query(const query_uid & qid)
+    {
+        m_resolver->cancel_query(qid); 
+    }
 
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq)
     { 
@@ -108,6 +158,7 @@ public:
 private:
     Config*   m_config;
     Resolver* m_resolver;
+    std::string m_className;
 };
 
 } // ns

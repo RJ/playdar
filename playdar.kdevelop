@@ -180,10 +180,10 @@
       <used>false</used>
       <version>3</version>
       <includestyle>3</includestyle>
-      <root></root>
+      <root>/usr/share/qt3</root>
       <designerintegration>EmbeddedKDevDesigner</designerintegration>
-      <qmake></qmake>
-      <designer></designer>
+      <qmake>/usr/bin/qmake-qt3</qmake>
+      <designer>/usr/bin/designer</designer>
       <designerpluginpaths/>
     </qt>
     <codecompletion>

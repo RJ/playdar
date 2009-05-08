@@ -1,6 +1,7 @@
 /*
     Playdar - music content resolver
     Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,3 +16,27 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#ifndef LIBRARY_FILE_H
+#define LIBRARY_FILE_H
+
+#include <string>
+
+namespace playdar {
+
+// a "File" from the playdar local library db
+class LibraryFile
+{
+public:
+    std::string url;
+    int size;
+    std::string mimetype;
+    int duration;
+    int bitrate;
+    int piartid;
+    int pialbid;
+    int pitrkid;
+};
+
+}
+
+#endif

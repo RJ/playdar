@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "lan.h"
 
 #include "playdar/resolver_query.hpp"
@@ -317,6 +335,7 @@ lan::send_response( query_uid qid,
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     Object result = rip->get_json();
+    //FIXME strip "url" (filename) from result object before sending!
     response.push_back( Pair("result", result) );
     ostringstream ss;
     write_formatted( response, ss );
@@ -461,16 +480,16 @@ bool endsWith(const std::string& s, const std::string& tail)
     return slen >= tlen ? (s.substr(slen - tlen) == tail) : false;
 }
 
-playdar_response 
-lan::anon_http_handler(const playdar_request* req)
+bool
+lan::anon_http_handler(const playdar_request& req, playdar_response& resp)
 {
-    cout << "request handler on lan for url: " << req->url() << endl;
+    cout << "request handler on lan for url: " << req.url() << endl;
 
     time_t now;
     time(&now);
     typedef std::pair<string, lannode> LanPair;
 
-    if (endsWith(req->url(), "roster")) { 
+    if (endsWith(req.url(), "roster")) { 
         Array a;
         BOOST_FOREACH(const LanPair& p, m_lannodes)
         {
@@ -483,7 +502,8 @@ lan::anon_http_handler(const playdar_request* req)
         }
         ostringstream os;
         write_formatted(a, os);
-        return playdar_response(os.str(), false);
+        resp = playdar_response(os.str(), false);
+        return true;
     }
 
     ostringstream os;
@@ -503,7 +523,8 @@ lan::anon_http_handler(const playdar_request* req)
     }
     os  << "</ul></p>" << endl;
     
-    return os.str();
+    resp = os.str();
+    return true;
 }
 
 

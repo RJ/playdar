@@ -1,10 +1,9 @@
 #ifndef __MOOST_HTTP_FILESYSTEM_REQUEST_HANDLER_HPP__
 #define __MOOST_HTTP_FILESYSTEM_REQUEST_HANDLER_HPP__
 
-#include "moost/http/request_handler_base.hpp"
-#include <boost/noncopyable.hpp>
 #include <string>
-
+#include <boost/noncopyable.hpp>
+#include "moost/http/request_handler_base.hpp"
 
 namespace moost { namespace http {
 

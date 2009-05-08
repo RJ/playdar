@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "playdar/application.h"
 
 #include <sstream>
@@ -13,9 +31,7 @@
 
 #include "playdar/resolver.h"
 
-#include "playdar/rs_local_library.h"
 #include "playdar/rs_script.h"
-#include "playdar/library.h"
 
 // Generic track calculation stuff:
 #include "playdar/track_rq_builder.hpp"
@@ -53,9 +69,6 @@ Resolver::Resolver(MyApplication * app)
     
     // Initialize built-in curl SS facts:
     detect_curl_capabilities();
-    
-    // Initialize built-in local library resolver:
-    load_library_resolver();
 
     // Load all non built-in resolvers:
     try
@@ -116,29 +129,6 @@ Resolver::detect_curl_capabilities()
     }
 }
 
-void
-Resolver::load_library_resolver()
-{
-    pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
-    
-    ResolverService * rs = new RS_local_library();
-    
-    // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)rs)->set_app(app());
-    pap->set_rs( rs );
-    pap->set_weight( rs->weight() );
-    pap->set_preference( rs->preference() );
-    pap->set_targettime( rs->target_time() );
-    
-    if( rs->init(pap) )
-    {
-        m_resolvers.push_back( pap );
-    }else{
-        cerr << "Couldn't load local library resolver. This is bad." 
-             << endl;
-    }
-}
-
 
 Resolver::~Resolver()
 {
@@ -153,6 +143,11 @@ Resolver::~Resolver()
 bool
 Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
 {
+    // this first check is really just cosmetic
+    // the sorting looks nicer this way:
+    if( lhs->weight() == rhs->weight() )
+        return lhs->targettime() < rhs->targettime();
+    // this is the important bit that orders the pipeline:
     return lhs->weight() > rhs->weight();
 }
 
@@ -190,7 +185,7 @@ Resolver::load_resolver_scripts()
 
             cout << "-> Loading: " << name << endl;
             
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, name ) );
             pap->set_script( true );
             pap->set_scriptpath( i->path().string() );
             ResolverService * rs = new playdar::resolvers::rs_script();
@@ -265,7 +260,7 @@ Resolver::load_resolver_plugins()
             ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, classname ) );
             if( ! instance->init(pap) )
             {
                 cerr << "-> ERROR couldn't initialize." << endl;
@@ -465,6 +460,16 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
 }
 
 
+string 
+Resolver::sortname(const string& name) 
+{ 
+    string data(name); 
+    std::transform(data.begin(), data.end(), data.begin(), ::tolower); 
+    boost::trim(data); 
+    return data; 
+}
+
+
 /// caluclate score 0-1 based on how similar the names are.
 /// string similarity algo that combines art,alb,trk from the original
 /// query (rq) against a potential match (pi).
@@ -489,11 +494,11 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
     unsigned int trked = playdar::utils::levenshtein( 
-                                                     Library::sortname(trk),
-                                                     Library::sortname(o_trk));
+                                                     sortname(trk),
+                                                     sortname(o_trk));
     unsigned int arted = playdar::utils::levenshtein( 
-                                                     Library::sortname(art),
-                                                     Library::sortname(o_art));
+                                                     sortname(art),
+                                                     sortname(o_art));
     // tolerances:
     float tol_art = 1.5;
     float tol_trk = 1.5;

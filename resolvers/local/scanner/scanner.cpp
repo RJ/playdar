@@ -1,5 +1,3 @@
-#include "playdar/library.h"
-
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 
@@ -9,8 +7,7 @@
 
 #include <sqlite3.h>
 
-#include "playdar/application.h"
-#include "playdar/library.h"
+#include "../library.h"
 
 #include "playdar/utils/urlencoding.hpp"
 
@@ -230,7 +227,7 @@ int main(int argc, char* argv[])
 #endif
 {
     if (argc<3 || argc==1) {
-        cerr<<"Usage: "<<argv[0] << " <collection.db> <scan_dir>"<<endl;
+        cerr<<"Usage: "<< toUtf8(argv[0]) << " <collection.db> <scan_dir>"<<endl;
         return 1;
     }
     try {
@@ -242,7 +239,7 @@ int main(int argc, char* argv[])
         cout << mtimes.size() << " files+dir mtimes loaded" << endl;
         cout << "Scanning for changes..." << endl;
         Path dir(argv[2]);
-        sqlite3pp::transaction xct(*(gLibrary->db()));
+        sqlite3pp::transaction xct(gLibrary->db());
         {
             // first scan for mp3/aac/etc files:
             try

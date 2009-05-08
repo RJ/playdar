@@ -1,3 +1,20 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "BoffinDb.h"
 #include "boffin_sql.h"
 
@@ -77,7 +94,9 @@ BoffinDb::get_tag_cloud(int limit)
         "SELECT name, sum(weight), count(weight) "
         "FROM track_tag "
         "INNER JOIN tag ON track_tag.tag = tag.rowid "
-        "GROUP BY tag.rowid");
+        "GROUP BY tag.rowid "
+        "LIMIT ?");
+    qry.bind(1, limit);
 
     boost::shared_ptr<TagCloudVec> p( new TagCloudVec() );
     float maxWeight = 0;
@@ -86,11 +105,11 @@ BoffinDb::get_tag_cloud(int limit)
         maxWeight = max( maxWeight, p->back().get<1>() );
     }
     
-    if (maxWeight > 0) {
-        for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
-            i->get<1>() = i->get<1>() / maxWeight;
-        }
-    }
+    //if (maxWeight > 0) {
+    //    for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
+    //        i->get<1>() = i->get<1>() / maxWeight;
+    //    }
+    //}
     
     return p;
 }

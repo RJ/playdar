@@ -1,7 +1,25 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __RESOLVED_ITEM_BUILDER_H__
 #define __RESOLVED_ITEM_BUILDER_H__
 #include "playdar/resolved_item.h"
-#include "playdar/library.h"
+#include "library.h"
 
 namespace playdar {
 
@@ -18,9 +36,9 @@ public:
         return createFromFid( lib.db(), fid );
     }
     
-    static ri_ptr createFromFid( sqlite3pp::database* db, int fid )
+    static ri_ptr createFromFid( sqlite3pp::database& db, int fid )
     {
-        LibraryFile_ptr file( Library::file_from_fid( db, fid) );
+        LibraryFile_ptr file( Library::file_from_fid(db, fid) );
         
         ri_ptr rip( new ResolvedItem() );
         rip->set_json_value( "mimetype", file->mimetype );

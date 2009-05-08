@@ -1,16 +1,17 @@
 #ifndef __MOOST_HTTP_CONNECTION_HPP__
 #define __MOOST_HTTP_CONNECTION_HPP__
 
-#include "moost/http/reply.hpp"
-#include "moost/http/request.hpp"
-#include "moost/http/request_handler_base.hpp"
-#include "moost/http/request_parser.hpp"
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
+
+#include "moost/http/reply.hpp"
+#include "moost/http/request.hpp"
+#include "moost/http/request_handler_base.hpp"
+#include "moost/http/request_parser.hpp"
 
 namespace moost { namespace http {
 
@@ -38,8 +39,10 @@ private:
 
   /// Handle completion of a write operation.
   void handle_write(const boost::system::error_code& e);
+
   /// Handle completion of headers-sent, then wait on body.
-  void handle_write_stream (const boost::system::error_code& e,boost::shared_ptr<playdar::StreamingStrategy> ss, char * scratch);
+  void handle_write_content_fun( const boost::system::error_code& e );
+
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
 
@@ -50,7 +53,9 @@ private:
   request_handler_base<RequestHandler>& request_handler_;
 
   /// Buffer for incoming data.
-  boost::array<char, 8192> buffer_;
+  static const int buffer_size_ = 8192; //TODO make configurable?
+  char buffer_[buffer_size_];
+  //boost::array<char, 8192> buffer_;
 
   /// The incoming request.
   request request_;
@@ -74,63 +79,43 @@ connection<RequestHandler>::connection(boost::asio::io_service& io_service,
 template<class RequestHandler>
 void connection<RequestHandler>::start()
 {
-  socket_.async_read_some(boost::asio::buffer(buffer_),
+  socket_.async_read_some(boost::asio::buffer(buffer_, buffer_size_),
       strand_.wrap(
         boost::bind(&connection<RequestHandler>::handle_read, connection<RequestHandler>::shared_from_this(),
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred)));
 }
 
-      
 template<class RequestHandler>
-void connection<RequestHandler>::handle_read(const boost::system::error_code& e,
-    std::size_t bytes_transferred)
+void connection<RequestHandler>::handle_read( const boost::system::error_code& e,
+                                              std::size_t bytes_transferred )
 {
   if (!e)
   {
     boost::tribool result;
     boost::tie(result, boost::tuples::ignore) = request_parser_.parse(
-        request_, buffer_.data(), buffer_.data() + bytes_transferred);
-
-    if (result)
+        request_, buffer_, buffer_ + bytes_transferred);
+   
+    if ( boost::indeterminate(result) )
     {
-      request_handler_.handle_request_base(request_, reply_);
-      if(!reply_.streaming()) // normal request
-      {
-        // send all data, then call the shutdown handler
-        boost::asio::async_write(socket_, reply_.to_buffers(),
-            strand_.wrap(
-                boost::bind(&connection<RequestHandler>::handle_write, connection<RequestHandler>::shared_from_this(),
-                boost::asio::placeholders::error)));
-      }
-      else // streaming enabled, use the streamingstrategy.
-      {
-        boost::shared_ptr<playdar::StreamingStrategy> ss = reply_.get_ss();
-        std::cout << "sending headers.." << std::endl;
-        boost::asio::async_write(socket_, reply_.to_buffers(false),
-            strand_.wrap(
-            boost::bind(&connection<RequestHandler>::handle_write_stream,             connection<RequestHandler>::shared_from_this(),
-                        boost::asio::placeholders::error, ss, (char*)0))
-                        );
-      }
-      
-    }
-    else if (!result)
-    {
-      reply_ = reply::stock_reply(reply::bad_request);
-      boost::asio::async_write(socket_, reply_.to_buffers(),
+      // need to read more
+      socket_.async_read_some(boost::asio::buffer(buffer_, buffer_size_),
           strand_.wrap(
-            boost::bind(&connection<RequestHandler>::handle_write, connection<RequestHandler>::shared_from_this(),
-              boost::asio::placeholders::error)));
-    }
-    else
-    {
-      socket_.async_read_some(boost::asio::buffer(buffer_),
-          strand_.wrap(
-            boost::bind(&connection<RequestHandler>::handle_read, connection<RequestHandler>::shared_from_this(),
+            boost::bind(&connection<RequestHandler>::handle_read, this->shared_from_this(),
               boost::asio::placeholders::error,
               boost::asio::placeholders::bytes_transferred)));
+      return; // we're all done here!
     }
+
+    if ( result )
+       request_handler_.handle_request_base(request_, reply_);
+    else if ( !result )
+       reply_ = reply::stock_reply(reply::bad_request);
+
+    boost::asio::async_write(socket_, reply_.to_buffers_headers(),
+         strand_.wrap(
+           boost::bind(&connection<RequestHandler>::handle_write, this->shared_from_this(),
+             boost::asio::placeholders::error)));
   }
 
   // If an error occurs then no new asynchronous operations are started. This
@@ -148,81 +133,52 @@ boost::asio::ip::tcp::socket& connection<RequestHandler>::socket()
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write(const boost::system::error_code& e)
 {
-  if (!e)
+  if ( e )
   {
-    // Initiate graceful connection closure.
-    boost::system::error_code ignored_ec;
-    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+     return;
   }
+
+  if ( !reply_.has_content_fun() )
+  {
+     // all done here!
+     // Initiate graceful connection closure.
+     boost::system::error_code ignored_ec;
+     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+  }
+  else
+  {
+     this->handle_write_content_fun( e );
+  }
+  // No new asynchronous operations are started. This means that all shared_ptr
+  // references to the connection object will disappear and the object will be
+  // destroyed automatically after this handler returns. The connection class's
+  // destructor closes the socket.
 }
 
-/// Used when handler sends headers first, then streams body.
+
 template<class RequestHandler>
-void connection<RequestHandler>::handle_write_stream 
-    ( const boost::system::error_code& e, 
-      boost::shared_ptr<playdar::StreamingStrategy> ss,
-     char * scratch)
+void connection<RequestHandler>::handle_write_content_fun( const boost::system::error_code& e )
 {
-    //std::cout << "handle_write_stream" << std::endl;
-    if(scratch)
-    {
-        // free previous buffer
-        free(scratch);
-    }
-    do
-    {
-        if (!e)
-        {
-            //std::cout << "Reading SS...." << std::endl;
-            if(!scratch)
-            {
-                // scratch is 0 the first time.
-                std::cout << "Initiating ss delivery.." << std::endl;
-            }
-        
-            if(!ss)
-            {
-                std::cout << "StreamingStrat went away?" << std::endl;
-                break;
-            }
-            const size_t maxbuf = 4096 * 2;
-            char * buf = (char*)malloc(maxbuf);
-            int len, total=0;
-            try
-            {
-                len = ss->read_bytes(buf, maxbuf);
-                if(len > 0)
-                {
-                    total += len;
-                    //std::cout << "Sending " << len << " bytes.. " << std::endl;
-                    boost::asio::async_write(socket_, boost::asio::buffer(buf, len),
-                       strand_.wrap(
-                        boost::bind(&connection<RequestHandler>::handle_write_stream, connection<RequestHandler>::shared_from_this(),
-                        boost::asio::placeholders::error, ss, buf)
-                       ));
-                    return;
-                }
-                // end of stream..
-                std::cout << "EOS(" << ss->debug() << ")" << std::endl;
-            }
-            catch(...)
-            {
-                std::cout << "StreamingStrat threw an error. " << std::endl;
-                break;
-            }
-        }
-        else
-        {
-            // this might happen if you hit stop or your browser just aborts the connection halfway.
-            std::cout << "handle_write_stream error for " << ss->debug() 
-                 << std::endl;
-            break;
-        }
-    }while(false);
-    
-    //std::cout << "Shutting down socket." << std::endl;
-    boost::system::error_code ignored_ec;
-        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+  if ( e )
+  {
+    return; 
+  }
+
+  size_t read = reply_.read_some(buffer_, buffer_size_);
+  if ( read == 0 )
+  {
+     // all done here!
+     // Initiate graceful connection closure.
+     boost::system::error_code ignored_ec;
+     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+     return;
+  }
+
+  boost::asio::async_write(socket_, boost::asio::buffer(buffer_, read),
+     strand_.wrap(
+         boost::bind(&connection<RequestHandler>::handle_write_content_fun, this->shared_from_this(),
+                      boost::asio::placeholders::error)
+     ));
 }
 
 
