@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "scanner", "scanner\scanner.
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "boffin", "boffin\boffin.vcproj", "{028305E0-4194-44EB-BDA9-0F87544FA394}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tagger", "tagger\tagger.vcproj", "{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -37,6 +39,10 @@ Global
 		{028305E0-4194-44EB-BDA9-0F87544FA394}.Debug|Win32.Build.0 = Debug|Win32
 		{028305E0-4194-44EB-BDA9-0F87544FA394}.Release|Win32.ActiveCfg = Release|Win32
 		{028305E0-4194-44EB-BDA9-0F87544FA394}.Release|Win32.Build.0 = Release|Win32
+		{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}.Debug|Win32.Build.0 = Debug|Win32
+		{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}.Release|Win32.ActiveCfg = Release|Win32
+		{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
