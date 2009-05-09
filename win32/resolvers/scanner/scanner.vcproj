@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib tag.lib"
+				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib tagd.lib"
 				OutputFile="..\..\bin\$(ProjectName)d.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../lib"
