@@ -39,6 +39,10 @@ namespace playdar
             virtual void Destroy();
             virtual std::string name() const { return "Audioscrobbler"; }
             virtual bool authed_http_handler(const playdar_request&, playdar_response&, playdar::auth* pauth);
+            virtual bool anon_http_handler(const playdar_request&, playdar_response& );
+            // we don't do any actual resolving:
+            virtual unsigned short weight() const { return 0; }
+            virtual unsigned int target_time() const { return 0; }
 
         private:
             /** pure virtual, so reimplemented but does nothing */
