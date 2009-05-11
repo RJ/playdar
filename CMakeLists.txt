@@ -16,7 +16,7 @@ SET(CMAKE_INSTALL_PREFIX "/usr/local")
 # then: cd build/ && rm -rf CMakeCache.txt CMakeFiles/ cmake_install.cmake resolvers/
 # then: cmake .. ; make
 # alternatively, recompile boost with -fPIC
-SET(Boost_USE_STATIC_LIBS ON)
+SET(Boost_USE_STATIC_LIBS OFF)
 
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)
