@@ -30,7 +30,7 @@
 #include "../local/library.h"
 #include "../local/resolved_item_builder.hpp"
 #include "playdar/playdar_request.h"
-#include "BoffinRQUtil.h"
+#include "BoffinRqUtil.hpp"
 
 using namespace fm::last::query_parser;
 using namespace std;
@@ -305,17 +305,22 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     if(req.parts().size() <= 1)
         return "This plugin has no web interface.";
     
+    std::string comet_session_id;
+    if (req.getvar_exists("comet_session_id"))
+        comet_session_id = req.getvar("comet_session_id");
+
     rq_ptr rq;
     if( req.parts()[1] == "tagcloud" )
     {
-        rq = BoffinRQUtil::buildTagCloudRequest(
+        std::string rql(
             req.parts().size() > 2 ? 
-                playdar::utils::url_decode( req.parts()[2] ) : 
-                "*" );
+            playdar::utils::url_decode( req.parts()[2] ) : 
+            "*" );
+        rq = BoffinRQUtil::buildTagCloudRequest(rql, comet_session_id);
     }
     else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ), comet_session_id );
     }
     else
     {

@@ -114,6 +114,8 @@ public:
     
     void dispatch_runner();
     
+    bool create_comet_session(const std::string& sessionId, rq_callback_t cb);
+
 protected:
 
 
@@ -165,6 +167,9 @@ private:
     boost::shared_ptr<T> ss_ptr_generator(std::string url);
     
     mutable playdar::utils::uuid_gen m_uuid_gen;
+
+    boost::mutex m_comets_mutex;
+    std::map< std::string, rq_callback_t > m_comets;
 };
 
 }

@@ -38,6 +38,7 @@
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/pluginadaptor.h"
 #include "playdar/utils/urlencoding.hpp"
+#include "playdar/CometSession.hpp"
 
 namespace playdar {
 
@@ -68,6 +69,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
+    m_urlHandlers[ "comet" ] = boost::bind( &playdar_request_handler::handle_comet, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
@@ -740,6 +742,18 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     }
     rep.add_header( "Content-Type", "text/html" );
     rep.content = os.str(); 
+}
+
+void
+playdar_request_handler::handle_comet(const playdar_request& req, moost::http::reply& rep)
+{
+    if (req.getvar_exists("session")) {
+        const string& sessionId( req.getvar("session") );
+        CometSession* comet = new CometSession();        // todo: manage the lifetime of this!
+        m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2));
+        rep.set_content_fun( boost::bind(&CometSession::content_func, comet, _1, _2) );
+        rep.status = moost::http::reply::ok;
+    }
 }
 
 }
