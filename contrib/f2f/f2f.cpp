@@ -1,5 +1,7 @@
 #include "f2f.h"
 
+#include "f2f_ss.hpp"
+
 #include "playdar/resolver_query.hpp"
 #include "playdar/playdar_request.h"
 
@@ -25,18 +27,24 @@ f2f::init(pa_ptr pap)
     m_jbot->set_msg_received_callback(boost::bind(&f2f::msg_received, this, _1, _2));
     m_jbot_thread = boost::shared_ptr<boost::thread>
                         (new boost::thread(boost::bind(&jbot::start, m_jbot)));
-    // start thread that will dispatch queries:
-    m_msg_thread.reset( new boost::thread(boost::bind(&f2f::msg_runner, this)) );
+    
+    m_io = boost::shared_ptr< boost::asio::io_service >
+                            (new boost::asio::io_service);
+    m_work = boost::shared_ptr< boost::asio::io_service::work>
+                            (new boost::asio::io_service::work(*m_io));
+    for (std::size_t i = 0; i < 1/*thread count*/; ++i)
+    {
+        m_io_threads.create_thread(boost::bind(&boost::asio::io_service::run, m_io));
+    }
     return true;
 }
 
 f2f::~f2f() throw()
 {
-    m_exiting = true;
-    m_msg_cond.notify_all();
+    m_io->stop();
     m_jbot->stop();
     m_jbot_thread->join();
-    m_msg_thread->join();
+    m_io_threads.join_all();
 }
 
 void
@@ -71,57 +79,42 @@ f2f::msg_received( const string& msg, const string& from )
         boost::shared_ptr<ResolverQuery> rq;
         try {
             rq = ResolverQuery::from_json(qo);
-        } catch (...) { return; } // missing fields = invalid
+        }        
+        catch (...)
+        {
+            cout << "f2f: Missing fields in query json, discarding" << endl;
+            return;
+        }
         if( m_pap->query_exists(rq->id()) ) return; // QID already exists
         // dispatch query with our callback that will
         // respond to the searcher via an XMPP msg.
         rq_callback_t cb = boost::bind(&f2f::send_response, this, _1, _2, from);
         query_uid qid = m_pap->dispatch( rq, cb );
     }
-/*
     else if(msgtype == "result") // RESPONSE 
     {
         Object resobj = r["result"].get_obj();
         map<string,Value> resobj_map;
         obj_to_map(resobj, resobj_map);
         query_uid qid = r["qid"].get_str();
-        if(!m_pap->query_exists(qid))
-        {
-            cout << "lan: Ignoring response - QID invalid or expired" << endl;
-            break;
-        }
-        //cout << "lan: Got udp response." <<endl;
-
+        if(!m_pap->query_exists(qid)) return; // QID invalid/expired
+        
         vector< Object > final_results;
         try
         {
             ResolvedItem ri(resobj);
-            //FIXME this could be moved into the PlayableItem class perhaps
-            //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-            if( ri.has_json_value<string>("url")) 
-            {
-                ostringstream rbs;
-                rbs << "http://"
-                << sender_endpoint_.address()
-                << ":"
-                << sender_endpoint_.port()
-                << "/sid/"
-                << ri.id();
-                ri.set_url( rbs.str() );
-            }
+            ostringstream osurl;
+            osurl << "f2f://" << from << "#" << ri.id(); //TODO no SS for this yet ;)
+            ri.set_url( osurl.str() );
             final_results.push_back( ri.get_json() );
             m_pap->report_results( qid, final_results );
-            //cout    << "INFO Result from '" << rip->source()
-            //        <<"' for '"<< write_formatted( rip->get_json())
-            //        << endl;
         }
         catch (...)
         {
-            cout << "lan: Missing fields in response json, discarding" << endl;
-            break;
+            cout << "f2f: Missing fields in response json, discarding" << endl;
+            return;
         }
     }
-*/
 }
 
 /// fired when a new result is available for a running query:
@@ -132,8 +125,10 @@ f2f::send_response( query_uid qid, ri_ptr rip, const string& from )
     Object response;
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
+    ostringstream osurl;
+    osurl << "f2f://" << from << "#" << rip->id(); //TODO no SS for this yet ;)
+    rip->set_url( osurl.str() );
     Object result = rip->get_json();
-    //FIXME strip "url" (filename) from result object before sending!
     response.push_back( Pair("result", result) );
     ostringstream ss;
     write( response, ss );
@@ -144,45 +139,42 @@ f2f::send_response( query_uid qid, ri_ptr rip, const string& from )
 
 /// ran in a thread to dispatch msgs
 void
-f2f::msg_runner()
+f2f::process( rq_ptr rq )
 {
     try
     {
-        while(true)
+        if(rq && !rq->cancelled())
         {
-            rq_ptr rq;
-            {
-                boost::mutex::scoped_lock lk(m_msg_mutex);
-                if(m_msg_pending.size() == 0) m_msg_cond.wait(lk);
-                if(m_exiting) break;
-                rq = m_msg_pending.back();
-                m_msg_pending.pop_back();
-            }
-            if(rq && !rq->cancelled())
-            {
-                ostringstream os;
-                json_spirit::write( rq->get_json(), os );
-                m_jbot->broadcast_msg( os.str() );
-            }
+            ostringstream os;
+            json_spirit::write( rq->get_json(), os );
+            m_jbot->broadcast_msg( os.str() );
         }
     }
     catch(...)
     {
-        cout << "f2f msg_runner exiting." << endl;
+        cout << "f2f: error processing an RQ" << endl;
     }
 }
 
 void
 f2f::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 {
-    boost::mutex::scoped_lock lk(m_msg_mutex);
-    m_msg_pending.push_front( rq );
-    m_msg_cond.notify_one();
+    m_io->post( boost::bind(&f2f::process,this,rq) );
 }
 
 void 
 f2f::cancel_query(query_uid qid)
 {}
+
+/// return SS facts, ie our f2f xmpp one.
+map< std::string, boost::function<ss_ptr(std::string)> > 
+f2f::get_ss_factories()
+{
+    map< std::string, boost::function<ss_ptr(std::string)> > facts;
+    facts["f2f"] = boost::bind(&f2fStreamingStrategy::factory, _1, m_jbot);
+    return facts;
+}
+
 
 bool
 f2f::anon_http_handler(const playdar_request& req, playdar_response& resp)

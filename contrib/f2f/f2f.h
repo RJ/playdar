@@ -5,6 +5,7 @@
 #include <boost/regex.hpp>
 #include <boost/foreach.hpp>
 #include <boost/asio.hpp>
+
 #include <boost/thread.hpp>
 #include <boost/thread/condition.hpp>
 #include <iostream>
@@ -34,25 +35,24 @@ class f2f : public ResolverPlugin<f2f>
     unsigned short weight() const { return 25; }
     bool anon_http_handler(const playdar_request&, playdar_response& );
     
-    void msg_runner();
+    void process( rq_ptr rq );
     void msg_received( const std::string& msg, const std::string& from );
     void send_response( query_uid qid, ri_ptr rip, const std::string& from );
+    std::map< std::string, boost::function<ss_ptr(std::string)> > get_ss_factories();
+    
     
 protected:    
     virtual ~f2f() throw();
     
 private:
-
     pa_ptr m_pap;
 
     boost::shared_ptr< jbot > m_jbot;
     boost::shared_ptr< boost::thread > m_jbot_thread;
 
-    boost::shared_ptr< boost::thread > m_msg_thread;
-    std::deque<rq_ptr> m_msg_pending;
-    boost::mutex m_msg_mutex;
-    boost::condition m_msg_cond;
-    bool m_exiting;
+    boost::shared_ptr< boost::asio::io_service > m_io;
+    boost::thread_group m_io_threads;
+    boost::shared_ptr< boost::asio::io_service::work> m_work;
 };
 
 EXPORT_DYNAMIC_CLASS( f2f )

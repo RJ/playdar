@@ -1,5 +1,7 @@
 #include "jbot.h"
 #include <boost/foreach.hpp>
+#include <boost/thread.hpp>
+#include <boost/bind.hpp>
 
 using namespace gloox;
 using namespace std;
@@ -23,14 +25,41 @@ jbot::start()
 
     j->logInstance().registerLogHandler( LogLevelDebug, LogAreaAll, this );
 
+    f = new SIProfileFT( j, this );
+    // TODO obtain proxy servers via disco or config file.
+    //f->addStreamHost( JID( "proxy.jabber.org" ), "208.245.212.98", 7777 );
+    
+
     if ( j->connect( false ) )
     {
+        ConnectionError ce = ConnNoError;
+        while( ce == ConnNoError )
+        {
+          //if( m_quit )
+          //  j->disconnect();
+
+          ce = j->recv( 100 );
+          std::list<Bytestream*>::iterator it = m_bs.begin();
+          for( ; it != m_bs.end(); ++it )
+          {
+            ConnectionError ceb = (*it)->recv( 100 );
+            if( ceb != ConnNoError )
+            {
+                printf("Conn err: %d on bytestream, removing.\n", ceb);
+                m_bs.erase(it);
+                break;
+            }
+          }
+        }
+        printf( "ce: %d\n", ce );
+        /*
         ConnectionError ce = ConnNoError;
         while ( ce == ConnNoError )
         {
             ce = j->recv();
         }
         printf( "ce: %d\n", ce );
+        */
     }
 
     delete( j );
@@ -345,6 +374,79 @@ jbot::handleDiscoError( const JID& /*iq*/, const Error*, int /*context*/ )
     printf( "handleDiscoError\n" );
 }
 /// END DISCO STUFF
+
+/// FILE TRANSFER STUFF
+
+void 
+jbot::handleFTRequest(  const JID& from, const std::string& sid,
+                        const std::string& name, long size, const std::string& hash,
+                        const std::string& date, const std::string& mimetype,
+                        const std::string& desc, int /*stypes*/, long /*offset*/, long /*length*/ )
+{
+    printf( "received ft request from %s: %s (%ld bytes, sid: %s). hash: %s, date: %s, mime-type: %s\n"
+            "desc: %s\n",
+            from.full().c_str(), name.c_str(), size, sid.c_str(), hash.c_str(), date.c_str(),
+            mimetype.c_str(), desc.c_str() );
+    f->acceptFT( from, sid, SIProfileFT::FTTypeIBB );
+    //boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&jbot::receiver,this)));
+}
+
+void 
+jbot::handleFTRequestError( const IQ& /*iq*/, const std::string& /*sid*/ )
+{
+    printf( "ft request error\n" );
+}
+
+void 
+jbot::handleFTBytestream( Bytestream* bs )
+{
+    printf( "received bytestream type: %s\n", bs->type() == Bytestream::S5B ? "s5b" : "ibb" );
+    m_bs.push_back( bs );
+    bs->registerBytestreamDataHandler( this );
+    if( bs->connect() )
+    {
+        if( bs->type() == Bytestream::S5B )
+            printf( "ok! s5b connected to streamhost\n" );
+        else
+            printf( "ok! ibb sent request to remote entity\n" );
+    
+    }else{
+        printf("ERROR could not connect to bytestream\n");
+    }
+}
+
+const std::string 
+jbot::handleOOBRequestResult( const JID& /*from*/, const std::string& /*sid*/ )
+{
+    return std::string();
+};
+
+void 
+jbot::handleBytestreamData( Bytestream* /*s5b*/, const std::string& data )
+{
+    printf( "received %d bytes of data:\n%s\n", data.length(), data.c_str() );
+}
+
+void 
+jbot::handleBytestreamError( Bytestream* /*s5b*/, const IQ& /*stanza*/ )
+{
+    printf( "socks5 stream error\n" );
+}
+
+void 
+jbot::handleBytestreamOpen( Bytestream* /*s5b*/ )
+{
+    printf( "stream opened\n" );
+}
+
+void 
+jbot::handleBytestreamClose( Bytestream* /*s5b*/ )
+{
+    printf( "stream closed\n" );
+}
+
+
+/// END FILE TRANSFER STUFF
 
 
 int main( int argc, char** argv )

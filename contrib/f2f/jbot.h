@@ -22,6 +22,9 @@
 #include <gloox/connectionhttpproxy.h>
 #include <gloox/messagehandler.h>
 #include <gloox/rostermanager.h>
+#include <gloox/siprofileft.h>
+#include <gloox/siprofilefthandler.h>
+#include <gloox/bytestreamdatahandler.h>
 
 #include <boost/function.hpp>
 
@@ -46,7 +49,9 @@ class jbot
     public gloox::DiscoHandler,
     gloox::MessageHandler, 
     gloox::ConnectionListener, 
-    gloox::LogHandler
+    gloox::LogHandler,
+    gloox::SIProfileFTHandler, 
+    gloox::BytestreamDataHandler
 {
   public:
     jbot(std::string jid, std::string pass);
@@ -97,6 +102,21 @@ class jbot
     virtual void handleDiscoError( const gloox::JID& /*iq*/, const gloox::Error*, int /*context*/ );
     /// END DISCO STUFF
 
+    /// FILE TRANSFER STUFF
+    virtual void handleFTRequest( const gloox::JID& from, const std::string& sid,
+                                  const std::string& name, long size, const std::string& hash,
+                                  const std::string& date, const std::string& mimetype,
+                                  const std::string& desc, int /*stypes*/, long /*offset*/, long /*length*/ );
+    virtual void handleFTRequestError( const gloox::IQ& /*iq*/, const std::string& /*sid*/ );
+    void handleFTBytestream( gloox::Bytestream* bs );
+    const std::string handleOOBRequestResult( const gloox::JID& /*from*/, const std::string& /*sid*/ );
+    void handleBytestreamData( gloox::Bytestream* /*s5b*/, const std::string& data );
+    void handleBytestreamError( gloox::Bytestream* /*s5b*/, const gloox::IQ& /*stanza*/ );
+    void handleBytestreamOpen( gloox::Bytestream* /*s5b*/ );
+    void handleBytestreamClose( gloox::Bytestream* /*s5b*/ );
+    /// END FILE TRANSFER STUFF
+
+
   private:
     gloox::Client *j;
     std::string m_jid, m_pass;
@@ -108,5 +128,10 @@ class jbot
     };
     std::vector< PlaydarPeer > m_playdarpeers; // who is online with playdar capabilities
     boost::function<void(const std::string&, const std::string&)> m_msg_received_callback;
+    
+    /// FT stuff:
+    gloox::SIProfileFT* f;
+    gloox::SOCKS5BytestreamManager* s5b;
+    std::list<gloox::Bytestream*> m_bs;
 };
 #endif
