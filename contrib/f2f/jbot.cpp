@@ -13,7 +13,7 @@ jbot::start()
     JID jid( m_jid );
     j = new Client( jid, m_pass );
     j->registerConnectionListener( this );
-    j->registerMessageSessionHandler( this );
+    j->registerMessageHandler( this );
     j->rosterManager()->registerRosterListener( this );
     j->disco()->registerDiscoHandler( this );
 
@@ -21,7 +21,7 @@ jbot::start()
     j->disco()->setIdentity( "client", "bot" );
     j->disco()->addFeature( "playdar:resolver" );
 
-    j->logInstance().registerLogHandler( LogLevelWarning, LogAreaAll, this );
+    j->logInstance().registerLogHandler( LogLevelDebug, LogAreaAll, this );
 
     if ( j->connect( false ) )
     {
@@ -40,11 +40,42 @@ void
 jbot::stop()
 {
     j->disconnect();
-    BOOST_FOREACH( PlaydarPeer & p, m_playdarpeers )
+}
+
+/// send msg to specific jid
+void
+jbot::send_to( const string& to, const string& msg )
+{
+    Message m(Message::Chat, JID(to), msg, "");
+    j->send( m ); //FIXME no idea if this is threadsafe. need to RTFM
+}
+
+/// send msg to all playdarpeers
+void 
+jbot::broadcast_msg( const std::string& msg )
+{
+    const string subject = "";
+    BOOST_FOREACH( PlaydarPeer& p, m_playdarpeers )
     {
-        if(p.session) j->disposeMessageSession( p.session );
+        printf("Dispatching query to: %s\n", p.jid.full().c_str() );
+        Message m(Message::Chat, p.jid, msg, subject);
+        j->send( m );
     }
 }
+
+void 
+jbot::set_msg_received_callback( boost::function<void(const std::string&, const std::string&)> cb)
+{
+    m_msg_received_callback = cb;
+}
+
+void 
+jbot::clear_msg_received_callback()
+{
+    m_msg_received_callback = 0;
+}
+
+/// GLOOXY CALLBACKS FOLLOW
 
 void 
 jbot::onConnect()
@@ -76,25 +107,23 @@ jbot::onTLSConnect( const CertInfo& info )
 }
 
 void 
-jbot::handleMessage( const Message& msg, MessageSession * session )
+jbot::handleMessage( const Message& msg, MessageSession * /*session*/ )
 {
-    if( !session )
-    {
-        // Should not be possible.
-        printf("No msg session.\n");
-        return;
-    }
     printf( "from: %s, type: %d, subject: %s, message: %s, thread id: %s\n",
-            session->target().full().c_str(), msg.subtype(),
+            msg.from().full().c_str(), msg.subtype(),
             msg.subject().c_str(), msg.body().c_str(), msg.thread().c_str() );
 
-    if( session->target().bare() == JID(m_jid).bare() )
+    if( msg.from().bare() == JID(m_jid).bare() )
     {
         printf("Message is from ourselves/considered safe\n");
         //TODO admin interface using text commands? stats?
-        if ( msg.body() == "quit" ) stop();
+        if ( msg.body() == "quit" ) { stop(); return; }
     }
-
+    
+    if( m_msg_received_callback )
+    {
+        m_msg_received_callback( msg.body(), msg.from().full() );
+    }
 
 /*
     std::string re = "You said:\n> " + msg.body() + "\nI like that statement.";
@@ -120,28 +149,6 @@ jbot::handleMessage( const Message& msg, MessageSession * session )
     if ( msg.body() == "quit" )
         j->disconnect();
 */
-}
-
-void 
-jbot::handleMessageSession( MessageSession *session )
-{
-    printf( "got new session\n");
-    // if it's not in our list of playdar-enabled peers, we don't care.
-    BOOST_FOREACH( PlaydarPeer p, m_playdarpeers )
-    {
-        if( p.jid == session->target() )
-        {
-            if( p.session )
-            {
-                printf("Message session already exists. replacing.\n");
-                j->disposeMessageSession( p.session );
-            }
-            printf("Assigning message session for %s\n", session->target().full().c_str());
-            p.session = session;
-            p.session->registerMessageHandler( this );
-            break;
-        }
-    }
 }
 
 void 
@@ -239,7 +246,6 @@ jbot::handleRosterPresence( const RosterItem& item, const std::string& resource,
             if( it->jid == item.jid() )
             {
                 printf("Removing from playdarpeers\n");
-                j->disposeMessageSession( it->session );
                 m_playdarpeers.erase( it );
                 break;
             }
@@ -298,7 +304,7 @@ void
 jbot::handleDiscoInfo( const JID& from, const Disco::Info& info, int context)
 {
     printf("///////// handleDiscoInfo!\n");
-    if ( info.hasFeature("playdar:resolver") || from.username()=="playdar3" )
+    if ( info.hasFeature("playdar:resolver") || true ) // FIXME testing hack
     {
         printf( "Found contact with playdar capabilities! '%s'\n", from.full().c_str() );
         bool found = false;
