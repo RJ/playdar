@@ -18,8 +18,7 @@ public:
         : m_cancelled(false)
         , m_offset(0)
     {
-        // we're writing an array of javascript objects:
-        enqueue("[");
+        enqueue("[");        // we're writing an array of javascript objects
     }
 
     // cause the content_func to break-out
@@ -33,9 +32,11 @@ public:
     // signal to content_func
     void result_item_cb(const query_uid& qid, ri_ptr rip)
     {
-        json_spirit::Object o(rip->get_json());
+        json_spirit::Object o;
+        o.push_back( json_spirit::Pair("query", qid) );
+        o.push_back( json_spirit::Pair("result", rip->get_json()) );
         enqueue(json_spirit::write_formatted(o));
-        enqueue(",\n");     // comma to separate objects
+        enqueue(",");     // comma to separate objects in array
         signal();
     }
 
@@ -54,15 +55,14 @@ public:
         size_t result = 0;
         {
             // fill as much of the supplied buffer as we can
-            size_t avail = size;
-            while (avail && m_buffers.size()) {
+            while (size && m_buffers.size()) {
                 size_t buf_avail = m_buffers.front().length() - m_offset;
-                size_t c = std::min(buf_avail, avail);
-                memcpy(buffer + result, m_buffers.front().data() + m_offset, c);
+                size_t c = std::min(buf_avail, size);
+                memcpy(buffer, m_buffers.front().data() + m_offset, c);
                 buffer += c;
                 result += c;
                 m_offset += c;
-                avail -= c;
+                size -= c;
                 if (m_offset == m_buffers.front().length()) {
                     m_buffers.pop_front();
                     m_offset = 0;
