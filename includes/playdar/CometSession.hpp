@@ -80,8 +80,10 @@ private:
 
     void enqueue(const std::string& s)
     {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
-        m_buffers.push_back(s);
+        if (s.length()) {
+            boost::lock_guard<boost::mutex> lock(m_mutex);
+            m_buffers.push_back(s);
+        }
     }
 
     boost::mutex m_mutex;
