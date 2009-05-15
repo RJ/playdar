@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <stdlib.h> // needed for getenv() on linux
+
 
 static FILE* fopen_session_file(const char* mode)
 {

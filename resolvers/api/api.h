@@ -32,7 +32,7 @@ public:
     bool init( pa_ptr );
     void start_resolving(boost::shared_ptr<ResolverQuery> rq) {} //noop
     unsigned short weight() const { return 0; }
-    unsigned short targettime() const { return 0; }
+    unsigned int target_time() const { return 0; }
     std::string name() const { return "api"; }
 
     // all we really do is handle http requests:
