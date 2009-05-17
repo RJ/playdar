@@ -705,7 +705,12 @@ Resolver::get_ss(const source_uid & sid)
 ri_ptr
 Resolver::sid2ri( const source_uid& sid )
 {
-    return m_sid2ri[ sid ]; 
+    map< source_uid, ri_ptr >::iterator it = m_sid2ri.find(sid);
+    if (it != m_sid2ri.end())
+        return it->second;
+    else
+        return ri_ptr();
+          
 }
 
 template <class T>
