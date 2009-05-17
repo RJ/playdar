@@ -136,7 +136,7 @@ darknet::handle_read(   const boost::system::error_code& e,
 	    return false;
     }
     
-    ///cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
+    cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
     /// Auth stuff first:
     if(msg->msgtype() == WELCOME)
     { // an invitation to identify ourselves
@@ -168,7 +168,7 @@ darknet::handle_read(   const boost::system::error_code& e,
         }
     }
     
-    //cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
+    cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
     /// NORMAL STATE MACHINE OPS HERE:
     switch(msg->msgtype())
     {
@@ -216,10 +216,11 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     
     if(m_pap->query_exists(rq->id()))
     {
-        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+        cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
         return true;
     }
 
+    cout << "darknet: handing search query:" << msg->payload() << endl;
     // register source for this query, so we know where to 
     // send any replies to.
     set_query_origin(rq->id(), conn);
@@ -230,6 +231,7 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     
     assert(rq->id() == qid);
     
+    cout << "darknet: sending search to peers" << endl;
     /*
         schedule search to be fwded to our peers - this will abort if
         the query has been solved before it fires anyway.
@@ -288,6 +290,7 @@ darknet::send_response( query_uid qid,
 {
     connection_ptr origin_conn = get_query_origin(qid);
     // relay result if the originating connection still active:
+    cout << "got send_response with qid:" << qid << "and url:" << rip->url() << endl;
     if(origin_conn)
     {
         cout << "Relaying search result to " 
@@ -305,7 +308,7 @@ darknet::send_response( query_uid qid,
 bool
 darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
-    //cout << "Got search result: " << msg->toString() << endl;
+    cout << "Got search result: " << msg->toString() << endl;
     // try and parse it as json:
     Value v;
     if(!read(msg->payload(), v)) 
@@ -324,23 +327,30 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     query_uid qid = r["qid"].get_str();
     Object resobj = r["result"].get_obj();
     ri_ptr rip;
-    //try
-    //{
-    //    rip = resolver()->ri_from_json(resobj);
-    //    
-    //}
-    //catch (...)
-    //{
-    //    cout << "Darknet: Missing fields in response json, discarding" << endl;
-    //    return true; // could just be incompatible version, not too bad. don't disconnect.
-    //}
-    //boost::shared_ptr<StreamingStrategy> s(
-    //                        new DarknetStreamingStrategy( this, conn, rip->id() ));
-    //rip->set_streaming_strategy(s);
-    //vector< boost::shared_ptr<ResolvedItem> > vr;
-    //vr.push_back(rip);
-    //report_results(qid, vr, name());
-    //// we've already setup a callback, which will be fired when we call report_results.    
+    try
+    {
+        //rip = resolver()->ri_from_json(resobj);
+        rip = boost::shared_ptr<playdar::ResolvedItem>( new ResolvedItem( resobj ) );
+    }
+    catch (...)
+    {
+        cout << "Darknet: Missing fields in response json, discarding" << endl;
+        return true; // could just be incompatible version, not too bad. don't disconnect.
+    }
+    cout    << "INFO Result from '" << rip->source()
+                            <<"' for '"<< write_formatted( rip->get_json())
+                            << endl;
+                            
+    ostringstream rbs;
+    rbs << "darknet://"
+    << conn->username()
+    << "/sid/"
+    << rip->id();
+    cout << "created new darknet url:" << rbs.str() << endl;
+    rip->set_url( rbs.str() );
+    vector< json_spirit::Object> res;
+    res.push_back(rip->get_json());
+    m_pap->report_results( qid, res );
     return true;
 }
 
@@ -358,8 +368,8 @@ darknet::start_sidrequest(connection_ptr conn, source_uid sid,
 bool
 darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
-    //source_uid sid = msg->payload();
-    //cout << "Darknet request for sid: " << sid << endl;
+    source_uid sid = msg->payload();
+    cout << "Darknet request for sid: " << sid << endl;
     //boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
     //
     //pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
@@ -498,7 +508,7 @@ darknet::authed_http_handler(const playdar_request* req,
         << "IP: <input type=\"text\" name=\"newaddr\" />"
         << "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
         << "<input type=\"hidden\" name=\"formtoken\" value=\""
-            << pauth->gen_formtoken() << "\"/>"
+//            << pauth->gen_formtoken() << "\"/>"
         << " <input type=\"submit\" value=\"Connect to remote servent\" />"
         << "</form>" << endl
         ;
