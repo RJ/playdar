@@ -370,57 +370,57 @@ darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
     source_uid sid = msg->payload();
     cout << "Darknet request for sid: " << sid << endl;
-    //boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
-    //
-    //pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-    //if( !pip )
-    //    return false;
-    //
-    //// We send SIDDATA msgs, where the payload is a sid_header followed
-    //// by the audio data.
-    //char buf[8194]; // this is the lamemsg payload.
-    //int len, total=0;
-    //sid_header sheader;
-    //memcpy((char*)&sheader.sid, sid.c_str(), 36);
-    //// put sheader at the start of our buffer:
-    //memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
-    //
-    //if(pip) // send data:
-    //{
-    //    cout << "-> PlayableItem: " << pip->artist() 
-    //         << " - " << pip->track() << endl;
-    //    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
-    //    cout << "-> " << ss->debug() << endl;
-    //    cout << "-> source: '"<< pip->source() <<"'" << endl;
-    //    cout << "Sending siddata packets: header.sid:'" 
-    //        << sid << "'" << endl;
-    //    // this will be the offset where we write audio data,
-    //    // to leave the sid_header intact at the start:
-    //    char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
-    //    // read audio data into buffer at the data offset:
-    //    while ((len = ss->read_bytes( buf_datapos,
-    //                                  sizeof(buf)-sizeof(sid_header))
-    //           )>0)
-    //    {
-    //        total+=len;
-    //        string payload((const char*)&buf, sizeof(sid_header)+len);
-    //        msg_ptr msgp(new LameMsg(payload, SIDDATA));
-    //        send_msg(conn, msgp);
-    //    }
-    //}
-    //else
-    //{
-    //    cout << "No playableitem for sid '"<<sid<<"'" << endl;
-    //    // send empty packet anyway, to signify EOS
-    //    // TODO possibly send an msgtype=error msg
-    //}
-    //
-    //// send empty siddata to signify end of stream
-    //cout << "Sending end part. Transferred " << total << " bytes" << endl;
-    //string eostream((char*)&buf, sizeof(sid_header));
-    //msg_ptr msge(new LameMsg(eostream, SIDDATA));
-    //send_msg(conn, msge);
-    //cout << "Darknet: done streaming sid" << endl; 
+    
+    ss_ptr ss = m_pap->get_ss( sid );
+    ri_ptr ri = m_pap->get_ri( sid );
+    cout << "-> " << ss->debug() << endl;
+    
+    
+    
+    // We send SIDDATA msgs, where the payload is a sid_header followed
+    // by the audio data.
+    char buf[8194]; // this is the lamemsg payload.
+    int len, total=0;
+    sid_header sheader;
+    memcpy((char*)&sheader.sid, sid.c_str(), 36);
+    // put sheader at the start of our buffer:
+    memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
+    
+    if(ri) // send data:
+    {
+       cout << "-> PlayableItem: " << ri->url();
+ //           << " - " << pip->track() << endl;
+       cout << "-> " << ss->debug() << endl;
+       cout << "-> source: '"<< ri->source() <<"'" << endl;
+       cout << "Sending siddata packets: header.sid:'" 
+           << sid << "'" << endl;
+       // this will be the offset where we write audio data,
+       // to leave the sid_header intact at the start:
+       char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
+       // read audio data into buffer at the data offset:
+       while ((len = ss->read_bytes( buf_datapos,
+                                     sizeof(buf)-sizeof(sid_header))
+              )>0)
+       {
+           total+=len;
+           string payload((const char*)&buf, sizeof(sid_header)+len);
+           msg_ptr msgp(new LameMsg(payload, SIDDATA));
+           send_msg(conn, msgp);
+       }
+    }
+    else
+    {
+       cout << "No ri for sid '"<<sid<<"'" << endl;
+       // send empty packet anyway, to signify EOS
+       // TODO possibly send an msgtype=error msg
+    }
+    
+    // send empty siddata to signify end of stream
+    cout << "Sending end part. Transferred " << total << " bytes" << endl;
+    string eostream((char*)&buf, sizeof(sid_header));
+    msg_ptr msge(new LameMsg(eostream, SIDDATA));
+    send_msg(conn, msge);
+    cout << "Darknet: done streaming sid" << endl; 
     return true;
 }
 

@@ -70,7 +70,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     using namespace json_spirit;
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
-    //cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
+    cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
     async_send(broadcast_endpoint_, querystr.str());
 }
 
@@ -94,7 +94,7 @@ lan::run()
 {
     m_io_service.reset( new boost::asio::io_service );
     start_listening(*m_io_service,
-                    boost::asio::ip::address::from_string("0.0.0.0"),
+                    boost::asio::ip::address::from_string("10.1.2.3"),
                     boost::asio::ip::address::from_string
                     ("239.255.0.1"),
                     8888 );
@@ -144,9 +144,9 @@ lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
         cerr << "WARNING outgoing UDP message is rather large, haven't tested this, discarding." << endl;
         return;
     }
-    //cout << "UDPsend[" << remote_endpoint.address() 
-    //     << ":" << remote_endpoint.port() << "]"
-    //     << "(" << message << ")" << endl;
+    cout << "UDPsend[" << remote_endpoint->address() 
+         << ":" << remote_endpoint->port() << "]"
+         << "(" << message << ")" << endl;
     char * buf = (char*)malloc(message.length());
     memcpy(buf, message.data(), message.length());
     socket_->async_send_to(     
@@ -191,13 +191,13 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 // if it came from our IP.
                 // Will bail anyway once parsed and dupe QID noticed,
                 // but more efficient to do it here.
-                // cout << "* Ignoring udp msg from self" << endl;
+                 cout << "* Ignoring udp msg from self" << endl;
                 break;
             }
             
-            //cout    << "lan: Received multicast message (from " 
-            //        << sender_address.to_string() << "):" 
-            //        << endl << msg << endl;
+            cout    << "lan: Received multicast message (from " 
+                    << sender_address.to_string() << "):" 
+                    << endl << msg << endl;
             
             using namespace json_spirit;
             // try and parse it as json:
@@ -240,7 +240,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 
                 if(m_pap->query_exists(rq->id()))
                 {
-                    //cout << "lan: discarding message, QID already exists: " << rq->id() << endl;
+                    cout << "lan: discarding message, QID already exists: " << rq->id() << endl;
                     break;
                 }
                 
@@ -262,7 +262,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     cout << "lan: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
-                //cout << "lan: Got udp response." <<endl;
+                cout << "lan: Got udp response." <<endl;
 
                 vector< Object > final_results;
                 try
@@ -283,9 +283,9 @@ lan::handle_receive_from(const boost::system::error_code& error,
                     }
                     final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
-                    //cout    << "INFO Result from '" << rip->source()
-                    //        <<"' for '"<< write_formatted( rip->get_json())
-                    //        << endl;
+                    /*cout    << "INFO Result from '" << rip->source()
+                            <<"' for '"<< write_formatted( rip->get_json())
+                            << endl; */
                 }
                 catch (...)
                 {
