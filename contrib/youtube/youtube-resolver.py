@@ -14,6 +14,7 @@ import urllib, urllib2
 from xml.dom import minidom
 from struct import unpack, pack
 import sys
+sys.path.insert(0, '/home/rj/src/playdar/scripts/youtube')
 import simplejson as json
 from youtubesearch import YoutubeIE
 from youtubesearch import YoutubeSearchIE
@@ -40,7 +41,8 @@ def resolve(artist, track):
     t["artist"] = artist
     t["track"]  = track 
     t["album"]  = "Unknown"
-    t["url"]    = info["url"]
+    # thru our lame transcoder to mp3:
+    t["url"]    = "http://localhost:8080/" + info["url"]
     t["source"] = 'Youtube'
     tracks.append(t)
     return tracks
