@@ -32,7 +32,7 @@ public:
     }
     
     
-    int read_bytes(char * buf, size_t size)
+    size_t read_bytes(char * buf, size_t size)
     {
         if(!m_active) start();
         boost::mutex::scoped_lock lk(m_mutex);
