@@ -102,7 +102,7 @@ darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::end
 void
 darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(m_pap->getstring( "name", "" ).get_str(), IDENTIFY));
+    msg_ptr lm(new LameMsg(m_pap->hostname(), IDENTIFY));
     send_msg(conn, lm);
 }
 
