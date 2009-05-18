@@ -702,6 +702,17 @@ Resolver::get_ss(const source_uid & sid)
     return ss_ptr();
 }
 
+ri_ptr
+Resolver::sid2ri( const source_uid& sid )
+{
+    map< source_uid, ri_ptr >::iterator it = m_sid2ri.find(sid);
+    if (it != m_sid2ri.end())
+        return it->second;
+    else
+        return ri_ptr();
+          
+}
+
 template <class T>
 boost::shared_ptr<T>
 Resolver::ss_ptr_generator(string url)
