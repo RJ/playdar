@@ -87,7 +87,7 @@ bool
 darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(name(), WELCOME));
+    msg_ptr lm(new LameMsg(m_pap->hostname(), WELCOME));
     send_msg(conn, lm);
     return true;
 }
@@ -116,8 +116,8 @@ darknet::write_completed(connection_ptr conn, msg_ptr msg)
 void
 darknet::connection_terminated(connection_ptr conn)
 {
-	cout << "Connection terminated: " << conn->username() << endl;
-	unregister_connection(conn->username());
+    cout << "Connection terminated: " << m_pap->hostname() << endl;
+    unregister_connection(m_pap->hostname());
 	conn->set_authed(false);
     conn->close();
 }
