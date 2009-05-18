@@ -34,7 +34,7 @@ api::init( pa_ptr pap )
 }
 
 bool
-api::anon_http_handler(const playdar_request& req, playdar_response& resp)
+api::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& /*pauth*/)
 {
     using namespace json_spirit;
     ostringstream response; 
@@ -69,7 +69,7 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp)
 }
 
 bool
-api::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth)
+api::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth)
 {
     using namespace json_spirit;
     

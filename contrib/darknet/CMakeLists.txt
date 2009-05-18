@@ -1,6 +1,7 @@
 ADD_LIBRARY(    darknet SHARED
                 darknet.cpp
                 servent.cpp
+		ss_darknet.cpp
             )
 #
 # Ensure the shared library file is called <CLASS NAME>.resolver

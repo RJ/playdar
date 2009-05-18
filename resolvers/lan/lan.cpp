@@ -485,7 +485,7 @@ bool endsWith(const std::string& s, const std::string& tail)
 }
 
 bool
-lan::anon_http_handler(const playdar_request& req, playdar_response& resp)
+lan::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& /*pauth*/)
 {
     cout << "request handler on lan for url: " << req.url() << endl;
 

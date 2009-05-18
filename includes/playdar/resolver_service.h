@@ -89,7 +89,7 @@ public:
     /// Called when an authenticated http request is made.
     /// @return true if http request is handled. 
     /// @param out should be set to the required http response
-    virtual bool authed_http_handler(const playdar_request& req, playdar_response& out, playdar::auth* pauth)
+    virtual bool authed_http_handler(const playdar_request& req, playdar_response& out, playdar::auth& pauth)
     { 
        return false;
     }
@@ -98,7 +98,7 @@ public:
     /// authenticated request is made but not handled by authed_http_handler.
     /// @return true if http request is handled. 
     /// @param out should be set to the required http response
-    virtual bool anon_http_handler(const playdar_request&, playdar_response& out)
+    virtual bool anon_http_handler(const playdar_request&, playdar_response& out, playdar::auth& pauth)
     { 
        return false;
     }

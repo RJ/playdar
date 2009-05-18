@@ -22,6 +22,7 @@
 #include "json_spirit/json_spirit.h"
 #include "playdar/types.h"
 //#include "playdar/streaming_strategy.h"
+#include "resolver_service.h"
 
 namespace playdar {
 
@@ -78,7 +79,9 @@ public:
     void set_script(bool t) { m_script = t; }
     void set_scriptpath(std::string s) { m_scriptpath = s; }
 
-
+    virtual ss_ptr get_ss( const source_uid& sid ) = 0;
+    virtual ri_ptr get_ri( const source_uid& sid ) = 0;
+    
     // TEMP!
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq) = 0;
     virtual query_uid dispatch(boost::shared_ptr<ResolverQuery> rq, rq_callback_t cb) = 0;
