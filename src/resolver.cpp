@@ -284,6 +284,14 @@ Resolver::load_resolver_plugins()
                        << " t:" << pap->targettime() 
                        << "] " 
                  << pap->rs()->name() << endl;
+            // add any custom SS handlers for this plugin
+            map< std::string, boost::function<ss_ptr(std::string)> > ssfacts = instance->get_ss_factories();
+            typedef std::pair< std::string, boost::function<ss_ptr(std::string)> > sspair_t;
+            BOOST_FOREACH( sspair_t sp, ssfacts )
+            {
+                cout << "-> Added SS factory for protocol '"<<sp.first<<"'" << endl;
+                m_ss_factories[ sp.first ] = sp.second;
+            }
         }
         catch( PDL::LoaderException & ex )
         {
