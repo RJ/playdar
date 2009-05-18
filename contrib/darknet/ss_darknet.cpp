@@ -29,14 +29,16 @@ boost::shared_ptr<DarknetStreamingStrategy>
 DarknetStreamingStrategy::factory(std::string url, playdar::resolvers::darknet* darknet)
 {
     cout << "in DSS::factory with url:" << url << endl;
-    size_t offset = url.find(":");
-    if( offset == string::npos ) return boost::shared_ptr<DarknetStreamingStrategy>();
-    size_t offset2 = url.find( "/sid/" );
+    size_t offset = 10; // skip 'darknet://'
+    size_t offset2 = url.find( "/", offset );
     if( offset2 == string::npos ) return boost::shared_ptr<DarknetStreamingStrategy>();
-    string username = url.substr(offset + 2, offset2); // username/sid/<sid>
-    string sid = url.substr( offset2 + 5, url.length() );
-    
-    cout << "got username in darknet_ss::factory:" << username << "and sid:" << sid << endl;
+    string username = url.substr(offset, offset2 - offset ); // username/sid/<sid>
+    string sid = url.substr( offset2 + 5, url.length() - (offset2 + 5) );
+    cout << "got username in darknet_ss::factory: " << username << " and sid: " << sid << endl;
+    std::map<std::string, connection_ptr_weak> map = darknet->connections();
+    std::map<std::string, connection_ptr_weak>::iterator iter = map.begin();
+    for(;iter!=map.end();iter++)
+        cout << "got possible username in connection map:" << iter->first << endl;
     connection_ptr con = darknet->connections()[username].lock();
     
     return boost::shared_ptr<DarknetStreamingStrategy>(new DarknetStreamingStrategy(darknet, con, sid ) );
