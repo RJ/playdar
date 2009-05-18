@@ -172,7 +172,7 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
 }
 
 bool
-local::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth) 
+local::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth) 
 { 
     using namespace json_spirit;
     ostringstream response;
@@ -232,10 +232,10 @@ local::authed_http_handler(const playdar_request& req, playdar_response& resp, p
 } 
 
 bool 
-local::anon_http_handler(const playdar_request& req, playdar_response& resp) 
+local::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth&) 
 { 
    if( req.parts().size() > 1 &&
-       req.parts()[1] == "stats" )
+       (req.parts()[1] == "config" || req.parts()[1] == "stats") )
    {
        std::ostringstream reply; 
        reply   << "<h2>Local Library Stats</h2>" 

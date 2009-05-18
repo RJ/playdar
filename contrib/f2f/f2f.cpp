@@ -177,7 +177,7 @@ f2f::get_ss_factories()
 
 
 bool
-f2f::anon_http_handler(const playdar_request& req, playdar_response& resp)
+f2f::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& /*pauth*/)
 {
     cout << "request handler on f2f for url: " << req.url() << endl;
     ostringstream os;
