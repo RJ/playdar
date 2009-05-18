@@ -117,7 +117,7 @@ void
 darknet::connection_terminated(connection_ptr conn)
 {
     cout << "Connection terminated: " << m_pap->hostname() << endl;
-    unregister_connection(m_pap->hostname());
+    unregister_connection(conn->username());
 	conn->set_authed(false);
     conn->close();
 }
