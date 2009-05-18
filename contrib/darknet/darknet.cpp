@@ -136,7 +136,7 @@ darknet::handle_read(   const boost::system::error_code& e,
 	    return false;
     }
     
-    cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
+    //cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
     /// Auth stuff first:
     if(msg->msgtype() == WELCOME)
     { // an invitation to identify ourselves
@@ -168,7 +168,7 @@ darknet::handle_read(   const boost::system::error_code& e,
         }
     }
     
-    cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
+    //cout << "RCVD('"<<conn->username()<<"')\t" << msg->toString()<<endl;
     /// NORMAL STATE MACHINE OPS HERE:
     switch(msg->msgtype())
     {
@@ -261,26 +261,26 @@ darknet::fwd_search(const boost::system::error_code& e,
         cout << "Error from timer, not fwding: "<< e.value() << " = " << e.message() << endl;
         return;
     }
-//    // bail if already solved (probably from our locallibrary resolver)
-//    if(resolver()->rq(qid)->solved())
-//    {
-//        //cout << "Darknet: not relaying solved search: " << qid << endl;
-//        return;
-//    }
+    // bail if already solved (probably from our locallibrary resolver)
+    if(m_pap->rq(qid)->solved())
+    {
+        cout << "Darknet: not relaying solved search: " << qid << endl;
+        return;
+    }
 //    
 //    // TODO check search is still active
-//    cout << "Forwarding search.." << endl;
-//    typedef std::pair<string,connection_ptr> pair_t;
-//    BOOST_FOREACH(pair_t item, m_connections)
-//    {
-//        if(item.second == conn)
-//        {
-//            cout << "Skipping " << item.first << " (origin)" << endl;
-//            continue;
-//        }
-//        cout << "\tFwding to: " << item.first << endl;
-//        send_msg(item.second, msg);
-//    }
+    cout << "Forwarding search.." << endl;
+    typedef std::pair<string,connection_ptr> pair_t;
+    BOOST_FOREACH(pair_t item, m_connections)
+    {
+        if(item.second == conn)
+        {
+            cout << "Skipping " << item.first << " (origin)" << endl;
+            continue;
+        }
+        cout << "\tFwding to: " << item.first << endl;
+        send_msg(item.second, msg);
+    }
 }
 
 // fired when a new result is available for a running query:
