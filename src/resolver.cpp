@@ -312,6 +312,17 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
         return rq->id();
     }
     if(cb) rq->register_callback(cb);
+
+    // setup comet callback if the request has a valid comet session id
+    const string& cometId(rq->comet_session_id());
+    if (cometId.length()) {
+        boost::mutex::scoped_lock cometlock(m_comets_mutex);
+        std::map< std::string, rq_callback_t >::const_iterator it = m_comets.find(cometId);
+        if (it != m_comets.end()) {
+            rq->register_callback(it->second);
+        }
+    }
+
     m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
     m_cond.notify_one();
     // set up timer to auto-cancel this query after a while:
@@ -699,6 +710,19 @@ boost::shared_ptr<T>
 Resolver::ss_ptr_generator(string url)
 {
     return boost::shared_ptr<T>(new T(url));
+}
+
+bool
+Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
+{
+    boost::mutex::scoped_lock cometlock(m_comets_mutex);
+    // a new callback replaces the old callback
+    // todo: can we terminate the old comet session via the callback?
+    // todo: need a general mechanism to terminate (like when shutting down)
+    // todo: limit the number of simultaneous comet sessions or make them non-blocking
+    m_comets[sessionId] = cb;
+
+    return true;
 }
 
 }
