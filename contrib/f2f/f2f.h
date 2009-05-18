@@ -33,7 +33,7 @@ class f2f : public ResolverPlugin<f2f>
     std::string name() const { return "f2f"; }
     unsigned int target_time() const { return 5000; }
     unsigned short weight() const { return 25; }
-    bool anon_http_handler(const playdar_request&, playdar_response& );
+    bool anon_http_handler(const playdar_request&, playdar_response&, playdar::auth& );
     
     void process( rq_ptr rq );
     void msg_received( const std::string& msg, const std::string& from );

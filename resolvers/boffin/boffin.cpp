@@ -300,7 +300,7 @@ boffin::parseFail(std::string line, int error_offset)
 //             [2] = rql (optional)
 //
 bool
-boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth* pauth)
+boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth)
 {
     if(req.parts().size() <= 1)
         return "This plugin has no web interface.";

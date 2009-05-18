@@ -483,34 +483,40 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 }
 
 // web interface:
-playdar_response 
-darknet::authed_http_handler(const playdar_request* req,
-                      playdar::auth * pauth)
+bool 
+darknet::anon_http_handler(const playdar_request& req, playdar_response& resp,
+                           playdar::auth& pauth)
 {
-    cout << "http_handler called on darknet. pauth = " << pauth << endl;
-    if( req->postvar_exists("formtoken") &&
-        req->postvar_exists("newaddr") &&
-        req->postvar_exists("newport") &&
-        pauth->consume_formtoken(req->postvar("formtoken")) )
+    if( req.postvar_exists("formtoken") &&
+        req.postvar_exists("newaddr") &&
+        req.postvar_exists("newport") &&
+        pauth.consume_formtoken(req.postvar("formtoken")) )
     {
-        string addr = req->postvar("newaddr");
-        unsigned short port = boost::lexical_cast<unsigned short>(req->postvar("newport"));
+        string addr = req.postvar("newaddr");
+        unsigned short port = boost::lexical_cast<unsigned short>(req.postvar("newport"));
         boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(addr);
         boost::asio::ip::tcp::endpoint ep(ip, port);
         servent()->connect_to_remote(ep);
     }
     
+    string formtoken = m_pap->gen_uuid();
+    pauth.add_formtoken( formtoken );
     typedef pair<string, connection_ptr_weak> pair_t;
     ostringstream os;
-    os  << "<h2>Darknet Settings</h2>" << endl
-        << "<form method=\"post\" action=\"\">" << endl
-        << "Connect "
-        << "IP: <input type=\"text\" name=\"newaddr\" />"
-        << "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
-        << "<input type=\"hidden\" name=\"formtoken\" value=\""
-//            << pauth->gen_formtoken() << "\"/>"
-        << " <input type=\"submit\" value=\"Connect to remote servent\" />"
-        << "</form>" << endl
+    os  << "<h2>Darknet Settings</h2>"
+        "<form method=\"post\" action=\"\">"
+        "Connect "
+        "IP: <input type=\"text\" name=\"newaddr\" />"
+        "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
+        "<input type=\"hidden\" name=\"formtoken\" value=\""
+        << formtoken << "\"/>"
+        " <input type=\"submit\" value=\"Connect to remote servent\" />"
+        "</form>" 
+        "<hr/><p>"
+        "NB: You might want to <a href=\"/darknet/config\">refresh</a> this page if you just connected,"
+        " it may take a couple of seconds to connect and display the connection below."
+        "</p>"
+        << endl
         ;
     os  << "<h3>Current Connections</h3>"    
         << "<table>"
@@ -530,8 +536,9 @@ darknet::authed_http_handler(const playdar_request* req,
     }
     os  << "</table>" 
         << endl; 
-    //cout << os.str();
-    return os.str();
+        
+    resp = playdar_response( os.str() );
+    return true;
 }
 
 
