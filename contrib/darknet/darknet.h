@@ -12,6 +12,7 @@
 #include <map>
 
 #include "playdar/playdar_plugin_include.h"
+#include "ss_darknet.h"
 #include "msgs.h"
 //#include "servent.h"
 
@@ -109,6 +110,15 @@ public:
             m_qidorigins[qid] = connection_ptr_weak(conn);
         }
         catch(...){}
+    }
+    
+    virtual std::map< std::string, boost::function<ss_ptr(std::string)> >
+    get_ss_factories()
+    {
+        // return our darknet ss
+        std::map< std::string, boost::function<ss_ptr(std::string)> > facts;
+        facts[ "darknet" ] = boost::bind( &DarknetStreamingStrategy::factory, _1, this );
+        return facts;
     }
     
     std::map<std::string, connection_ptr_weak> connections()

@@ -154,7 +154,16 @@ public:
         return m_resolver->dispatch(rq, cb); 
     }
 
+    virtual ss_ptr get_ss( const source_uid& sid )
+    {
+        return m_resolver->get_ss( sid );
+    }
 
+    virtual ri_ptr get_ri( const source_uid& sid )
+    {
+        return m_resolver->sid2ri( sid );
+    }
+    
 private:
     Config*   m_config;
     Resolver* m_resolver;

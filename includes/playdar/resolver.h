@@ -74,6 +74,8 @@ public:
     rq_ptr rq(const query_uid & qid);
     ss_ptr get_ss(const source_uid & sid);
     
+    ri_ptr sid2ri( const source_uid& sid );
+    
     size_t num_seen_queries();
     
     const std::vector< pa_ptr >& resolvers() const
