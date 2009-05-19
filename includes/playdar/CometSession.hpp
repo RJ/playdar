@@ -2,11 +2,12 @@
 #define COMET_SESSION_H
 
 #include <boost/thread.hpp>
+#include <boost/asio.hpp>
 
 #include "playdar/types.h"
 #include "playdar/resolved_item.h"
 
-// unite the moost::http::reply content_func callback 
+// unite the moost::http::reply async_delegate callback 
 // with the ResolverQuery result_item_callback
 
 namespace playdar {
@@ -16,20 +17,18 @@ class CometSession
 public:
     CometSession()
         : m_cancelled(false)
-        , m_offset(0)
+        , m_writing(false)
+        , m_firstWrite(true)
     {
-        enqueue("[");        // we're writing an array of javascript objects
     }
 
-    // cause the content_func to break-out
+    // terminate the comet session
     void cancel()
     {
         m_cancelled = true;
-        signal();
     }
 
     // serialise into buffer
-    // signal to content_func
     void result_item_cb(const query_uid& qid, ri_ptr rip)
     {
         json_spirit::Object o;
@@ -37,60 +36,56 @@ public:
         o.push_back( json_spirit::Pair("result", rip->get_json()) );
         enqueue(json_spirit::write_formatted(o));
         enqueue(",");     // comma to separate objects in array
-        signal();
     }
 
-    // block in here until we have some data 
-    size_t content_func(char* buffer, size_t size)
+    typedef boost::function< void(boost::asio::const_buffer&)> WriteFunc;
+    
+    bool async_write_func(WriteFunc& wf)
     {
-        if (m_cancelled) return 0;
-
-        boost::unique_lock<boost::mutex> lock(m_mutex);
-
-        if (0 == m_buffers.size()) {
-            m_wake.wait(lock);
-            if (m_cancelled) return 0;
+        if (!wf || m_cancelled) {   // cancelled by caller || cancelled by us
+            delete this;
+            return false;
         }
 
-        size_t result = 0;
+        m_wf = wf;
         {
-            // fill as much of the supplied buffer as we can
-            while (size && m_buffers.size()) {
-                size_t buf_avail = m_buffers.front().length() - m_offset;
-                size_t c = std::min(buf_avail, size);
-                memcpy(buffer, m_buffers.front().data() + m_offset, c);
-                buffer += c;
-                result += c;
-                m_offset += c;
-                size -= c;
-                if (m_offset == m_buffers.front().length()) {
-                    m_buffers.pop_front();
-                    m_offset = 0;
-                }
+            // previous write has completed:
+            boost::lock_guard<boost::mutex> lock(m_mutex);
+            if (m_writing && m_buffers.size()) {
+                m_buffers.pop_front();
+                m_writing = false;
+            }
+            if (!m_writing && m_buffers.size()) {
+                m_writing = true;
+                m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
             }
         }
-        return result;
+        return true;
     }
 
 private:
-    void signal()
-    {
-        m_wake.notify_one();
-    }
-
     void enqueue(const std::string& s)
     {
-        if (s.length()) {
-            boost::lock_guard<boost::mutex> lock(m_mutex);
-            m_buffers.push_back(s);
+        if (m_firstWrite) {
+            m_firstWrite = false;
+            enqueue("[");        // we're writing an array of javascript objects
+        }
+
+        boost::lock_guard<boost::mutex> lock(m_mutex);
+        m_buffers.push_back(s);
+        if (!m_writing) {
+            m_writing = true;
+            m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
         }
     }
 
+    WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
+    bool m_firstWrite;
+    bool m_cancelled;
+
     boost::mutex m_mutex;
-    boost::condition_variable m_wake;
+    bool m_writing;
     std::list<std::string> m_buffers;
-    int m_offset;
-    volatile bool m_cancelled;
 };
 
 }

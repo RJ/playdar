@@ -2,6 +2,7 @@
 #define __MOOST_HTTP_CONNECTION_HPP__
 
 #include <boost/bind.hpp>
+#include <boost/bind/protect.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>
@@ -37,11 +38,10 @@ private:
   void handle_read(const boost::system::error_code& e,
       std::size_t bytes_transferred);
 
-  /// Handle completion of a write operation.
+  /// Handle completion of a handle_read and handle_write operations:
   void handle_write(const boost::system::error_code& e);
 
-  /// Handle completion of headers-sent, then wait on body.
-  void handle_write_content_fun( const boost::system::error_code& e );
+  void do_async_write(boost::asio::const_buffer& buffer);
 
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
@@ -133,54 +133,42 @@ boost::asio::ip::tcp::socket& connection<RequestHandler>::socket()
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write(const boost::system::error_code& e)
 {
-  if ( e )
-  {
-     return;
-  }
+    if (reply_.get_async_delegate()) {
+        if (e) {
+            // error, signal to the delegate we're done
+            reply_.get_async_delegate()(0);
+            return;
+        }
 
-  if ( !reply_.has_content_fun() )
-  {
-     // all done here!
-     // Initiate graceful connection closure.
-     boost::system::error_code ignored_ec;
-     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-  }
-  else
-  {
-     this->handle_write_content_fun( e );
-  }
-  // No new asynchronous operations are started. This means that all shared_ptr
-  // references to the connection object will disappear and the object will be
-  // destroyed automatically after this handler returns. The connection class's
-  // destructor closes the socket.
+        // content_async_write can return false to end the write
+        if (reply_.get_async_delegate()(   
+            boost::bind(
+            &connection<RequestHandler>::do_async_write,
+            this->shared_from_this(),
+            _1)))
+        {
+            return; // good
+        }
+    } else if (e) {
+        return;
+    }
+
+    // all done here!
+    // Initiate graceful connection closure.
+    boost::system::error_code ignored_ec;
+    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }
 
-
+// this is the write function we pass to the content_async_write callback
+//
 template<class RequestHandler>
-void connection<RequestHandler>::handle_write_content_fun( const boost::system::error_code& e )
+void connection<RequestHandler>::do_async_write(boost::asio::const_buffer& buffer)
 {
-  if ( e )
-  {
-    return; 
-  }
-
-  size_t read = reply_.read_some(buffer_, buffer_size_);
-  if ( read == 0 )
-  {
-     // all done here!
-     // Initiate graceful connection closure.
-     boost::system::error_code ignored_ec;
-     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-     return;
-  }
-
-  boost::asio::async_write(socket_, boost::asio::buffer(buffer_, read),
-     strand_.wrap(
-         boost::bind(&connection<RequestHandler>::handle_write_content_fun, this->shared_from_this(),
-                      boost::asio::placeholders::error)
-     ));
+    boost::asio::async_write(socket_, boost::asio::const_buffers_1(buffer), 
+        strand_.wrap(
+            boost::bind(&connection<RequestHandler>::handle_write, this->shared_from_this(),
+                boost::asio::placeholders::error)));
 }
-
 
 }} // moost::http
 

@@ -225,19 +225,19 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &leaf2op);
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
-            // sample from the rqlResults into our SampleAccumulator:
-            const int artist_memory = 4;
-            SampleAccumulator sa(artist_memory);
-            boffinSample(limit, *rqlResults, 
-                boost::bind(&SampleAccumulator::pushdown, &sa, _1),
-                boost::bind(&SampleAccumulator::result, &sa, _1));
+            //// sample from the rqlResults into our SampleAccumulator:
+            //const int artist_memory = 4;
+            //SampleAccumulator sa(artist_memory);
+            //boffinSample(limit, *rqlResults, 
+            //    boost::bind(&SampleAccumulator::pushdown, &sa, _1),
+            //    boost::bind(&SampleAccumulator::result, &sa, _1));
 
             // look up results, turn them into a vector of json objects
-            int sequence = 0;
             std::vector< json_spirit::Object > results;
-            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+            results.reserve(rqlResults->size());
+//            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+            BOOST_FOREACH(const TrackResult& t, *rqlResults) {
                 ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_json_value( "seq", sequence++ );
                 rip->set_source( m_pap->hostname() );
                 rip->set_id( m_pap->gen_uuid() );
                 results.push_back( rip->get_json() );
@@ -306,8 +306,8 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
         return "This plugin has no web interface.";
     
     std::string comet_session_id;
-    if (req.getvar_exists("comet_session_id"))
-        comet_session_id = req.getvar("comet_session_id");
+    if (req.getvar_exists("comet"))
+        comet_session_id = req.getvar("comet");
 
     rq_ptr rq;
     if( req.parts()[1] == "tagcloud" )
