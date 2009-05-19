@@ -36,8 +36,8 @@ public:
     std::string name() const { return "api"; }
 
     // all we really do is handle http requests:
-    bool anon_http_handler(const playdar_request&, playdar_response&);
-    bool authed_http_handler(const playdar_request&, playdar_response&, playdar::auth* pauth);
+    bool anon_http_handler(const playdar_request&, playdar_response&, playdar::auth&);
+    bool authed_http_handler(const playdar_request&, playdar_response&, playdar::auth& pauth);
     
 protected:
     virtual ~api() throw() {}

@@ -15,8 +15,9 @@ SET(CMAKE_INSTALL_PREFIX "/usr/local")
 # on linux x86-64 set this to OFF if you are having (-fPIC...) build problems.
 # then: cd build/ && rm -rf CMakeCache.txt CMakeFiles/ cmake_install.cmake resolvers/
 # then: cmake .. ; make
-# alternatively, recompile boost with -fPIC
-SET(Boost_USE_STATIC_LIBS OFF)
+# alternatively, recompile boost with -fPIC like so:
+# bjam --v2 cxxflags=-fPIC stage
+SET(Boost_USE_STATIC_LIBS ON)
 
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)

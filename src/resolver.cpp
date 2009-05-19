@@ -284,6 +284,14 @@ Resolver::load_resolver_plugins()
                        << " t:" << pap->targettime() 
                        << "] " 
                  << pap->rs()->name() << endl;
+            // add any custom SS handlers for this plugin
+            map< std::string, boost::function<ss_ptr(std::string)> > ssfacts = instance->get_ss_factories();
+            typedef std::pair< std::string, boost::function<ss_ptr(std::string)> > sspair_t;
+            BOOST_FOREACH( sspair_t sp, ssfacts )
+            {
+                cout << "-> Added SS factory for protocol '"<<sp.first<<"'" << endl;
+                m_ss_factories[ sp.first ] = sp.second;
+            }
         }
         catch( PDL::LoaderException & ex )
         {
@@ -670,7 +678,8 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-/// this creates a SS from the URL in the ResolvedItem
+/// this creates a SS from the ResolvedItem.
+/// Typically it looks for the url field, and extra_headers etc.
 /// it checks our map of protocol -> SS factory where protocol is the bit before the : in urls.
 ss_ptr
 Resolver::get_ss(const source_uid & sid)
@@ -686,12 +695,35 @@ Resolver::get_ss(const source_uid & sid)
         string p = rip->url().substr(0, offset);
         cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
 
-        std::map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
+        map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
             m_ss_factories.find(p);
         if (itFac != m_ss_factories.end())
-            return itFac->second(rip->url());
+        {
+            ss_ptr ss = itFac->second(rip->url());
+            // Any extra headers to add to the request for this URL?
+            // this is typically only used for http urls, but could be used
+            // for any protocol really, if the SS supports the concept.
+            vector<string> xh = rip->get_extra_headers();
+            BOOST_FOREACH( string h,  xh )
+            {
+                cout << "Extra header: " << h<< endl;
+                ss->set_extra_header( h );
+            }
+            return ss;
+        }
     }
     return ss_ptr();
+}
+
+ri_ptr
+Resolver::sid2ri( const source_uid& sid )
+{
+    map< source_uid, ri_ptr >::iterator it = m_sid2ri.find(sid);
+    if (it != m_sid2ri.end())
+        return it->second;
+    else
+        return ri_ptr();
+          
 }
 
 template <class T>

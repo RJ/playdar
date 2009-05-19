@@ -87,7 +87,7 @@ bool
 darknet::new_incoming_connection( connection_ptr conn )
 {
     // Send welcome message, containing our identity
-    msg_ptr lm(new LameMsg(name(), WELCOME));
+    msg_ptr lm(new LameMsg(m_pap->hostname(), WELCOME));
     send_msg(conn, lm);
     return true;
 }
@@ -102,7 +102,7 @@ darknet::new_outgoing_connection( connection_ptr conn, boost::asio::ip::tcp::end
 void
 darknet::send_identify(connection_ptr conn )
 {
-    msg_ptr lm(new LameMsg(name(), IDENTIFY));
+    msg_ptr lm(new LameMsg(m_pap->hostname(), IDENTIFY));
     send_msg(conn, lm);
 }
 
@@ -116,8 +116,8 @@ darknet::write_completed(connection_ptr conn, msg_ptr msg)
 void
 darknet::connection_terminated(connection_ptr conn)
 {
-	cout << "Connection terminated: " << conn->username() << endl;
-	unregister_connection(conn->username());
+    cout << "Connection terminated: " << m_pap->hostname() << endl;
+    unregister_connection(m_pap->hostname());
 	conn->set_authed(false);
     conn->close();
 }
@@ -136,7 +136,7 @@ darknet::handle_read(   const boost::system::error_code& e,
 	    return false;
     }
     
-    ///cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
+    //cout << "handle_read( msgtype="<< msg->msgtype() << " payload: "<< msg->toString() <<")" << endl;
     /// Auth stuff first:
     if(msg->msgtype() == WELCOME)
     { // an invitation to identify ourselves
@@ -216,10 +216,11 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     
     if(m_pap->query_exists(rq->id()))
     {
-        //cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
+        cout << "Darknet: discarding search message, QID already exists: " << rq->id() << endl;
         return true;
     }
 
+    cout << "darknet: handing search query:" << msg->payload() << endl;
     // register source for this query, so we know where to 
     // send any replies to.
     set_query_origin(rq->id(), conn);
@@ -230,6 +231,7 @@ darknet::handle_searchquery(connection_ptr conn, msg_ptr msg)
     
     assert(rq->id() == qid);
     
+    cout << "darknet: sending search to peers" << endl;
     /*
         schedule search to be fwded to our peers - this will abort if
         the query has been solved before it fires anyway.
@@ -259,26 +261,26 @@ darknet::fwd_search(const boost::system::error_code& e,
         cout << "Error from timer, not fwding: "<< e.value() << " = " << e.message() << endl;
         return;
     }
-//    // bail if already solved (probably from our locallibrary resolver)
-//    if(resolver()->rq(qid)->solved())
-//    {
-//        //cout << "Darknet: not relaying solved search: " << qid << endl;
-//        return;
-//    }
+    // bail if already solved (probably from our locallibrary resolver)
+    if(m_pap->rq(qid)->solved())
+    {
+        cout << "Darknet: not relaying solved search: " << qid << endl;
+        return;
+    }
 //    
 //    // TODO check search is still active
-//    cout << "Forwarding search.." << endl;
-//    typedef std::pair<string,connection_ptr> pair_t;
-//    BOOST_FOREACH(pair_t item, m_connections)
-//    {
-//        if(item.second == conn)
-//        {
-//            cout << "Skipping " << item.first << " (origin)" << endl;
-//            continue;
-//        }
-//        cout << "\tFwding to: " << item.first << endl;
-//        send_msg(item.second, msg);
-//    }
+    cout << "Forwarding search.." << endl;
+    typedef std::pair<string,connection_ptr> pair_t;
+    BOOST_FOREACH(pair_t item, m_connections)
+    {
+        if(item.second == conn)
+        {
+            cout << "Skipping " << item.first << " (origin)" << endl;
+            continue;
+        }
+        cout << "\tFwding to: " << item.first << endl;
+        send_msg(item.second, msg);
+    }
 }
 
 // fired when a new result is available for a running query:
@@ -288,6 +290,7 @@ darknet::send_response( query_uid qid,
 {
     connection_ptr origin_conn = get_query_origin(qid);
     // relay result if the originating connection still active:
+    cout << "got send_response with qid:" << qid << "and url:" << rip->url() << endl;
     if(origin_conn)
     {
         cout << "Relaying search result to " 
@@ -305,7 +308,7 @@ darknet::send_response( query_uid qid,
 bool
 darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
 {
-    //cout << "Got search result: " << msg->toString() << endl;
+    cout << "Got search result: " << msg->toString() << endl;
     // try and parse it as json:
     Value v;
     if(!read(msg->payload(), v)) 
@@ -324,23 +327,30 @@ darknet::handle_searchresult(connection_ptr conn, msg_ptr msg)
     query_uid qid = r["qid"].get_str();
     Object resobj = r["result"].get_obj();
     ri_ptr rip;
-    //try
-    //{
-    //    rip = resolver()->ri_from_json(resobj);
-    //    
-    //}
-    //catch (...)
-    //{
-    //    cout << "Darknet: Missing fields in response json, discarding" << endl;
-    //    return true; // could just be incompatible version, not too bad. don't disconnect.
-    //}
-    //boost::shared_ptr<StreamingStrategy> s(
-    //                        new DarknetStreamingStrategy( this, conn, rip->id() ));
-    //rip->set_streaming_strategy(s);
-    //vector< boost::shared_ptr<ResolvedItem> > vr;
-    //vr.push_back(rip);
-    //report_results(qid, vr, name());
-    //// we've already setup a callback, which will be fired when we call report_results.    
+    try
+    {
+        //rip = resolver()->ri_from_json(resobj);
+        rip = boost::shared_ptr<playdar::ResolvedItem>( new ResolvedItem( resobj ) );
+    }
+    catch (...)
+    {
+        cout << "Darknet: Missing fields in response json, discarding" << endl;
+        return true; // could just be incompatible version, not too bad. don't disconnect.
+    }
+    cout    << "INFO Result from '" << rip->source()
+                            <<"' for '"<< write_formatted( rip->get_json())
+                            << endl;
+                            
+    ostringstream rbs;
+    rbs << "darknet://"
+    << conn->username()
+    << "/sid/"
+    << rip->id();
+    cout << "created new darknet url:" << rbs.str() << endl;
+    rip->set_url( rbs.str() );
+    vector< json_spirit::Object> res;
+    res.push_back(rip->get_json());
+    m_pap->report_results( qid, res );
     return true;
 }
 
@@ -358,59 +368,59 @@ darknet::start_sidrequest(connection_ptr conn, source_uid sid,
 bool
 darknet::handle_sidrequest(connection_ptr conn, msg_ptr msg)
 {
-    //source_uid sid = msg->payload();
-    //cout << "Darknet request for sid: " << sid << endl;
-    //boost::shared_ptr<ResolvedItem> rip = resolver()->get_ri(sid);
-    //
-    //pi_ptr pip = boost::dynamic_pointer_cast<PlayableItem>(rip);
-    //if( !pip )
-    //    return false;
-    //
-    //// We send SIDDATA msgs, where the payload is a sid_header followed
-    //// by the audio data.
-    //char buf[8194]; // this is the lamemsg payload.
-    //int len, total=0;
-    //sid_header sheader;
-    //memcpy((char*)&sheader.sid, sid.c_str(), 36);
-    //// put sheader at the start of our buffer:
-    //memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
-    //
-    //if(pip) // send data:
-    //{
-    //    cout << "-> PlayableItem: " << pip->artist() 
-    //         << " - " << pip->track() << endl;
-    //    boost::shared_ptr<StreamingStrategy> ss = pip->streaming_strategy();
-    //    cout << "-> " << ss->debug() << endl;
-    //    cout << "-> source: '"<< pip->source() <<"'" << endl;
-    //    cout << "Sending siddata packets: header.sid:'" 
-    //        << sid << "'" << endl;
-    //    // this will be the offset where we write audio data,
-    //    // to leave the sid_header intact at the start:
-    //    char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
-    //    // read audio data into buffer at the data offset:
-    //    while ((len = ss->read_bytes( buf_datapos,
-    //                                  sizeof(buf)-sizeof(sid_header))
-    //           )>0)
-    //    {
-    //        total+=len;
-    //        string payload((const char*)&buf, sizeof(sid_header)+len);
-    //        msg_ptr msgp(new LameMsg(payload, SIDDATA));
-    //        send_msg(conn, msgp);
-    //    }
-    //}
-    //else
-    //{
-    //    cout << "No playableitem for sid '"<<sid<<"'" << endl;
-    //    // send empty packet anyway, to signify EOS
-    //    // TODO possibly send an msgtype=error msg
-    //}
-    //
-    //// send empty siddata to signify end of stream
-    //cout << "Sending end part. Transferred " << total << " bytes" << endl;
-    //string eostream((char*)&buf, sizeof(sid_header));
-    //msg_ptr msge(new LameMsg(eostream, SIDDATA));
-    //send_msg(conn, msge);
-    //cout << "Darknet: done streaming sid" << endl; 
+    source_uid sid = msg->payload();
+    cout << "Darknet request for sid: " << sid << endl;
+    
+    ss_ptr ss = m_pap->get_ss( sid );
+    ri_ptr ri = m_pap->get_ri( sid );
+    cout << "-> " << ss->debug() << endl;
+    
+    
+    
+    // We send SIDDATA msgs, where the payload is a sid_header followed
+    // by the audio data.
+    char buf[8194]; // this is the lamemsg payload.
+    int len, total=0;
+    sid_header sheader;
+    memcpy((char*)&sheader.sid, sid.c_str(), 36);
+    // put sheader at the start of our buffer:
+    memcpy((char*)&buf, (char*)&sheader, sizeof(sid_header));
+    
+    if(ri) // send data:
+    {
+       cout << "-> PlayableItem: " << ri->url();
+ //           << " - " << pip->track() << endl;
+       cout << "-> " << ss->debug() << endl;
+       cout << "-> source: '"<< ri->source() <<"'" << endl;
+       cout << "Sending siddata packets: header.sid:'" 
+           << sid << "'" << endl;
+       // this will be the offset where we write audio data,
+       // to leave the sid_header intact at the start:
+       char * const buf_datapos = ((char*)&buf) + sizeof(sid_header);
+       // read audio data into buffer at the data offset:
+       while ((len = ss->read_bytes( buf_datapos,
+                                     sizeof(buf)-sizeof(sid_header))
+              )>0)
+       {
+           total+=len;
+           string payload((const char*)&buf, sizeof(sid_header)+len);
+           msg_ptr msgp(new LameMsg(payload, SIDDATA));
+           send_msg(conn, msgp);
+       }
+    }
+    else
+    {
+       cout << "No ri for sid '"<<sid<<"'" << endl;
+       // send empty packet anyway, to signify EOS
+       // TODO possibly send an msgtype=error msg
+    }
+    
+    // send empty siddata to signify end of stream
+    cout << "Sending end part. Transferred " << total << " bytes" << endl;
+    string eostream((char*)&buf, sizeof(sid_header));
+    msg_ptr msge(new LameMsg(eostream, SIDDATA));
+    send_msg(conn, msge);
+    cout << "Darknet: done streaming sid" << endl; 
     return true;
 }
 
@@ -473,34 +483,40 @@ darknet::send_msg(connection_ptr conn, msg_ptr msg)
 }
 
 // web interface:
-playdar_response 
-darknet::authed_http_handler(const playdar_request* req,
-                      playdar::auth * pauth)
+bool 
+darknet::anon_http_handler(const playdar_request& req, playdar_response& resp,
+                           playdar::auth& pauth)
 {
-    cout << "http_handler called on darknet. pauth = " << pauth << endl;
-    if( req->postvar_exists("formtoken") &&
-        req->postvar_exists("newaddr") &&
-        req->postvar_exists("newport") &&
-        pauth->consume_formtoken(req->postvar("formtoken")) )
+    if( req.postvar_exists("formtoken") &&
+        req.postvar_exists("newaddr") &&
+        req.postvar_exists("newport") &&
+        pauth.consume_formtoken(req.postvar("formtoken")) )
     {
-        string addr = req->postvar("newaddr");
-        unsigned short port = boost::lexical_cast<unsigned short>(req->postvar("newport"));
+        string addr = req.postvar("newaddr");
+        unsigned short port = boost::lexical_cast<unsigned short>(req.postvar("newport"));
         boost::asio::ip::address_v4 ip = boost::asio::ip::address_v4::from_string(addr);
         boost::asio::ip::tcp::endpoint ep(ip, port);
         servent()->connect_to_remote(ep);
     }
     
+    string formtoken = m_pap->gen_uuid();
+    pauth.add_formtoken( formtoken );
     typedef pair<string, connection_ptr_weak> pair_t;
     ostringstream os;
-    os  << "<h2>Darknet Settings</h2>" << endl
-        << "<form method=\"post\" action=\"\">" << endl
-        << "Connect "
-        << "IP: <input type=\"text\" name=\"newaddr\" />"
-        << "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
-        << "<input type=\"hidden\" name=\"formtoken\" value=\""
-            << pauth->gen_formtoken() << "\"/>"
-        << " <input type=\"submit\" value=\"Connect to remote servent\" />"
-        << "</form>" << endl
+    os  << "<h2>Darknet Settings</h2>"
+        "<form method=\"post\" action=\"\">"
+        "Connect "
+        "IP: <input type=\"text\" name=\"newaddr\" />"
+        "Port: <input type=\"text\" name=\"newport\" value=\"9999\"/>"
+        "<input type=\"hidden\" name=\"formtoken\" value=\""
+        << formtoken << "\"/>"
+        " <input type=\"submit\" value=\"Connect to remote servent\" />"
+        "</form>" 
+        "<hr/><p>"
+        "NB: You might want to <a href=\"/darknet/config\">refresh</a> this page if you just connected,"
+        " it may take a couple of seconds to connect and display the connection below."
+        "</p>"
+        << endl
         ;
     os  << "<h3>Current Connections</h3>"    
         << "<table>"
@@ -520,8 +536,9 @@ darknet::authed_http_handler(const playdar_request* req,
     }
     os  << "</table>" 
         << endl; 
-    //cout << os.str();
-    return os.str();
+        
+    resp = playdar_response( os.str() );
+    return true;
 }
 
 

@@ -84,7 +84,7 @@ static string config(bool auth_required)
 }
 
 bool 
-audioscrobbler::anon_http_handler(const playdar_request& rq, playdar_response& resp )
+audioscrobbler::anon_http_handler(const playdar_request& rq, playdar_response& resp, playdar::auth& /*pauth*/ )
 {
     if( rq.parts()[1] == "config" )
     {
@@ -95,7 +95,7 @@ audioscrobbler::anon_http_handler(const playdar_request& rq, playdar_response& r
 }
 
 bool
-audioscrobbler::authed_http_handler(const playdar_request& rq, playdar_response& resp,  playdar::auth* pauth)
+audioscrobbler::authed_http_handler(const playdar_request& rq, playdar_response& resp,  playdar::auth& pauth)
 {
     cout << "audioscrobbler: Authed HTTP" << endl;
     

@@ -75,10 +75,21 @@ public:
     /// this is important if you are holding any state, or a copy of the RQ pointer.
     virtual void cancel_query(query_uid qid){ /* no-op */ }
 
+    /// return map of protocol -> SS factory function
+    /// used for specific SS implementations by plugins.
+    /// TODO the custom alloc/dealloc trick discussed FIXME
+    virtual std::map< std::string, boost::function<ss_ptr(std::string)> >
+    get_ss_factories()
+    {
+        // default to empty map - ie, no special SS registered.
+        std::map< std::string, boost::function<ss_ptr(std::string)> > facts;
+        return facts;
+    }
+
     /// Called when an authenticated http request is made.
     /// @return true if http request is handled. 
     /// @param out should be set to the required http response
-    virtual bool authed_http_handler(const playdar_request& req, playdar_response& out, playdar::auth* pauth)
+    virtual bool authed_http_handler(const playdar_request& req, playdar_response& out, playdar::auth& pauth)
     { 
        return false;
     }
@@ -87,7 +98,7 @@ public:
     /// authenticated request is made but not handled by authed_http_handler.
     /// @return true if http request is handled. 
     /// @param out should be set to the required http response
-    virtual bool anon_http_handler(const playdar_request&, playdar_response& out)
+    virtual bool anon_http_handler(const playdar_request&, playdar_response& out, playdar::auth& pauth)
     { 
        return false;
     }

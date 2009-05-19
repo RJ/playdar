@@ -103,7 +103,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     if( tokenizer.begin() != tokenizer.end())
         base = *tokenizer.begin();
 
-    
+//     
     boost::to_lower(base);
     HandlerMap::iterator handler = m_urlHandlers.find( base );
     if( handler != m_urlHandlers.end())
@@ -342,9 +342,9 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
 
     playdar_response resp;
     if( permissions == "*" )
-        rs->authed_http_handler( req, resp, m_pauth ) || rs->anon_http_handler( req, resp );
+        rs->authed_http_handler( req, resp, *m_pauth ) || rs->anon_http_handler( req, resp, *m_pauth );
     else
-        rs->anon_http_handler( req, resp );
+        rs->anon_http_handler( req, resp, *m_pauth );
 
     if( resp.is_valid() )
         serve_body( resp, rep );
