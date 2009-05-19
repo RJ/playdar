@@ -712,7 +712,8 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
+//    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
+    rep.set_async_delegate( boost::bind( &StreamingStrategy::async_delegate, ss, _1 ) );
 }
 
 
@@ -749,9 +750,9 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
 {
     if (req.getvar_exists("session")) {
         const string& sessionId( req.getvar("session") );
-        CometSession* comet = new CometSession();        // todo: manage the lifetime of this!
+        CometSession* comet = new CometSession();
         m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2));
-        rep.set_content_fun( boost::bind(&CometSession::content_func, comet, _1, _2) );
+        rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
         rep.status = moost::http::reply::ok;
     }
 }

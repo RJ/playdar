@@ -51,20 +51,26 @@ struct reply
   const std::vector<header>& get_headers()
   { return headers_; }
 
-  bool has_content_fun() 
-  { return content_fun_; }
+  // The optional async delegate enables the request handler to write
+  // to the client in a non-blocking manner.  The delegate is 
+  // called to initiate the first write operation, and
+  // subsequently after the completion of each write operation.
+  // The delegate returns false to end the write sequence.
+  // The WriteFunc parameter should be used once (per delegate call).
+  // Keep a copy of the WriteFunc to keep the connection alive (todo: improve this)
 
-   size_t read_some(char* dest, size_t size)
-   {
-     if ( !content_fun_ )
-       return 0;
-     else
-       return content_fun_(dest, size);
-   }
+    typedef boost::function< void(boost::asio::const_buffer&) > WriteFunc;
+    typedef boost::function< bool(WriteFunc) > AsyncDelegateFunc;
 
-   template <typename TFun>
-   void set_content_fun(const TFun& fun)
-   { content_fun_ = fun; }
+    void set_async_delegate(AsyncDelegateFunc f)
+    {
+        async_delegate_ = f;
+    }
+
+    const AsyncDelegateFunc& get_async_delegate()
+    {
+        return async_delegate_;
+    }
 
 public:
 
@@ -76,7 +82,7 @@ public:
    void set_status( int s ){ status = (status_type)s; }
 private:
 
-   boost::function< size_t(char*, size_t) > content_fun_;
+    AsyncDelegateFunc async_delegate_;
 
   std::map<std::string, size_t> headersGuard_;
 

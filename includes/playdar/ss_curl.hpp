@@ -274,7 +274,21 @@ public:
     }
     
     const std::string url() const { return m_url; }
-    
+
+    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc)
+    {
+        // todo: fix this, we're still blocking here in read_bytes... need to queue up
+        // buffers in curl_writefunc
+        int read = read_bytes(&m_buffer[0], sizeof(m_buffer));
+        if (read > 0) {
+            writefunc(boost::asio::const_buffer(m_buffer, read));
+            return true;
+        } 
+        return false;
+    }
+
+
+
 protected:
     
     void get_headers()
@@ -369,7 +383,7 @@ protected:
         //generic:
         return "application/octet-stream";
     }
-    
+
     CURL *m_curl;
     CURLcode m_curlres;
     std::vector<std::string> m_extra_headers; 
@@ -389,6 +403,8 @@ protected:
     
     bool m_headersFetched;
     
+    char m_buffer[8192];    
+
     int m_contentlen;
     std::string m_mimetype;
 };
