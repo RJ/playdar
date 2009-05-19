@@ -335,6 +335,18 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     
     rq->set_from_name( m_pap->hostname() );
     
+    if( req.getvar_exists( "qid" ))
+    {
+        if( !m_pap->query_exists(req.getvar("qid")) )
+        {
+            rq->set_id( req.getvar("qid") );
+        }
+        else
+        {
+            cout << "WARNING - boffin request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
+        }
+    }
+
     query_uid qid = m_pap->dispatch( rq );
     
     using namespace json_spirit;
