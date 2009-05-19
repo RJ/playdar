@@ -45,6 +45,7 @@ class CurlStreamingStrategy : public StreamingStrategy
 public:
     CurlStreamingStrategy(std::string url)
         : m_curl(0)
+        , m_slist_headers(0)
         , m_url(url)
         , m_thread(0)
         , m_headthread(0)
@@ -98,7 +99,10 @@ public:
         return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(*this));
     }
     
-    std::vector<std::string> & extra_headers() { return m_extra_headers; }
+    void set_extra_header(const std::string& header)
+    {
+        m_slist_headers = curl_slist_append(m_slist_headers, header.c_str());
+    }
 
     size_t read_bytes(char * buf, size_t size)
     {
@@ -253,6 +257,7 @@ public:
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
+        if(m_slist_headers) curl_slist_free_all(m_slist_headers);
         std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
         if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
         curl_easy_cleanup( m_curl );
@@ -292,27 +297,12 @@ protected:
         
         //Try HEAD request
         m_curl = curl_easy_init();
+        prep_curl( m_curl );
         curl_easy_setopt( m_curl, CURLOPT_NOBODY, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_HEADER, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_NOSIGNAL, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_CONNECTTIMEOUT, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_SSL_VERIFYPEER, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
-        curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
-        curl_easy_setopt( m_curl, CURLOPT_FOLLOWLOCATION, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_MAXREDIRS, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_USERAGENT, "Playdar (libcurl)" );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_headfunc );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
-        // we use the curl progress callbacks to abort transfers mid-download on exit
-        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION,
-                         &CurlStreamingStrategy::curl_progressfunc );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
 
         m_headthread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform_head, this ) );
     }
+
     
     void connect()
     {
@@ -330,31 +320,38 @@ protected:
             std::cout << "Curl init failed" << std::endl;
             throw;
         }
-        // for curl options, see:
-        // http://curl.netmirror.org/libcurl/c/curl_easy_setopt.html
         
-        curl_easy_setopt( m_curl, CURLOPT_NOSIGNAL, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_NOBODY, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_CONNECTTIMEOUT, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_SSL_VERIFYPEER, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
-        curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
-        curl_easy_setopt( m_curl, CURLOPT_FOLLOWLOCATION, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_MAXREDIRS, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_USERAGENT, "Playdar (libcurl)" );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_writefunc );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_HEADERFUNCTION, &CurlStreamingStrategy::curl_headfunc );
-        curl_easy_setopt( m_curl, CURLOPT_HEADERDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
-        // we use the curl progress callbacks to abort transfers mid-download on exit
-        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION,
-                         &CurlStreamingStrategy::curl_progressfunc );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
+        prep_curl( m_curl );
+        
         m_connected = true; 
         // do the blocking-fetch in a thread:
         m_thread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
+    }
+    
+    void prep_curl(CURL * handle)
+    {
+        // for curl options, see:
+        // http://curl.netmirror.org/libcurl/c/curl_easy_setopt.html
+        curl_easy_setopt( handle, CURLOPT_NOSIGNAL, 1 );
+        curl_easy_setopt( handle, CURLOPT_NOBODY, 0 );
+        curl_easy_setopt( handle, CURLOPT_CONNECTTIMEOUT, 5 );
+        curl_easy_setopt( handle, CURLOPT_SSL_VERIFYPEER, 0 );
+        curl_easy_setopt( handle, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
+        curl_easy_setopt( handle, CURLOPT_URL, m_url.c_str() );
+        curl_easy_setopt( handle, CURLOPT_FOLLOWLOCATION, 1 );
+        curl_easy_setopt( handle, CURLOPT_MAXREDIRS, 5 );
+        curl_easy_setopt( handle, CURLOPT_USERAGENT, "Playdar (libcurl)" );
+        curl_easy_setopt( handle, CURLOPT_HTTPHEADER, m_slist_headers );
+        curl_easy_setopt( handle, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_writefunc );
+        curl_easy_setopt( handle, CURLOPT_WRITEDATA, this );
+        curl_easy_setopt( handle, CURLOPT_HEADERFUNCTION, &CurlStreamingStrategy::curl_headfunc );
+        curl_easy_setopt( handle, CURLOPT_HEADERDATA, this );
+        curl_easy_setopt( handle, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
+        // we use the curl progress callbacks to abort transfers mid-download on exit
+        curl_easy_setopt( handle, CURLOPT_NOPROGRESS, 0 );
+        curl_easy_setopt( handle, CURLOPT_PROGRESSFUNCTION,
+                         &CurlStreamingStrategy::curl_progressfunc );
+        curl_easy_setopt( handle, CURLOPT_PROGRESSDATA, this );
     }
     
     //FIXME: DUPLICATED from scanner.cpp
@@ -371,8 +368,8 @@ protected:
     }
     
     CURL *m_curl;
+    struct curl_slist * m_slist_headers; // extra headers to be sent
     CURLcode m_curlres;
-    std::vector<std::string> m_extra_headers; 
     bool m_connected;
     std::string m_url;
     std::string m_protocol;
