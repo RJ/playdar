@@ -38,7 +38,7 @@ public:
         enqueue(",");     // comma to separate objects in array
     }
 
-    typedef boost::function< void(boost::asio::const_buffer&)> WriteFunc;
+    typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
     
     bool async_write_func(WriteFunc& wf)
     {

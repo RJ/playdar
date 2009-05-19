@@ -41,7 +41,7 @@ private:
   /// Handle completion of a handle_read and handle_write operations:
   void handle_write(const boost::system::error_code& e);
 
-  void do_async_write(boost::asio::const_buffer& buffer);
+  void do_async_write(boost::asio::const_buffer buffer);
 
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
@@ -162,7 +162,7 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
 // this is the write function we pass to the content_async_write callback
 //
 template<class RequestHandler>
-void connection<RequestHandler>::do_async_write(boost::asio::const_buffer& buffer)
+void connection<RequestHandler>::do_async_write(boost::asio::const_buffer buffer)
 {
     boost::asio::async_write(socket_, boost::asio::const_buffers_1(buffer), 
         strand_.wrap(
