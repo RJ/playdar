@@ -65,6 +65,27 @@ public:
     virtual void set_url(const std::string& s)  { m_jsonmap["url"] = s; }
     virtual const std::string url() const  { return json_value( "url", "" ); }
     
+    /// extra headers to send in the request for this url.
+    /// typically only used for http urls, but could be implemented for 
+    /// any other protocol.
+    /// Expects:  "extra_headers" : [ "Cookie: XXX", "X-Foo: bar" ]
+    virtual std::vector<std::string> get_extra_headers() const
+    {
+        using namespace json_spirit;
+        std::vector<std::string> headers;
+        std::map< std::string, Value >::const_iterator i = m_jsonmap.find( "extra_headers" );
+        if( i != m_jsonmap.end() && i->second.type() == array_type )
+        {
+            BOOST_FOREACH( Value v, i->second.get_array() )
+            {
+                if( v.type() != str_type ) continue;
+                headers.push_back( v.get_str() );
+            }
+        }
+        return headers;
+        
+    }
+    
     template< typename T >
     bool has_json_value( const std::string& s ) const
     {

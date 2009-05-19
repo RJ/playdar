@@ -40,6 +40,7 @@ public:
     virtual void reset() = 0;
     virtual std::string mime_type() = 0;
     virtual int content_length(){ return -1; }
+    virtual void set_extra_header(const std::string& header){}
     /// called when we want to use a SS to stream.
     /// could make a copy if the implementation requires it.
     virtual boost::shared_ptr<StreamingStrategy> get_instance()

@@ -689,7 +689,8 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-/// this creates a SS from the URL in the ResolvedItem
+/// this creates a SS from the ResolvedItem.
+/// Typically it looks for the url field, and extra_headers etc.
 /// it checks our map of protocol -> SS factory where protocol is the bit before the : in urls.
 ss_ptr
 Resolver::get_ss(const source_uid & sid)
@@ -705,10 +706,22 @@ Resolver::get_ss(const source_uid & sid)
         string p = rip->url().substr(0, offset);
         cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
 
-        std::map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
+        map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
             m_ss_factories.find(p);
         if (itFac != m_ss_factories.end())
-            return itFac->second(rip->url());
+        {
+            ss_ptr ss = itFac->second(rip->url());
+            // Any extra headers to add to the request for this URL?
+            // this is typically only used for http urls, but could be used
+            // for any protocol really, if the SS supports the concept.
+            vector<string> xh = rip->get_extra_headers();
+            BOOST_FOREACH( string h,  xh )
+            {
+                cout << "Extra header: " << h<< endl;
+                ss->set_extra_header( h );
+            }
+            return ss;
+        }
     }
     return ss_ptr();
 }

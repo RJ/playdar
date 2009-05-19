@@ -8,7 +8,9 @@
 #include "json_spirit_reader.h"
 #include "json_spirit_value.h"
 
+//#ifndef BOOST_SPIRIT_THREADSAFE
 #define BOOST_SPIRIT_THREADSAFE  // uncomment for multithreaded use, requires linking to boost.thead
+//#endif
 
 #include <boost/bind.hpp>
 #include <boost/function.hpp>
