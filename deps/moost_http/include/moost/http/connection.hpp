@@ -2,7 +2,6 @@
 #define __MOOST_HTTP_CONNECTION_HPP__
 
 #include <boost/bind.hpp>
-#include <boost/bind/protect.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
 #include <boost/noncopyable.hpp>

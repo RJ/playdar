@@ -751,7 +751,7 @@ Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
     // a new callback replaces the old callback
     // todo: can we terminate the old comet session via the callback?
     // todo: need a general mechanism to terminate (like when shutting down)
-    // todo: limit the number of simultaneous comet sessions or make them non-blocking
+    // todo: limit the number of simultaneous comet sessions?
     m_comets[sessionId] = cb;
 
     return true;

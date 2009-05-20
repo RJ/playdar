@@ -751,9 +751,16 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
     if (req.getvar_exists("session")) {
         const string& sessionId( req.getvar("session") );
         CometSession* comet = new CometSession();
-        m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2));
-        rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
-        rep.status = moost::http::reply::ok;
+        if (m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2))) {
+            rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
+            rep.status = moost::http::reply::ok;
+        } else {
+            delete comet;
+            cout << "couldn't create comet session";
+            rep.status = moost::http::reply::internal_server_error;
+        }
+    } else {
+        rep.status = moost::http::reply::bad_request;
     }
 }
 

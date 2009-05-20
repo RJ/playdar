@@ -48,14 +48,24 @@ public:
         }
 
         m_wf = wf;
+
+        if (m_firstWrite) {
+            m_firstWrite = false;
+            enqueue("[");        // we're writing an array of javascript objects
+            return true;
+        }
+
         {
-            // previous write has completed:
             boost::lock_guard<boost::mutex> lock(m_mutex);
+
             if (m_writing && m_buffers.size()) {
+                // previous write has completed:
                 m_buffers.pop_front();
                 m_writing = false;
             }
+
             if (!m_writing && m_buffers.size()) {
+                // write something new
                 m_writing = true;
                 m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
             }
@@ -66,11 +76,6 @@ public:
 private:
     void enqueue(const std::string& s)
     {
-        if (m_firstWrite) {
-            m_firstWrite = false;
-            enqueue("[");        // we're writing an array of javascript objects
-        }
-
         boost::lock_guard<boost::mutex> lock(m_mutex);
         m_buffers.push_back(s);
         if (!m_writing) {
