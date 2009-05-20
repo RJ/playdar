@@ -43,7 +43,8 @@ public:
     bool async_write_func(WriteFunc& wf)
     {
         if (!wf || m_cancelled) {   // cancelled by caller || cancelled by us
-            delete this;
+            // not safe to just delete it at this point.  todo: fix.
+            //delete this;
             return false;
         }
 
