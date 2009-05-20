@@ -24,7 +24,7 @@ struct request_handler_base
     {
         rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.length()) );
     }
-    //rep.add_header( "Content-Type", "text/plain", false );
+    rep.add_header( "Content-Type", "text/plain", false );
   }
 
   void handle_request(const request& req, reply& rep)
