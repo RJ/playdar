@@ -76,9 +76,10 @@ public:
         m_string = r.str();
     }
 
-    void add_header( const std::string& k, const std::string& v )
+    void add_header( const std::string& k, const std::string& v, bool replace = true )
     {
-        m_headers[k] = v;
+        if( replace || m_headers.find(k) == m_headers.end() )
+            m_headers[k] = v;
     }
 
     void set_response_code( const int code ) 

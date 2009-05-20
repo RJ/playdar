@@ -38,7 +38,7 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
 {
     using namespace json_spirit;
     ostringstream response; 
-    if(req.getvar("method") == "stat") {
+    if(req.getvar_exists("method") && req.getvar("method") == "stat") {
         Object r;
         r.push_back( Pair("name", "playdar") );
         r.push_back( Pair("version", m_pap->playdar_version()) );
@@ -65,6 +65,9 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
     }
         
     resp = playdar_response(retval, false);
+    resp.add_header( "Content-Type", req.getvar_exists("jsonp") ?
+                                "text/javascript; charset=utf-8" :
+                                "application/json; charset=utf-8" );
     return true;
 }
 
@@ -76,7 +79,11 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
     ostringstream response; 
     do
     {
-        if(req.getvar("method") == "stat") 
+        if(!req.getvar_exists("method"))
+            return false;
+        const string& method( req.getvar("method") );
+
+        if(method == "stat") 
         {
             Object r;
             r.push_back( Pair("name", "playdar") );
@@ -89,7 +96,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
             write_formatted( r, response );
             break;
         }
-        else if(req.getvar("method") == "resolve")
+        else if(method == "resolve")
         {
             string artist = req.getvar_exists("artist") ? req.getvar("artist") : "";
             string album  = req.getvar_exists("album") ? req.getvar("album") : "";
@@ -124,14 +131,14 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
             r.push_back( Pair("qid", qid) );
             write_formatted( r, response );
         }
-        else if(req.getvar("method") == "cancel")
+        else if(method == "cancel")
         {
             query_uid qid = req.getvar("qid");
             m_pap->cancel_query(qid);
             // return something.. typically not checked, but easier to debug like this:
             response << "{ \"status\" : \"OK\" }";
         }
-        else if(req.getvar("method") =="get_results" && req.getvar_exists("qid"))
+        else if(method =="get_results" && req.getvar_exists("qid"))
         {
             if( !m_pap->query_exists( req.getvar("qid") ) )
             {
@@ -179,7 +186,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
     resp = playdar_response(retval, false);
     resp.add_header( "Content-Type", req.getvar_exists("jsonp") ?
                                   "text/javascript; charset=utf-8" :
-                                  "text/plain; charset=utf-8" );
+                                  "application/json; charset=utf-8" );
     return true;
 }
 
