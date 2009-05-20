@@ -21,6 +21,7 @@
 
 #include <string>
 #include <boost/function.hpp>
+#include <boost/foreach.hpp>
 #include "playdar/types.h"
 #include "json_spirit/json_spirit.h"
 
