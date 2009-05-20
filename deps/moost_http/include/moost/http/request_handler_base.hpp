@@ -20,7 +20,7 @@ struct request_handler_base
   {
     rep.status = reply::ok;
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
-    if( !rep.has_content_fun() )
+    if( !rep.get_async_delegate() )
     {
         rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.length()) );
     }

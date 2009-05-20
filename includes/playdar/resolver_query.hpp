@@ -104,37 +104,37 @@ public:
     
     static boost::shared_ptr<ResolverQuery> from_json(json_spirit::Object qryobj)
     {
-        std::string qid, from_name;
-        
+        boost::shared_ptr<ResolverQuery> rq(new ResolverQuery);
+
         using namespace json_spirit;
         std::map<std::string,Value> qryobj_map;
         obj_to_map(qryobj, qryobj_map);
-        
-        if(qryobj_map.find("qid")!=qryobj_map.end()) 
-            qid = qryobj_map["qid"].get_str();
-        if(qryobj_map.find("from_name")!=qryobj_map.end()) 
-            from_name = qryobj_map["from_name"].get_str();
-                    
-        boost::shared_ptr<ResolverQuery>    
-            rq(new ResolverQuery);
-
         rq->m_qryobj_map = qryobj_map;
-        
-        if(qid.length())  rq->set_id(qid);
-        if(from_name.length())  rq->set_from_name(from_name);
+
+        std::map<std::string,Value>::const_iterator it;
+        std::map<std::string,Value>::const_iterator end( qryobj_map.end() );
+        if((it = qryobj_map.find("qid")) != end) 
+            rq->set_id( it->second.get_str() );
+        if((it = qryobj_map.find("from_name")) != end) 
+            rq->set_from_name( it->second.get_str() );
+                    
         return rq;
     }
     
-    void set_id(const query_uid& q)
-    {
-        m_uuid = q;
-    }
+    void set_id(const query_uid& q) { m_uuid = q; }
     
     void set_from_name(const std::string& s) { m_from_name = s; }
-    
-    const query_uid & id() const
+
+    void set_comet_session_id(const std::string& s) { m_comet_session_id = s; }
+
+    const query_uid& id() const
     { 
         return m_uuid; 
+    }
+
+    const std::string& comet_session_id() const
+    {
+        return m_comet_session_id;
     }
 
     size_t num_results() const
@@ -241,7 +241,8 @@ protected:
 
 private:
     std::vector< ri_ptr > m_results;
-    std::string      m_from_name;
+    std::string m_from_name;
+    std::string m_comet_session_id;
         
     // list of functors to fire on new result:
     std::vector<rq_callback_t> m_callbacks;

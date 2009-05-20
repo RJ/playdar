@@ -334,7 +334,11 @@ lan::send_response( query_uid qid,
     Object response;
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
+    
+    //get the json object with the url stripped
+    rip->rm_json_value( "url" );
     Object result = rip->get_json();
+
     //FIXME strip "url" (filename) from result object before sending!
     response.push_back( Pair("result", result) );
     ostringstream ss;

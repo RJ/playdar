@@ -52,7 +52,7 @@ typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
-typedef boost::function< void (const query_uid& qid, ri_ptr pip)> rq_callback_t;
+typedef boost::function< void (const query_uid& qid, ri_ptr rip)> rq_callback_t;
 
 /// Handlers for web requests:
 typedef boost::function< void ( const std::string& url,

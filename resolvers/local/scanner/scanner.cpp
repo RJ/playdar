@@ -122,7 +122,7 @@ bool scan(const Path& p, map<string, int>& mtimes)
                     }
                 } else {
                     ignored++;
-                    //cout << "Ignoring: " << itr->string() << endl;
+                    cout << "Ignoring: " << itr->string() << endl;
                 }
             }
         }
@@ -145,7 +145,7 @@ bool add_dir(const Path &p)
         cerr << e.what() << endl;
     }
     catch(...) { 
-        cout << "Fail at " << p.string() << endl; 
+        cerr << "Fail at " << p.string() << endl; 
     }
     return false;
 }
@@ -201,6 +201,11 @@ bool add_file(const Path& p, int mtime)
         cout << "comment - \"" << tag->comment() << "\"" << endl;
         cout << "track   - \"" << tag->track()   << "\"" << endl;
         cout << "genre   - \"" << tag->genre()   << "\"" << endl;*/
+        cout << "T " 
+             << tag->artist() << "\t"
+             << tag->album() << "\t"
+             << tag->title() << "\t" << endl;
+
         scanned++;
         return true;
     } else {
@@ -236,7 +241,7 @@ int main(int argc, char* argv[])
         // get last scan date:
         cout << "Loading data from last scan..." << flush;
         map<string, int> mtimes = gLibrary->file_mtimes();
-        cout << mtimes.size() << " files+dir mtimes loaded" << endl;
+        cout << "" << mtimes.size() << " files+dir mtimes loaded" << endl;
         cout << "Scanning for changes..." << endl;
         Path dir(argv[2]);
         sqlite3pp::transaction xct(gLibrary->db());
@@ -249,7 +254,7 @@ int main(int argc, char* argv[])
             }
             catch(...)
             {
-                cout << "Scan failed." << endl;
+                cerr << "Scan failed." << endl;
                 xct.rollback();
                 return 1;
             }
@@ -268,17 +273,17 @@ int main(int argc, char* argv[])
             }
             catch(...)
             {
-                cout << "Index update failed, delete your database, fix the bug, and retry" << endl;
+                cerr << "Index update failed, delete your database, fix the bug, and retry" << endl;
                 xct.rollback();
                 return 1;
             }
         }
         delete gLibrary; 
     } catch (const std::exception& e) {
-        cout << "failed: " << e.what();
+        cerr << "failed: " << e.what();
         return 1;
     } catch (...) {
-        cout << "failed with unhandled exception";
+        cerr << "failed with unhandled exception";
         return 1;
     }
     return 0;

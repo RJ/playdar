@@ -22,17 +22,19 @@
 
 namespace BoffinRQUtil
 {
-    playdar::rq_ptr buildTagCloudRequest( const std::string& rql )
+    playdar::rq_ptr buildTagCloudRequest( const std::string& rql, const std::string& comet_session_id )
     {
         playdar::rq_ptr rq( new playdar::ResolverQuery );
         rq->set_param( "boffin_tags", rql );
+        rq->set_comet_session_id( comet_session_id );
         return rq;
     }
     
-    playdar::rq_ptr buildRQLRequest( const std::string& rql )
+    playdar::rq_ptr buildRQLRequest( const std::string& rql, const std::string& comet_session_id )
     {
         playdar::rq_ptr rq( new playdar::ResolverQuery );
         rq->set_param( "boffin_rql", rql );
+        rq->set_comet_session_id( comet_session_id );
         return rq;        
     }
 }

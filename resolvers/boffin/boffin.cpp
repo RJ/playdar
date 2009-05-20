@@ -30,7 +30,7 @@
 #include "../local/library.h"
 #include "../local/resolved_item_builder.hpp"
 #include "playdar/playdar_request.h"
-#include "BoffinRQUtil.h"
+#include "BoffinRqUtil.hpp"
 
 using namespace fm::last::query_parser;
 using namespace std;
@@ -225,19 +225,19 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &leaf2op);
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
-            // sample from the rqlResults into our SampleAccumulator:
-            const int artist_memory = 4;
-            SampleAccumulator sa(artist_memory);
-            boffinSample(limit, *rqlResults, 
-                boost::bind(&SampleAccumulator::pushdown, &sa, _1),
-                boost::bind(&SampleAccumulator::result, &sa, _1));
+            //// sample from the rqlResults into our SampleAccumulator:
+            //const int artist_memory = 4;
+            //SampleAccumulator sa(artist_memory);
+            //boffinSample(limit, *rqlResults, 
+            //    boost::bind(&SampleAccumulator::pushdown, &sa, _1),
+            //    boost::bind(&SampleAccumulator::result, &sa, _1));
 
             // look up results, turn them into a vector of json objects
-            int sequence = 0;
             std::vector< json_spirit::Object > results;
-            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+            results.reserve(rqlResults->size());
+//            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+            BOOST_FOREACH(const TrackResult& t, *rqlResults) {
                 ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_json_value( "seq", sequence++ );
                 rip->set_source( m_pap->hostname() );
                 rip->set_id( m_pap->gen_uuid() );
                 results.push_back( rip->get_json() );
@@ -302,20 +302,26 @@ boffin::parseFail(std::string line, int error_offset)
 bool
 boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth)
 {
-    if(req.parts().size() <= 1)
-        return "This plugin has no web interface.";
+    if(req.parts().size() <= 1) {
+        return false;
+    }
     
+    std::string comet_session_id;
+    if (req.getvar_exists("comet"))
+        comet_session_id = req.getvar("comet");
+
     rq_ptr rq;
     if( req.parts()[1] == "tagcloud" )
     {
-        rq = BoffinRQUtil::buildTagCloudRequest(
+        std::string rql(
             req.parts().size() > 2 ? 
-                playdar::utils::url_decode( req.parts()[2] ) : 
-                "*" );
+            playdar::utils::url_decode( req.parts()[2] ) : 
+            "*" );
+        rq = BoffinRQUtil::buildTagCloudRequest(rql, comet_session_id);
     }
     else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ) );
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ), comet_session_id );
     }
     else
     {
@@ -330,22 +336,31 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     
     rq->set_from_name( m_pap->hostname() );
     
+    if( req.getvar_exists( "qid" ))
+    {
+        if( !m_pap->query_exists(req.getvar("qid")) )
+        {
+            rq->set_id( req.getvar("qid") );
+        }
+        else
+        {
+            cout << "WARNING - boffin request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
+        }
+    }
+
     query_uid qid = m_pap->dispatch( rq );
     
     using namespace json_spirit;
     Object r;
     r.push_back( Pair("qid", qid ));
     
-    
     std::string s1, s2;
-    if(req.getvar_exists("jsonp")){ // wrap in js callback
+    if(req.getvar_exists("jsonp")) { // wrap in js callback
         s1 = req.getvar("jsonp") + "(";
         s2 = ");\n";
     }
-    
-    ostringstream os;
-    write_formatted( r, os );
-    resp = playdar_response( s1 + os.str() + s2, false );
+
+    resp = playdar_response( s1 + write_formatted( r ) + s2, false );
     return true;
 }
 

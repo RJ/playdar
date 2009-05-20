@@ -38,6 +38,7 @@
 #include "playdar/track_rq_builder.hpp"
 #include "playdar/pluginadaptor.h"
 #include "playdar/utils/urlencoding.hpp"
+#include "playdar/CometSession.hpp"
 
 namespace playdar {
 
@@ -68,6 +69,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
     m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
+    m_urlHandlers[ "comet" ] = boost::bind( &playdar_request_handler::handle_comet, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
     m_urlHandlers[ "quickplay" ] = boost::bind( &playdar_request_handler::handle_quickplay, this, _1, _2 );
@@ -710,7 +712,8 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
+//    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
+    rep.set_async_delegate( boost::bind( &StreamingStrategy::async_delegate, ss, _1 ) );
 }
 
 
@@ -740,6 +743,25 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     }
     rep.add_header( "Content-Type", "text/html", false ); // don't overwrite existing header
     rep.content = os.str(); 
+}
+
+void
+playdar_request_handler::handle_comet(const playdar_request& req, moost::http::reply& rep)
+{
+    if (req.getvar_exists("session")) {
+        const string& sessionId( req.getvar("session") );
+        CometSession* comet = new CometSession();
+        if (m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2))) {
+            rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
+            rep.status = moost::http::reply::ok;
+        } else {
+            delete comet;
+            cout << "couldn't create comet session";
+            rep.status = moost::http::reply::internal_server_error;
+        }
+    } else {
+        rep.status = moost::http::reply::bad_request;
+    }
 }
 
 }
