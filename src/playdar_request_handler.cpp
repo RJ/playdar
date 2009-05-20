@@ -738,7 +738,7 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.add_header( "Content-Type", "text/html" );
+    rep.add_header( "Content-Type", "text/html", false ); // don't overwrite existing header
     rep.content = os.str(); 
 }
 
