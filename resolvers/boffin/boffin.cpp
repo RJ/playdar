@@ -302,8 +302,9 @@ boffin::parseFail(std::string line, int error_offset)
 bool
 boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth)
 {
-    if(req.parts().size() <= 1)
-        return "This plugin has no web interface.";
+    if(req.parts().size() <= 1) {
+        return false;
+    }
     
     std::string comet_session_id;
     if (req.getvar_exists("comet"))
@@ -353,16 +354,13 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     Object r;
     r.push_back( Pair("qid", qid ));
     
-    
     std::string s1, s2;
-    if(req.getvar_exists("jsonp")){ // wrap in js callback
+    if(req.getvar_exists("jsonp")) { // wrap in js callback
         s1 = req.getvar("jsonp") + "(";
         s2 = ");\n";
     }
-    
-    ostringstream os;
-    write_formatted( r, os );
-    resp = playdar_response( s1 + os.str() + s2, false );
+
+    resp = playdar_response( s1 + write_formatted( r ) + s2, false );
     return true;
 }
 
