@@ -268,19 +268,16 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 try
                 {
                     ResolvedItem ri(resobj);
-                    //FIXME this could be moved into the PlayableItem class perhaps
-                    //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( ri.has_json_value<string>("url")) 
-                    {
-                        ostringstream rbs;
-                        rbs << "http://"
-                        << sender_endpoint_.address()
-                        << ":"
-                        << sender_endpoint_.port()
-                        << "/sid/"
-                        << ri.id();
-                        ri.set_url( rbs.str() );
-                    }
+
+                    ostringstream rbs;
+                    rbs << "http://"
+                    << sender_endpoint_.address()
+                    << ":"
+                    << sender_endpoint_.port()
+                    << "/sid/"
+                    << ri.id();
+                    ri.set_url( rbs.str() );
+
                     final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
                     //cout    << "INFO Result from '" << rip->source()
