@@ -56,7 +56,7 @@ public:
     void set_id(const source_uid& s)    { set_json_value( "sid", s ); }
 
     void set_score( const double s )    { set_json_value( "score", s ); }
-    const float score() const           { return json_value( "score",  -1.0); }
+    const float score() const           { return (float) json_value( "score",  -1.0); }
     void set_preference( const short p ){ set_json_value( "preference", p ); }
     const short preference() const      { return json_value( "preference",  -1); }
     
