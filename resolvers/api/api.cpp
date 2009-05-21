@@ -65,6 +65,9 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
     }
         
     resp = playdar_response(retval, false);
+    resp.add_header( "Content-Type", req.getvar_exists("jsonp") ?
+                                "text/javascript; charset=utf-8" :
+                                "application/json; charset=utf-8" );
     return true;
 }
 
@@ -183,7 +186,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
     resp = playdar_response(retval, false);
     resp.add_header( "Content-Type", req.getvar_exists("jsonp") ?
                                   "text/javascript; charset=utf-8" :
-                                  "text/plain; charset=utf-8" );
+                                  "application/json; charset=utf-8" );
     return true;
 }
 
