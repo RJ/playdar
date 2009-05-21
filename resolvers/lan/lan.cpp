@@ -329,14 +329,16 @@ lan::send_response( query_uid qid,
     //     << endl;
     using namespace json_spirit;
     Object response;
+    response.reserve(3);
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     
-    //send the json object with the url stripped
-    ResolvedItem tmp(rip->get_json());
+    // strip the url from _a copy_ of the result_item
+    ResolvedItem tmp( *rip );
     tmp.rm_json_value( "url" );
     response.push_back( Pair("result", tmp.get_json()) );
-    async_send(&sep, write_formatted( response ));
+
+    async_send( &sep, write_formatted( response ) );
 }
 
 // LAN presence stuff.

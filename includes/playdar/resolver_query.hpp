@@ -169,29 +169,29 @@ public:
         }
         return lhs->score() > rhs->score();
     }
-
-    void add_result(ri_ptr rip) 
+    
+    void add_results(const std::vector< ri_ptr >& results) 
     { 
-        //cout << "RQ.add_result: "<< pip->score() <<"\t"
-        //     << pip->artist() << " - " << pip->track() << endl;
         {
             boost::mutex::scoped_lock lock(m_mut);
-            m_results.push_back(rip); 
+            BOOST_FOREACH(const ri_ptr& rip, results) {
+                m_results.push_back(rip); 
+            }
         }
-        // decide if this result "solves" the query:
-        // for now just assume score of 1 means solved.
-        if(rip->score() == 1.0) 
-        {
-//            cout << "SOLVED " << id() << endl;   
-            m_solved = true;
-        }
-        // fire callbacks:
-        BOOST_FOREACH(rq_callback_t & cb, m_callbacks)
-        {
-            cb(id(), rip);
+
+        BOOST_FOREACH(const ri_ptr& rip, results) {
+            // decide if this result "solves" the query:
+            // for now just assume score of 1 means solved.
+            if(rip->score() == 1.0) {
+                m_solved = true;
+            }
+            // fire callbacks:
+            BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
+                cb(id(), rip);
+            }
         }
     }
-    
+
     void register_callback(rq_callback_t cb)
     {
         m_callbacks.push_back( cb );
