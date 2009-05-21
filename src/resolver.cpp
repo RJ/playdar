@@ -445,17 +445,18 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     if(!query_exists(qid)) 
         return false; // query was deleted
 
+    rq_ptr rq = m_queries[qid];
+    const bool isTrackQuery( rq->isValidTrack() );
+
     // add these new results to the ResolverQuery object
-    BOOST_FOREACH(const ri_ptr rip, results)
+    BOOST_FOREACH(const ri_ptr& rip, results)
     {
-        rq_ptr rq = m_queries[qid];
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
-        if(rip->score() < 0 &&
-           rq->isValidTrack() &&
-           rip->has_json_value<string>( "artist" ) &&
-           rip->has_json_value<string>( "track" )
-          )
+        if (isTrackQuery && 
+            rip->score() < 0 &&
+            rip->has_json_value<string>( "artist" ) &&
+            rip->has_json_value<string>( "track" ) )
         {
             string reason;
             float score = calculate_score( rq, rip, reason );
@@ -464,7 +465,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
             rip->set_score( score );
         }
         
-        m_queries[qid]->add_result(rip);
+        rq->add_result(rip);
 
         // update map of source id -> playable item
         string sid = rip->id();
@@ -751,7 +752,6 @@ Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
     // a new callback replaces the old callback
     // todo: can we terminate the old comet session via the callback?
     // todo: need a general mechanism to terminate (like when shutting down)
-    // todo: limit the number of simultaneous comet sessions?
     m_comets[sessionId] = cb;
 
     return true;
