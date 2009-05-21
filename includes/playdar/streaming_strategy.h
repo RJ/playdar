@@ -48,7 +48,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
-    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc){}; //TODO should be =0
+    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc) = 0;
 };
 
 }
