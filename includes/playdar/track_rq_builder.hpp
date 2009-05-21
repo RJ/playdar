@@ -32,18 +32,7 @@ namespace TrackRQBuilder {
         rq->set_param( "track", track );
         return rq;
     }
-    
-    
-    // is this a valid / well formed query?
-    static bool valid( rq_ptr rq )
-    {
-        return rq->param_exists( "artist" ) && 
-            rq->param_type( "artist" ) == json_spirit::str_type &&
-            rq->param( "artist").get_str().length() && 
-            rq->param_exists( "track" ) && 
-            rq->param_type( "track" ) == json_spirit::str_type &&
-            rq->param( "track" ).get_str().length();
-    }
+
 } //namespace TrackRQBuilder
 
 } //namespace playdar

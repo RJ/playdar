@@ -452,7 +452,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
         // resolver fixes the score using a standard algorithm
         // unless a non-zero score was specified by resolver.
         if(rip->score() < 0 &&
-           TrackRQBuilder::valid( rq ) &&
+           rq->isValidTrack() &&
            rip->has_json_value<string>( "artist" ) &&
            rip->has_json_value<string>( "track" )
           )

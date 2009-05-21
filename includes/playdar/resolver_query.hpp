@@ -236,6 +236,19 @@ public:
         return os.str();
     }
     
+    bool isValidTrack()
+    {
+        std::map<std::string,json_spirit::Value>::const_iterator end(m_qryobj_map.end());
+        std::map<std::string,json_spirit::Value>::const_iterator it;
+            
+        return (it = m_qryobj_map.find( "artist" ), it != end) &&
+            it->second.type() == json_spirit::str_type &&
+            it->second.get_str().length() && 
+            (it = m_qryobj_map.find( "track" ), it != end) && 
+            it->second.type() == json_spirit::str_type &&
+            it->second.get_str().length();
+    }
+
 protected:
     std::map<std::string,json_spirit::Value> m_qryobj_map;
 

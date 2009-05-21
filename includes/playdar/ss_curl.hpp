@@ -104,38 +104,6 @@ public:
         m_slist_headers = curl_slist_append(m_slist_headers, header.c_str());
     }
 
-    size_t read_bytes(char * buf, size_t size)
-    {
-        if(!m_connected) connect();
-        if(!m_connected)
-        {
-            std::cout << "ERROR: connect failed in httpss." << std::endl;
-            if( m_curl ) curl_easy_cleanup( m_curl );
-            reset();
-            return 0;
-        }
-        do{
-            boost::mutex::scoped_lock lk(m_mut);
-            while( m_buffers.size()==0 && !m_curl_finished )
-            {
-                //cout << "Waiting on curl.." << endl;
-                m_cond.wait(lk);
-            }
-            //cout << "data available: "<< m_buffers.size() << " bytes." << endl;
-            if( m_curl_finished && m_buffers.size() == 0 ) break;
-            size_t i;
-            for( i = 0; i < size && i < m_buffers.size(); i++ )
-            {
-                char c = m_buffers.back();
-                memcpy( buf+i, (char*)&c, 1 );
-                m_buffers.pop_back();
-            }
-            return i;
-        }while(false);
-        reset();
-        return 0; // means no more data.
-    }
-    
     std::string mime_type()
     {
         if( m_mimetype.size() )
@@ -151,7 +119,7 @@ public:
     int content_length()
     {
         if( !m_headersFetched )
-        get_headers();
+            get_headers();
         
         boost::mutex::scoped_lock lk(m_mut);
         if( !m_headersFetched )
@@ -177,6 +145,7 @@ public:
     void reset()
     {
         m_connected = false;
+        m_writing = false;
         m_bytesreceived = 0;
         m_curl_finished = false;
         m_abort = false;
@@ -220,18 +189,8 @@ public:
         inst->m_headersFetched = true;
         inst->m_headcond.notify_all();
         
-        char * ptr = (char*) vptr;
         size_t len = size * nmemb;
-        inst->m_bytesreceived += len;
-        {
-            boost::mutex::scoped_lock lk(inst->m_mut);
-            for(size_t s = 0; s < len; s++)
-            {
-                char c = *(ptr+s);
-                inst->m_buffers.push_front( c );
-            }
-        }
-        inst->m_cond.notify_all();
+        inst->enqueue(std::string((char*) vptr, len));
         return len;
     }
     
@@ -257,13 +216,14 @@ public:
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
-        if(m_slist_headers) curl_slist_free_all(m_slist_headers);
+        if (m_slist_headers) 
+            curl_slist_free_all(m_slist_headers);
         std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
-        if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
+        if (m_curlres) 
+            std::cout << "Curl error: " << m_curlerror << std::endl;
         curl_easy_cleanup( m_curl );
         
         m_headersFetched = true;
-        m_cond.notify_all();
     }
     
     /// run in a thread to do the curl transfer
@@ -280,16 +240,56 @@ public:
     
     const std::string url() const { return m_url; }
 
-    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc)
+    typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
+
+    // virtual
+    bool async_delegate(WriteFunc writefunc)
     {
-        // todo: fix this, we're still blocking here in read_bytes... need to queue up
-        // buffers in curl_writefunc
-        int read = read_bytes(&m_buffer[0], sizeof(m_buffer));
-        if (read > 0) {
-            writefunc(boost::asio::const_buffer(m_buffer, read));
-            return true;
-        } 
-        return false;
+        if (!writefunc) {
+            // aborted by the moost::http side.
+            m_abort = true;
+            m_wf = 0;
+            return false;
+        }
+
+        if (m_abort) {
+            m_wf = 0;
+            return false;
+        }
+
+        m_wf = writefunc;
+
+        if(!m_connected) connect();
+        if(!m_connected)
+        {
+            std::cout << "ERROR: connect failed in httpss." << std::endl;
+            if( m_curl ) curl_easy_cleanup( m_curl );
+            reset();
+            m_wf = 0;
+            return false;
+        }
+
+        {
+            boost::lock_guard<boost::mutex> lock(m_mutex);
+
+            if (m_writing && m_buffers.size()) {
+                // previous write has completed:
+                m_buffers.pop_front();
+                m_writing = false;
+            }
+
+            if (!m_writing && m_buffers.size()) {
+                // write something new
+                m_writing = true;
+                m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+            }
+        }
+
+        bool result =  m_writing || !m_curl_finished;
+        if (result == false) {
+            m_wf = 0;
+        }
+        return result;
     }
 
 
@@ -387,9 +387,7 @@ protected:
     bool m_connected;
     std::string m_url;
     std::string m_protocol;
-    std::deque< char > m_buffers; // received data
     boost::mutex m_mut;
-    boost::condition m_cond;
     boost::condition m_headcond;
     bool m_curl_finished;
     size_t m_bytesreceived;
@@ -397,13 +395,27 @@ protected:
     boost::thread * m_thread;
     boost::thread * m_headthread;
     bool m_abort;
-    
     bool m_headersFetched;
     
-    char m_buffer[8192];    
-
     int m_contentlen;
     std::string m_mimetype;
+
+    /////
+    void enqueue(const std::string& s)
+    {
+        boost::lock_guard<boost::mutex> lock(m_mutex);
+        m_buffers.push_back(s);
+        if (!m_writing) {
+            m_writing = true;
+            m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+        }
+    }
+
+    WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
+    boost::mutex m_mutex;
+    bool m_writing;
+    std::list<std::string> m_buffers;
+
 };
 
 }
