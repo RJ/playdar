@@ -1,3 +1,20 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 /** @author Max Howell <max@methylblue.com> 
   * @brief Scrobbling support for playdar clients 
   */
@@ -21,7 +38,11 @@ namespace playdar
             virtual bool init(pa_ptr);
             virtual void Destroy();
             virtual std::string name() const { return "Audioscrobbler"; }
-            virtual playdar_response authed_http_handler(const playdar_request*, playdar::auth* pauth);
+            virtual bool authed_http_handler(const playdar_request&, playdar_response&, playdar::auth& pauth);
+            virtual bool anon_http_handler(const playdar_request&, playdar_response&, playdar::auth& );
+            // we don't do any actual resolving:
+            virtual unsigned short weight() const { return 0; }
+            virtual unsigned int target_time() const { return 0; }
 
         private:
             /** pure virtual, so reimplemented but does nothing */

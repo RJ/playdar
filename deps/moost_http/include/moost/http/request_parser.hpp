@@ -3,7 +3,6 @@
 
 #include <boost/logic/tribool.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <algorithm> // for min
 
 #include "moost/http/request.hpp"
 
@@ -49,7 +48,7 @@ public:
   {
     if (content_to_read_ < 0)
       return false; // probably bad content-length
-    int content_read = std::min( static_cast<int>(end - begin), content_to_read_ );
+    int content_read = std::min(static_cast<int>(end - begin), content_to_read_);
     req.content.append(begin, begin + content_read);
     begin += content_read;
     content_to_read_ -= content_read;

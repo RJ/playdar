@@ -1,3 +1,20 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "playdar/rs_script.h"
 
 #include <boost/filesystem.hpp>
@@ -32,6 +49,7 @@ rs_script::init(pa_ptr pap)
     m_dead = false;
     m_exiting = false;
     m_weight = 1;
+    m_preference = 1;
     m_targettime = 1000;
     m_got_settings = false;
     m_scriptpath = m_pap->scriptpath();
@@ -227,21 +245,25 @@ rs_script::process_output()
                 rr["weight"].type() == int_type )
             {
                 m_weight = rr["weight"].get_int();
-                //cout << "Gateway setting w:" << m_weight << endl;
+                m_preference = m_weight; // default preference
+            }
+            
+            if( rr.find("preference") != rr.end() &&
+                rr["preference"].type() == int_type )
+            {
+                m_preference = rr["preference"].get_int();
             }
             
             if( rr.find("targettime") != rr.end() &&
                 rr["targettime"].type() == int_type )
             {
                 m_targettime = rr["targettime"].get_int();
-                //cout << "Gateway setting t:" << m_targettime << endl;
             }
             
             if( rr.find("name") != rr.end() &&
                 rr["name"].type() == str_type )
             {
                 m_name = rr["name"].get_str();
-                //cout << "Gateway setting name:" << m_name << endl;
             }
             m_got_settings = true;
             m_cond_settings.notify_one();

@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __MYAPPLICATION_TYPES_H__
 #define __MYAPPLICATION_TYPES_H__
 
@@ -34,7 +52,7 @@ typedef boost::shared_ptr<StreamingStrategy> ss_ptr;
 
 // Callback type for observing new RQ results:
 class PlayableItem; // fwd
-typedef boost::function< void (const query_uid& qid, ri_ptr pip)> rq_callback_t;
+typedef boost::function< void (const query_uid& qid, ri_ptr rip)> rq_callback_t;
 
 /// Handlers for web requests:
 typedef boost::function< void ( const std::string& url,

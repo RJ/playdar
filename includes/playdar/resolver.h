@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __RESOLVER__H__
 #define __RESOLVER__H__
 
@@ -56,6 +74,8 @@ public:
     rq_ptr rq(const query_uid & qid);
     ss_ptr get_ss(const source_uid & sid);
     
+    ri_ptr sid2ri( const source_uid& sid );
+    
     size_t num_seen_queries();
     
     const std::vector< pa_ptr >& resolvers() const
@@ -96,14 +116,18 @@ public:
     
     void dispatch_runner();
     
+    bool create_comet_session(const std::string& sessionId, rq_callback_t cb);
+
 protected:
+
+
+    std::string sortname(const std::string& name);
+
     float calculate_score( const rq_ptr & rq,  // query
                            const ri_ptr & ri,  // candidate
                            std::string & reason );  // fail reason
 
 private:
-    void load_library_resolver();
-    
     boost::asio::io_service::work * m_work;
     boost::asio::io_service * m_io_service;
     
@@ -145,6 +169,9 @@ private:
     boost::shared_ptr<T> ss_ptr_generator(std::string url);
     
     mutable playdar::utils::uuid_gen m_uuid_gen;
+
+    boost::mutex m_comets_mutex;
+    std::map< std::string, rq_callback_t > m_comets;
 };
 
 }

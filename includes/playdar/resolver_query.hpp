@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __RESOLVER_QUERY_H__
 #define __RESOLVER_QUERY_H__
 
@@ -86,37 +104,37 @@ public:
     
     static boost::shared_ptr<ResolverQuery> from_json(json_spirit::Object qryobj)
     {
-        std::string qid, from_name;
-        
+        boost::shared_ptr<ResolverQuery> rq(new ResolverQuery);
+
         using namespace json_spirit;
         std::map<std::string,Value> qryobj_map;
         obj_to_map(qryobj, qryobj_map);
-        
-        if(qryobj_map.find("qid")!=qryobj_map.end()) 
-            qid = qryobj_map["qid"].get_str();
-        if(qryobj_map.find("from_name")!=qryobj_map.end()) 
-            from_name = qryobj_map["from_name"].get_str();
-                    
-        boost::shared_ptr<ResolverQuery>    
-            rq(new ResolverQuery);
-
         rq->m_qryobj_map = qryobj_map;
-        
-        if(qid.length())  rq->set_id(qid);
-        if(from_name.length())  rq->set_from_name(from_name);
+
+        std::map<std::string,Value>::const_iterator it;
+        std::map<std::string,Value>::const_iterator end( qryobj_map.end() );
+        if((it = qryobj_map.find("qid")) != end) 
+            rq->set_id( it->second.get_str() );
+        if((it = qryobj_map.find("from_name")) != end) 
+            rq->set_from_name( it->second.get_str() );
+                    
         return rq;
     }
     
-    void set_id(const query_uid& q)
-    {
-        m_uuid = q;
-    }
+    void set_id(const query_uid& q) { m_uuid = q; }
     
     void set_from_name(const std::string& s) { m_from_name = s; }
-    
-    const query_uid & id() const
+
+    void set_comet_session_id(const std::string& s) { m_comet_session_id = s; }
+
+    const query_uid& id() const
     { 
         return m_uuid; 
+    }
+
+    const std::string& comet_session_id() const
+    {
+        return m_comet_session_id;
     }
 
     size_t num_results() const
@@ -143,35 +161,37 @@ public:
 
     bool sorter(const ri_ptr & lhs, const ri_ptr & rhs)
     {
-        // if equal scores, prefer item with higher preference (ie, network reliability)
-        //if(lhs->score() == rhs->score()) return lhs->preference() > rhs->preference();
-        // TODO: the one that came from the resolverservice with the
-        // highest weight should win if there is a tie.
+        // if equal scores, prefer item with higher preference 
+        // usually this indicates network reliability or user-configured preference
+        if( lhs->score() == rhs->score() )
+        {
+            return lhs->preference() > rhs->preference();
+        }
         return lhs->score() > rhs->score();
     }
-
-    void add_result(ri_ptr rip) 
+    
+    void add_results(const std::vector< ri_ptr >& results) 
     { 
-        //cout << "RQ.add_result: "<< pip->score() <<"\t"
-        //     << pip->artist() << " - " << pip->track() << endl;
         {
             boost::mutex::scoped_lock lock(m_mut);
-            m_results.push_back(rip); 
+            BOOST_FOREACH(const ri_ptr& rip, results) {
+                m_results.push_back(rip); 
+            }
         }
-        // decide if this result "solves" the query:
-        // for now just assume score of 1 means solved.
-        if(rip->score() == 1.0) 
-        {
-//            cout << "SOLVED " << id() << endl;   
-            m_solved = true;
-        }
-        // fire callbacks:
-        BOOST_FOREACH(rq_callback_t & cb, m_callbacks)
-        {
-            cb(id(), rip);
+
+        BOOST_FOREACH(const ri_ptr& rip, results) {
+            // decide if this result "solves" the query:
+            // for now just assume score of 1 means solved.
+            if(rip->score() == 1.0) {
+                m_solved = true;
+            }
+            // fire callbacks:
+            BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
+                cb(id(), rip);
+            }
         }
     }
-    
+
     void register_callback(rq_callback_t cb)
     {
         m_callbacks.push_back( cb );
@@ -216,12 +236,26 @@ public:
         return os.str();
     }
     
+    bool isValidTrack()
+    {
+        std::map<std::string,json_spirit::Value>::const_iterator end(m_qryobj_map.end());
+        std::map<std::string,json_spirit::Value>::const_iterator it;
+            
+        return (it = m_qryobj_map.find( "artist" ), it != end) &&
+            it->second.type() == json_spirit::str_type &&
+            it->second.get_str().length() && 
+            (it = m_qryobj_map.find( "track" ), it != end) && 
+            it->second.type() == json_spirit::str_type &&
+            it->second.get_str().length();
+    }
+
 protected:
     std::map<std::string,json_spirit::Value> m_qryobj_map;
 
 private:
     std::vector< ri_ptr > m_results;
-    std::string      m_from_name;
+    std::string m_from_name;
+    std::string m_comet_session_id;
         
     // list of functors to fire on new result:
     std::vector<rq_callback_t> m_callbacks;

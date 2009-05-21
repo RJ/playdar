@@ -1,13 +1,12 @@
 #ifndef __MOOST_HTTP_REPLY_HPP__
 #define __MOOST_HTTP_REPLY_HPP__
 
-#include "playdar/application.h" // if not first mac compile fails
-#include "playdar/streaming_strategy.h"
-
 #include <string>
 #include <vector>
+#include <map>
 #include <boost/asio.hpp>
-#include <boost/shared_ptr.hpp>
+#include <boost/function.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "moost/http/header.hpp"
 
@@ -37,8 +36,6 @@ struct reply
     service_unavailable = 503
   } status;
 
-  /// The headers to be included in the reply.
-  std::vector<header> headers;
 
   /// The content to be sent in the reply.
   std::string content;
@@ -46,38 +43,52 @@ struct reply
   /// Convert the reply into a vector of buffers. The buffers do not own the
   /// underlying memory blocks, therefore the reply object must remain valid and
   /// not be changed until the write operation has completed.
-  std::vector<boost::asio::const_buffer> to_buffers(bool inc_body = true);
+  std::vector<boost::asio::const_buffer> to_buffers_headers();
 
   /// Get a stock reply.
   static reply stock_reply(status_type status);
-  
-  // only needed if we stream response:
-  
-  /// true if handler will stream body after headers sent
-  /// false means entire body prepared up-front.
-  bool m_streaming;
-  boost::shared_ptr<playdar::StreamingStrategy> m_ss;
-  
-  void set_streaming(boost::shared_ptr<playdar::StreamingStrategy> ss)
-  { 
-    m_streaming=true; 
-    m_ss = ss;
-  }
-  
-  void unset_streaming()
-  {
-    m_streaming = false;
-  }
-  
-  // get streaming strategy, for streaming response
-  boost::shared_ptr<playdar::StreamingStrategy> get_ss()
-  {
-    return m_ss;
-  }
-  
-  size_t streaming_length() { return m_ss->content_length(); }
-  bool streaming() { return m_streaming; }
-  
+
+  const std::vector<header>& get_headers()
+  { return headers_; }
+
+  // The optional async delegate enables the request handler to write
+  // to the client in a non-blocking manner.  The delegate is 
+  // called to initiate the first write operation, and
+  // subsequently after the completion of each write operation.
+  // The delegate returns false to end the write sequence.
+  // The WriteFunc parameter should be used once (per delegate call).
+  // Keep a copy of the WriteFunc to keep the connection alive (todo: improve this)
+
+    typedef boost::function< void(boost::asio::const_buffer) > WriteFunc;
+    typedef boost::function< bool(WriteFunc) > AsyncDelegateFunc;
+
+    void set_async_delegate(AsyncDelegateFunc f)
+    {
+        async_delegate_ = f;
+    }
+
+    const AsyncDelegateFunc& get_async_delegate()
+    {
+        return async_delegate_;
+    }
+
+public:
+
+   template <typename T>
+   void add_header( const std::string& name, const T& value, bool overwrite = true )
+   { add_header(name, boost::lexical_cast<std::string>(value), overwrite); }
+
+   void add_header( const std::string& name, const std::string& value, bool overwrite );
+   void set_status( int s ){ status = (status_type)s; }
+private:
+
+    AsyncDelegateFunc async_delegate_;
+
+  std::map<std::string, size_t> headersGuard_;
+
+  /// The headers to be included in the reply.
+  std::vector<header> headers_;
+
 };
 
 }} // moost::http

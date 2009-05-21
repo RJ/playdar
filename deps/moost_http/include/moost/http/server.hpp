@@ -1,16 +1,17 @@
 #ifndef __MOOST_HTTP_SERVER_HPP__
 #define __MOOST_HTTP_SERVER_HPP__
 
-#include "moost/http/connection.hpp"
-#include "moost/http/request_handler_base.hpp"
+#include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
+#include <string>
+#include <vector>
 #include <boost/lexical_cast.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/thread.hpp>
-#include <string>
-#include <vector>
 
+#include "moost/http/connection.hpp"
+#include "moost/http/request_handler_base.hpp"
 
 namespace moost { namespace http {
 
@@ -54,6 +55,9 @@ private:
 
   /// The next connection to be accepted.
   boost::shared_ptr< connection<RequestHandler> > new_connection_;
+
+  /// The endpoint of the address to bind
+  boost::asio::ip::tcp::endpoint endpoint_;
 };
 
 template<class RequestHandler>
@@ -64,17 +68,9 @@ server<RequestHandler>::server(const std::string& address, int port,
     request_handler_(),
     new_connection_(new connection<RequestHandler>(io_service_, request_handler_))
 {
-  // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
   boost::asio::ip::tcp::resolver resolver(io_service_);
   boost::asio::ip::tcp::resolver::query query(address, boost::lexical_cast<std::string>(port));
-  boost::asio::ip::tcp::endpoint endpoint = *resolver.resolve(query);
-  acceptor_.open(endpoint.protocol());
-  acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
-  acceptor_.bind(endpoint);
-  acceptor_.listen();
-  acceptor_.async_accept(new_connection_->socket(),
-      boost::bind(&server<RequestHandler>::handle_accept, this,
-        boost::asio::placeholders::error));
+  endpoint_ = *resolver.resolve(query);
 }
 
 template<class RequestHandler>
@@ -92,6 +88,17 @@ void server<RequestHandler>::handle_accept(const boost::system::error_code& e)
 template<class RequestHandler>
 void server<RequestHandler>::run()
 {
+  // Open the acceptor with the option to reuse the address (i.e. SO_REUSEADDR).
+  acceptor_.open(endpoint_.protocol());
+  acceptor_.set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
+  acceptor_.bind(endpoint_);
+  acceptor_.listen();
+
+  // pump the first async accept into the loop
+  acceptor_.async_accept(new_connection_->socket(),
+    boost::bind(&server<RequestHandler>::handle_accept, this,
+    boost::asio::placeholders::error));
+
   // Create a pool of threads to run all of the io_services.
   std::vector<boost::shared_ptr<boost::thread> > threads;
   for (std::size_t i = 0; i < thread_pool_size_; ++i)

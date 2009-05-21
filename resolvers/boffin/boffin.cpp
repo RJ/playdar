@@ -1,6 +1,26 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include <boost/progress.hpp>
 #include "boffin.h"
 #include "BoffinDb.h"
 #include "RqlOpProcessor.h"
+#include "RqlOpProcessorTagCloud.h"
 #include "parser/parser.h"
 #include "RqlOp.h"
 #include "BoffinSample.h"
@@ -9,10 +29,10 @@
 
 #include "playdar/utils/urlencoding.hpp"        // maybe this should be part of the plugin api then?
 #include "playdar/resolved_item.h"
-#include "playdar/library.h"
+#include "../local/library.h"
+#include "../local/resolved_item_builder.hpp"
 #include "playdar/playdar_request.h"
-#include "playdar/resolved_item_builder.hpp"
-#include "BoffinRQUtil.h"
+#include "BoffinRqUtil.hpp"
 
 using namespace fm::last::query_parser;
 using namespace std;
@@ -59,10 +79,10 @@ namespace TagCloudItem
     static ri_ptr createTagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
     {
         ri_ptr rip( new ResolvedItem );
-        rip->set_score( weight );
         rip->set_json_value( "name", name );
-        rip->set_json_value( "source", source );
+        rip->set_json_value( "weight", weight );
         rip->set_json_value( "count", trackCount );
+        rip->set_json_value( "source", source );
 
         return rip;
     }
@@ -173,7 +193,7 @@ boffin::target_time() const
 unsigned short 
 boffin::weight() const
 {
-    return 80;
+    return 100;
 }
 
 void 
@@ -194,9 +214,6 @@ makeTagCloudItem(const boost::tuple<std::string, float, int>& in, const std::str
 void
 boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
-    // optional int value to limit the results, otherwise, default is 100
-    int limit = (rq->param_exists("boffin_limit") && rq->param_type("boffin_limit") == json_spirit::int_type) ? rq->param("boffin_limit").get_int() : 100;
-
     if (rq->param_exists("boffin_rql") && rq->param_type("boffin_rql") == json_spirit::str_type) {
         parser p;
         if (p.parse(rq->param("boffin_rql").get_str())) {
@@ -207,43 +224,80 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &leaf2op);
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
-            // sample from the rqlResults into our SampleAccumulator:
-            const int artist_memory = 4;
-            SampleAccumulator sa(artist_memory);
-            boffinSample(limit, *rqlResults, 
-                boost::bind(&SampleAccumulator::pushdown, &sa, _1),
-                boost::bind(&SampleAccumulator::result, &sa, _1));
+            string hostname( m_pap->hostname() );   // cache this because we can have many many results
 
-            // look up results, turn them into a vector of json objects
-            int sequence = 0;
+            const int reportingChunkSize = 50;      // report x at a time to the resolver
             std::vector< json_spirit::Object > results;
-            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
-                ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_json_value( "seq", sequence++ );
-                rip->set_source( m_pap->hostname() );
-                rip->set_id( m_pap->gen_uuid() );
-                results.push_back( rip->get_json() );
-            }
+            results.reserve(reportingChunkSize);    // avoid vector resizing
 
-            m_pap->report_results(rq->id(), results);
+            BOOST_FOREACH(const TrackResult& t, *rqlResults) {
+                json_spirit::Object js;
+                js.reserve(13);
+                playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId, js );
+                js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
+                js.push_back( json_spirit::Pair( "source", hostname) );
+                js.push_back( json_spirit::Pair( "weight", t.weight) );
+                results.push_back( js );
+
+                if ((results.size() % reportingChunkSize) == 0) {
+                    bool cancel = !m_pap->report_results(rq->id(), results);
+                    results.clear();
+                    results.reserve(reportingChunkSize);
+                    if (cancel) break;
+                }
+            }
+            if (results.size()) {
+                m_pap->report_results(rq->id(), results);  // left-overs
+            }
             return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
      
-    } else if (rq->param_exists("boffin_tags")) {
+    } else if (rq->param_exists("boffin_tags") && rq->param_type("boffin_tags") == json_spirit::str_type) {
         typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
         using namespace boost;
 
-        shared_ptr< BoffinDb::TagCloudVec > tv(m_db->get_tag_cloud(limit));
-        vector< json_spirit::Object > results;
-        const std::string source( m_pap->hostname() );
-        BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
-            results.push_back( makeTagCloudItem( tag, source )->get_json() );
+        string rql( rq->param("boffin_tags").get_str() );
 
+        shared_ptr< BoffinDb::TagCloudVec > tv;
+
+        {
+            progress_timer t;
+            if (rql == "*") {
+                tv = m_db->get_tag_cloud();
+            } else {
+                parser p;
+                if (p.parse(rql)) {
+                    std::vector<RqlOp> ops;
+                    p.getOperations<RqlOp>(
+                        boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
+                        &root2op, 
+                        &leaf2op);
+                    tv = RqlOpProcessorTagCloud::process(ops.begin(), ops.end(), *m_db, *m_sa);
+                } else {
+                    parseFail(p.getErrorLine(), p.getErrorOffset());
+                    return;
+                }
+            }
+            cout << "Boffin retrieved tagcloud..";
         }
-        cout << "Boffin will now report resuilts" << endl;
-        m_pap->report_results(rq->id(), results);
-        cout << "Reported.."<< endl;
+
+        vector< json_spirit::Object > results;
+        {
+            progress_timer t;
+            results.reserve(tv->size());
+            const std::string source( m_pap->hostname() );
+            BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
+                results.push_back( makeTagCloudItem( tag, source )->get_json() );
+            }
+            cout << "Boffin prepared results...";
+        }
+
+        {
+            progress_timer t;
+            m_pap->report_results(rq->id(), results);
+            cout << "Boffin reported tagcloud..";
+        }
     }
 
 }
@@ -256,42 +310,83 @@ boffin::parseFail(std::string line, int error_offset)
 }
 
 
-// handler for HTTP reqs we are registerd for:
-playdar_response 
-boffin::authed_http_handler(const playdar_request* req, playdar::auth* pauth)
+// handler for boffin HTTP reqs we are registerd for:
+//
+// req->parts()[0] = "boffin"
+//             [1] = "tagcloud" or "rql"
+//             [2] = rql (optional)
+//
+bool
+boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth)
 {
-    if(req->parts().size() <= 1)
-        return "This plugin has no web interface.";
-    
-    rq_ptr rq;
-    if( req->parts()[1] == "tagcloud" )
-    {
-        rq = BoffinRQUtil::buildTagCloudRequest();
+    if(req.parts().size() <= 1) {
+        return false;
     }
-    else if( req->parts()[1] == "rql" && req->parts().size() >= 2)
+    
+    std::string comet_session_id;
+    if (req.getvar_exists("comet"))
+        comet_session_id = req.getvar("comet");
+
+    rq_ptr rq;
+    if( req.parts()[1] == "tagcloud" )
     {
-        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req->parts()[2] ) );
+        std::string rql(
+            req.parts().size() > 2 ? 
+            playdar::utils::url_decode( req.parts()[2] ) : 
+            "*" );
+        rq = BoffinRQUtil::buildTagCloudRequest(rql, comet_session_id);
+    }
+    else if( req.parts()[1] == "rql" && req.parts().size() > 2)
+    {
+        rq = BoffinRQUtil::buildRQLRequest( playdar::utils::url_decode( req.parts()[2] ), comet_session_id );
+    }
+    else
+    {
+        return false;
     }
 
     if( !rq )
-        return "Error!";
+    {
+        resp = "Error!";
+        return true;
+    }
     
     rq->set_from_name( m_pap->hostname() );
     
+    if( req.getvar_exists( "qid" ))
+    {
+        if( !m_pap->query_exists(req.getvar("qid")) )
+        {
+            rq->set_id( req.getvar("qid") );
+        }
+        else
+        {
+            cout << "WARNING - boffin request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
+        }
+    }
+
     query_uid qid = m_pap->dispatch( rq );
     
     using namespace json_spirit;
     Object r;
     r.push_back( Pair("qid", qid ));
     
-    
     std::string s1, s2;
-    if(req->getvar_exists("jsonp")){ // wrap in js callback
-        s1 = req->getvar("jsonp") + "(";
+    if(req.getvar_exists("jsonp")) { // wrap in js callback
+        s1 = req.getvar("jsonp") + "(";
         s2 = ");\n";
     }
-    
-    ostringstream os;
-    write_formatted( r, os );
-    return playdar_response( s1 + os.str() + s2, false );
+
+    resp = playdar_response( s1 + write_formatted( r ) + s2, false );
+    return true;
 }
+
+json_spirit::Object 
+boffin::get_capabilities() const
+{
+    json_spirit::Object o;
+    o.push_back( json_spirit::Pair( "plugin", name() ));
+    o.push_back( json_spirit::Pair( "description", "Tag and RQL goodness."));
+    return o;
+}
+

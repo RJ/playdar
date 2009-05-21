@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "playdar/application.h"
 
 #include <sstream>
@@ -13,9 +31,7 @@
 
 #include "playdar/resolver.h"
 
-#include "playdar/rs_local_library.h"
 #include "playdar/rs_script.h"
-#include "playdar/library.h"
 
 // Generic track calculation stuff:
 #include "playdar/track_rq_builder.hpp"
@@ -53,9 +69,6 @@ Resolver::Resolver(MyApplication * app)
     
     // Initialize built-in curl SS facts:
     detect_curl_capabilities();
-    
-    // Initialize built-in local library resolver:
-    load_library_resolver();
 
     // Load all non built-in resolvers:
     try
@@ -91,7 +104,8 @@ Resolver::Resolver(MyApplication * app)
     cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
     BOOST_FOREACH( pa_ptr & pa, m_resolvers )
     {
-        cout << "RESOLVER w:" << pa->weight() << "\tt:" << pa->targettime() 
+        cout << "RESOLVER w:" << pa->weight() << "\tp:" << pa->preference() 
+             << "\tt:" << pa->targettime() 
              << "\t[" << (pa->script()?"script":"plugin") << "]  " 
              << pa->rs()->name() << endl;
     }
@@ -115,28 +129,6 @@ Resolver::detect_curl_capabilities()
     }
 }
 
-void
-Resolver::load_library_resolver()
-{
-    pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
-    
-    ResolverService * rs = new RS_local_library();
-    
-    // local library resolver is special, it gets a handle to app:
-    ((RS_local_library *)rs)->set_app(app());
-    pap->set_rs( rs );
-    pap->set_weight( rs->weight() );
-    pap->set_targettime( rs->target_time() );
-    
-    if( rs->init(pap) )
-    {
-        m_resolvers.push_back( pap );
-    }else{
-        cerr << "Couldn't load local library resolver. This is bad." 
-             << endl;
-    }
-}
-
 
 Resolver::~Resolver()
 {
@@ -151,6 +143,11 @@ Resolver::~Resolver()
 bool
 Resolver::pluginadaptor_sorter(const pa_ptr& lhs, const pa_ptr& rhs)
 {
+    // this first check is really just cosmetic
+    // the sorting looks nicer this way:
+    if( lhs->weight() == rhs->weight() )
+        return lhs->targettime() < rhs->targettime();
+    // this is the important bit that orders the pipeline:
     return lhs->weight() > rhs->weight();
 }
 
@@ -188,7 +185,7 @@ Resolver::load_resolver_scripts()
 
             cout << "-> Loading: " << name << endl;
             
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, name ) );
             pap->set_script( true );
             pap->set_scriptpath( i->path().string() );
             ResolverService * rs = new playdar::resolvers::rs_script();
@@ -197,15 +194,19 @@ Resolver::load_resolver_scripts()
             pap->set_rs( rs );
             pap->set_weight( app()->conf()->get<int>(conf+"weight",
                              rs->weight()) ); 
+            pap->set_preference( app()->conf()->get<int>(conf+"preference",
+                             rs->preference()) );
             pap->set_targettime( app()->conf()->get<int>(conf+"targettime",
                              rs->target_time()) );
             // if weight == 0, it doesnt resolve, but may handle HTTP calls etc.
             if(pap->weight() > 0) 
             {
                 m_resolvers.push_back( pap );
-                cout << "-> OK [weight:" << pap->weight() 
-                     <<  " target-time:" << pap->targettime()
-                     << "] " << pap->rs()->name() << endl;
+                cout << "-> OK [w:" << pap->weight() 
+                       << " p:" << pap->preference() 
+                       << " t:" << pap->targettime() 
+                       << "] " 
+                 << pap->rs()->name() << endl;
             }
         }
         catch(...)
@@ -259,7 +260,7 @@ Resolver::load_resolver_plugins()
             ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
-            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this ) );
+            pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, classname ) );
             if( ! instance->init(pap) )
             {
                 cerr << "-> ERROR couldn't initialize." << endl;
@@ -270,14 +271,27 @@ Resolver::load_resolver_plugins()
             cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
             pap->set_script( false );
             pap->set_rs( instance );
-            string rsopt = "resolvers."+classname;
+            string rsopt = "plugins."+classname;
             pap->set_weight( app()->conf()->get<int>(rsopt + ".weight", 
                                                 instance->weight()) );
+            pap->set_preference( app()->conf()->get<int>(rsopt + ".preference", 
+                                                instance->preference()) );
             pap->set_targettime( app()->conf()->get<int>(rsopt + ".targettime", 
                                                     instance->target_time()) );
             m_resolvers.push_back( pap );
-            cout << "-> OK [w:" << pap->weight() << " t:" << pap->targettime() << "] " 
+            cout << "-> OK [w:" << pap->weight() 
+                       << " p:" << pap->preference() 
+                       << " t:" << pap->targettime() 
+                       << "] " 
                  << pap->rs()->name() << endl;
+            // add any custom SS handlers for this plugin
+            map< std::string, boost::function<ss_ptr(std::string)> > ssfacts = instance->get_ss_factories();
+            typedef std::pair< std::string, boost::function<ss_ptr(std::string)> > sspair_t;
+            BOOST_FOREACH( sspair_t sp, ssfacts )
+            {
+                cout << "-> Added SS factory for protocol '"<<sp.first<<"'" << endl;
+                m_ss_factories[ sp.first ] = sp.second;
+            }
         }
         catch( PDL::LoaderException & ex )
         {
@@ -306,6 +320,17 @@ Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
         return rq->id();
     }
     if(cb) rq->register_callback(cb);
+
+    // setup comet callback if the request has a valid comet session id
+    const string& cometId(rq->comet_session_id());
+    if (cometId.length()) {
+        boost::mutex::scoped_lock cometlock(m_comets_mutex);
+        std::map< std::string, rq_callback_t >::const_iterator it = m_comets.find(cometId);
+        if (it != m_comets.end()) {
+            rq->register_callback(it->second);
+        }
+    }
+
     m_pending.push_front( pair<rq_ptr, unsigned short>(rq, 999) );
     m_cond.notify_one();
     // set up timer to auto-cancel this query after a while:
@@ -405,8 +430,8 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 }
 
 /// a resolver will report results here
-/// false means give up on this query, it's over
-/// true means carry on as normal
+/// false return means give up on this query, it's over
+/// true return means carry on as normal
 bool
 Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
@@ -415,42 +440,60 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     {
         return true;
     }
-    boost::mutex::scoped_lock lock(m_mut_results);
-    
-    if(!query_exists(qid)) 
-        return false; // query was deleted
 
-    // add these new results to the ResolverQuery object
-    BOOST_FOREACH(const ri_ptr rip, results)
+    rq_ptr rq;
+
     {
-        rq_ptr rq = m_queries[qid];
-        // resolver fixes the score using a standard algorithm
-        // unless a non-zero score was specified by resolver.
-        if(rip->score() < 0 &&
-           TrackRQBuilder::valid( rq ) &&
-           rip->has_json_value<string>( "artist" ) &&
-           rip->has_json_value<string>( "track" )
-          )
-        {
-            string reason;
-            float score = calculate_score( rq, rip, reason );
-            if( score == 0.0) 
-                continue;
-            rip->set_score( score );
-        }
+        // scope lock to protect m_queries and m_sid2ri
+        boost::mutex::scoped_lock lock(m_mut_results);  
         
-        m_queries[qid]->add_result(rip);
+        if(!query_exists(qid)) 
+            return false; // query was deleted
+        rq = m_queries[qid];
 
-        // update map of source id -> playable item
-        string sid = rip->id();
-        if (sid.length()) {
-            m_sid2ri[sid] = rip;
+        // setup sid mappings
+        string sid;
+        BOOST_FOREACH(const ri_ptr& rip, results)
+        {
+            // update map of source id -> playable item
+            sid = rip->id();
+            if (sid.length()) {
+                m_sid2ri[sid] = rip;
+            }
         }
-        //cout << "Adding: ";
-        //json_spirit::write( rip->get_json(), cout );
-        //cout << endl; 
     }
+
+    if (rq->isValidTrack()) {
+        // score all the unscored results
+        string reason;
+        BOOST_FOREACH(const ri_ptr& rip, results) {
+            // resolver fixes the score using a standard algorithm
+            // unless a non-zero score was specified by resolver.
+            if (rip->score() < 0 &&
+                rip->has_json_value<string>( "artist" ) &&
+                rip->has_json_value<string>( "track" ) )
+            {
+                float score = calculate_score( rq, rip, reason );
+                if( score != 0.0) 
+                    rip->set_score( score );
+            }
+        }
+    }
+
+    // add the new results to the ResolverQuery object
+    rq->add_results(results);
+
     return true;
+}
+
+
+string 
+Resolver::sortname(const string& name) 
+{ 
+    string data(name); 
+    std::transform(data.begin(), data.end(), data.begin(), ::tolower); 
+    boost::trim(data); 
+    return data; 
 }
 
 
@@ -478,11 +521,11 @@ Resolver::calculate_score( const rq_ptr & rq, // query
     if(o_art == art && o_trk == trk) return 1.0;
     // the real deal, with edit distances:
     unsigned int trked = playdar::utils::levenshtein( 
-                                                     Library::sortname(trk),
-                                                     Library::sortname(o_trk));
+                                                     sortname(trk),
+                                                     sortname(o_trk));
     unsigned int arted = playdar::utils::levenshtein( 
-                                                     Library::sortname(art),
-                                                     Library::sortname(o_art));
+                                                     sortname(art),
+                                                     sortname(o_art));
     // tolerances:
     float tol_art = 1.5;
     float tol_trk = 1.5;
@@ -654,7 +697,8 @@ Resolver::num_seen_queries()
     return m_queries.size();
 }
 
-/// this creates a SS from the URL in the ResolvedItem
+/// this creates a SS from the ResolvedItem.
+/// Typically it looks for the url field, and extra_headers etc.
 /// it checks our map of protocol -> SS factory where protocol is the bit before the : in urls.
 ss_ptr
 Resolver::get_ss(const source_uid & sid)
@@ -670,12 +714,35 @@ Resolver::get_ss(const source_uid & sid)
         string p = rip->url().substr(0, offset);
         cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
 
-        std::map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
+        map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
             m_ss_factories.find(p);
         if (itFac != m_ss_factories.end())
-            return itFac->second(rip->url());
+        {
+            ss_ptr ss = itFac->second(rip->url());
+            // Any extra headers to add to the request for this URL?
+            // this is typically only used for http urls, but could be used
+            // for any protocol really, if the SS supports the concept.
+            vector<string> xh = rip->get_extra_headers();
+            BOOST_FOREACH( string h,  xh )
+            {
+                cout << "Extra header: " << h<< endl;
+                ss->set_extra_header( h );
+            }
+            return ss;
+        }
     }
     return ss_ptr();
+}
+
+ri_ptr
+Resolver::sid2ri( const source_uid& sid )
+{
+    map< source_uid, ri_ptr >::iterator it = m_sid2ri.find(sid);
+    if (it != m_sid2ri.end())
+        return it->second;
+    else
+        return ri_ptr();
+          
 }
 
 template <class T>
@@ -683,6 +750,18 @@ boost::shared_ptr<T>
 Resolver::ss_ptr_generator(string url)
 {
     return boost::shared_ptr<T>(new T(url));
+}
+
+bool
+Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
+{
+    boost::mutex::scoped_lock cometlock(m_comets_mutex);
+    // a new callback replaces the old callback
+    // todo: can we terminate the old comet session via the callback?
+    // todo: need a general mechanism to terminate (like when shutting down)
+    m_comets[sessionId] = cb;
+
+    return true;
 }
 
 }

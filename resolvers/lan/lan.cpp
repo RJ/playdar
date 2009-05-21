@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "lan.h"
 
 #include "playdar/resolver_query.hpp"
@@ -250,19 +268,16 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 try
                 {
                     ResolvedItem ri(resobj);
-                    //FIXME this could be moved into the PlayableItem class perhaps
-                    //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( ri.has_json_value<string>("url")) 
-                    {
-                        ostringstream rbs;
-                        rbs << "http://"
-                        << sender_endpoint_.address()
-                        << ":"
-                        << sender_endpoint_.port()
-                        << "/sid/"
-                        << ri.id();
-                        ri.set_url( rbs.str() );
-                    }
+
+                    ostringstream rbs;
+                    rbs << "http://"
+                    << sender_endpoint_.address()
+                    << ":"
+                    << sender_endpoint_.port()
+                    << "/sid/"
+                    << ri.id();
+                    ri.set_url( rbs.str() );
+
                     final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
                     //cout    << "INFO Result from '" << rip->source()
@@ -314,13 +329,16 @@ lan::send_response( query_uid qid,
     //     << endl;
     using namespace json_spirit;
     Object response;
+    response.reserve(3);
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
-    Object result = rip->get_json();
-    response.push_back( Pair("result", result) );
-    ostringstream ss;
-    write_formatted( response, ss );
-    async_send(&sep, ss.str());
+    
+    // strip the url from _a copy_ of the result_item
+    ResolvedItem tmp( *rip );
+    tmp.rm_json_value( "url" );
+    response.push_back( Pair("result", tmp.get_json()) );
+
+    async_send( &sep, write_formatted( response ) );
 }
 
 // LAN presence stuff.
@@ -461,16 +479,16 @@ bool endsWith(const std::string& s, const std::string& tail)
     return slen >= tlen ? (s.substr(slen - tlen) == tail) : false;
 }
 
-playdar_response 
-lan::anon_http_handler(const playdar_request* req)
+bool
+lan::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& /*pauth*/)
 {
-    cout << "request handler on lan for url: " << req->url() << endl;
+    cout << "request handler on lan for url: " << req.url() << endl;
 
     time_t now;
     time(&now);
     typedef std::pair<string, lannode> LanPair;
 
-    if (endsWith(req->url(), "roster")) { 
+    if (endsWith(req.url(), "roster")) { 
         Array a;
         BOOST_FOREACH(const LanPair& p, m_lannodes)
         {
@@ -483,7 +501,8 @@ lan::anon_http_handler(const playdar_request* req)
         }
         ostringstream os;
         write_formatted(a, os);
-        return playdar_response(os.str(), false);
+        resp = playdar_response(os.str(), false);
+        return true;
     }
 
     ostringstream os;
@@ -503,7 +522,8 @@ lan::anon_http_handler(const playdar_request* req)
     }
     os  << "</ul></p>" << endl;
     
-    return os.str();
+    resp = os.str();
+    return true;
 }
 
 

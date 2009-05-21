@@ -1,3 +1,20 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __BOFFIN_DB_H__
 #define __BOFFIN_DB_H__
 
@@ -10,6 +27,7 @@
 
 #include "sqlite3pp.h"
 #include <iostream>
+
 class BoffinDb
 {
 public:
@@ -23,7 +41,7 @@ public:
     BoffinDb(const std::string& boffinDbFilePath, const std::string& playdarDbFilePath);
 
     static std::string sortname(const std::string& name);
-    boost::shared_ptr<TagCloudVec> get_tag_cloud(int limit);
+    boost::shared_ptr<TagCloudVec> get_tag_cloud(int limit = 0);
     void get_all_artist_tags(ArtistTagMap& out);
     int get_tag_id(const std::string& tag, CreateFlag create = Create );
     int get_artist_id(const std::string& artist);
@@ -119,9 +137,9 @@ public:
         return count;
     }
     
-    sqlite3pp::database* db()
+    sqlite3pp::database& db()
     {
-        return &m_db;
+        return m_db;
     }
 
 private:

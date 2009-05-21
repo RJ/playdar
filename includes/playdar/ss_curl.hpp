@@ -1,3 +1,21 @@
+/*
+    Playdar - music content resolver
+    Copyright (C) 2009  Richard Jones
+    Copyright (C) 2009  Last.fm Ltd.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #ifndef __CURL_STRAT_H__
 #define __CURL_STRAT_H__
 
@@ -11,7 +29,6 @@
 #include <curl/curl.h>
 
 #include "playdar/streaming_strategy.h"
-#include "playdar/utils/base64.h"
 
 namespace playdar {
 
@@ -28,6 +45,7 @@ class CurlStreamingStrategy : public StreamingStrategy
 public:
     CurlStreamingStrategy(std::string url)
         : m_curl(0)
+        , m_slist_headers(0)
         , m_url(url)
         , m_thread(0)
         , m_headthread(0)
@@ -81,40 +99,11 @@ public:
         return boost::shared_ptr<StreamingStrategy>(new CurlStreamingStrategy(*this));
     }
     
-    std::vector<std::string> & extra_headers() { return m_extra_headers; }
-
-    int read_bytes(char * buf, size_t size)
+    void set_extra_header(const std::string& header)
     {
-        if(!m_connected) connect();
-        if(!m_connected)
-        {
-            std::cout << "ERROR: connect failed in httpss." << std::endl;
-            if( m_curl ) curl_easy_cleanup( m_curl );
-            reset();
-            return 0;
-        }
-        do{
-            boost::mutex::scoped_lock lk(m_mut);
-            while( m_buffers.size()==0 && !m_curl_finished )
-            {
-                //cout << "Waiting on curl.." << endl;
-                m_cond.wait(lk);
-            }
-            //cout << "data available: "<< m_buffers.size() << " bytes." << endl;
-            if( m_curl_finished && m_buffers.size() == 0 ) break;
-            size_t i;
-            for( i = 0; i < size && i < m_buffers.size(); i++ )
-            {
-                char c = m_buffers.back();
-                memcpy( buf+i, (char*)&c, 1 );
-                m_buffers.pop_back();
-            }
-            return i;
-        }while(false);
-        reset();
-        return 0; // means no more data.
+        m_slist_headers = curl_slist_append(m_slist_headers, header.c_str());
     }
-    
+
     std::string mime_type()
     {
         if( m_mimetype.size() )
@@ -130,7 +119,7 @@ public:
     int content_length()
     {
         if( !m_headersFetched )
-        get_headers();
+            get_headers();
         
         boost::mutex::scoped_lock lk(m_mut);
         if( !m_headersFetched )
@@ -156,6 +145,7 @@ public:
     void reset()
     {
         m_connected = false;
+        m_writing = false;
         m_bytesreceived = 0;
         m_curl_finished = false;
         m_abort = false;
@@ -199,18 +189,8 @@ public:
         inst->m_headersFetched = true;
         inst->m_headcond.notify_all();
         
-        char * ptr = (char*) vptr;
         size_t len = size * nmemb;
-        inst->m_bytesreceived += len;
-        {
-            boost::mutex::scoped_lock lk(inst->m_mut);
-            for(size_t s = 0; s < len; s++)
-            {
-                char c = *(ptr+s);
-                inst->m_buffers.push_front( c );
-            }
-        }
-        inst->m_cond.notify_all();
+        inst->enqueue(std::string((char*) vptr, len));
         return len;
     }
     
@@ -236,12 +216,14 @@ public:
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
         m_curl_finished = true;
+        if (m_slist_headers) 
+            curl_slist_free_all(m_slist_headers);
         std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
-        if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
+        if (m_curlres) 
+            std::cout << "Curl error: " << m_curlerror << std::endl;
         curl_easy_cleanup( m_curl );
         
         m_headersFetched = true;
-        m_cond.notify_all();
     }
     
     /// run in a thread to do the curl transfer
@@ -257,7 +239,61 @@ public:
     }
     
     const std::string url() const { return m_url; }
-    
+
+    typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
+
+    // virtual
+    bool async_delegate(WriteFunc writefunc)
+    {
+        if (!writefunc) {
+            // aborted by the moost::http side.
+            m_abort = true;
+            m_wf = 0;
+            return false;
+        }
+
+        if (m_abort) {
+            m_wf = 0;
+            return false;
+        }
+
+        m_wf = writefunc;
+
+        if(!m_connected) connect();
+        if(!m_connected)
+        {
+            std::cout << "ERROR: connect failed in httpss." << std::endl;
+            if( m_curl ) curl_easy_cleanup( m_curl );
+            reset();
+            m_wf = 0;
+            return false;
+        }
+
+        {
+            boost::lock_guard<boost::mutex> lock(m_mutex);
+
+            if (m_writing && m_buffers.size()) {
+                // previous write has completed:
+                m_buffers.pop_front();
+                m_writing = false;
+            }
+
+            if (!m_writing && m_buffers.size()) {
+                // write something new
+                m_writing = true;
+                m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+            }
+        }
+
+        bool result =  m_writing || !m_curl_finished;
+        if (result == false) {
+            m_wf = 0;
+        }
+        return result;
+    }
+
+
+
 protected:
     
     void get_headers()
@@ -275,27 +311,12 @@ protected:
         
         //Try HEAD request
         m_curl = curl_easy_init();
+        prep_curl( m_curl );
         curl_easy_setopt( m_curl, CURLOPT_NOBODY, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_HEADER, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_NOSIGNAL, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_CONNECTTIMEOUT, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_SSL_VERIFYPEER, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
-        curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
-        curl_easy_setopt( m_curl, CURLOPT_FOLLOWLOCATION, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_MAXREDIRS, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_USERAGENT, "Playdar (libcurl)" );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_headfunc );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
-        // we use the curl progress callbacks to abort transfers mid-download on exit
-        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION,
-                         &CurlStreamingStrategy::curl_progressfunc );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
 
         m_headthread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform_head, this ) );
     }
+
     
     void connect()
     {
@@ -313,31 +334,38 @@ protected:
             std::cout << "Curl init failed" << std::endl;
             throw;
         }
-        // for curl options, see:
-        // http://curl.netmirror.org/libcurl/c/curl_easy_setopt.html
         
-        curl_easy_setopt( m_curl, CURLOPT_NOSIGNAL, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_NOBODY, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_CONNECTTIMEOUT, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_SSL_VERIFYPEER, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
-        curl_easy_setopt( m_curl, CURLOPT_URL, m_url.c_str() );
-        curl_easy_setopt( m_curl, CURLOPT_FOLLOWLOCATION, 1 );
-        curl_easy_setopt( m_curl, CURLOPT_MAXREDIRS, 5 );
-        curl_easy_setopt( m_curl, CURLOPT_USERAGENT, "Playdar (libcurl)" );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_writefunc );
-        curl_easy_setopt( m_curl, CURLOPT_WRITEDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_HEADERFUNCTION, &CurlStreamingStrategy::curl_headfunc );
-        curl_easy_setopt( m_curl, CURLOPT_HEADERDATA, this );
-        curl_easy_setopt( m_curl, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
-        // we use the curl progress callbacks to abort transfers mid-download on exit
-        curl_easy_setopt( m_curl, CURLOPT_NOPROGRESS, 0 );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSFUNCTION,
-                         &CurlStreamingStrategy::curl_progressfunc );
-        curl_easy_setopt( m_curl, CURLOPT_PROGRESSDATA, this );
+        prep_curl( m_curl );
+        
         m_connected = true; 
         // do the blocking-fetch in a thread:
         m_thread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
+    }
+    
+    void prep_curl(CURL * handle)
+    {
+        // for curl options, see:
+        // http://curl.netmirror.org/libcurl/c/curl_easy_setopt.html
+        curl_easy_setopt( handle, CURLOPT_NOSIGNAL, 1 );
+        curl_easy_setopt( handle, CURLOPT_NOBODY, 0 );
+        curl_easy_setopt( handle, CURLOPT_CONNECTTIMEOUT, 5 );
+        curl_easy_setopt( handle, CURLOPT_SSL_VERIFYPEER, 0 );
+        curl_easy_setopt( handle, CURLOPT_FTP_RESPONSE_TIMEOUT, 10 );
+        curl_easy_setopt( handle, CURLOPT_URL, m_url.c_str() );
+        curl_easy_setopt( handle, CURLOPT_FOLLOWLOCATION, 1 );
+        curl_easy_setopt( handle, CURLOPT_MAXREDIRS, 5 );
+        curl_easy_setopt( handle, CURLOPT_USERAGENT, "Playdar (libcurl)" );
+        curl_easy_setopt( handle, CURLOPT_HTTPHEADER, m_slist_headers );
+        curl_easy_setopt( handle, CURLOPT_WRITEFUNCTION, &CurlStreamingStrategy::curl_writefunc );
+        curl_easy_setopt( handle, CURLOPT_WRITEDATA, this );
+        curl_easy_setopt( handle, CURLOPT_HEADERFUNCTION, &CurlStreamingStrategy::curl_headfunc );
+        curl_easy_setopt( handle, CURLOPT_HEADERDATA, this );
+        curl_easy_setopt( handle, CURLOPT_ERRORBUFFER, (char*)&m_curlerror );
+        // we use the curl progress callbacks to abort transfers mid-download on exit
+        curl_easy_setopt( handle, CURLOPT_NOPROGRESS, 0 );
+        curl_easy_setopt( handle, CURLOPT_PROGRESSFUNCTION,
+                         &CurlStreamingStrategy::curl_progressfunc );
+        curl_easy_setopt( handle, CURLOPT_PROGRESSDATA, this );
     }
     
     //FIXME: DUPLICATED from scanner.cpp
@@ -352,16 +380,14 @@ protected:
         //generic:
         return "application/octet-stream";
     }
-    
+
     CURL *m_curl;
+    struct curl_slist * m_slist_headers; // extra headers to be sent
     CURLcode m_curlres;
-    std::vector<std::string> m_extra_headers; 
     bool m_connected;
     std::string m_url;
     std::string m_protocol;
-    std::deque< char > m_buffers; // received data
     boost::mutex m_mut;
-    boost::condition m_cond;
     boost::condition m_headcond;
     bool m_curl_finished;
     size_t m_bytesreceived;
@@ -369,11 +395,27 @@ protected:
     boost::thread * m_thread;
     boost::thread * m_headthread;
     bool m_abort;
-    
     bool m_headersFetched;
     
     int m_contentlen;
     std::string m_mimetype;
+
+    /////
+    void enqueue(const std::string& s)
+    {
+        boost::lock_guard<boost::mutex> lock(m_mutex);
+        m_buffers.push_back(s);
+        if (!m_writing) {
+            m_writing = true;
+            m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+        }
+    }
+
+    WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
+    boost::mutex m_mutex;
+    bool m_writing;
+    std::list<std::string> m_buffers;
+
 };
 
 }
