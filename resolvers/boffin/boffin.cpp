@@ -15,6 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+#include <boost/progress.hpp>
 #include "boffin.h"
 #include "BoffinDb.h"
 #include "RqlOpProcessor.h"
@@ -212,9 +214,6 @@ makeTagCloudItem(const boost::tuple<std::string, float, int>& in, const std::str
 void
 boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
-    // optional int value to limit the results, otherwise, default is 100
-    int limit = (rq->param_exists("boffin_limit") && rq->param_type("boffin_limit") == json_spirit::int_type) ? rq->param("boffin_limit").get_int() : 100;
-
     if (rq->param_exists("boffin_rql") && rq->param_type("boffin_rql") == json_spirit::str_type) {
         parser p;
         if (p.parse(rq->param("boffin_rql").get_str())) {
@@ -225,25 +224,16 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &leaf2op);
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
-            //// sample from the rqlResults into our SampleAccumulator:
-            //const int artist_memory = 4;
-            //SampleAccumulator sa(artist_memory);
-            //boffinSample(limit, *rqlResults, 
-            //    boost::bind(&SampleAccumulator::pushdown, &sa, _1),
-            //    boost::bind(&SampleAccumulator::result, &sa, _1));
-
-            // look up results, turn them into a vector of json objects
-            std::vector< json_spirit::Object > results;
-            results.reserve(rqlResults->size());
-//            BOOST_FOREACH(const TrackResult& t, sa.get_results()) {
+            string hostname( m_pap->hostname() );
             BOOST_FOREACH(const TrackResult& t, *rqlResults) {
                 ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_source( m_pap->hostname() );
+                rip->set_source( hostname );
                 rip->set_id( m_pap->gen_uuid() );
-                results.push_back( rip->get_json() );
-            }
 
-            m_pap->report_results(rq->id(), results);
+                std::vector< json_spirit::Object > results;
+                results.push_back( rip->get_json() );
+                m_pap->report_results(rq->id(), results);
+            }
             return;
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
@@ -255,32 +245,44 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         string rql( rq->param("boffin_tags").get_str() );
 
         shared_ptr< BoffinDb::TagCloudVec > tv;
-        
-        if (rql == "*") {
-            tv = m_db->get_tag_cloud(limit);
-        } else {
-            parser p;
-            if (p.parse(rql)) {
-                std::vector<RqlOp> ops;
-                p.getOperations<RqlOp>(
-                    boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
-                    &root2op, 
-                    &leaf2op);
-                tv = RqlOpProcessorTagCloud::process(ops.begin(), ops.end(), *m_db, *m_sa);
+
+        {
+            progress_timer t;
+            if (rql == "*") {
+                tv = m_db->get_tag_cloud();
             } else {
-                parseFail(p.getErrorLine(), p.getErrorOffset());
-                return;
+                parser p;
+                if (p.parse(rql)) {
+                    std::vector<RqlOp> ops;
+                    p.getOperations<RqlOp>(
+                        boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
+                        &root2op, 
+                        &leaf2op);
+                    tv = RqlOpProcessorTagCloud::process(ops.begin(), ops.end(), *m_db, *m_sa);
+                } else {
+                    parseFail(p.getErrorLine(), p.getErrorOffset());
+                    return;
+                }
             }
+            cout << "Boffin retrieved tagcloud..";
         }
 
         vector< json_spirit::Object > results;
-        const std::string source( m_pap->hostname() );
-        BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
-            results.push_back( makeTagCloudItem( tag, source )->get_json() );
+        {
+            progress_timer t;
+            results.reserve(tv->size());
+            const std::string source( m_pap->hostname() );
+            BOOST_FOREACH(const BoffinDb::TagCloudVecItem& tag, *tv) {
+                results.push_back( makeTagCloudItem( tag, source )->get_json() );
+            }
+            cout << "Boffin prepared results...";
         }
-        cout << "Boffin will now report results" << endl;
-        m_pap->report_results(rq->id(), results);
-        cout << "Reported.."<< endl;
+
+        {
+            progress_timer t;
+            m_pap->report_results(rq->id(), results);
+            cout << "Boffin reported tagcloud..";
+        }
     }
 
 }
