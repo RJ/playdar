@@ -332,15 +332,11 @@ lan::send_response( query_uid qid,
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     
-    //get the json object with the url stripped
-    rip->rm_json_value( "url" );
-    Object result = rip->get_json();
-
-    //FIXME strip "url" (filename) from result object before sending!
-    response.push_back( Pair("result", result) );
-    ostringstream ss;
-    write_formatted( response, ss );
-    async_send(&sep, ss.str());
+    //send the json object with the url stripped
+    ResolvedItem tmp(rip->get_json());
+    tmp.rm_json_value( "url" );
+    response.push_back( Pair("result", tmp.get_json()) );
+    async_send(&sep, write_formatted( response ));
 }
 
 // LAN presence stuff.
