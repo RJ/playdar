@@ -472,7 +472,7 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
             os  << "<tr style=\"background-color: "<< bgc << "\">";
             if(!rq) {
              os << "<td colspan=\"7\"><i>cancelled query</i></td>";
-            } else if( TrackRQBuilder::valid( rq )) {
+            } else if (rq->isValidTrack()) {
              os << "<td style=\"font-size:60%;\">" 
                 << "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
@@ -515,7 +515,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
 
             query_uid qid = req.parts()[1];
             rq_ptr rq = app()->resolver()->rq(qid);
-            if(!rq || !TrackRQBuilder::valid( rq ))
+            if(!rq || !rq->isValidTrack())
            {
                rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
                return;
