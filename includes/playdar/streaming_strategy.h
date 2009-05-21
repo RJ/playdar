@@ -35,7 +35,7 @@ class StreamingStrategy
 public:
     StreamingStrategy(){}
     virtual ~StreamingStrategy(){}
-    virtual size_t read_bytes(char * buffer, size_t size) = 0;
+    
     virtual std::string debug() = 0;
     virtual void reset() = 0;
     virtual std::string mime_type() = 0;

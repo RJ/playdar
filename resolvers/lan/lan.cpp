@@ -268,19 +268,16 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 try
                 {
                     ResolvedItem ri(resobj);
-                    //FIXME this could be moved into the PlayableItem class perhaps
-                    //      you'd need to be able to pass endpoint information to resolver()->ri_from_json though.
-                    if( ri.has_json_value<string>("url")) 
-                    {
-                        ostringstream rbs;
-                        rbs << "http://"
-                        << sender_endpoint_.address()
-                        << ":"
-                        << sender_endpoint_.port()
-                        << "/sid/"
-                        << ri.id();
-                        ri.set_url( rbs.str() );
-                    }
+
+                    ostringstream rbs;
+                    rbs << "http://"
+                    << sender_endpoint_.address()
+                    << ":"
+                    << sender_endpoint_.port()
+                    << "/sid/"
+                    << ri.id();
+                    ri.set_url( rbs.str() );
+
                     final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
                     //cout    << "INFO Result from '" << rip->source()
@@ -332,18 +329,16 @@ lan::send_response( query_uid qid,
     //     << endl;
     using namespace json_spirit;
     Object response;
+    response.reserve(3);
     response.push_back( Pair("_msgtype", "result") );
     response.push_back( Pair("qid", qid) );
     
-    //get the json object with the url stripped
-    rip->rm_json_value( "url" );
-    Object result = rip->get_json();
+    // strip the url from _a copy_ of the result_item
+    ResolvedItem tmp( *rip );
+    tmp.rm_json_value( "url" );
+    response.push_back( Pair("result", tmp.get_json()) );
 
-    //FIXME strip "url" (filename) from result object before sending!
-    response.push_back( Pair("result", result) );
-    ostringstream ss;
-    write_formatted( response, ss );
-    async_send(&sep, ss.str());
+    async_send( &sep, write_formatted( response ) );
 }
 
 // LAN presence stuff.
