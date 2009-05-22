@@ -219,7 +219,7 @@ rs_script::process_output()
         is.read( (char*)&buffer, len );
         if(is.fail() || is.eof()) break;
         string msg((char*)&buffer, len);
-        std::cout << "Msg: '" << msg << "'"<< endl;
+        //std::cout << "Msg: '" << msg << "'"<< endl;
         if(!read(msg, j) || j.type() != obj_type)
         {
             cerr << "Aborting, invalid JSON." << endl;
