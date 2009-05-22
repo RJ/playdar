@@ -28,7 +28,7 @@ public:
 #ifndef NDEBUG
     ~CometSession()
     {
-        cout << "comet session " << m_session << " deleted" << endl;
+        std::cout << "comet session " << m_session << " deleted" << std::endl;
     }
 #endif
 
@@ -67,7 +67,7 @@ public:
     bool async_write_func(WriteFunc& wf)
     {
         if (!wf || m_cancelled) {   
-            cout << "comet session " << m_session << " async write ending" << endl;
+            std::cout << "comet session " << m_session << " async write ending" << std::endl;
             // cancelled by caller || cancelled by us
             disconnect_from_resolver();
             m_cancelled = true;
@@ -106,7 +106,7 @@ private:
         boost::lock_guard<boost::mutex> lock(m_mutex);
         m_buffers.push_back(s);
         if (withComma) {
-            static string comma(",\r\n");
+            static std::string comma(",\r\n");
             m_buffers.push_back(comma);
         }
         if (!m_writing) {

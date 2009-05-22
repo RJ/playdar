@@ -40,6 +40,8 @@
 #include "playdar/utils/urlencoding.hpp"
 #include "playdar/CometSession.hpp"
 
+using namespace std;
+
 namespace playdar {
 
 /*
