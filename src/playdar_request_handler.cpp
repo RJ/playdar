@@ -255,6 +255,7 @@ playdar_request_handler::handle_root( const playdar_request& req,
            "<td>Weight</td>"
            "<td>Preference</td>"
            "<td>Target Time</td>"
+           "<td>Scope</td>"
            "<td>Configuration</td>"
            "</tr>"
            ;
@@ -272,7 +273,8 @@ playdar_request_handler::handle_root( const playdar_request& req,
             << "<td>" << pap->rs()->name() << "</td>"
             << "<td>" << pap->weight() << "</td>"
             << "<td>" << pap->preference() << "</td>"
-            << "<td>" << pap->targettime() << "ms</td>";
+            << "<td>" << pap->targettime() << "ms</td>"
+            << "<td>" << (pap->localonly()?"local":"global") << "</td>";
         os << "<td>" ;
 
         string name = pap->rs()->name();
@@ -620,6 +622,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     string track    = req.parts()[3];
     boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
+    rq->set_origin_local( true );
     query_uid qid = app()->resolver()->dispatch(rq);
     // wait a couple of seconds for results
     boost::xtime time; 
