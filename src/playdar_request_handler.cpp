@@ -40,6 +40,8 @@
 #include "playdar/utils/urlencoding.hpp"
 #include "playdar/CometSession.hpp"
 
+using namespace std;
+
 namespace playdar {
 
 /*
@@ -446,19 +448,17 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
     app()->resolver()->qids(queries);
 
     ostringstream os;
-    os  << "<h2>Current Queries ("
-        << queries.size() <<")</h2>"
-
-        << "<table>"
-        << "<tr style=\"font-weight:bold;\">"
-        << "<td>QID</td>"
-        << "<td>Options</td>"
-        << "<td>Artist</td>"
-        << "<td>Album</td>"
-        << "<td>Track</td>"
-        << "<td>Origin</td>"
-        << "<td>Results</td>"
-        << "</tr>"
+    os  << "<h2>Current Queries (" << queries.size() << ")</h2>"
+        "<table>"
+        "<tr style=\"font-weight:bold;\">"
+        "<td>QID</td>"
+        "<td>Options</td>"
+        "<td>Artist</td>"
+        "<td>Album</td>"
+        "<td>Track</td>"
+        "<td>Origin</td>"
+        "<td>Results</td>"
+        "</tr>"
         ;
 
     
@@ -474,20 +474,26 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
              os << "<td colspan=\"7\"><i>cancelled query</i></td>";
             } else if (rq->isValidTrack()) {
              os << "<td style=\"font-size:60%;\">" 
-                << "<a href=\"/queries/"<< rq->id() <<"\">" 
-                << rq->id() << "</a></td>"
-                << "<td style=\"align:center;\">"
-                << "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
-                << "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
-                << "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
-                << "</td>"
-                << "<td>" << rq->param( "artist" ).get_str() << "</td>"
-                << "<td>" << rq->param( "album" ).get_str() << "</td>"
-                << "<td>" << rq->param( "track" ).get_str() << "</td>"
-                << "<td>" << rq->from_name() << "</td>"
-                << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
+                "<a href=\"/queries/"<< rq->id() <<"\">" << rq->id() << "</a></td>"
+                "<td style=\"align:center;\">"
+                "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                "</td>"
+                "<td>" << rq->param( "artist" ).get_str() << "</td>"
+                "<td>" << rq->param( "album" ).get_str() << "</td>"
+                "<td>" << rq->param( "track" ).get_str() << "</td>"
+                "<td>" << rq->from_name() << "</td>"
+                "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
                 ; 
+            } else {
+                os << "<td><i>non-track query</i></td>"
+                "<td colspan=\"6\" style=\"align:center;\">"
+                "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                "</td>";
             }
             os << "</tr>";
         } catch(...) { }
@@ -524,29 +530,27 @@ playdar_request_handler::handle_queries( const playdar_request& req,
 
            ostringstream os;
            os  << "<h2>Query: " << qid << "</h2>"
-               
-               << "<table>"
-               << "<tr><td>Artist</td>"
-               << "<td>" << rq->param( "artist" ).get_str() << "</td></tr>"
-               << "<tr><td>Album</td>"
-               << "<td>" << rq->param( "album" ).get_str() << "</td></tr>"
-               << "<tr><td>Track</td>"
-               << "<td>" << rq->param( "track" ).get_str() << "</td></tr>"
-               << "</table>"
-
-               << "<h3>Results (" << results.size() << ")</h3>"
-               << "<table>"
-               << "<tr style=\"font-weight:bold;\">"
-               << "<td>SID</td>"
-               << "<td>Artist</td>"
-               << "<td>Album</td>"
-               << "<td>Track</td>"
-               << "<td>Dur</td>"
-               << "<td>Kbps</td>"
-               << "<td>Size</td>"
-               << "<td>Source</td>"
-               << "<td>Score</td>"
-               << "</tr>"
+               "<table>"
+               "<tr><td>Artist</td>"
+               "<td>" << rq->param( "artist" ).get_str() << "</td></tr>"
+               "<tr><td>Album</td>"
+               "<td>" << rq->param( "album" ).get_str() << "</td></tr>"
+               "<tr><td>Track</td>"
+               "<td>" << rq->param( "track" ).get_str() << "</td></tr>"
+               "</table>"
+               "<h3>Results (" << results.size() << ")</h3>"
+               "<table>"
+               "<tr style=\"font-weight:bold;\">"
+               "<td>SID</td>"
+               "<td>Artist</td>"
+               "<td>Album</td>"
+               "<td>Track</td>"
+               "<td>Dur</td>"
+               "<td>Kbps</td>"
+               "<td>Size</td>"
+               "<td>Source</td>"
+               "<td>Score</td>"
+               "</tr>"
                ;
            string bgc="";
            int i = 0;
@@ -558,18 +562,17 @@ playdar_request_handler::handle_queries( const playdar_request& req,
                
                bgc = ++i%2 ? "lightgrey" : "";
                os  << "<tr style=\"background-color:" << bgc << "\">"
-                   << "<td style=\"font-size:60%\">"
-                   << "<a href=\"/sid/"<< ri->id() << "\">" 
-                   << ri->id() << "</a></td>"
-                   << "<td>" << ri->json_value("artist", "" )  << "</td>"
-                   << "<td>" << ri->json_value("album", "" )   << "</td>"
-                   << "<td>" << ri->json_value("track", "" )   << "</td>"
-                   << "<td>" << ri->json_value("duration", "" )<< "</td>"
-                   << "<td>" << ri->json_value("bitrate", "" ) << "</td>"
-                   << "<td>" << ri->json_value("size", "" )    << "</td>"
-                   << "<td>" << ri->json_value("source", "" )  << "</td>"
-                   << "<td>" << ri->json_value("score", "" )   << "</td>"
-                   << "</tr>"
+                   "<td style=\"font-size:60%\">"
+                   "<a href=\"/sid/" << ri->id() << "\">" << ri->id() << "</a></td>"
+                   "<td>" << ri->json_value("artist", "" )  << "</td>"
+                   "<td>" << ri->json_value("album", "" )   << "</td>"
+                   "<td>" << ri->json_value("track", "" )   << "</td>"
+                   "<td>" << ri->json_value("duration", "" )<< "</td>"
+                   "<td>" << ri->json_value("bitrate", "" ) << "</td>"
+                   "<td>" << ri->json_value("size", "" )    << "</td>"
+                   "<td>" << ri->json_value("source", "" )  << "</td>"
+                   "<td>" << ri->json_value("score", "" )   << "</td>"
+                   "</tr>"
                    ;
            }
            os  << "</table>";
@@ -750,13 +753,13 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
 {
     if (req.getvar_exists("session")) {
         const string& sessionId( req.getvar("session") );
-        CometSession* comet = new CometSession();
-        if (m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2))) {
+        boost::shared_ptr<CometSession> comet(new CometSession(sessionId, m_app->resolver()));
+        if (comet->connect_to_resolver()) {
             rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
             rep.status = moost::http::reply::ok;
+            rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
         } else {
-            delete comet;
-            cout << "couldn't create comet session";
+            cout << "couldn't create comet session" << endl;
             rep.status = moost::http::reply::internal_server_error;
         }
     } else {

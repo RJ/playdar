@@ -43,7 +43,7 @@ BoffinDb::check_db()
       {
         // unusual - table exists but doesn't contain this row.
         // could have been created wrongly
-        cerr << "Errror, boffin_system table missing schema_version key!" << endl
+        cerr << "Error, boffin_system table missing schema_version key!" << endl
              << "Maybe you created the database wrong, or it's corrupt." << endl
              << "Try deleting it and re-scanning?" << endl;
         throw; // not caught here.

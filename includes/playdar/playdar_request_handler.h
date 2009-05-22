@@ -28,8 +28,6 @@
 #include "playdar/application.h"
 #include "playdar/auth.hpp"
 
-using namespace std;
-
 namespace playdar {
 
 class playdar_request;

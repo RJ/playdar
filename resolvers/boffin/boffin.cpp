@@ -168,10 +168,10 @@ boffin::thread_run()
 {
     cout << "boffin thread_run" << endl;
     try {
-        boost::function< void() > fun;
         while (!m_thread_stop) {
-            fun = get_work();
-            if( fun && !m_thread_stop ) fun();
+            boost::function< void() > fun = get_work();
+            if( fun && !m_thread_stop ) 
+                fun();
         }
     }
     catch (std::exception &e) {
@@ -224,15 +224,30 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 &leaf2op);
             ResultSetPtr rqlResults( RqlOpProcessor::process(ops.begin(), ops.end(), *m_db, *m_sa) );
 
-            string hostname( m_pap->hostname() );
-            BOOST_FOREACH(const TrackResult& t, *rqlResults) {
-                ri_ptr rip = playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId );
-                rip->set_source( hostname );
-                rip->set_id( m_pap->gen_uuid() );
+            string hostname( m_pap->hostname() );   // cache this because we can have many many results
 
-                std::vector< json_spirit::Object > results;
-                results.push_back( rip->get_json() );
-                m_pap->report_results(rq->id(), results);
+            const int reportingChunkSize = 100;      // report x at a time to the resolver
+            std::vector< json_spirit::Object > results;
+            results.reserve(reportingChunkSize);    // avoid vector resizing
+
+            BOOST_FOREACH(const TrackResult& t, *rqlResults) {
+                json_spirit::Object js;
+                js.reserve(13);
+                playdar::ResolvedItemBuilder::createFromFid( m_db->db(), t.trackId, js );
+                js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
+                js.push_back( json_spirit::Pair( "source", hostname) );
+                js.push_back( json_spirit::Pair( "weight", t.weight) );
+                results.push_back( js );
+
+                if ((results.size() % reportingChunkSize) == 0) {
+                    bool cancel = !m_pap->report_results(rq->id(), results);
+                    results.clear();
+                    results.reserve(reportingChunkSize);
+                    if (cancel) break;
+                }
+            }
+            if (results.size()) {
+                m_pap->report_results(rq->id(), results);  // left-overs
             }
             return;
         } 

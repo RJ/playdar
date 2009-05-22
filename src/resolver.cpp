@@ -430,8 +430,8 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 }
 
 /// a resolver will report results here
-/// false means give up on this query, it's over
-/// true means carry on as normal
+/// false return means give up on this query, it's over
+/// true return means carry on as normal
 bool
 Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
@@ -440,41 +440,49 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     {
         return true;
     }
-    boost::mutex::scoped_lock lock(m_mut_results);
-    
-    if(!query_exists(qid)) 
-        return false; // query was deleted
 
-    // add these new results to the ResolverQuery object
-    BOOST_FOREACH(const ri_ptr rip, results)
+    rq_ptr rq;
+
     {
-        rq_ptr rq = m_queries[qid];
-        // resolver fixes the score using a standard algorithm
-        // unless a non-zero score was specified by resolver.
-        if(rip->score() < 0 &&
-           rq->isValidTrack() &&
-           rip->has_json_value<string>( "artist" ) &&
-           rip->has_json_value<string>( "track" )
-          )
-        {
-            string reason;
-            float score = calculate_score( rq, rip, reason );
-            if( score == 0.0) 
-                continue;
-            rip->set_score( score );
-        }
+        // scope lock to protect m_queries and m_sid2ri
+        boost::mutex::scoped_lock lock(m_mut_results);  
         
-        m_queries[qid]->add_result(rip);
+        if(!query_exists(qid)) 
+            return false; // query was deleted
+        rq = m_queries[qid];
 
-        // update map of source id -> playable item
-        string sid = rip->id();
-        if (sid.length()) {
-            m_sid2ri[sid] = rip;
+        // setup sid mappings
+        string sid;
+        BOOST_FOREACH(const ri_ptr& rip, results)
+        {
+            // update map of source id -> playable item
+            sid = rip->id();
+            if (sid.length()) {
+                m_sid2ri[sid] = rip;
+            }
         }
-        //cout << "Adding: ";
-        //json_spirit::write( rip->get_json(), cout );
-        //cout << endl; 
     }
+
+    if (rq->isValidTrack()) {
+        // these results are for a track query, score the unscored results
+        string reason;
+        BOOST_FOREACH(const ri_ptr& rip, results) {
+            // resolver fixes the score using a standard algorithm
+            // unless a non-zero score was specified by resolver.
+            if (rip->score() < 0 &&
+                rip->has_json_value<string>( "artist" ) &&
+                rip->has_json_value<string>( "track" ) )
+            {
+                float score = calculate_score( rq, rip, reason );
+                if( score != 0.0) 
+                    rip->set_score( score );
+            }
+        }
+    }
+
+    // add the new results to the ResolverQuery object
+    rq->add_results(results);
+
     return true;
 }
 
@@ -747,14 +755,22 @@ Resolver::ss_ptr_generator(string url)
 bool
 Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
 {
+    if (!sessionId.length() || !cb)
+        return false;
+
     boost::mutex::scoped_lock cometlock(m_comets_mutex);
     // a new callback replaces the old callback
     // todo: can we terminate the old comet session via the callback?
     // todo: need a general mechanism to terminate (like when shutting down)
-    // todo: limit the number of simultaneous comet sessions?
     m_comets[sessionId] = cb;
-
     return true;
+}
+
+void
+Resolver::remove_comet_session(const std::string& sessionId)
+{
+    boost::mutex::scoped_lock cometlock(m_comets_mutex);
+    m_comets.erase(sessionId);
 }
 
 }

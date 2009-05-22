@@ -113,10 +113,12 @@ local::process( rq_ptr rq )
         vector<int> fids = m_library->get_fids_for_tid(sp.id);
         BOOST_FOREACH(int fid, fids)
         {
-            ri_ptr rip = ResolvedItemBuilder::createFromFid(*m_library, fid);
-            rip->set_id( m_pap->gen_uuid() );
-            rip->set_source( m_pap->hostname() );
-            final_results.push_back( rip->get_json() );
+            json_spirit::Object js;
+            js.reserve(12);
+            ResolvedItemBuilder::createFromFid( *m_library, fid, js );
+            js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
+            js.push_back( json_spirit::Pair( "source", m_pap->hostname()) );
+            final_results.push_back( js );
         }
     }
     if(final_results.size())

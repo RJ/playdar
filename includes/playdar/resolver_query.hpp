@@ -72,6 +72,7 @@ public:
     /// object should destruct soon after this is called, once any lingering references are released.
     void cancel()
     {
+        boost::mutex::scoped_lock lock(m_mut);
         m_cancelled = true;
         m_callbacks.clear();
         std::cout << "RQ::cancel() for " << id() << std::endl;
@@ -139,6 +140,7 @@ public:
 
     size_t num_results() const
     {
+        boost::mutex::scoped_lock lock(m_mut);
         return m_results.size();
     }
 
@@ -169,31 +171,32 @@ public:
         }
         return lhs->score() > rhs->score();
     }
-
-    void add_result(ri_ptr rip) 
+    
+    void add_results(const std::vector< ri_ptr >& results) 
     { 
-        //cout << "RQ.add_result: "<< pip->score() <<"\t"
-        //     << pip->artist() << " - " << pip->track() << endl;
-        {
+        if (!m_cancelled) {
             boost::mutex::scoped_lock lock(m_mut);
-            m_results.push_back(rip); 
-        }
-        // decide if this result "solves" the query:
-        // for now just assume score of 1 means solved.
-        if(rip->score() == 1.0) 
-        {
-//            cout << "SOLVED " << id() << endl;   
-            m_solved = true;
-        }
-        // fire callbacks:
-        BOOST_FOREACH(rq_callback_t & cb, m_callbacks)
-        {
-            cb(id(), rip);
+            BOOST_FOREACH(const ri_ptr& rip, results) {
+                m_results.push_back(rip); 
+            }
+
+            BOOST_FOREACH(const ri_ptr& rip, results) {
+                // decide if this result "solves" the query:
+                // for now just assume score of 1 means solved.
+                if(rip->score() == 1.0) {
+                    m_solved = true;
+                }
+                // fire callbacks:
+                BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
+                    cb(id(), rip);
+                }
+            }
         }
     }
-    
+
     void register_callback(rq_callback_t cb)
     {
+        boost::mutex::scoped_lock lock(m_mut);
         m_callbacks.push_back( cb );
     }
     
@@ -253,18 +256,23 @@ protected:
     std::map<std::string,json_spirit::Value> m_qryobj_map;
 
 private:
+    query_uid m_uuid;
     std::vector< ri_ptr > m_results;
     std::string m_from_name;
     std::string m_comet_session_id;
         
     // list of functors to fire on new result:
     std::vector<rq_callback_t> m_callbacks;
-    query_uid m_uuid;
-    boost::mutex m_mut;
+
+    // for protecting m_results and m_callbacks
+    mutable boost::mutex m_mut;     
+
     // set to true once we get a decent result
     bool m_solved;
+
     // set to true if trying to cancel/delete this query (if so, don't bother working with it)
     bool m_cancelled;
+
     // last access time (used to know if this query is stale and can be deleted)
     // mutable: it's auto-updated to mark the atime in various places.
     mutable time_t m_atime; 
