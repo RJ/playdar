@@ -3,6 +3,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/asio.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "playdar/types.h"
 #include "playdar/resolved_item.h"
@@ -12,14 +13,36 @@
 
 namespace playdar {
 
-class CometSession
+class CometSession : public boost::enable_shared_from_this<CometSession>
 {
 public:
-    CometSession()
-        : m_cancelled(false)
-        , m_writing(false)
+    CometSession(const std::string& session, Resolver* resolver)
+        : m_session(session)
+        , m_resolver(resolver)
         , m_firstWrite(true)
+        , m_cancelled(false)
+        , m_writing(false)
     {
+    }
+
+#ifndef NDEBUG
+    ~CometSession()
+    {
+        std::cout << "comet session " << m_session << " deleted" << std::endl;
+    }
+#endif
+
+    bool connect_to_resolver()
+    {
+        boost::shared_ptr<CometSession> p(shared_from_this());
+        return m_resolver->create_comet_session(
+            m_session, 
+            boost::bind(&CometSession::result_item_cb, p, _1, _2));
+    }
+
+    void disconnect_from_resolver()
+    {
+        m_resolver->remove_comet_session(m_session);
     }
 
     // terminate the comet session
@@ -31,20 +54,23 @@ public:
     // serialise into buffer
     void result_item_cb(const query_uid& qid, ri_ptr rip)
     {
-        json_spirit::Object o;
-        o.push_back( json_spirit::Pair("query", qid) );
-        o.push_back( json_spirit::Pair("result", rip->get_json()) );
-        enqueue(json_spirit::write_formatted(o));
-        enqueue(",");     // comma to separate objects in array
+        if (!m_cancelled) {
+            json_spirit::Object o;
+            o.push_back( json_spirit::Pair("query", qid) );
+            o.push_back( json_spirit::Pair("result", rip->get_json()) );
+            enqueue(json_spirit::write(o), true);
+        }
     }
 
     typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
     
     bool async_write_func(WriteFunc& wf)
     {
-        if (!wf || m_cancelled) {   // cancelled by caller || cancelled by us
-            // not safe to just delete it at this point.  todo: fix.
-            //delete this;
+        if (!wf || m_cancelled) {   
+            std::cout << "comet session " << m_session << " async write ending" << std::endl;
+            // cancelled by caller || cancelled by us
+            disconnect_from_resolver();
+            m_cancelled = true;
             return false;
         }
 
@@ -75,15 +101,22 @@ public:
     }
 
 private:
-    void enqueue(const std::string& s)
+    void enqueue(const std::string& s, bool withComma = false)
     {
         boost::lock_guard<boost::mutex> lock(m_mutex);
         m_buffers.push_back(s);
+        if (withComma) {
+            static std::string comma(",\r\n");
+            m_buffers.push_back(comma);
+        }
         if (!m_writing) {
             m_writing = true;
             m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
         }
     }
+
+    std::string m_session;
+    Resolver* m_resolver;
 
     WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
     bool m_firstWrite;

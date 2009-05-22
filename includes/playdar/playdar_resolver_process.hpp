@@ -37,9 +37,6 @@
 
 namespace playdar {
 
-//using namespace std;
-//using namespace json_spirit;
-
 std::set< query_uid > dispatched_qids; // qids we already searched for.
 
 // send a msg back to playdar app

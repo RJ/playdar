@@ -117,6 +117,7 @@ public:
     void dispatch_runner();
     
     bool create_comet_session(const std::string& sessionId, rq_callback_t cb);
+    void remove_comet_session(const std::string& sessionId);
 
 protected:
 
