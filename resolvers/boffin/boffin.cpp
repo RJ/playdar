@@ -335,6 +335,7 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
             playdar::utils::url_decode( req.parts()[2] ) : 
             "*" );
         rq = BoffinRQUtil::buildTagCloudRequest(rql, comet_session_id);
+        
     }
     else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
@@ -352,6 +353,7 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     }
     
     rq->set_from_name( m_pap->hostname() );
+    rq->set_origin_local( true );
     
     if( req.getvar_exists( "qid" ))
     {
