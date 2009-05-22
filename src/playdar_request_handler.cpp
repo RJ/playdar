@@ -741,7 +741,7 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.add_header( "Content-Type", "text/html" );
+    rep.add_header( "Content-Type", "text/html", false ); // don't overwrite existing header
     rep.content = os.str(); 
 }
 
@@ -754,6 +754,7 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
         if (m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2))) {
             rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
             rep.status = moost::http::reply::ok;
+            rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
         } else {
             delete comet;
             cout << "couldn't create comet session";
