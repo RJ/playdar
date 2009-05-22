@@ -464,7 +464,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     }
 
     if (rq->isValidTrack()) {
-        // score all the unscored results
+        // these results are for a track query, score the unscored results
         string reason;
         BOOST_FOREACH(const ri_ptr& rip, results) {
             // resolver fixes the score using a standard algorithm
@@ -755,13 +755,22 @@ Resolver::ss_ptr_generator(string url)
 bool
 Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
 {
+    if (!sessionId.length() || !cb)
+        return false;
+
     boost::mutex::scoped_lock cometlock(m_comets_mutex);
     // a new callback replaces the old callback
     // todo: can we terminate the old comet session via the callback?
     // todo: need a general mechanism to terminate (like when shutting down)
     m_comets[sessionId] = cb;
-
     return true;
+}
+
+void
+Resolver::remove_comet_session(const std::string& sessionId)
+{
+    boost::mutex::scoped_lock cometlock(m_comets_mutex);
+    m_comets.erase(sessionId);
 }
 
 }

@@ -474,20 +474,27 @@ playdar_request_handler::handle_queries_root(const playdar_request& req)
              os << "<td colspan=\"7\"><i>cancelled query</i></td>";
             } else if (rq->isValidTrack()) {
              os << "<td style=\"font-size:60%;\">" 
-                << "<a href=\"/queries/"<< rq->id() <<"\">" 
+                "<a href=\"/queries/"<< rq->id() <<"\">" 
                 << rq->id() << "</a></td>"
-                << "<td style=\"align:center;\">"
-                << "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
-                << "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
-                << "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
-                << "</td>"
-                << "<td>" << rq->param( "artist" ).get_str() << "</td>"
-                << "<td>" << rq->param( "album" ).get_str() << "</td>"
-                << "<td>" << rq->param( "track" ).get_str() << "</td>"
-                << "<td>" << rq->from_name() << "</td>"
-                << "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
+                "<td style=\"align:center;\">"
+                "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                "</td>"
+                "<td>" << rq->param( "artist" ).get_str() << "</td>"
+                "<td>" << rq->param( "album" ).get_str() << "</td>"
+                "<td>" << rq->param( "track" ).get_str() << "</td>"
+                "<td>" << rq->from_name() << "</td>"
+                "<td " << (rq->solved()?"style=\"background-color: lightgreen;\"":"") << ">" 
                 << rq->num_results() << "</td>"
                 ; 
+            } else {
+                os << "<td colspan=\"6\"><i>some other query</i></td>"
+                "<td style=\"align:center;\">"
+                "<form method=\"post\" action=\"\" style=\"margin:0; padding:0;\">"
+                "<input type=\"hidden\" name=\"qid\" value=\"" << rq->id() << "\"/>"
+                "<input type=\"submit\" value=\"X\" name=\"cancel_query\" style=\"margin:0; padding:0;\" title=\"Cancel and invalidate this query\"/></form>"
+                "</td>";
             }
             os << "</tr>";
         } catch(...) { }
@@ -750,14 +757,13 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
 {
     if (req.getvar_exists("session")) {
         const string& sessionId( req.getvar("session") );
-        CometSession* comet = new CometSession();
-        if (m_app->resolver()->create_comet_session(sessionId, boost::bind(&CometSession::result_item_cb, comet, _1, _2))) {
+        boost::shared_ptr<CometSession> comet(new CometSession(sessionId, m_app->resolver()));
+        if (comet->connect_to_resolver()) {
             rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
             rep.status = moost::http::reply::ok;
             rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
         } else {
-            delete comet;
-            cout << "couldn't create comet session";
+            cout << "couldn't create comet session" << endl;
             rep.status = moost::http::reply::internal_server_error;
         }
     } else {
