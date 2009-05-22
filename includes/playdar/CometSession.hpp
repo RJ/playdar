@@ -73,6 +73,7 @@ public:
             // cancelled by caller || cancelled by us
             disconnect_from_resolver();
             m_cancelled = true;
+            m_wf = 0;
             return false;
         }
 
