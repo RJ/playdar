@@ -21,6 +21,8 @@
 #include "playdar/resolved_item.h"
 #include "library.h"
 
+using namespace json_spirit;
+
 namespace playdar {
 
 /*
@@ -31,31 +33,29 @@ class ResolvedItemBuilder
 {
 public:
 
-    static ri_ptr createFromFid(Library& lib, int fid)
+    static void createFromFid(Library& lib, int fid, json_spirit::Object& out)
     {
-        return createFromFid( lib.db(), fid );
+        createFromFid( lib.db(), fid, out );
     }
     
-    static ri_ptr createFromFid( sqlite3pp::database& db, int fid )
+    static void createFromFid( sqlite3pp::database& db, int fid, Object& out)
     {
         LibraryFile_ptr file( Library::file_from_fid(db, fid) );
         
-        ri_ptr rip( new ResolvedItem() );
-        rip->set_json_value( "mimetype", file->mimetype );
-        rip->set_json_value( "size", file->size );
-        rip->set_json_value( "duration", file->duration );
-        rip->set_json_value( "bitrate", file->bitrate );
+        out.push_back( Pair("mimetype", file->mimetype) );
+        out.push_back( Pair("size", file->size) );
+        out.push_back( Pair("duration", file->duration) );
+        out.push_back( Pair("bitrate", file->bitrate) );
         artist_ptr artobj = Library::load_artist( db, file->piartid);
         track_ptr trkobj = Library::load_track( db, file->pitrkid);
-        rip->set_json_value( "artist", artobj->name());
-        rip->set_json_value( "track", trkobj->name());
+        out.push_back( Pair("artist", artobj->name()) );
+        out.push_back( Pair("track", trkobj->name()) );
         // album metadata kinda optional for now
         if (file->pialbid) {
             album_ptr albobj = Library::load_album(db, file->pialbid);
-            rip->set_json_value( "album", albobj->name());
+            out.push_back( Pair("album", albobj->name()) );
         }
-        rip->set_json_value( "url", file->url );
-        return rip;
+        out.push_back( Pair("url", file->url) );
     }
     
 };

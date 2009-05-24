@@ -43,7 +43,7 @@ BoffinDb::check_db()
       {
         // unusual - table exists but doesn't contain this row.
         // could have been created wrongly
-        cerr << "Errror, boffin_system table missing schema_version key!" << endl
+        cerr << "Error, boffin_system table missing schema_version key!" << endl
              << "Maybe you created the database wrong, or it's corrupt." << endl
              << "Try deleting it and re-scanning?" << endl;
         throw; // not caught here.
@@ -87,16 +87,25 @@ BoffinDb::create_db_schema()
     cout << "Schema created." << endl;
 }
 
+// limit == 0 means no limits!
 boost::shared_ptr<BoffinDb::TagCloudVec> 
-BoffinDb::get_tag_cloud(int limit)
+BoffinDb::get_tag_cloud(int limit /* = 0 */)
 {
     sqlite3pp::query qry(m_db, 
+        limit <= 0 ?
+        "SELECT name, sum(weight), count(weight) "
+        "FROM track_tag "
+        "INNER JOIN tag ON track_tag.tag = tag.rowid "
+        "GROUP BY tag.rowid"
+        :
         "SELECT name, sum(weight), count(weight) "
         "FROM track_tag "
         "INNER JOIN tag ON track_tag.tag = tag.rowid "
         "GROUP BY tag.rowid "
         "LIMIT ?");
-    qry.bind(1, limit);
+    if (limit) {
+        qry.bind(1, limit);
+    }
 
     boost::shared_ptr<TagCloudVec> p( new TagCloudVec() );
     float maxWeight = 0;

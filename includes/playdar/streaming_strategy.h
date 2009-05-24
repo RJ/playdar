@@ -35,7 +35,7 @@ class StreamingStrategy
 public:
     StreamingStrategy(){}
     virtual ~StreamingStrategy(){}
-    virtual size_t read_bytes(char * buffer, size_t size) = 0;
+    
     virtual std::string debug() = 0;
     virtual void reset() = 0;
     virtual std::string mime_type() = 0;
@@ -48,7 +48,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
-    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc){}; //TODO should be =0
+    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc) = 0;
 };
 
 }

@@ -42,7 +42,7 @@ public:
     // A short name used eg in url handler
     virtual std::string classname() const = 0;
     virtual std::string playdar_version() const  = 0;
-    virtual void               set(const std::string& key, json_spirit::Value value) = 0;
+    virtual void set(const std::string& key, json_spirit::Value value) = 0;
     virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const = 0;
     virtual json_spirit::Value getint(const std::string& key, const int def) const = 0;
     
@@ -70,6 +70,7 @@ public:
     unsigned short weight() const { return m_weight; }
     unsigned short preference() const { return m_preference; }
     const bool script() const { return m_script; }
+    const bool localonly() const { return m_localonly; }
     /// TODO move to normal "get" settings API once done?:
     const std::string& scriptpath() const { return m_scriptpath; }
     
@@ -78,6 +79,7 @@ public:
     void set_targettime(unsigned short t) { m_targettime = t; }
     void set_script(bool t) { m_script = t; }
     void set_scriptpath(std::string s) { m_scriptpath = s; }
+    void set_localonly(bool t) { m_localonly = t; }
 
     virtual ss_ptr get_ss( const source_uid& sid ) = 0;
     virtual ri_ptr get_ri( const source_uid& sid ) = 0;
@@ -93,6 +95,7 @@ private:
     unsigned short m_preference;// secondary sort value. indicates network reliability or other user preference setting
     
     bool m_script;
+    bool m_localonly;
     std::string m_scriptpath;
     
 };

@@ -41,7 +41,7 @@ public:
     BoffinDb(const std::string& boffinDbFilePath, const std::string& playdarDbFilePath);
 
     static std::string sortname(const std::string& name);
-    boost::shared_ptr<TagCloudVec> get_tag_cloud(int limit);
+    boost::shared_ptr<TagCloudVec> get_tag_cloud(int limit = 0);
     void get_all_artist_tags(ArtistTagMap& out);
     int get_tag_id(const std::string& tag, CreateFlag create = Create );
     int get_artist_id(const std::string& artist);

@@ -117,7 +117,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
                     // new qid assigned automatically if we don't provide one.
                 }
             }
-            if( !TrackRQBuilder::valid(rq) ) // usually caused by empty track name or something.
+            if( !rq->isValidTrack() ) // usually caused by empty track name or something.
             {
                 cout << "Tried to dispatch an invalid query, failing." << endl;
                 playdar_response r("");
@@ -126,6 +126,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
                 return true;
             }
             rq->set_from_name(m_pap->hostname());
+            rq->set_origin_local( true );
             query_uid qid = m_pap->dispatch(rq);
             Object r;
             r.push_back( Pair("qid", qid) );
