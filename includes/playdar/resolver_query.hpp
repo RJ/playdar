@@ -177,7 +177,8 @@ public:
         if (!m_cancelled) {
             boost::mutex::scoped_lock lock(m_mut);
             BOOST_FOREACH(const ri_ptr& rip, results) {
-                m_results.push_back(rip); 
+				if (rip->score() > 0)
+					m_results.push_back(rip); 
             }
 
             BOOST_FOREACH(const ri_ptr& rip, results) {
@@ -188,7 +189,8 @@ public:
                 }
                 // fire callbacks:
                 BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
-                    cb(id(), rip);
+					if (rip->score() > 0)
+						cb(id(), rip);
                 }
             }
         }
