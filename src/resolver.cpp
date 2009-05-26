@@ -486,14 +486,17 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
                 rip->has_json_value<string>( "artist" ) &&
                 rip->has_json_value<string>( "track" ) )
             {
-                rip->set_score( calculate_score( rq, rip, reason ) );
+                float score = calculate_score( rq, rip, reason );
+                if (score > 0) {
+                    rip->set_score( score );
+                    rq->add_result( rip );
+                }
             }
         }
+    } else {
+        // some other type of query, doesn't need scoring.
+        rq->add_results( results );
     }
-
-    // add the new results to the ResolverQuery object 
-	// (scores <0 will be filtered)
-    rq->add_results(results);
 
     return true;
 }
