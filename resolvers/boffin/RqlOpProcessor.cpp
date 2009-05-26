@@ -57,7 +57,7 @@ void
 RqlOpProcessor::next()
 {
     if (++m_it == m_end) {
-        throw "unterminated query. how could the parser do this to us??"; // it's an outrage
+        throw std::runtime_error("unterminated rql");
     }
 }
 
@@ -101,7 +101,7 @@ RqlOpProcessor::process()
                     return c;
                 }
         }
-        throw "unknown operation";
+        throw std::runtime_error("unknown rql operation");
     }
 
     // it's a leaf node, or a 'source' if you like
@@ -128,7 +128,7 @@ RqlOpProcessor::process()
             return artist();
     }
 
-    throw "unknown field";
+    throw std::runtime_error("unknown rql field");
 }
 
 ResultSetPtr
