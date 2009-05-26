@@ -66,15 +66,16 @@ public:
     
     bool async_write_func(WriteFunc& wf)
     {
+        m_wf = wf;
+
         if (!wf || m_cancelled) {   
             std::cout << "comet session " << m_session << " async write ending" << std::endl;
             // cancelled by caller || cancelled by us
             disconnect_from_resolver();
             m_cancelled = true;
+            m_wf = 0;
             return false;
         }
-
-        m_wf = wf;
 
         if (m_firstWrite) {
             m_firstWrite = false;
