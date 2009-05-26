@@ -473,20 +473,19 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
                 rip->has_json_value<string>( "artist" ) &&
                 rip->has_json_value<string>( "track" ) )
             {
-                float score = calculate_score( rq, rip, reason );
-                if( score != 0.0) 
-                    rip->set_score( score );
+                rip->set_score( calculate_score( rq, rip, reason ) );
             }
         }
     }
 
-    // add the new results to the ResolverQuery object
+    // add the new results to the ResolverQuery object 
+	// (scores <0 will be filtered)
     rq->add_results(results);
 
     return true;
 }
 
-
+// static
 string 
 Resolver::sortname(const string& name) 
 { 
@@ -502,6 +501,7 @@ Resolver::sortname(const string& name)
 /// query (rq) against a potential match (pi).
 /// this is mostly just edit-distance, with some extra checks.
 /// TODO albums are ignored atm.
+// static
 float 
 Resolver::calculate_score( const rq_ptr & rq, // query
                                   const ri_ptr & ri, // candidate
