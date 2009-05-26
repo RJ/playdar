@@ -122,9 +122,9 @@ public:
 protected:
 
 
-    std::string sortname(const std::string& name);
+    static std::string sortname(const std::string& name);
 
-    float calculate_score( const rq_ptr & rq,  // query
+    static float calculate_score( const rq_ptr & rq,  // query
                            const ri_ptr & ri,  // candidate
                            std::string & reason );  // fail reason
 

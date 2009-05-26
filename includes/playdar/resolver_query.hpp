@@ -174,13 +174,30 @@ public:
         }
         return lhs->score() > rhs->score();
     }
-    
+
+    // add a single result
+    void add_result( ri_ptr rip )
+    {
+        if (!m_cancelled) {
+            boost::mutex::scoped_lock lock(m_mut);
+            if (rip->score() == 1.0) {
+                m_solved = true;
+            }
+			m_results.push_back(rip); 
+            // fire callbacks:
+            BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
+				cb(id(), rip);
+            }
+        }
+    }
+
+    // add a vector of results
     void add_results(const std::vector< ri_ptr >& results) 
     { 
         if (!m_cancelled) {
             boost::mutex::scoped_lock lock(m_mut);
             BOOST_FOREACH(const ri_ptr& rip, results) {
-                m_results.push_back(rip); 
+				m_results.push_back(rip); 
             }
 
             BOOST_FOREACH(const ri_ptr& rip, results) {
@@ -191,7 +208,7 @@ public:
                 }
                 // fire callbacks:
                 BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
-                    cb(id(), rip);
+					cb(id(), rip);
                 }
             }
         }
