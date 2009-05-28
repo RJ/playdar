@@ -168,10 +168,10 @@ boffin::thread_run()
 {
     cout << "boffin thread_run" << endl;
     try {
-        boost::function< void() > fun;
         while (!m_thread_stop) {
-            fun = get_work();
-            if( fun && !m_thread_stop ) fun();
+            boost::function< void() > fun = get_work();
+            if( fun && !m_thread_stop ) 
+                fun();
         }
     }
     catch (std::exception &e) {
@@ -226,7 +226,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 
             string hostname( m_pap->hostname() );   // cache this because we can have many many results
 
-            const int reportingChunkSize = 50;      // report x at a time to the resolver
+            const int reportingChunkSize = 100;      // report x at a time to the resolver
             std::vector< json_spirit::Object > results;
             results.reserve(reportingChunkSize);    // avoid vector resizing
 
@@ -335,6 +335,7 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
             playdar::utils::url_decode( req.parts()[2] ) : 
             "*" );
         rq = BoffinRQUtil::buildTagCloudRequest(rql, comet_session_id);
+        
     }
     else if( req.parts()[1] == "rql" && req.parts().size() > 2)
     {
@@ -352,6 +353,7 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     }
     
     rq->set_from_name( m_pap->hostname() );
+    rq->set_origin_local( true );
     
     if( req.getvar_exists( "qid" ))
     {

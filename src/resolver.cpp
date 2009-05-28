@@ -168,17 +168,17 @@ Resolver::load_resolver_scripts()
         try {
 #if BOOST_VERSION >= 103600
             string name = i->path().filename();
-            string conf = "plugins." + i->path().stem() + '.';
+            string conf = "plugins." + i->path().stem();
 #else
             string name = i->path().leaf();
-            string conf = "plugins." + basename(i->path()) + '.';
+            string conf = "plugins." + basename(i->path());
 #endif
             if (is_directory(i->status()) || is_other(i->status()))
                 continue;
             //FIXME more sensible place to put resolving scripts
             if (name=="README.txt")
                 continue;
-            if (app()->conf()->get<bool>(conf+"enabled", true) == false){
+            if (app()->conf()->get<bool>(conf+".enabled", true) == false){
                 cout << "-> Skipping '"+name+"' - disabled in config file";
                 continue;
             }
@@ -192,12 +192,14 @@ Resolver::load_resolver_scripts()
             bool init = rs->init( pap );
             if(!init) throw 1;
             pap->set_rs( rs );
-            pap->set_weight( app()->conf()->get<int>(conf+"weight",
-                             rs->weight()) ); 
-            pap->set_preference( app()->conf()->get<int>(conf+"preference",
-                             rs->preference()) );
-            pap->set_targettime( app()->conf()->get<int>(conf+"targettime",
-                             rs->target_time()) );
+            pap->set_weight( app()->conf()->get<int>
+                (conf+".weight", rs->weight()) ); 
+            pap->set_preference( app()->conf()->get<int>
+                (conf+".preference", rs->preference()) );
+            pap->set_targettime( app()->conf()->get<int>
+                (conf+".targettime", rs->target_time()) );
+            pap->set_localonly( app()->conf()->get<bool>
+                (conf+".localonly", rs->localonly()) );
             // if weight == 0, it doesnt resolve, but may handle HTTP calls etc.
             if(pap->weight() > 0) 
             {
@@ -272,12 +274,16 @@ Resolver::load_resolver_plugins()
             pap->set_script( false );
             pap->set_rs( instance );
             string rsopt = "plugins."+classname;
-            pap->set_weight( app()->conf()->get<int>(rsopt + ".weight", 
-                                                instance->weight()) );
-            pap->set_preference( app()->conf()->get<int>(rsopt + ".preference", 
-                                                instance->preference()) );
-            pap->set_targettime( app()->conf()->get<int>(rsopt + ".targettime", 
-                                                    instance->target_time()) );
+            
+            pap->set_weight( app()->conf()->get<int>
+                (rsopt + ".weight", instance->weight()) );
+            pap->set_preference( app()->conf()->get<int>
+                (rsopt + ".preference", instance->preference()) );
+            pap->set_targettime( app()->conf()->get<int>
+                (rsopt + ".targettime", instance->target_time()) );
+            pap->set_localonly( app()->conf()->get<bool>
+                (rsopt + ".localonly", instance->localonly()) );
+                
             m_resolvers.push_back( pap );
             cout << "-> OK [w:" << pap->weight() 
                        << " p:" << pap->preference() 
@@ -304,14 +310,13 @@ Resolver::load_resolver_plugins()
 /// start resolving! (non-blocking)
 /// returns a query_uid so you can check status of this query later
 query_uid 
-Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq)
+Resolver::dispatch(rq_ptr rq)
 {
     return dispatch(rq, 0);
 }
 
 query_uid 
-Resolver::dispatch(boost::shared_ptr<ResolverQuery> rq,
-                    rq_callback_t cb) 
+Resolver::dispatch(rq_ptr rq, rq_callback_t cb) 
 {
     boost::mutex::scoped_lock lk(m_mutex);
     if(!add_new_query(rq))
@@ -403,10 +408,18 @@ Resolver::run_pipeline( rq_ptr rq, unsigned short lastweight )
             break;
         }
         if(pap->targettime() < mintime) mintime = pap->targettime();
-        // dispatch to this resolver:
-        //cout << "Pipeline dispatching to " << pap->rs()->name() 
-        //     << " (lastweight: " << lastweight << ")" << endl;
-        pap->rs()->start_resolving(rq);
+        
+        if( pap->localonly() && !rq->origin_local() )
+        {
+            // Not dispatching (remote query, to local-only plugin)
+        }
+        else
+        {
+            // dispatch to this resolver:
+            //cout << "Pipeline dispatching to " << pap->rs()->name() 
+            //     << " (lastweight: " << lastweight << ")" << endl;
+            pap->rs()->start_resolving(rq);
+        }
     }
 }
 
@@ -464,7 +477,7 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
     }
 
     if (rq->isValidTrack()) {
-        // score all the unscored results
+        // these results are for a track query, score the unscored results
         string reason;
         BOOST_FOREACH(const ri_ptr& rip, results) {
             // resolver fixes the score using a standard algorithm
@@ -755,13 +768,22 @@ Resolver::ss_ptr_generator(string url)
 bool
 Resolver::create_comet_session(const std::string& sessionId, rq_callback_t cb)
 {
+    if (!sessionId.length() || !cb)
+        return false;
+
     boost::mutex::scoped_lock cometlock(m_comets_mutex);
     // a new callback replaces the old callback
     // todo: can we terminate the old comet session via the callback?
     // todo: need a general mechanism to terminate (like when shutting down)
     m_comets[sessionId] = cb;
-
     return true;
+}
+
+void
+Resolver::remove_comet_session(const std::string& sessionId)
+{
+    boost::mutex::scoped_lock cometlock(m_comets_mutex);
+    m_comets.erase(sessionId);
 }
 
 }

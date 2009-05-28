@@ -85,6 +85,12 @@ public:
         std::map< std::string, boost::function<ss_ptr(std::string)> > facts;
         return facts;
     }
+    
+    /// true means this resolver will only handle queries originating from
+    /// the same machine playdar is running on. Use if you want to 
+    /// resolve against a paid-for service, or any situation where you don't
+    /// want to share your content over the network.
+    virtual bool localonly() const { return false; }
 
     /// Called when an authenticated http request is made.
     /// @return true if http request is handled. 

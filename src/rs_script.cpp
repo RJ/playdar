@@ -48,6 +48,7 @@ rs_script::init(pa_ptr pap)
     m_pap = pap;
     m_dead = false;
     m_exiting = false;
+    m_localonly = false;
     m_weight = 1;
     m_preference = 1;
     m_targettime = 1000;
@@ -265,6 +266,13 @@ rs_script::process_output()
             {
                 m_name = rr["name"].get_str();
             }
+            
+            if( rr.find("localonly") != rr.end() &&
+                rr["localonly"].type() == bool_type )
+            {
+                m_localonly = rr["localonly"].get_bool();
+            }
+            
             m_got_settings = true;
             m_cond_settings.notify_one();
             continue;
