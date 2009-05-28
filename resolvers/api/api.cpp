@@ -126,6 +126,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
                 return true;
             }
             rq->set_from_name(m_pap->hostname());
+            rq->set_origin_local( true );
             query_uid qid = m_pap->dispatch(rq);
             Object r;
             r.push_back( Pair("qid", qid) );

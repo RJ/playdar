@@ -41,11 +41,14 @@ class ResolverQuery
 {
 public:
     ResolverQuery()
-        : m_solved(false), m_cancelled(false)
+        : m_solved(false), m_cancelled(false), m_origin_local(false)
     {
         // set initial "last access" time:
         time(&m_atime);
     }
+    
+    void set_origin_local(bool b) { m_origin_local = b; }
+    bool origin_local() const { return m_origin_local; }
     
     /// when was this query last "used"
     time_t atime() const
@@ -294,6 +297,8 @@ private:
     // mutable: it's auto-updated to mark the atime in various places.
     mutable time_t m_atime; 
 
+    // true if query initiated by user of this computer
+    bool m_origin_local;
 };
 
 }

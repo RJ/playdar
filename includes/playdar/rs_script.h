@@ -67,6 +67,8 @@ public:
         return m_preference;
     }
     
+    bool localonly() const { return m_localonly; }
+    
     void run();
     
 protected:
@@ -87,6 +89,7 @@ private:
     
     bool m_dead;
     bool m_got_settings;
+    bool m_localonly;
     std::string m_scriptpath;
     bp::child * m_c;
     boost::thread * m_t; // std out (main comms)
