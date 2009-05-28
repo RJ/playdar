@@ -219,7 +219,10 @@ namespace
                 {
                     Iter_t i_uni ( i );
                     unsigned unichar = get_unichar_from_std_iterator(i_uni);
-                    if (unichar <= 127) {
+                    if (unichar < 32) {
+                        result += non_printable_to_string( unichar );
+                        i = i_uni;
+                    } else if (unichar <= 127) {
                         if( !add_esc_char( unichar, result ) ) 
                             result += *i;
                         i = i_uni;

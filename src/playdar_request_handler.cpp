@@ -718,7 +718,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-//    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
+    rep.add_header( "content-type", ss->mime_type() );
     rep.set_async_delegate( boost::bind( &StreamingStrategy::async_delegate, ss, _1 ) );
 }
 

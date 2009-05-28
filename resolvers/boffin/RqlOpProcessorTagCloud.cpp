@@ -124,7 +124,7 @@ RqlOpProcessorTagCloud::process(Params &params)
             return artist(params);
     }
 
-    throw "unknown field";
+    throw std::runtime_error("unknown rql field");
 }
 
 

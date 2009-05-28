@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sqlite-amalgamation", "sqli
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "uriparser", "uriparser\uriparser.vcproj", "{F08EFA75-199B-460C-B9CB-7458EBB3FC11}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tag", "taglib\tag.vcproj", "{CF50281F-5E62-4025-B3FE-A1268A8AC7E1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -43,6 +45,10 @@ Global
 		{F08EFA75-199B-460C-B9CB-7458EBB3FC11}.Debug|Win32.Build.0 = Debug|Win32
 		{F08EFA75-199B-460C-B9CB-7458EBB3FC11}.Release|Win32.ActiveCfg = Release|Win32
 		{F08EFA75-199B-460C-B9CB-7458EBB3FC11}.Release|Win32.Build.0 = Release|Win32
+		{CF50281F-5E62-4025-B3FE-A1268A8AC7E1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{CF50281F-5E62-4025-B3FE-A1268A8AC7E1}.Debug|Win32.Build.0 = Debug|Win32
+		{CF50281F-5E62-4025-B3FE-A1268A8AC7E1}.Release|Win32.ActiveCfg = Release|Win32
+		{CF50281F-5E62-4025-B3FE-A1268A8AC7E1}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
