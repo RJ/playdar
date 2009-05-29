@@ -219,8 +219,10 @@ public:
         if (m_slist_headers) 
             curl_slist_free_all(m_slist_headers);
         std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
-        if (m_curlres) 
+        if (m_curlres) {
             std::cout << "Curl error: " << m_curlerror << std::endl;
+        }
+        enqueue(std::string());     // end the async_delegate callbacks
         curl_easy_cleanup( m_curl );
         
         m_headersFetched = true;
