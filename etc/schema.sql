@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS file_join (
     track INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE ON UPDATE CASCADE,
     album INTEGER REFERENCES album(id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+CREATE INDEX file_join_track ON file_join(track);
 
 -- HTTP Authentication 
 

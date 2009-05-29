@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 /*
-    This file was automatically generated from etc/schema.sql on Tue Apr 28 15:33:57 BST 2009.
+    This file was automatically generated from schema.sql on Fri May 29 11:06:27 GMTDT 2009.
 */
 namespace playdar {
 
@@ -77,6 +77,7 @@ static const char * playdar_schema_sql =
 "    track INTEGER NOT NULL REFERENCES track(id) ON DELETE CASCADE ON UPDATE CASCADE,"
 "    album INTEGER REFERENCES album(id) ON DELETE CASCADE ON UPDATE CASCADE"
 ");"
+"CREATE INDEX file_join_track ON file_join(track);"
 "CREATE TABLE IF NOT EXISTS playdar_auth ("
 "    token TEXT NOT NULL PRIMARY KEY,"
 "    website TEXT NOT NULL,"
