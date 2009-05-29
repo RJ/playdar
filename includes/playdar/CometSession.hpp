@@ -7,9 +7,11 @@
 
 #include "playdar/types.h"
 #include "playdar/resolved_item.h"
+#include "moost/http/reply.hpp"
 
 // unite the moost::http::reply async_delegate callback 
 // with the ResolverQuery result_item_callback
+
 
 namespace playdar {
 
@@ -62,9 +64,7 @@ public:
         }
     }
 
-    typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
-    
-    bool async_write_func(WriteFunc& wf)
+    bool async_write_func(moost::http::reply::WriteFunc& wf)
     {
         m_wf = wf;
 
@@ -95,7 +95,9 @@ public:
             if (!m_writing && m_buffers.size()) {
                 // write something new
                 m_writing = true;
-                m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+                m_wf(
+                    moost::http::reply::async_payload(
+                        boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
             }
         }
         return true;
@@ -112,14 +114,16 @@ private:
         }
         if (!m_writing) {
             m_writing = true;
-            m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+            m_wf(
+                moost::http::reply::async_payload(
+                    boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
         }
     }
 
     std::string m_session;
     Resolver* m_resolver;
 
-    WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
+    moost::http::reply::WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
     bool m_firstWrite;
     bool m_cancelled;
 

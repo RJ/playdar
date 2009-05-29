@@ -5,6 +5,7 @@
 #include <vector>
 #include <map>
 #include <boost/asio.hpp>
+#include <boost/variant.hpp>
 #include <boost/function.hpp>
 #include <boost/lexical_cast.hpp>
 
@@ -57,9 +58,10 @@ struct reply
   // subsequently after the completion of each write operation.
   // The delegate returns false to end the write sequence.
   // The WriteFunc parameter should be used once (per delegate call).
-  // Keep a copy of the WriteFunc to keep the connection alive (todo: improve this)
+  // Keep a copy of the WriteFunc to keep the connection alive
 
-    typedef boost::function< void(boost::asio::const_buffer) > WriteFunc;
+    typedef boost::variant< status_type, moost::http::header, boost::asio::const_buffer > async_payload;
+    typedef boost::function< void(async_payload&) > WriteFunc;
     typedef boost::function< bool(WriteFunc) > AsyncDelegateFunc;
 
     void set_async_delegate(AsyncDelegateFunc f)
@@ -78,6 +80,9 @@ public:
    void add_header( const std::string& name, const T& value, bool overwrite = true )
    { add_header(name, boost::lexical_cast<std::string>(value), overwrite); }
 
+   void add_header( const moost::http::header& h )
+   { add_header(h.name, h.value, true); }
+
    void add_header( const std::string& name, const std::string& value, bool overwrite );
    void set_status( int s ){ status = (status_type)s; }
 private:
@@ -90,6 +95,12 @@ private:
   std::vector<header> headers_;
 
 };
+
+namespace status_strings {
+
+    boost::asio::const_buffer to_buffer(reply::status_type status);
+
+}
 
 }} // moost::http
 

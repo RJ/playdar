@@ -23,6 +23,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
 #include <boost/asio.hpp>
+#include "moost/http/reply.hpp"
 
 namespace playdar {
 
@@ -48,7 +49,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
-    virtual bool async_delegate(boost::function< void(boost::asio::const_buffer) > writefunc) = 0;
+    virtual bool async_delegate(moost::http::reply::WriteFunc writefunc) = 0;
 };
 
 }

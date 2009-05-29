@@ -245,7 +245,7 @@ public:
     typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
 
     // virtual
-    bool async_delegate(WriteFunc writefunc)
+    bool async_delegate(moost::http::reply::WriteFunc writefunc)
     {
         if (!writefunc) {
             // aborted by the moost::http side.
@@ -283,7 +283,9 @@ public:
             if (!m_writing && m_buffers.size()) {
                 // write something new
                 m_writing = true;
-                m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+                m_wf(
+                    moost::http::reply::async_payload(
+                        boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
             }
         }
 
@@ -409,11 +411,13 @@ protected:
         m_buffers.push_back(s);
         if (!m_writing) {
             m_writing = true;
-            m_wf(boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length()));
+            m_wf(
+                moost::http::reply::async_payload(
+                    boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
         }
     }
 
-    WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
+    moost::http::reply::WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
     boost::mutex m_mutex;
     bool m_writing;
     std::list<std::string> m_buffers;
