@@ -159,14 +159,22 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
 }
 
 // this is the write function we pass to the content_async_write callback
+// write a zero-length buffer to close the socket and end the callback chain
 //
 template<class RequestHandler>
 void connection<RequestHandler>::do_async_write(boost::asio::const_buffer buffer)
 {
-    boost::asio::async_write(socket_, boost::asio::const_buffers_1(buffer), 
-        strand_.wrap(
-            boost::bind(&connection<RequestHandler>::handle_write, this->shared_from_this(),
-                boost::asio::placeholders::error)));
+    if (boost::asio::detail::buffer_size_helper(buffer) > 0) {
+        boost::asio::async_write(socket_, boost::asio::const_buffers_1(buffer), 
+            strand_.wrap(
+                boost::bind(&connection<RequestHandler>::handle_write, this->shared_from_this(),
+                    boost::asio::placeholders::error)));
+    } else {
+        // all done here!
+        // Initiate graceful connection closure.
+        boost::system::error_code ignored_ec;
+        socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+    }
 }
 
 }} // moost::http
