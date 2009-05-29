@@ -109,10 +109,10 @@ public:
         if( m_mimetype.size() )
             return m_mimetype;
         
-        if( m_url.size() < 4 )
+        if( m_url.size() < 3 )
             return ext2mime( "" );
         
-        std::string ext = m_url.substr( m_url.size() - 4, m_url.size());
+        std::string ext = m_url.substr( m_url.size() - 3 );
         return ext2mime( ext );
     }
     
@@ -374,10 +374,10 @@ protected:
     //this should be moved into utils
     std::string ext2mime(std::string ext)
     { 
-        if(ext==".mp3") return "audio/mpeg";
-        if(ext==".aac") return "audio/mp4";
-        if(ext==".mp4") return "audio/mp4";
-        if(ext==".m4a") return "audio/mp4"; 
+        if(ext=="mp3") return "audio/mpeg";
+        if(ext=="aac") return "audio/mp4";
+        if(ext=="mp4") return "audio/mp4";
+        if(ext=="m4a") return "audio/mp4"; 
         std::cerr << "Warning, unhandled file extension. Don't know mimetype for " << ext << std::endl;
         //generic:
         return "application/octet-stream";
