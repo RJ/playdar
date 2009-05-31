@@ -16,18 +16,14 @@ struct request_handler_base
   : private boost::noncopyable
 {
   /// handle a request, configure set up headers, pass on to handle_request
-  void handle_request_base(const request& req, reply& rep)
+  void handle_request_base(const request& req, reply_ptr rep)
   {
-    rep.status = reply::ok;
+    rep->set_status( reply::ok );
+    rep->add_header( "Content-Type", "text/plain", false );
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
-    if( !rep.get_async_delegate() )
-    {
-        rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.length()) );
-    }
-    rep.add_header( "Content-Type", "text/plain", false );
   }
 
-  void handle_request(const request& req, reply& rep)
+  void handle_request(const request& req, reply_ptr rep)
   {
     // default base implementation does nothing
   }

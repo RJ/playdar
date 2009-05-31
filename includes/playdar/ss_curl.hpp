@@ -145,11 +145,9 @@ public:
     void reset()
     {
         m_connected = false;
-        m_writing = false;
         m_bytesreceived = 0;
         m_curl_finished = false;
         m_abort = false;
-        m_buffers.clear();
     }
 
     /// curl callback when data from fetching an url has arrived
@@ -190,7 +188,7 @@ public:
         inst->m_headcond.notify_all();
         
         size_t len = size * nmemb;
-        inst->enqueue(std::string((char*) vptr, len));
+        inst->m_reply->write_content(std::string((char*) vptr, len));
         return len;
     }
     
@@ -222,7 +220,7 @@ public:
         if (m_curlres) {
             std::cout << "Curl error: " << m_curlerror << std::endl;
         }
-        enqueue(std::string());     // end the async_delegate callbacks
+        m_reply->write_finish();
         curl_easy_cleanup( m_curl );
         
         m_headersFetched = true;
@@ -242,61 +240,19 @@ public:
     
     const std::string url() const { return m_url; }
 
-    typedef boost::function< void(boost::asio::const_buffer)> WriteFunc;
-
-    // virtual
-    bool async_delegate(moost::http::reply::WriteFunc writefunc)
-    {
-        if (!writefunc) {
-            // aborted by the moost::http side.
-            m_abort = true;
-            m_wf = 0;
-            return false;
-        }
-
-        if (m_abort) {
-            m_wf = 0;
-            return false;
-        }
-
-        m_wf = writefunc;
-
-        if(!m_connected) connect();
+	void start_reply(moost::http::reply_ptr reply)
+	{
+		m_reply = reply;
+        if(!m_connected) 
+			connect();
         if(!m_connected)
         {
             std::cout << "ERROR: connect failed in httpss." << std::endl;
             if( m_curl ) curl_easy_cleanup( m_curl );
             reset();
-            m_wf = 0;
-            return false;
+			m_reply.reset();
         }
-
-        {
-            boost::lock_guard<boost::mutex> lock(m_mutex);
-
-            if (m_writing && m_buffers.size()) {
-                // previous write has completed:
-                m_buffers.pop_front();
-                m_writing = false;
-            }
-
-            if (!m_writing && m_buffers.size()) {
-                // write something new
-                m_writing = true;
-                m_wf(
-                    moost::http::reply::async_payload(
-                        boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
-            }
-        }
-
-        bool result =  m_writing || !m_curl_finished;
-        if (result == false) {
-            m_wf = 0;
-        }
-        return result;
     }
-
-
 
 protected:
     
@@ -405,23 +361,7 @@ protected:
     std::string m_mimetype;
 
     /////
-    void enqueue(const std::string& s)
-    {
-        boost::lock_guard<boost::mutex> lock(m_mutex);
-        m_buffers.push_back(s);
-        if (!m_writing) {
-            m_writing = true;
-            m_wf(
-                moost::http::reply::async_payload(
-                    boost::asio::const_buffer(m_buffers.front().data(), m_buffers.front().length())));
-        }
-    }
-
-    moost::http::reply::WriteFunc m_wf;     // keep a hold of the write func to keep the connection alive.
-    boost::mutex m_mutex;
-    bool m_writing;
-    std::list<std::string> m_buffers;
-
+    moost::http::reply_ptr m_reply;
 };
 
 }

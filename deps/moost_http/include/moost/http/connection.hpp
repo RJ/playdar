@@ -4,7 +4,6 @@
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
-#include <boost/variant.hpp>
 #include <boost/noncopyable.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/enable_shared_from_this.hpp>
@@ -44,7 +43,7 @@ private:
   void handle_write_end(const boost::system::error_code& e);
 
   // this method is passed to the async_delegate
-  void do_async_write(reply::async_payload payload);
+  void do_async_write(boost::asio::const_buffer&);
 
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
@@ -67,7 +66,7 @@ private:
   request_parser request_parser_;
 
   /// The reply to be sent back to the client.
-  reply reply_;
+  reply_ptr reply_;
 
   /// write state (see do_async_write)
   bool doing_content_;
@@ -114,19 +113,19 @@ void connection<RequestHandler>::handle_read( const boost::system::error_code& e
       return; // we're all done here!
     }
 
+    reply_ = reply_ptr(new reply);
+
+    try {
     if ( result )
        request_handler_.handle_request_base(request_, reply_);
     else if ( !result )
-       reply_ = reply::stock_reply(reply::bad_request);
-
-    if (reply_.get_async_delegate()) {
-        handle_write(boost::system::error_code());
-    } else {
-        boost::asio::async_write(socket_, reply_.to_buffers_headers(),
-             strand_.wrap(
-               boost::bind(&connection<RequestHandler>::handle_write, this->shared_from_this(),
-                 boost::asio::placeholders::error)));
+       reply_->stock_reply(reply::bad_request);
+    } catch (std::runtime_error& e) {
+        cerr << "caught: " << e.what();
+        int i = 0;
     }
+
+    handle_write(boost::system::error_code());
   }
 
   // If an error occurs then no new asynchronous operations are started. This
@@ -144,28 +143,33 @@ boost::asio::ip::tcp::socket& connection<RequestHandler>::socket()
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write(const boost::system::error_code& e)
 {
-    if (reply_.get_async_delegate()) {
-        if (e) {
-            // error, signal to the delegate we're done
-            reply_.get_async_delegate()(0);
-            return;
+    if (e) {
+        // error. signal to the delegate we're done
+        try {
+            reply_->async_write_delegate(0);
+        } catch (...) {
+            int i = 0;
         }
+        return;
+    }
 
-        // content_async_write can return false to end the write
-        if (reply_.get_async_delegate()(
+    try {
+        // async_write_delegate can return false to end the write
+        if (reply_->async_write_delegate(
             boost::bind(
             &connection<RequestHandler>::do_async_write,
             this->shared_from_this(),
             _1)))
         {
             return; // good
-        }
-    } else if (e) {
-        return;
+        } 
+    } catch (...) {
+        int i = 0;
     }
 
-    // all done here!
+	// all done here!
     // Initiate graceful connection closure.
+	reply_.reset();
     boost::system::error_code ignored_ec;
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }
@@ -186,46 +190,23 @@ void connection<RequestHandler>::handle_write_end(const boost::system::error_cod
 // finally write a zero-length buffer to close the socket and end the callback chain
 //
 template<class RequestHandler>
-void connection<RequestHandler>::do_async_write(moost::http::reply::async_payload payload)
+void connection<RequestHandler>::do_async_write(boost::asio::const_buffer& b)
 {
-    static const char crlf[] = { '\r', '\n' };
-    static const char name_value_separator[] = { ':', ' ' };
-
     std::vector<boost::asio::const_buffer> buffers;
-    bool end = false;
 
-    switch (payload.which()) {
-        case 0: // status code
-            if (!doing_content_) {
-                reply_.set_status(boost::get<reply::status_type>(payload));
-                handle_write(boost::system::error_code());
-                return;
-            }
-            break;
+    if (!doing_content_) {
+        doing_content_ = true;
+        buffers = reply_->to_buffers_headers();
+    }
 
-        case 1: // header
-            if (!doing_content_) {
-                reply_.add_header(boost::get<moost::http::header>(payload));
-                handle_write(boost::system::error_code());
-                return;
-            }
-            break;
+	bool end = false;
 
-        case 2: // content buffer
-            if (!doing_content_) {
-                doing_content_ = true;
-                buffers = reply_.to_buffers_headers();
-            }
-            {
-                boost::asio::const_buffer& b = boost::get<boost::asio::const_buffer>(payload);
-                if (boost::asio::detail::buffer_size_helper(b)) {
-                    buffers.push_back(b);
-                } else {
-                    // the delegate has signalled the end...
-                    end = true;
-                }
-            }
-            break;
+    if (boost::asio::detail::buffer_size_helper(b)) {
+        buffers.push_back(b);
+		end = false;
+    } else {
+        // the delegate has signalled the end...
+        end = true;
     }
 
     if (buffers.size()) {

@@ -5,8 +5,10 @@
 #include <vector>
 #include <map>
 #include <boost/asio.hpp>
-#include <boost/variant.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
+#include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "moost/http/header.hpp"
@@ -14,8 +16,9 @@
 namespace moost { namespace http {
 
 /// A reply to be sent to a client.
-struct reply
+class reply
 {
+public:
   /// The status of the reply.
   enum status_type
   {
@@ -38,8 +41,12 @@ struct reply
   } status;
 
 
-  /// The content to be sent in the reply.
-  std::string content;
+  reply()
+	:write_ending_cb_()
+	,cancelled_(false)
+	,writing_(false)
+  {
+  }
 
   /// Convert the reply into a vector of buffers. The buffers do not own the
   /// underlying memory blocks, therefore the reply object must remain valid and
@@ -47,7 +54,7 @@ struct reply
   std::vector<boost::asio::const_buffer> to_buffers_headers();
 
   /// Get a stock reply.
-  static reply stock_reply(status_type status);
+  void stock_reply(status_type status);
 
   const std::vector<header>& get_headers()
   { return headers_; }
@@ -60,47 +67,98 @@ struct reply
   // The WriteFunc parameter should be used once (per delegate call).
   // Keep a copy of the WriteFunc to keep the connection alive
 
-    typedef boost::variant< status_type, moost::http::header, boost::asio::const_buffer > async_payload;
-    typedef boost::function< void(async_payload&) > WriteFunc;
+    typedef boost::function< void(boost::asio::const_buffer&) > WriteFunc;
     typedef boost::function< bool(WriteFunc) > AsyncDelegateFunc;
-
-    void set_async_delegate(AsyncDelegateFunc f)
-    {
-        async_delegate_ = f;
-    }
-
-    const AsyncDelegateFunc& get_async_delegate()
-    {
-        return async_delegate_;
-    }
 
 public:
 
    template <typename T>
    void add_header( const std::string& name, const T& value, bool overwrite = true )
-   { add_header(name, boost::lexical_cast<std::string>(value), overwrite); }
+   { 
+	   add_header(name, boost::lexical_cast<std::string>(value), overwrite); 
+   }
 
    void add_header( const moost::http::header& h )
-   { add_header(h.name, h.value, true); }
+   { 
+	   add_header(h.name, h.value, true); 
+   }
 
    void add_header( const std::string& name, const std::string& value, bool overwrite );
-   void set_status( int s ){ status = (status_type)s; }
+
+   void set_status( int s )
+   { 
+	   status = (status_type)s; 
+   }
+
+    void write_content(const std::string& s)
+	{
+        boost::lock_guard<boost::mutex> lock(mutex_);
+        buffers_.push_back(s);
+        if (!writing_ && wf_) {
+            writing_ = true;
+            wf_(boost::asio::const_buffer(buffers_.front().data(), buffers_.front().length()));
+        }
+	}
+
+	void write_cancel()
+	{
+		cancelled_ = true;
+	}
+
+	void write_finish()
+	{
+		write_content("");
+	}
+
+	bool async_write_delegate(WriteFunc wf)
+	{
+        wf_ = wf;
+
+        if (!wf_ || cancelled_) {   
+            // cancelled by caller || cancelled by us
+            if (write_ending_cb_)
+                write_ending_cb_();
+            cancelled_ = true;
+            wf_ = 0;
+            return false;
+        }
+
+        {
+            boost::lock_guard<boost::mutex> lock(mutex_);
+
+            if (writing_ && buffers_.size()) {
+                // previous write has completed:
+                buffers_.pop_front();
+                writing_ = false;
+            }
+
+            if (!writing_ && buffers_.size() && wf_) {
+                // write something new
+                writing_ = true;
+                wf_(boost::asio::const_buffer(buffers_.front().data(), buffers_.front().length()));
+            }
+        }
+        return true;
+	}
+
 private:
 
-    AsyncDelegateFunc async_delegate_;
+	std::map<std::string, size_t> headersGuard_;
 
-  std::map<std::string, size_t> headersGuard_;
+	/// The headers to be included in the reply.
+	std::vector<header> headers_;
 
-  /// The headers to be included in the reply.
-  std::vector<header> headers_;
+	WriteFunc wf_;
+	boost::function<void(void)> write_ending_cb_;
+	bool cancelled_;
+    bool writing_;
 
+    boost::mutex mutex_;	// for protecting _buffers:
+    std::list<std::string> buffers_;
 };
 
-namespace status_strings {
+typedef boost::shared_ptr<reply> reply_ptr;
 
-    boost::asio::const_buffer to_buffer(reply::status_type status);
-
-}
 
 }} // moost::http
 

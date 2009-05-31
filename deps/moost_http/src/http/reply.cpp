@@ -104,8 +104,6 @@ std::vector<boost::asio::const_buffer> reply::to_buffers_headers()
   }
   buffers.push_back(boost::asio::buffer(misc_strings::crlf));
 
-  if ( !content.empty() )
-    buffers.push_back(boost::asio::buffer(content));
   return buffers;
 }
 
@@ -231,16 +229,14 @@ std::string to_string(reply::status_type status)
 
 } // stock_replies
 
-reply reply::stock_reply(reply::status_type status)
+void reply::stock_reply(reply::status_type status)
 {
-  reply rep;
-  rep.status = status;
-  rep.content = stock_replies::to_string(status);
-
-  rep.add_header("Content-Length", rep.content.size());
-  rep.add_header("Content-Type", "text/html");
-
-  return rep;
+  std::string content = stock_replies::to_string(status);
+  set_status(status);
+  add_header("Content-Length", content.size());
+  add_header("Content-Type", "text/html");
+  write_content(content);
+  write_finish();
 }
 
 void reply::add_header( const std::string& name, const std::string& value, bool overwrite )

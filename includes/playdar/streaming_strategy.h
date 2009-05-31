@@ -49,7 +49,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
-    virtual bool async_delegate(moost::http::reply::WriteFunc writefunc) = 0;
+    virtual void start_reply(moost::http::reply_ptr reply) = 0;
 };
 
 }

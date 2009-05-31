@@ -10,13 +10,13 @@
 
 using namespace moost::http;
 
-void filesystem_request_handler::handle_request(const request& req, reply& rep)
+void filesystem_request_handler::handle_request(const request& req, reply_ptr rep)
 {
   // Decode url to path.
   std::string request_path;
   if (!url_decode(req.uri, request_path))
   {
-    rep = reply::stock_reply(reply::bad_request);
+    rep->stock_reply(reply::bad_request);
     return;
   }
 
@@ -24,7 +24,7 @@ void filesystem_request_handler::handle_request(const request& req, reply& rep)
   if (request_path.empty() || request_path[0] != '/'
       || request_path.find("..") != std::string::npos)
   {
-    rep = reply::stock_reply(reply::bad_request);
+    rep->stock_reply(reply::bad_request);
     return;
   }
 
@@ -48,18 +48,20 @@ void filesystem_request_handler::handle_request(const request& req, reply& rep)
   std::ifstream is(full_path.c_str(), std::ios::in | std::ios::binary);
   if (!is)
   {
-    rep = reply::stock_reply(reply::not_found);
+    rep->stock_reply(reply::not_found);
     return;
   }
 
   // Fill out the reply to be sent to the client.
-  rep.status = reply::ok;
+  rep->set_status( reply::ok );
+  std::string content;
   char buf[512];
   while (is.read(buf, sizeof(buf)).gcount() > 0)
-    rep.content.append(buf, is.gcount());
+    content.append(buf, is.gcount());
    
-  rep.add_header("Content-Length", rep.content.size());
-  rep.add_header("Content-Type", mime_types::extension_to_type(extension));
+  rep->add_header("Content-Length", content.size());
+  rep->add_header("Content-Type", mime_types::extension_to_type(extension));
+  rep->write_content(content);
 
   //rep.headers.resize(2);
   //rep.headers[0].name = "Content-Length";
