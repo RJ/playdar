@@ -25,6 +25,7 @@
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include <curl/curl.h>
 
@@ -40,7 +41,9 @@ using namespace boost::asio::ip;
     TODO potential efficiency gain by storing data in lumps of size returned by curl
     TODO make some of the curl options user-configurable (ssl cert checking, auth, timeouts..)
 */
-class CurlStreamingStrategy : public StreamingStrategy
+class CurlStreamingStrategy 
+    : public StreamingStrategy
+    , public boost::enable_shared_from_this<CurlStreamingStrategy>
 {
 public:
     CurlStreamingStrategy(std::string url)
@@ -48,9 +51,7 @@ public:
         , m_slist_headers(0)
         , m_url(url)
         , m_thread(0)
-        , m_headthread(0)
         , m_abort(false)
-        , m_headersFetched( false )
         , m_contentlen( -1 )
     {
         url = boost::to_lower_copy( m_url );
@@ -73,24 +74,12 @@ public:
         reset();
     }
 
+#ifndef NDEBUG
     ~CurlStreamingStrategy()
-    { 
+    {
         std::cout << "DTOR ss_curl: " << m_url << std::endl;
-        if(m_thread)
-        {
-            m_abort = true; // will cause thread to terminate
-            m_thread->join();
-            delete m_thread;
-        }
-        
-        if(m_headthread)
-        {
-            m_headthread->join();
-            delete m_headthread;
-        }
-        
-        reset(); 
     }
+#endif
 
     /// this returns a shr_ptr to a copy, because it's not threadsafe 
     virtual boost::shared_ptr<StreamingStrategy> get_instance()
@@ -116,25 +105,6 @@ public:
         return ext2mime( ext );
     }
     
-    int content_length()
-    {
-        if( !m_headersFetched )
-            get_headers();
-        
-        boost::mutex::scoped_lock lk(m_mut);
-        if( !m_headersFetched )
-            m_headcond.wait( lk );
-        
-        if( m_headthread )
-        {
-            delete m_headthread;
-            m_headthread = 0;
-        }
-        
-        return m_contentlen;
-    }
-
-    
     std::string debug()
     { 
         std::ostringstream s;
@@ -144,9 +114,7 @@ public:
     
     void reset()
     {
-        m_connected = false;
         m_bytesreceived = 0;
-        m_curl_finished = false;
         m_abort = false;
     }
 
@@ -167,7 +135,7 @@ public:
         boost::trim( v[1] );
         if( v[0] == "content-length" )
             try {
-                inst->m_contentlen = boost::lexical_cast<int>( v[1] );
+                inst->onContentLength( boost::lexical_cast<int>( v[1] ) );
             }catch( ... )
             {}
         else if( v[0] == "content-type" )
@@ -180,13 +148,6 @@ public:
     static size_t curl_writefunc( void *vptr, size_t size, size_t nmemb, void *custom )
     {
         CurlStreamingStrategy * inst = ((CurlStreamingStrategy*)custom);
-        if( !inst->m_connected ) return 1; // someone called reset(), abort transfer
-
-        //starting to read the body of the response
-        //so most of the time we can assume there are no more headers;
-        inst->m_headersFetched = true;
-        inst->m_headcond.notify_all();
-        
         size_t len = size * nmemb;
         inst->m_reply->write_content(std::string((char*) vptr, len));
         return len;
@@ -195,16 +156,15 @@ public:
     static int curl_progressfunc(void *clientp/*this instance*/, double dltotal, double dlnow, 
                                  double ultotal, double ulnow)
     {
+        CurlStreamingStrategy * inst = ((CurlStreamingStrategy*)clientp);
         //cout << "Curl has downloaded: " << dlnow << " : " << dltotal << endl;
-        if( ((CurlStreamingStrategy*)clientp)->m_abort )
+        if( inst->m_abort )
         {
             std::cout << "Aborting in-progress download." << std::endl;
             return 1; // non-zero aborts download.
         }
-        else
-        {
-            return 0;
-        }
+        inst->onContentLength(dltotal);
+        return 0;
     }
     
     /// run in a thread to do the curl transfer
@@ -213,95 +173,69 @@ public:
         std::cout << "doing curl_perform for '" << m_url << "'" << std::endl;
         // this blocks until transfer complete / error:
         m_curlres = curl_easy_perform( m_curl );
-        m_curl_finished = true;
         if (m_slist_headers) 
             curl_slist_free_all(m_slist_headers);
-        std::cout << "curl_perform done. ret: " << m_curlres << std::endl;
         if (m_curlres) {
             std::cout << "Curl error: " << m_curlerror << std::endl;
+            m_reply->set_status(500);
+            m_reply->write_release();
         }
         m_reply->write_finish();
         curl_easy_cleanup( m_curl );
-        
-        m_headersFetched = true;
     }
     
-    /// run in a thread to do the curl transfer
-    void curl_perform_head()
-    {
-        std::cout << "doing curl_perform_head for '" << m_url << "'" << std::endl;
-        // this blocks until transfer complete / error:
-        m_curlres = curl_easy_perform( m_curl );
-        m_headersFetched = true;
-        std::cout << "curl_perform_head done. ret: " << m_curlres << std::endl;
-        if(m_curlres != 0) std::cout << "Curl error: " << m_curlerror << std::endl;
-        m_headcond.notify_all();
+    const std::string url() const 
+    { 
+        return m_url; 
     }
-    
-    const std::string url() const { return m_url; }
 
 	void start_reply(moost::http::reply_ptr reply)
 	{
-		m_reply = reply;
-        if(!m_connected) 
-			connect();
-        if(!m_connected)
-        {
-            std::cout << "ERROR: connect failed in httpss." << std::endl;
-            if( m_curl ) curl_easy_cleanup( m_curl );
-            reset();
-			m_reply.reset();
-        }
-    }
-
-protected:
-    
-    void get_headers()
-    {
-        if( m_headthread )
-        {
-            m_headthread->join();
-            return;
-        }
-        //Don't rely on head request with http(s) protocol.
-        //Instead get headers on connection.
-        if( m_protocol == "http" ||
-            m_protocol == "https" )
-            return connect();
-        
-        //Try HEAD request
-        m_curl = curl_easy_init();
-        prep_curl( m_curl );
-        curl_easy_setopt( m_curl, CURLOPT_NOBODY, 1 );
-
-        m_headthread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform_head, this ) );
-    }
-
-    
-    void connect()
-    {
-        if(m_thread)
-        {
-            m_thread->join();
-        }
         std::cout << debug() << std::endl; 
         reset();
-        if(!m_curl)
-            m_curl = curl_easy_init();
-        
+        m_curl = curl_easy_init();
         if(!m_curl)
         {
             std::cout << "Curl init failed" << std::endl;
             throw;
         }
-        
+       
         prep_curl( m_curl );
         
-        m_connected = true; 
+		m_reply = reply;
+        m_reply->write_hold();              // release once we have a content-length
+        m_reply->set_write_ending_cb(
+            boost::bind(&CurlStreamingStrategy::write_ending, shared_from_this()));
+
         // do the blocking-fetch in a thread:
-        m_thread = new boost::thread( boost::bind( &CurlStreamingStrategy::curl_perform, this ) );
+        m_thread = new boost::thread( 
+            boost::bind(&CurlStreamingStrategy::curl_perform, shared_from_this()));
+    }
+
+protected:
+
+    void onContentLength(int contentLength)
+    {
+        if (m_contentlen == -1 && contentLength > 0) {
+            m_contentlen = contentLength;
+            std::cout << "got content-length " << m_contentlen << std::endl;
+            m_reply->add_header("content-length", m_contentlen);
+            m_reply->write_release();
+        }
     }
     
+    // callback from m_reply: the connection has finished writing.
+    void write_ending()
+    {
+        // release our shared ptrs
+        m_reply->set_write_ending_cb(0);
+        if (m_thread) {
+            m_abort = true;
+            m_thread->join();
+            //delete m_thread;
+        }
+    }
+
     void prep_curl(CURL * handle)
     {
         // for curl options, see:
@@ -344,18 +278,12 @@ protected:
     CURL *m_curl;
     struct curl_slist * m_slist_headers; // extra headers to be sent
     CURLcode m_curlres;
-    bool m_connected;
     std::string m_url;
     std::string m_protocol;
-    boost::mutex m_mut;
-    boost::condition m_headcond;
-    bool m_curl_finished;
     size_t m_bytesreceived;
     char m_curlerror[CURL_ERROR_SIZE];
-    boost::thread * m_thread;
-    boost::thread * m_headthread;
+    boost::thread* m_thread;
     bool m_abort;
-    bool m_headersFetched;
     
     int m_contentlen;
     std::string m_mimetype;

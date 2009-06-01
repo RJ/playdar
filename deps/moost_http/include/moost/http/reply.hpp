@@ -47,8 +47,16 @@ public:
 	:write_ending_cb_()
 	,cancelled_(false)
 	,writing_(false)
+    ,held_(false)
   {
   }
+
+#ifndef NDEBUG
+  ~reply()
+  {
+      std::cout << "~reply()";
+  }
+#endif
 
   /// Convert the reply into a vector of buffers. The buffers do not own the
   /// underlying memory blocks, therefore the reply object must remain valid and
@@ -96,11 +104,26 @@ public:
 	{
         boost::lock_guard<boost::mutex> lock(mutex_);
         buffers_.push_back(s);
-        if (!writing_ && wf_) {
+        if (!writing_ && wf_ && !held_) {
             writing_ = true;
             wf_(boost::asio::const_buffer(buffers_.front().data(), buffers_.front().length()));
         }
 	}
+
+    void write_hold()
+    {
+        held_ = true;
+    }
+
+    void write_release()
+    {
+        held_ = false;
+        boost::lock_guard<boost::mutex> lock(mutex_);
+        if (!writing_ && buffers_.size() && wf_) {
+            writing_ = true;
+            wf_(boost::asio::const_buffer(buffers_.front().data(), buffers_.front().length()));
+        }
+    }
 
 	void write_cancel()
 	{
@@ -134,7 +157,7 @@ public:
                 writing_ = false;
             }
 
-            if (!writing_ && buffers_.size() && wf_) {
+            if (!writing_ && buffers_.size() && wf_ && !held_) {
                 // write something new
                 writing_ = true;
                 wf_(boost::asio::const_buffer(buffers_.front().data(), buffers_.front().length()));
@@ -142,6 +165,11 @@ public:
         }
         return true;
 	}
+
+    void set_write_ending_cb(boost::function<void(void)> cb)
+    {
+        write_ending_cb_ = cb;
+    }
 
 private:
 
@@ -154,6 +182,7 @@ private:
 	boost::function<void(void)> write_ending_cb_;
 	bool cancelled_;
     bool writing_;
+    bool held_;             // can pause content writing
 
     boost::mutex mutex_;	// for protecting _buffers:
     std::list<std::string> buffers_;

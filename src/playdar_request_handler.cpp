@@ -719,7 +719,10 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     }
     cout << "-> " << ss->debug() << endl;
     rep.add_header( "content-type", ss->mime_type() );
-    rep.add_header( "content-length", ss->content_length() );
+    int content_length = ss->content_length();
+    if (content_length > 0) {
+        rep.add_header( "content-length", content_length);
+    }
     ss->start_reply( rep.shared_from_this() );
 }
 

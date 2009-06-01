@@ -70,6 +70,9 @@ private:
 
   /// write state (see do_async_write)
   bool doing_content_;
+
+  /// we have written the last chunk provided by the client
+  bool end_;
 };
 
 template<class RequestHandler>
@@ -78,7 +81,8 @@ connection<RequestHandler>::connection(boost::asio::io_service& io_service,
 : strand_(io_service),
   socket_(io_service),
   request_handler_(handler),
-  doing_content_(false)
+  doing_content_(false),
+  end_(false)
 {
 }
 
@@ -143,42 +147,37 @@ boost::asio::ip::tcp::socket& connection<RequestHandler>::socket()
 template<class RequestHandler>
 void connection<RequestHandler>::handle_write(const boost::system::error_code& e)
 {
-    if (e) {
-        // error. signal to the delegate we're done
+    if (e || end_) {
+        // signal to the delegate we're done
         try {
             reply_->async_write_delegate(0);
         } catch (...) {
+        }
+
+        if (e) {
+            reply_.reset();
+            return;
+        }
+    } else {
+        // keep going with the write:
+        try {
+            // async_write_delegate can return false to end the write
+            if (reply_->async_write_delegate(
+                boost::bind(
+                &connection<RequestHandler>::do_async_write,
+                this->shared_from_this(),
+                _1)))
+            {
+                return; // good
+            } 
+        } catch (...) {
             int i = 0;
         }
-        return;
-    }
-
-    try {
-        // async_write_delegate can return false to end the write
-        if (reply_->async_write_delegate(
-            boost::bind(
-            &connection<RequestHandler>::do_async_write,
-            this->shared_from_this(),
-            _1)))
-        {
-            return; // good
-        } 
-    } catch (...) {
-        int i = 0;
     }
 
 	// all done here!
     // Initiate graceful connection closure.
 	reply_.reset();
-    boost::system::error_code ignored_ec;
-    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
-}
-
-template<class RequestHandler>
-void connection<RequestHandler>::handle_write_end(const boost::system::error_code& e)
-{
-    // all done here!
-    // Initiate graceful connection closure.
     boost::system::error_code ignored_ec;
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
 }
@@ -198,29 +197,20 @@ void connection<RequestHandler>::do_async_write(boost::asio::const_buffer& b)
         doing_content_ = true;
         buffers = reply_->to_buffers_headers();
     }
+    buffers.push_back(b);
 
-	bool end = false;
-
-    if (boost::asio::detail::buffer_size_helper(b)) {
-        buffers.push_back(b);
-		end = false;
-    } else {
-        // the delegate has signalled the end...
-        end = true;
+    if (!boost::asio::detail::buffer_size_helper(b)) {
+		end_ = true;
     }
 
-    if (buffers.size()) {
-        boost::asio::async_write(
-            socket_, 
-            buffers, 
-            strand_.wrap(
-                boost::bind(
-                    end ? &connection<RequestHandler>::handle_write_end : &connection<RequestHandler>::handle_write, 
-                    this->shared_from_this(),
-                    boost::asio::placeholders::error)));
-    } else {
-        handle_write_end(boost::system::error_code());
-    }
+    boost::asio::async_write(
+        socket_, 
+        buffers, 
+        strand_.wrap(
+            boost::bind(
+                &connection<RequestHandler>::handle_write, 
+                this->shared_from_this(),
+                boost::asio::placeholders::error)));
 }
 
 }} // moost::http
