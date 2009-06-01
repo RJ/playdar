@@ -125,6 +125,12 @@ public:
         char * ptr = (char*) vptr;
         size_t len = size * nmemb;
         std::string s( ptr, len );
+        if (s == "\r\n") {
+            // end of headers.
+            // if we didn't get the headers we wanted by now, 
+            // it's too late; so unblock the writing.
+            inst->m_reply->write_release();
+        }
         boost::to_lower( s );
         std::vector<std::string> v;
         boost::split( v, s, boost::is_any_of( ":" ));
@@ -139,7 +145,10 @@ public:
             }catch( ... )
             {}
         else if( v[0] == "content-type" )
+        {
             inst->m_mimetype = v[1];
+            inst->m_reply->add_header("Content-Type", inst->m_mimetype);
+        }
         
         return len;
     }
