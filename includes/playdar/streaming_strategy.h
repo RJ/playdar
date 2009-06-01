@@ -69,7 +69,8 @@ public:
     {
         // something went wrong, set the http status code (if it's not too late)
         m_reply->set_status(500);  
-        m_reply->write_cancel();
+        m_reply->write_release();
+        m_reply->write_finish();
     }
 
     virtual void set_content_length(int contentLength)

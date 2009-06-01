@@ -51,7 +51,7 @@ public:
   {
   }
 
-#ifndef NDEBUG
+#if 0
   ~reply()
   {
       std::cout << "~reply()";
