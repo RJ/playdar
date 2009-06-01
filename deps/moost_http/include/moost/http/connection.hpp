@@ -125,7 +125,7 @@ void connection<RequestHandler>::handle_read( const boost::system::error_code& e
         else if ( !result )
            reply_->stock_reply(reply::bad_request);
     } catch (std::runtime_error& e) {
-        cerr << "caught: " << e.what();
+        std::cerr << "caught: " << e.what();
         int i = 0;
     }
 
@@ -171,7 +171,6 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
                 return; // good
             } 
         } catch (...) {
-            int i = 0;
         }
     }
 
