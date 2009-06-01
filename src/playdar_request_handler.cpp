@@ -116,8 +116,7 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     }
     else
     {
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
-        //rep.content = "make a valid request, kthxbye";
+        rep.stock_reply(moost::http::reply::not_found);
     } 
 }
 
@@ -139,8 +138,10 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
         // json response
         json_spirit::Object o;
         o.push_back( json_spirit::Pair( "formtoken", ftoken ));
-        rep.content = json_spirit::write_formatted(o);
-        rep.set_status( moost::http::reply::ok );
+        std::string body = json_spirit::write_formatted(o);
+        rep.add_header( "Content-Length", body.length() );
+        rep.write_content( body );
+        rep.write_finish();
     } else {
         // webpage response
         map<string, string> vars;
@@ -166,7 +167,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
         !req.postvar_exists("name") ||
         !req.postvar_exists("formtoken"))
     {
-        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request);
+        rep.stock_reply(moost::http::reply::bad_request);
         return;
     }
     
@@ -181,8 +182,10 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
                 // json response
                 json_spirit::Object o;
                 o.push_back( json_spirit::Pair( "authtoken", tok ));
-                rep.content = json_spirit::write_formatted(o);
-                rep.set_status( moost::http::reply::ok );
+                std::string body = json_spirit::write_formatted(o);
+                rep.add_header( "Content-Length", body.length() );
+                rep.write_content( body );
+                rep.write_finish();
             } else {
                 // webpage response
                 map<string,string> vars;
@@ -201,15 +204,14 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
             << ( recvurl.find( "?" ) == string::npos ? "?" : "&" )
             << "authtoken=" << tok
             << "#" << tok;
-            rep = rep.stock_reply(moost::http::reply::moved_permanently); 
             rep.add_header( "Location", os.str() );
+            rep.stock_reply(moost::http::reply::moved_permanently);
         }
     }
     else
     {
         cerr << "Invalid formtoken, not authenticating" << endl;
-        rep = rep.stock_reply(moost::http::reply::unauthorized); 
-        rep.content = "Not Authorized";
+        rep.stock_reply(moost::http::reply::unauthorized); 
     }
 }
 
@@ -222,7 +224,8 @@ playdar_request_handler::handle_crossdomain( const playdar_request& req,
         << "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"
         << "<cross-domain-policy><allow-access-from domain=\"*\" /></cross-domain-policy>" << endl;
     rep.add_header( "Content-Type", "text/xml" );
-    rep.content = os.str();
+    rep.write_content( os.str() );
+    rep.write_finish();
 }
 
 void 
@@ -322,7 +325,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
     if( rs == 0 )
     {
         cout << "No plugin of that name found." << endl;
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        rep.stock_reply(moost::http::reply::not_found);
         return;
     }
 
@@ -355,7 +358,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
     if( resp.is_valid() )
         serve_body( resp, rep );
     else
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        rep.stock_reply(moost::http::reply::not_found);
     
 }
 
@@ -434,7 +437,7 @@ playdar_request_handler::handle_settings( const playdar_request& req,
         serve_body( os.str(), rep );
     }
     else
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+        rep.stock_reply(moost::http::reply::not_found);
 }
 
 string 
@@ -525,7 +528,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
             rq_ptr rq = app()->resolver()->rq(qid);
             if(!rq || !rq->isValidTrack())
            {
-               rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+               rep.stock_reply(moost::http::reply::not_found);
                return;
            }
            vector< ri_ptr > results = rq->results();
@@ -583,7 +586,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         }
         else
         {
-           rep = moost::http::reply::stock_reply(moost::http::reply::not_found);
+           rep.stock_reply(moost::http::reply::not_found);
         }
     }
     while( false );
@@ -596,7 +599,7 @@ playdar_request_handler::handle_sid( const playdar_request& req,
 {
     if( req.parts().size() != 2)
     {
-        rep = moost::http::reply::stock_reply(moost::http::reply::bad_request );
+        rep.stock_reply(moost::http::reply::bad_request );
         return;
     }
     
@@ -613,7 +616,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     if( req.parts().size() != 4
        || !req.parts()[1].length() || !req.parts()[3].length() )
     {
-        rep = moost::http::reply::stock_reply( moost::http::reply::bad_request );
+        rep.stock_reply( moost::http::reply::bad_request );
         return;
     }
     
@@ -641,9 +644,9 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     cout << endl;
     string url = "/sid/";
     url += results[0]->id();
-    rep.status = moost::http::reply::moved_temporarily;
+    rep.set_status( moost::http::reply::moved_temporarily );
     rep.add_header( "Location", url );
-    rep.content = "";
+    rep.write_finish();
 }
 
 void 
@@ -652,6 +655,8 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
     using namespace json_spirit;
     cout << "Handling JSON query:" << endl << query << endl;
     Value jval;
+
+    // what is this loop?
     do
     {
         if(!read( query, jval )) break;
@@ -661,15 +666,14 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
     } while(false);
     
     cerr << "Failed to parse JSON" << endl;
-    rep.content = "error";
-    return;
+    rep.write_content("error");
+    rep.write_finish();
 }
 
 void 
 playdar_request_handler::handle_capabilities(const playdar_request& req, moost::http::reply& rep)
 {
     using namespace json_spirit;
-    ostringstream responsestream;
     json_spirit::Array a;
     BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
     {
@@ -677,9 +681,10 @@ playdar_request_handler::handle_capabilities(const playdar_request& req, moost::
         if( !o.empty() )
             a.push_back( o );
     }
-    write_formatted( a, responsestream );
-
-    rep.content = responsestream.str();
+    std::string s = write_formatted( a );
+    rep.add_header("Content-Length", s.length());
+    rep.write_content( s );
+    rep.write_finish();
 }
 
 void
@@ -692,8 +697,14 @@ playdar_request_handler::serve_body(const playdar_response& response, moost::htt
     {
         rep.add_header( p.first, p.second );
     }
-    if( !response.str().empty() )
-        rep.content = response; 
+
+    size_t content_length = response.str().length();
+    if (content_length > 0) 
+    {
+        rep.add_header("Content-Length", content_length);
+        rep.write_content(response.str());
+    }
+    rep.write_finish();
 }
 
 void
@@ -714,12 +725,16 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     if(!ss)
     {
         cerr << "This SID does not exist or does not resolve to a playable item." << endl;
-        rep = moost::http::reply::stock_reply(moost::http::reply::not_found );
+        rep.stock_reply(moost::http::reply::not_found);
         return;
     }
     cout << "-> " << ss->debug() << endl;
-//    rep.set_content_fun( boost::bind( &StreamingStrategy::read_bytes, ss, _1, _2 ) );  
-    rep.set_async_delegate( boost::bind( &StreamingStrategy::async_delegate, ss, _1 ) );
+    rep.add_header( "Content-Type", ss->mime_type() );
+    int content_length = ss->content_length();
+    if (content_length > 0) {
+        rep.add_header( "Content-Length", content_length);
+    }
+    ss->start_reply( rep.shared_from_this() );
 }
 
 
@@ -747,8 +762,10 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.add_header( "Content-Type", "text/html", false ); // don't overwrite existing header
-    rep.content = os.str(); 
+    rep.add_header( "Content-Type", "text/html" );
+    rep.add_header( "Content-Length", os.str().length() );
+    rep.write_content( os.str() );
+    rep.write_finish();
 }
 
 void
@@ -756,17 +773,18 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
 {
     if (req.getvar_exists("session")) {
         const string& sessionId( req.getvar("session") );
-        boost::shared_ptr<CometSession> comet(new CometSession(sessionId, m_app->resolver()));
+        boost::shared_ptr<CometSession> comet(new CometSession(sessionId, rep.shared_from_this(), m_app->resolver()));
         if (comet->connect_to_resolver()) {
-            rep.set_async_delegate( boost::bind(&CometSession::async_write_func, comet, _1) );
-            rep.status = moost::http::reply::ok;
+            rep.set_status( moost::http::reply::ok );
             rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
+            static std::string startArray("[");
+            rep.write_content( startArray );
         } else {
             cout << "couldn't create comet session" << endl;
-            rep.status = moost::http::reply::internal_server_error;
+            rep.stock_reply( moost::http::reply::internal_server_error );
         }
     } else {
-        rep.status = moost::http::reply::bad_request;
+        rep.stock_reply( moost::http::reply::bad_request );
     }
 }
 

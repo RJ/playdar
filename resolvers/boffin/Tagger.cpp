@@ -97,7 +97,7 @@ size_t curl_reader(void *ptr, size_t size, size_t nmemb, void *)
 int main(int argc, char *argv[])
 {
     if(argc < 3) {
-        cerr << "Usage: " << argv[0] << " <playdar.db> <boffin.db>" << endl;
+        cerr << "Usage: " << argv[0] << " <collection.db> <boffin.db>" << endl;
         return 1;
     }
 

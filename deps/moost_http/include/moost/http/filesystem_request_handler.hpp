@@ -7,7 +7,7 @@
 
 namespace moost { namespace http {
 
-struct reply;
+class reply;
 struct request;
 
 /// the common handler for all incoming requests.

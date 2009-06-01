@@ -491,6 +491,8 @@ Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via
                     rip->set_score( score );
                     rq->add_result( rip );
                 }
+            } else if (rip->score() > 0) {
+                rq->add_result( rip );
             }
         }
     } else {
