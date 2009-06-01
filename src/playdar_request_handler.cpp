@@ -729,7 +729,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         return;
     }
     cout << "-> " << ss->debug() << endl;
-    rep.add_header( "content-type", ss->mime_type() );
+    rep.add_header( "Content-Type", ss->mime_type() );
     int content_length = ss->content_length();
     if (content_length > 0) {
         rep.add_header( "Content-Length", content_length);
