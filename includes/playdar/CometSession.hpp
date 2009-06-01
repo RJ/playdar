@@ -22,7 +22,6 @@ public:
         : m_session(session)
         , m_reply(reply)
         , m_resolver(resolver)
-        , m_firstWrite(true)
     {
     }
 
@@ -75,7 +74,6 @@ private:
     std::string m_session;
     moost::http::reply_ptr m_reply;
     Resolver* m_resolver;
-    bool m_firstWrite;
 };
 
 }

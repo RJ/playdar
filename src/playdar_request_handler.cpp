@@ -777,6 +777,8 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
         if (comet->connect_to_resolver()) {
             rep.set_status( moost::http::reply::ok );
             rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
+            static std::string startArray("[");
+            rep.write_content( startArray );
         } else {
             cout << "couldn't create comet session" << endl;
             rep.stock_reply( moost::http::reply::internal_server_error );
