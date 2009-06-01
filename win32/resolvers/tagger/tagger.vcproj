@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="scanner"
-	ProjectGUID="{42F71C8D-692A-415A-BAF0-9F78018E5FD9}"
-	RootNamespace="scanner"
+	Name="tagger"
+	ProjectGUID="{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}"
+	RootNamespace="tagger"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -40,8 +40,8 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/libcurl-7.19.3/include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib tagd.lib"
+				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib"
 				OutputFile="..\..\bin\$(ProjectName)d.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="../../lib"
@@ -119,8 +119,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/libcurl-7.19.3/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -138,7 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib curllib.lib tag.lib"
+				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib curllib.lib"
 				OutputFile="..\..\bin\$(ProjectName).exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="../../lib"
@@ -183,15 +183,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\resolvers\local\library.cpp"
+				RelativePath="..\..\..\resolvers\boffin\BoffinDb.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\resolvers\local\rs_local_library.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\scanner\scanner.cpp"
+				RelativePath="..\..\..\resolvers\boffin\Tagger.cpp"
 				>
 			</File>
 		</Filter>
@@ -200,26 +196,6 @@
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
-			<File
-				RelativePath="..\..\..\resolvers\local\library.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\library_file.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\library_sql.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\resolved_item_builder.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\rs_local_library.h"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

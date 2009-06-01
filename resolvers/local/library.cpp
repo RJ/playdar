@@ -18,8 +18,6 @@
 */
 #include "library.h"
 
-//#include <boost/asio.hpp>
-
 #include <iostream>
 #include <cstdio>
 #include <sstream>

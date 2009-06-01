@@ -18,13 +18,9 @@ struct request_handler_base
   /// handle a request, configure set up headers, pass on to handle_request
   void handle_request_base(const request& req, reply& rep)
   {
-    rep.status = reply::ok;
-    static_cast< RequestHandler * >(this)->handle_request(req, rep);
-    if( !rep.get_async_delegate() )
-    {
-        rep.add_header( "Content-Length",  boost::lexical_cast<std::string>(rep.content.length()) );
-    }
+    rep.set_status( reply::ok );
     rep.add_header( "Content-Type", "text/plain", false );
+    static_cast< RequestHandler * >(this)->handle_request(req, rep);
   }
 
   void handle_request(const request& req, reply& rep)
