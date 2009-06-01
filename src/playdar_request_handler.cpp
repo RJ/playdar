@@ -138,8 +138,10 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
         // json response
         json_spirit::Object o;
         o.push_back( json_spirit::Pair( "formtoken", ftoken ));
-        rep.set_status( moost::http::reply::ok );
-        rep.write_content( json_spirit::write_formatted(o) );
+        std::string body = json_spirit::write_formatted(o);
+        rep.add_header( "Content-Length", body.length() );
+        rep.write_content( body );
+        rep.write_finish();
     } else {
         // webpage response
         map<string, string> vars;
@@ -180,8 +182,9 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
                 // json response
                 json_spirit::Object o;
                 o.push_back( json_spirit::Pair( "authtoken", tok ));
-                rep.set_status( moost::http::reply::ok );
-                rep.write_content( json_spirit::write_formatted(o) );
+                std::string body = json_spirit::write_formatted(o);
+                rep.add_header( "Content-Length", body.length() );
+                rep.write_content( body );
                 rep.write_finish();
             } else {
                 // webpage response
@@ -678,7 +681,10 @@ playdar_request_handler::handle_capabilities(const playdar_request& req, moost::
         if( !o.empty() )
             a.push_back( o );
     }
-    rep.write_content( write_formatted( a ) );
+    std::string s = write_formatted( a );
+    rep.add_header("Content-Length", s.length());
+    rep.write_content( s );
+    rep.write_finish();
 }
 
 void
