@@ -77,7 +77,7 @@ public:
   // The WriteFunc parameter should be used once (per delegate call).
   // Keep a copy of the WriteFunc to keep the connection alive
 
-    typedef boost::function< void(boost::asio::const_buffer&) > WriteFunc;
+    typedef boost::function< void(const boost::asio::const_buffer&) > WriteFunc;
     typedef boost::function< bool(WriteFunc) > AsyncDelegateFunc;
 
 public:

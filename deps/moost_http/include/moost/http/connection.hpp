@@ -43,7 +43,7 @@ private:
   void handle_write_end(const boost::system::error_code& e);
 
   // this method is passed to the async_delegate
-  void do_async_write(boost::asio::const_buffer&);
+  void do_async_write(const boost::asio::const_buffer&);
 
   /// Strand to ensure the connection's handlers are not called concurrently.
   boost::asio::io_service::strand strand_;
@@ -189,7 +189,7 @@ void connection<RequestHandler>::handle_write(const boost::system::error_code& e
 // finally write a zero-length buffer to close the socket and end the callback chain
 //
 template<class RequestHandler>
-void connection<RequestHandler>::do_async_write(boost::asio::const_buffer& b)
+void connection<RequestHandler>::do_async_write(const boost::asio::const_buffer& b)
 {
     std::vector<boost::asio::const_buffer> buffers;
 
