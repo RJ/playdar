@@ -116,10 +116,10 @@ void connection<RequestHandler>::handle_read( const boost::system::error_code& e
     reply_ = reply_ptr(new reply);
 
     try {
-    if ( result )
-       request_handler_.handle_request_base(request_, reply_);
-    else if ( !result )
-       reply_->stock_reply(reply::bad_request);
+        if ( result )
+           request_handler_.handle_request_base(request_, *reply_);
+        else if ( !result )
+           reply_->stock_reply(reply::bad_request);
     } catch (std::runtime_error& e) {
         cerr << "caught: " << e.what();
         int i = 0;

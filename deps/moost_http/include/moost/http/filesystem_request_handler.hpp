@@ -7,7 +7,7 @@
 
 namespace moost { namespace http {
 
-struct reply;
+class reply;
 struct request;
 
 /// the common handler for all incoming requests.
@@ -20,7 +20,7 @@ public:
   : doc_root_() {}
 
   /// Handle a request and produce a reply.
-  void handle_request(const request& req, reply_ptr rep);
+  void handle_request(const request& req, reply& rep);
 
   void doc_root(const std::string & value) { doc_root_ = value; }
 

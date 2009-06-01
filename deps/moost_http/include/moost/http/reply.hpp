@@ -5,18 +5,20 @@
 #include <vector>
 #include <map>
 #include <boost/asio.hpp>
-#include <boost/thread/locks.hpp>
-#include <boost/thread/mutex.hpp>
 #include <boost/function.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/thread/locks.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 #include "moost/http/header.hpp"
 
 namespace moost { namespace http {
 
 /// A reply to be sent to a client.
-class reply
+class reply 
+    : public boost::enable_shared_from_this<reply>
 {
 public:
   /// The status of the reply.

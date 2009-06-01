@@ -16,14 +16,14 @@ struct request_handler_base
   : private boost::noncopyable
 {
   /// handle a request, configure set up headers, pass on to handle_request
-  void handle_request_base(const request& req, reply_ptr rep)
+  void handle_request_base(const request& req, reply& rep)
   {
-    rep->set_status( reply::ok );
-    rep->add_header( "Content-Type", "text/plain", false );
+    rep.set_status( reply::ok );
+    rep.add_header( "Content-Type", "text/plain", false );
     static_cast< RequestHandler * >(this)->handle_request(req, rep);
   }
 
-  void handle_request(const request& req, reply_ptr rep)
+  void handle_request(const request& req, reply& rep)
   {
     // default base implementation does nothing
   }
