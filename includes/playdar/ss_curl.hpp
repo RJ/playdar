@@ -219,7 +219,7 @@ protected:
         if (m_contentlen == -1 && contentLength > 0) {
             m_contentlen = contentLength;
             std::cout << "got content-length " << m_contentlen << std::endl;
-            m_reply->add_header("content-length", m_contentlen);
+            m_reply->add_header("Content-Length", m_contentlen);
             m_reply->write_release();
         }
     }

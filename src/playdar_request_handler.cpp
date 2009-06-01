@@ -691,8 +691,13 @@ playdar_request_handler::serve_body(const playdar_response& response, moost::htt
     {
         rep.add_header( p.first, p.second );
     }
-    if( !response.str().empty() )
-        rep.write_content( response.str() );
+
+    size_t content_length = response.str().length();
+    if (content_length > 0) 
+    {
+        rep.add_header("Content-Length", content_length);
+        rep.write_content(response.str());
+    }
     rep.write_finish();
 }
 
@@ -721,7 +726,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     rep.add_header( "content-type", ss->mime_type() );
     int content_length = ss->content_length();
     if (content_length > 0) {
-        rep.add_header( "content-length", content_length);
+        rep.add_header( "Content-Length", content_length);
     }
     ss->start_reply( rep.shared_from_this() );
 }
@@ -751,8 +756,10 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
         }
         os << line << endl;
     }
-    rep.add_header( "Content-Type", "text/html", false ); // don't overwrite existing header
+    rep.add_header( "Content-Type", "text/html" );
+    rep.add_header( "Content-Length", os.str().length() );
     rep.write_content( os.str() );
+    rep.write_finish();
 }
 
 void
@@ -766,10 +773,10 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
             rep.add_header( "Content-Type", "text/javascript; charset=utf-8" );
         } else {
             cout << "couldn't create comet session" << endl;
-            rep.set_status( moost::http::reply::internal_server_error );
+            rep.stock_reply( moost::http::reply::internal_server_error );
         }
     } else {
-        rep.set_status( moost::http::reply::bad_request );
+        rep.stock_reply( moost::http::reply::bad_request );
     }
 }
 
