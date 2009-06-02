@@ -1,8 +1,8 @@
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 
+#include <boost/foreach.hpp>
 #include <boost/filesystem.hpp>
-#include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include <sqlite3.h>
@@ -52,14 +52,18 @@ int scanned, skipped, ignored = 0;
 
 string url_encode( const string& p )
 {
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep( "/" );
-    tokenizer toks( p, sep );
-    
+    // url encode everything between '/' character
+    vector<std::string> v;
+    split(v, p, boost::is_any_of( "/" ));
     string ret = "";
-    for( tokenizer::iterator tok_iter = toks.begin(); tok_iter != toks.end(); ++tok_iter )
-    {
-        ret += "/" + playdar::utils::url_encode( *tok_iter );
+    bool first = true;
+    BOOST_FOREACH(const string& s, v) {
+        if (first) {
+            first = false;
+        } else {
+            ret += "/";
+        }
+        ret += playdar::utils::url_encode(s);
     }
     return ret;
 }
