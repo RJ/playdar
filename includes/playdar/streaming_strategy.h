@@ -26,7 +26,6 @@
 namespace playdar {
 
 // StreamingStrategies receive an AsyncAdaptor via start_reply.
-// start_reply returns immediately, then sends content via the adaptor.
 
 class AsyncAdaptor
 {
@@ -55,6 +54,8 @@ public:
     virtual std::string debug() = 0;
     virtual void reset() = 0;
 
+    virtual void set_extra_header(const std::string& header){};
+
     /// called when we want to use a SS to stream.
     /// could make a copy if the implementation requires it.
     virtual boost::shared_ptr<StreamingStrategy> get_instance()
@@ -62,6 +63,7 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
+    // start_reply returns immediately, then sends content via the adaptor.
     virtual void start_reply(AsyncAdaptor_ptr adaptor) = 0;
 };
 
