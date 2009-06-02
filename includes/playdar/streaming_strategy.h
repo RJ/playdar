@@ -32,6 +32,7 @@ class AsyncAdaptor
 public:
     virtual void set_content_length(int contentLength) = 0;
     virtual void set_mime_type(const std::string& mimetype) = 0;
+    virtual void set_status_code(int status) = 0;
     virtual void write_content(const char *buffer, int size) = 0;
     virtual void write_finish() = 0;
     virtual void write_cancel() = 0;

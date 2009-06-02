@@ -52,7 +52,6 @@ public:
         , m_url(url)
         , m_thread(0)
         , m_abort(false)
-        , m_released(false)
     {
         url = boost::to_lower_copy( m_url );
         std::vector<std::string> parts;
@@ -70,7 +69,6 @@ public:
         , m_url(other.url())
         , m_thread(0)
         , m_abort(false)
-        , m_released(false)
     {
         reset();
     }
@@ -112,8 +110,8 @@ public:
     
     void reset()
     {
-        m_bytesreceived = 0;
         m_abort = false;
+        m_firstWriteFunc = true;
     }
 
     /// curl callback when data from fetching an url has arrived
@@ -123,28 +121,28 @@ public:
         char * ptr = (char*) vptr;
         size_t len = size * nmemb;
         std::string s( ptr, len );
-        if (s == "\r\n") {
-            // end of headers.
-            // if we didn't get the headers we wanted by now, set something.
-            inst->m_reply->set_content_length(-1);
-            inst->m_reply->set_mime_type("application/binary");
-        }
         boost::to_lower( s );
         std::vector<std::string> v;
         boost::split( v, s, boost::is_any_of( ":" ));
-        if( v.size() != 2 )
-            return len;
-        
-        boost::trim( v[0] );
-        boost::trim( v[1] );
-        if( v[0] == "content-length" )
-            try {
-                inst->m_reply->set_content_length( boost::lexical_cast<int>( v[1] ) );
-            }catch( ... )
-            {}
-        else if( v[0] == "content-type" )
-        {
-            inst->m_reply->set_mime_type(v[1]);
+        if( v.size() == 2 ) {
+            // header
+            boost::trim( v[0] );
+            boost::trim( v[1] );
+            if( v[0] == "content-type" )
+            {
+                inst->m_reply->set_mime_type(v[1]);
+            }
+            // content-length is dealt with in curl_writefunc
+        } else {
+            // status code?
+            v.clear();
+            boost::split( v, s, boost::is_any_of( " " ));
+            if (v.size() > 2) {
+                int status_code = 0;
+                if (sscanf(v[1].data(), "%d", &status_code) == 1 && status_code) {
+                    inst->m_reply->set_status_code(status_code);
+                }
+            }
         }
         
         return len;
@@ -154,6 +152,24 @@ public:
     static size_t curl_writefunc( void *vptr, size_t size, size_t nmemb, void *custom )
     {
         CurlStreamingStrategy * inst = ((CurlStreamingStrategy*)custom);
+
+        if (inst->m_firstWriteFunc) {
+            inst->m_firstWriteFunc = false;
+            // delay setting content_length until we have it!
+            // (with file urls we don't get curl_headfunc callbacks)
+            double fContentLength;
+            if (CURLE_OK == curl_easy_getinfo(inst->m_curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &fContentLength)) {
+                int nContentLength = (int) fContentLength;
+                if (nContentLength >= 0) {
+                    inst->m_reply->set_content_length(nContentLength);
+                }
+            }
+            // last chance to set mime type
+            if (inst->m_protocol == "file") {
+                inst->m_reply->set_mime_type(inst->mime_type());
+            }
+        }
+
         size_t len = size * nmemb;
         inst->m_reply->write_content((const char*) vptr, len);
         return len;
@@ -168,15 +184,6 @@ public:
         {
             std::cout << "Aborting in-progress download." << std::endl;
             return 1; // non-zero aborts download.
-        }
-
-        // when doing non-http urls we aren't guaranteed do get curl_headfunc callbacks
-        // so we have to set content-length/mime-type in here
-        // the adapter should ignore these if already been set
-        if (!inst->m_released && dltotal >= 0 && dltotal >= dlnow) {
-            inst->m_reply->set_content_length(dltotal);
-            inst->m_reply->set_mime_type("application/binary");
-            inst->m_released = true;
         }
         return 0;
     }
@@ -206,9 +213,9 @@ public:
 	{
         std::cout << debug() << std::endl; 
         reset();
+
         m_curl = curl_easy_init();
-        if(!m_curl)
-        {
+        if(!m_curl) {
             std::cout << "Curl init failed" << std::endl;
             throw;
         }
@@ -282,11 +289,10 @@ protected:
     CURLcode m_curlres;
     std::string m_url;
     std::string m_protocol;
-    size_t m_bytesreceived;
     char m_curlerror[CURL_ERROR_SIZE];
     boost::thread* m_thread;
     bool m_abort;
-    bool m_released;
+    bool m_firstWriteFunc;
     
     /////
     AsyncAdaptor_ptr m_reply;

@@ -30,10 +30,8 @@ class HttpAsyncAdaptor : public AsyncAdaptor
 public:
     HttpAsyncAdaptor(moost::http::reply_ptr reply)
         : m_reply(reply)
-        , m_bHaveMimeType(false)
-        , m_bHaveContentLength(false)
     {
-        m_reply->write_hold();      // hold the content until we get the content_length/mime_type
+        m_reply->set_status(200);  // OK, until proven otherwise
     }
 
     virtual void write_content(const char *buffer, int size)
@@ -56,24 +54,17 @@ public:
 
     virtual void set_content_length(int contentLength)
     {
-        if (!m_bHaveContentLength && contentLength >= 0) {
-            m_reply->add_header("Content-Length", contentLength);
-        }
-        m_bHaveContentLength = true;
-        if (m_bHaveMimeType && m_bHaveContentLength) {
-            m_reply->write_release();
-        }
+        m_reply->add_header("Content-Length", contentLength);
     }
 
     virtual void set_mime_type(const std::string& mimetype)
     {
-        if (!m_bHaveMimeType && mimetype.length()) {
-            m_reply->add_header("Content-Type", mimetype);
-        }
-        m_bHaveMimeType = true;
-        if (m_bHaveMimeType && m_bHaveContentLength) {
-            m_reply->write_release();
-        }
+        m_reply->add_header("Content-Type", mimetype);
+    }
+
+    virtual void set_status_code(int status)
+    {
+        m_reply->set_status(status);
     }
 
     virtual void set_finished_cb(boost::function<void(void)> cb)
@@ -82,8 +73,6 @@ public:
     }
 
     moost::http::reply_ptr m_reply;
-    bool m_bHaveMimeType;
-    bool m_bHaveContentLength;
 };
 
 }
