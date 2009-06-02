@@ -52,7 +52,6 @@ public:
         , m_url(url)
         , m_thread(0)
         , m_abort(false)
-        , m_contentlen( -1 )
     {
         url = boost::to_lower_copy( m_url );
         std::vector<std::string> parts;
@@ -95,9 +94,6 @@ public:
 
     std::string mime_type()
     {
-        if( m_mimetype.size() )
-            return m_mimetype;
-        
         if( m_url.size() < 3 )
             return ext2mime( "" );
         
@@ -114,8 +110,8 @@ public:
     
     void reset()
     {
-        m_bytesreceived = 0;
         m_abort = false;
+        m_firstWriteFunc = true;
     }
 
     /// curl callback when data from fetching an url has arrived
@@ -125,29 +121,28 @@ public:
         char * ptr = (char*) vptr;
         size_t len = size * nmemb;
         std::string s( ptr, len );
-        if (s == "\r\n") {
-            // end of headers.
-            // if we didn't get the headers we wanted by now, 
-            // it's too late; so unblock the writing.
-            inst->m_reply->write_release();
-        }
         boost::to_lower( s );
         std::vector<std::string> v;
         boost::split( v, s, boost::is_any_of( ":" ));
-        if( v.size() != 2 )
-            return len;
-        
-        boost::trim( v[0] );
-        boost::trim( v[1] );
-        if( v[0] == "content-length" )
-            try {
-                inst->onContentLength( boost::lexical_cast<int>( v[1] ) );
-            }catch( ... )
-            {}
-        else if( v[0] == "content-type" )
-        {
-            inst->m_mimetype = v[1];
-            inst->m_reply->add_header("Content-Type", inst->m_mimetype);
+        if( v.size() == 2 ) {
+            // header
+            boost::trim( v[0] );
+            boost::trim( v[1] );
+            if( v[0] == "content-type" )
+            {
+                inst->m_reply->set_mime_type(v[1]);
+            }
+            // content-length is dealt with in curl_writefunc
+        } else {
+            // status code?
+            v.clear();
+            boost::split( v, s, boost::is_any_of( " " ));
+            if (v.size() > 2) {
+                int status_code = 0;
+                if (sscanf(v[1].data(), "%d", &status_code) == 1 && status_code) {
+                    inst->m_reply->set_status_code(status_code);
+                }
+            }
         }
         
         return len;
@@ -157,8 +152,26 @@ public:
     static size_t curl_writefunc( void *vptr, size_t size, size_t nmemb, void *custom )
     {
         CurlStreamingStrategy * inst = ((CurlStreamingStrategy*)custom);
+
+        if (inst->m_firstWriteFunc) {
+            inst->m_firstWriteFunc = false;
+            // delay setting content_length until we have it!
+            // (with file urls we don't get curl_headfunc callbacks)
+            double fContentLength;
+            if (CURLE_OK == curl_easy_getinfo(inst->m_curl, CURLINFO_CONTENT_LENGTH_DOWNLOAD, &fContentLength)) {
+                int nContentLength = (int) fContentLength;
+                if (nContentLength >= 0) {
+                    inst->m_reply->set_content_length(nContentLength);
+                }
+            }
+            // last chance to set mime type
+            if (inst->m_protocol == "file") {
+                inst->m_reply->set_mime_type(inst->mime_type());
+            }
+        }
+
         size_t len = size * nmemb;
-        inst->m_reply->write_content(std::string((char*) vptr, len));
+        inst->m_reply->write_content((const char*) vptr, len);
         return len;
     }
     
@@ -172,7 +185,6 @@ public:
             std::cout << "Aborting in-progress download." << std::endl;
             return 1; // non-zero aborts download.
         }
-        inst->onContentLength(dltotal);
         return 0;
     }
     
@@ -186,8 +198,7 @@ public:
             curl_slist_free_all(m_slist_headers);
         if (m_curlres) {
             std::cout << "Curl error: " << m_curlerror << std::endl;
-            m_reply->set_status(500);
-            m_reply->write_release();
+            m_reply->write_cancel();
         }
         m_reply->write_finish();
         curl_easy_cleanup( m_curl );
@@ -198,22 +209,21 @@ public:
         return m_url; 
     }
 
-	void start_reply(moost::http::reply_ptr reply)
+	void start_reply(AsyncAdaptor_ptr aa)
 	{
         std::cout << debug() << std::endl; 
         reset();
+
         m_curl = curl_easy_init();
-        if(!m_curl)
-        {
+        if(!m_curl) {
             std::cout << "Curl init failed" << std::endl;
             throw;
         }
        
         prep_curl( m_curl );
         
-		m_reply = reply;
-        m_reply->write_hold();              // release once we have a content-length
-        m_reply->set_write_ending_cb(
+		m_reply = aa;
+        m_reply->set_finished_cb(
             boost::bind(&CurlStreamingStrategy::write_ending, shared_from_this()));
 
         // do the blocking-fetch in a thread:
@@ -223,21 +233,11 @@ public:
 
 protected:
 
-    void onContentLength(int contentLength)
-    {
-        if (m_contentlen == -1 && contentLength > 0) {
-            m_contentlen = contentLength;
-            std::cout << "got content-length " << m_contentlen << std::endl;
-            m_reply->add_header("Content-Length", m_contentlen);
-            m_reply->write_release();
-        }
-    }
-    
     // callback from m_reply: the connection has finished writing.
     void write_ending()
     {
         // release our shared ptrs
-        m_reply->set_write_ending_cb(0);
+        m_reply->set_finished_cb(0);
         if (m_thread) {
             m_abort = true;
             m_thread->join();
@@ -289,16 +289,13 @@ protected:
     CURLcode m_curlres;
     std::string m_url;
     std::string m_protocol;
-    size_t m_bytesreceived;
     char m_curlerror[CURL_ERROR_SIZE];
     boost::thread* m_thread;
     bool m_abort;
+    bool m_firstWriteFunc;
     
-    int m_contentlen;
-    std::string m_mimetype;
-
     /////
-    moost::http::reply_ptr m_reply;
+    AsyncAdaptor_ptr m_reply;
 };
 
 }

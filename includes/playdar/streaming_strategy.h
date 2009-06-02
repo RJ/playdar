@@ -22,15 +22,30 @@
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/function.hpp>
-#include <boost/asio.hpp>
-#include "moost/http/reply.hpp"
 
 namespace playdar {
+
+// StreamingStrategies receive an AsyncAdaptor via start_reply.
+
+class AsyncAdaptor
+{
+public:
+    virtual void set_content_length(int contentLength) = 0;
+    virtual void set_mime_type(const std::string& mimetype) = 0;
+    virtual void set_status_code(int status) = 0;
+    virtual void write_content(const char *buffer, int size) = 0;
+    virtual void write_finish() = 0;
+    virtual void write_cancel() = 0;
+    virtual void set_finished_cb(boost::function<void(void)> cb) = 0;
+};
+
+typedef boost::shared_ptr<AsyncAdaptor> AsyncAdaptor_ptr;
 
 // Resolvers attach streaming strategies to playable items.
 // they are responsible for getting the bytes from the audio file, which
 // may be on local disk, or remote HTTP, or something more exotic -
 // depends on the resolver.
+
 class StreamingStrategy
 {
 public:
@@ -39,9 +54,9 @@ public:
     
     virtual std::string debug() = 0;
     virtual void reset() = 0;
-    virtual std::string mime_type() = 0;
-    virtual int content_length(){ return -1; }
-    virtual void set_extra_header(const std::string& header){}
+
+    virtual void set_extra_header(const std::string& header){};
+
     /// called when we want to use a SS to stream.
     /// could make a copy if the implementation requires it.
     virtual boost::shared_ptr<StreamingStrategy> get_instance()
@@ -49,7 +64,8 @@ public:
         return boost::shared_ptr<StreamingStrategy>(this);
     }
 
-    virtual void start_reply(moost::http::reply_ptr reply) = 0;
+    // start_reply returns immediately, then sends content via the adaptor.
+    virtual void start_reply(AsyncAdaptor_ptr adaptor) = 0;
 };
 
 }
