@@ -202,7 +202,7 @@ public:
         return m_url; 
     }
 
-	void start_reply(AsyncAdapter_ptr aa)
+	void start_reply(AsyncAdaptor_ptr aa)
 	{
         std::cout << debug() << std::endl; 
         reset();
@@ -289,7 +289,7 @@ protected:
     bool m_released;
     
     /////
-    AsyncAdapter_ptr m_reply;
+    AsyncAdaptor_ptr m_reply;
 };
 
 }
