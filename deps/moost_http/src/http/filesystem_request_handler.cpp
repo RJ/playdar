@@ -62,6 +62,7 @@ void filesystem_request_handler::handle_request(const request& req, reply& rep)
   rep.add_header("Content-Length", content.size());
   rep.add_header("Content-Type", mime_types::extension_to_type(extension));
   rep.write_content(content);
+  rep.write_finish();
 
   //rep.headers.resize(2);
   //rep.headers[0].name = "Content-Length";
