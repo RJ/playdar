@@ -71,7 +71,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
-    m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
+    //m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
     m_urlHandlers[ "comet" ] = boost::bind( &playdar_request_handler::handle_comet, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
@@ -668,23 +668,6 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
     
     cerr << "Failed to parse JSON" << endl;
     rep.write_content("error");
-    rep.write_finish();
-}
-
-void 
-playdar_request_handler::handle_capabilities(const playdar_request& req, moost::http::reply& rep)
-{
-    using namespace json_spirit;
-    json_spirit::Array a;
-    BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
-    {
-        json_spirit::Object o = pap->rs()->get_capabilities();
-        if( !o.empty() )
-            a.push_back( o );
-    }
-    std::string s = write_formatted( a );
-    rep.add_header("Content-Length", s.length());
-    rep.write_content( s );
     rep.write_finish();
 }
 

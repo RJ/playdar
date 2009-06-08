@@ -65,7 +65,6 @@ private:
     void handle_sid( const playdar_request&, moost::http::reply& );
     void handle_quickplay( const playdar_request&, moost::http::reply& );
     void handle_pluginurl( const playdar_request&, moost::http::reply& );
-    void handle_capabilities( const playdar_request&, moost::http::reply& );
     void handle_comet( const playdar_request& , moost::http::reply& );
 
     std::string handle_queries_root(const playdar_request& req);

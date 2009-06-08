@@ -17,7 +17,8 @@ SET(CMAKE_INSTALL_PREFIX "/usr/local")
 # then: cmake .. ; make
 # alternatively, recompile boost with -fPIC like so:
 # bjam --v2 cxxflags=-fPIC stage
-SET(Boost_USE_STATIC_LIBS ON)
+#SET(Boost_USE_STATIC_LIBS ON)
+SET(Boost_USE_STATIC_LIBS OFF)
 
 SET(Boost_USE_MULTITHREADED ON)
 FIND_PACKAGE(Boost 1.35 REQUIRED COMPONENTS filesystem system regex thread program_options date_time)
@@ -26,6 +27,7 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
+                    /home/rj/src/libf2f/include # TODO hack
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
@@ -40,7 +42,9 @@ INCLUDE_DIRECTORIES(
                    )
 
 # Always check local/lib first:
-LINK_DIRECTORIES(/usr/local/lib) 
+LINK_DIRECTORIES(   /usr/local/lib 
+                    /home/rj/src/libf2f/lib # TODO hack
+                ) 
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
 INCLUDE(InstallRequiredSystemLibraries)

@@ -164,6 +164,19 @@ public:
         return m_resolver->sid2ri( sid );
     }
     
+    virtual const json_spirit::Object capabilities() const
+    {
+        json_spirit::Object obj;
+        json_spirit::Value vfalse = json_spirit::Value(false);
+        BOOST_FOREACH( pa_ptr pap, m_resolver->resolvers() )
+        {
+            json_spirit::Value v = pap->rs()->capabilities();
+            if( v == vfalse ) continue;
+            obj.push_back( json_spirit::Pair( pap->classname(), v ) );  
+        }
+        return obj;
+    }
+    
 private:
     Config*   m_config;
     Resolver* m_resolver;

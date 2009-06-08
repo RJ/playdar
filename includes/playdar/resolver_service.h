@@ -45,8 +45,7 @@ public:
     /// called once at startup.
     virtual bool init(pa_ptr pap) = 0;
 
-    /// can return an instance of itself: non-cloneable 
-    /// resolvers will return an empty shared ptr
+    /// can return an instance of itself, or a clone.
     /// note: ResolverServicePlugin are ALWAYS cloneable!
     virtual boost::shared_ptr<ResolverService> clone()
     { return boost::shared_ptr<ResolverService>(); }
@@ -109,7 +108,13 @@ public:
        return false;
     }
 
-    virtual json_spirit::Object get_capabilities() const{ return json_spirit::Object();}
+    /// if you want this plugin to be listed in the stat call, return a non-empty
+    /// Object. It will be listed in the json array: [ <name> : getCapabilities(), ... ]
+    /// not implementing means plugin doesnt report itself in stat calls etc.
+    virtual json_spirit::Value capabilities() const
+    { return json_spirit::Value(false);}
+    
+    
 
 };
 

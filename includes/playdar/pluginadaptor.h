@@ -66,6 +66,9 @@ public:
     virtual ResolverService * rs() const { return m_rs; }
     virtual const std::string hostname() const = 0;
     
+    /// what plugins/capabilities does playdar have available?
+    virtual const json_spirit::Object capabilities() const = 0;
+    
     unsigned int targettime() const { return m_targettime; }
     unsigned short weight() const { return m_weight; }
     unsigned short preference() const { return m_preference; }
