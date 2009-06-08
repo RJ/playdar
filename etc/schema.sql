@@ -78,10 +78,12 @@ CREATE INDEX file_join_track ON file_join(track);
 
 -- HTTP Authentication 
 
+DROP TABLE IF EXISTS playdar_auth;
 CREATE TABLE IF NOT EXISTS playdar_auth (
     token TEXT NOT NULL PRIMARY KEY,
     website TEXT NOT NULL,
     name TEXT NOT NULL,
+    ua TEXT NOT NULL,
     mtime INTEGER NOT NULL,
     permissions TEXT NOT NULL
 );
@@ -92,7 +94,7 @@ CREATE TABLE IF NOT EXISTS playdar_system (
     key TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL DEFAULT ''
 );
-INSERT INTO playdar_system(key,value) VALUES('schema_version', '1');
+INSERT INTO playdar_system(key,value) VALUES('schema_version', '2');
 
 -- Settings NOT USED
 

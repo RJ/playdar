@@ -30,6 +30,19 @@ struct request
     }
     return result;
   }
+  
+  /// we need a const way to grab headers too:
+  const std::string header_value(const std::string & header_name) const
+  {
+    std::vector<header>::const_iterator result;
+    for (result = headers.begin(); result != headers.end(); ++result)
+    {
+      if (boost::algorithm::iequals(result->name, header_name)) return result->value;
+    }
+    return "";  
+  }
+  
+  
 };
 
 }} // moost::http

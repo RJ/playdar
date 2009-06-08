@@ -175,7 +175,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     if(m_pauth->consume_formtoken(req.postvar("formtoken")))
     {
         string tok = app()->resolver()->gen_uuid(); 
-        m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"));
+        m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"), req.useragent() );
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )
         {
@@ -416,7 +416,7 @@ playdar_request_handler::handle_settings( const playdar_request& req,
             <<  "<tr style=\"font-weight:bold;\">"
             <<   "<td>Name</td>"
             <<   "<td>Website</td>"
-            <<   "<td>Auth Code</td>"
+            <<   "<td>Auth Code / User-Agent</td>"
             <<   "<td>Options</td>"
             <<  "</tr>"
             << endl;
@@ -428,7 +428,8 @@ playdar_request_handler::handle_settings( const playdar_request& req,
             os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
                 <<  "<td>" << m["name"] << "</td>"
                 <<  "<td>" << m["website"] << "</td>"
-                <<  "<td>" << m["token"] << "</td>"
+                <<  "<td>" << m["token"] << "<br/><small>"
+                <<  m["ua"] << "</small></td>"
                 <<  "<td><a href=\"/settings/auth/?revoke="  
                 << m["token"] <<"\">Revoke</a>"
                 <<  "</td>"

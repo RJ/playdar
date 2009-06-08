@@ -41,13 +41,14 @@ public:
     const std::string getvar( const std::string& s ) const{ return m_getvars.find(s)->second; }
     const std::string postvar( const std::string& s ) const{ return m_postvars.find(s)->second; }
     const std::vector<std::string>& parts() const{ return m_parts; }
-    
+    const std::string& useragent() const { return m_useragent; }
 private:
     
     void collect_parts( const std::string & url, std::vector<std::string>& parts );
     int collect_params(const std::string & url, std::map<std::string,std::string> & vars);
     
     std::string m_url;
+    std::string m_useragent;
     std::vector<std::string> m_parts;
     std::map<std::string, std::string> m_getvars;
     std::map<std::string, std::string> m_postvars;    

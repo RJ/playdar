@@ -53,12 +53,13 @@ public:
     {
         boost::mutex::scoped_lock lock(m_mut);
         std::vector< std::map<std::string,std::string> > ret;
-        sqlite3pp::query qry(m_db, "SELECT token, website, name FROM playdar_auth ORDER BY mtime DESC");
+        sqlite3pp::query qry(m_db, "SELECT token, website, name, ua FROM playdar_auth ORDER BY mtime DESC");
         for(sqlite3pp::query::iterator i = qry.begin(); i!=qry.end(); ++i){
             std::map<std::string,std::string> m;
             m["token"]   = std::string((*i).get<const char *>(0));
             m["website"] = std::string((*i).get<const char *>(1));
             m["name"]    = std::string((*i).get<const char *>(2));
+            m["ua"]    = std::string((*i).get<const char *>(3));
             ret.push_back( m );
         }
         return ret;
@@ -74,18 +75,19 @@ public:
         cmd.execute();
     }
     
-    void create_new(std::string token, std::string website, std::string name)
+    void create_new(const std::string &token, const std::string &website, const std::string &name, const std::string &ua )
     {
         boost::mutex::scoped_lock lock(m_mut);
         std::string sql = "INSERT INTO playdar_auth "
-                     "(token, website, name, mtime, permissions) "
-                     "VALUES(?, ?, ?, ?, ?)";
+                     "(token, website, name, ua, mtime, permissions) "
+                     "VALUES(?, ?, ?, ?, ?, ?)";
         sqlite3pp::command cmd(m_db, sql.c_str());
         cmd.bind(1, token.c_str(), true);
         cmd.bind(2, website.c_str(), true);
         cmd.bind(3, name.c_str(), true);
-        cmd.bind(4, 0);
-        cmd.bind(5, "*", true);
+        cmd.bind(4, ua.c_str(), true);
+        cmd.bind(5, 0);
+        cmd.bind(6, "*", true);
         cmd.execute();
     }
     
