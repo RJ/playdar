@@ -49,21 +49,6 @@ string ext2mime(const string& ext);
 Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
-
-string url_encode( const string& p )
-{
-    typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
-    boost::char_separator<char> sep( "/" );
-    tokenizer toks( p, sep );
-    
-    string ret = "";
-    for( tokenizer::iterator tok_iter = toks.begin(); tok_iter != toks.end(); ++tok_iter )
-    {
-        ret += "/" + playdar::utils::url_encode( *tok_iter );
-    }
-    return ret;
-}
-
 string urlify(const string& p)
 {
     // turn it into a url by prepending file://
@@ -71,12 +56,11 @@ string urlify(const string& p)
     string urlpath("file://");
     if (p.at(0)=='/') // posix path starting with /
     {
-        urlpath += url_encode( p );
+        urlpath += p;
     }
     else if (p.at(1)==':') // windows style filepath
     {
-        urlpath += "/";
-        urlpath += p.substr(0, 2) + url_encode( p.substr(2) );  // encode the part after the drive-letter
+        urlpath += "/" + p;
     }
     else
     {
