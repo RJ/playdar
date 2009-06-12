@@ -9,6 +9,8 @@ bin
 *.pyc
 *~
 *.swp
+*.ncb
+*.suo
 
 /win32/bin/playdar.lib
 /win32/bin/playdar.pdb
