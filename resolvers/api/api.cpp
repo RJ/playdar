@@ -43,6 +43,7 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
         r.push_back( Pair("name", "playdar") );
         r.push_back( Pair("version", m_pap->playdar_version()) );
         r.push_back( Pair("authenticated", false) );
+        r.push_back( Pair("capabilities", m_pap->capabilities()) );
         write_formatted( r, response );
     }
     else
@@ -101,6 +102,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
             string artist = req.getvar_exists("artist") ? req.getvar("artist") : "";
             string album  = req.getvar_exists("album") ? req.getvar("album") : "";
             string track  = req.getvar_exists("track") ? req.getvar("track") : "";
+
             // create a new query and start resolving it:
             boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
 
@@ -116,6 +118,10 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
                     cout << "WARNING - resolve request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
                     // new qid assigned automatically if we don't provide one.
                 }
+            }
+            if(req.getvar_exists("comet"))
+            {
+                rq->set_comet_session_id(req.getvar("comet"));
             }
             if( !rq->isValidTrack() ) // usually caused by empty track name or something.
             {

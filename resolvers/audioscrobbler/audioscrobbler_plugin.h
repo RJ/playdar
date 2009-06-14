@@ -43,6 +43,13 @@ namespace playdar
             // we don't do any actual resolving:
             virtual unsigned short weight() const { return 0; }
             virtual unsigned int target_time() const { return 0; }
+            
+            virtual json_spirit::Value capabilities() const
+            {
+                json_spirit::Object obj;
+                obj.push_back( json_spirit::Pair( "version", "1.0" ) );
+                return obj;
+            }
 
         private:
             /** pure virtual, so reimplemented but does nothing */

@@ -75,12 +75,11 @@ string urlify(const string& p)
     string urlpath("file://");
     if (p.at(0)=='/') // posix path starting with /
     {
-        urlpath += url_encode( p );
+        urlpath += p;
     }
     else if (p.at(1)==':') // windows style filepath
     {
-        urlpath += "/";
-        urlpath += p.substr(0, 2) + url_encode( p.substr(2) );  // encode the part after the drive-letter
+        urlpath += "/" + p;
     }
     else
     {

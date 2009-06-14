@@ -66,9 +66,12 @@ Library::check_db()
       cout << "Database schema detected as version " << val << endl;
       // check the schema version is what we expect
       // TODO auto-upgrade to newest schema version as needed.
-      if( val != "1" )
+      if( val != "2" )
       {
         cerr << "Schema version too old. TODO handle auto-upgrades" << endl;
+        cerr << "To upgrade from 1->2, run this: alter table playdar_auth add column ua text not null default \"\"; update playdar_system set value=\"2\" where key=\"schema_version\";"
+        << endl;
+
         throw; // not caught here
       }
       // OK.

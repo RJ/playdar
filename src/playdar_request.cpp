@@ -46,6 +46,8 @@ playdar_request::playdar_request( const moost::http::request& req )
     
     collect_parts( m_url, m_parts );
     
+    m_useragent = req.header_value("User-Agent");
+    
     // get rid of cruft from leading/trailing "/" and split:
     if(m_parts.size() && m_parts[0]=="") m_parts.erase(m_parts.begin());
 }

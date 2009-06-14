@@ -677,8 +677,8 @@
       <includestyle>3</includestyle>
       <root>/usr/share/qt3</root>
       <designerintegration>EmbeddedKDevDesigner</designerintegration>
-      <qmake>/usr/bin/qmake-qt3</qmake>
-      <designer>/usr/bin/designer</designer>
+      <qmake>/usr/local/Trolltech/Qt-4.4.3/bin/qmake</qmake>
+      <designer>/usr/local/Trolltech/Qt-4.4.3/bin/designer</designer>
       <designerpluginpaths/>
     </qt>
     <codecompletion>

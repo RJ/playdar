@@ -1,17 +1,7 @@
 <?xml version = '1.0' encoding = 'UTF-8'?>
 <!DOCTYPE KDevPrjSession>
 <KDevPrjSession>
- <DocsAndViews NumberOfDocuments="3" >
-  <Doc0 NumberOfViews="1" URL="file:///mnt/ssd/playdar/contrib/darknet/darknet.cpp" >
-   <View0 Encoding="UTF-8" line="0" Type="Source" />
-  </Doc0>
-  <Doc1 NumberOfViews="1" URL="file:///mnt/ssd/playdar/contrib/darknet/darknet.h" >
-   <View0 Encoding="UTF-8" line="0" Type="Source" />
-  </Doc1>
-  <Doc2 NumberOfViews="1" URL="file:///mnt/ssd/playdar/contrib/darknet/ss_darknet.h" >
-   <View0 Encoding="UTF-8" line="74" Type="Source" />
-  </Doc2>
- </DocsAndViews>
+ <DocsAndViews NumberOfDocuments="0" />
  <pluginList>
   <kdevdebugger>
    <breakpointList/>

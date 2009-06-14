@@ -71,7 +71,7 @@ playdar_request_handler::init(MyApplication * app)
     m_urlHandlers[ "queries" ] = boost::bind( &playdar_request_handler::handle_queries, this, _1, _2 );
     m_urlHandlers[ "static" ] = boost::bind( &playdar_request_handler::serve_static_file, this, _1, _2 );
     m_urlHandlers[ "sid" ] = boost::bind( &playdar_request_handler::handle_sid, this, _1, _2 );
-    m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
+    //m_urlHandlers[ "capabilities" ] = boost::bind( &playdar_request_handler::handle_capabilities, this, _1, _2 );
     m_urlHandlers[ "comet" ] = boost::bind( &playdar_request_handler::handle_comet, this, _1, _2 );
     
     //Local Collection / Main API plugin callbacks:
@@ -175,7 +175,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     if(m_pauth->consume_formtoken(req.postvar("formtoken")))
     {
         string tok = app()->resolver()->gen_uuid(); 
-        m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"));
+        m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"), req.useragent() );
         if( !req.postvar_exists("receiverurl") ||
             req.postvar("receiverurl")=="" )
         {
@@ -416,7 +416,7 @@ playdar_request_handler::handle_settings( const playdar_request& req,
             <<  "<tr style=\"font-weight:bold;\">"
             <<   "<td>Name</td>"
             <<   "<td>Website</td>"
-            <<   "<td>Auth Code</td>"
+            <<   "<td>Auth Code / User-Agent</td>"
             <<   "<td>Options</td>"
             <<  "</tr>"
             << endl;
@@ -428,7 +428,8 @@ playdar_request_handler::handle_settings( const playdar_request& req,
             os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
                 <<  "<td>" << m["name"] << "</td>"
                 <<  "<td>" << m["website"] << "</td>"
-                <<  "<td>" << m["token"] << "</td>"
+                <<  "<td>" << m["token"] << "<br/><small>"
+                <<  m["ua"] << "</small></td>"
                 <<  "<td><a href=\"/settings/auth/?revoke="  
                 << m["token"] <<"\">Revoke</a>"
                 <<  "</td>"
@@ -668,23 +669,6 @@ playdar_request_handler::handle_json_query(string query, const moost::http::requ
     
     cerr << "Failed to parse JSON" << endl;
     rep.write_content("error");
-    rep.write_finish();
-}
-
-void 
-playdar_request_handler::handle_capabilities(const playdar_request& req, moost::http::reply& rep)
-{
-    using namespace json_spirit;
-    json_spirit::Array a;
-    BOOST_FOREACH( const pa_ptr pap, m_app->resolver()->resolvers() )
-    {
-        json_spirit::Object o = pap->rs()->get_capabilities();
-        if( !o.empty() )
-            a.push_back( o );
-    }
-    std::string s = write_formatted( a );
-    rep.add_header("Content-Length", s.length());
-    rep.write_content( s );
     rep.write_finish();
 }
 
