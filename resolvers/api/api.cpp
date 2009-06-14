@@ -43,6 +43,7 @@ api::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
         r.push_back( Pair("name", "playdar") );
         r.push_back( Pair("version", m_pap->playdar_version()) );
         r.push_back( Pair("authenticated", false) );
+        r.push_back( Pair("hostname", m_pap->hostname()) );
         r.push_back( Pair("capabilities", m_pap->capabilities()) );
         write_formatted( r, response );
     }
@@ -90,10 +91,8 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
             r.push_back( Pair("name", "playdar") );
             r.push_back( Pair("version", m_pap->playdar_version()) );
             r.push_back( Pair("authenticated", true) );
-            
             r.push_back( Pair("hostname", m_pap->hostname()) );
-            //r.push_back( Pair("permissions", permissions) );
-            //r.push_back( Pair("capabilities", "TODO") ); // might do something clever here later
+            r.push_back( Pair("capabilities", m_pap->capabilities()) );
             write_formatted( r, response );
             break;
         }
