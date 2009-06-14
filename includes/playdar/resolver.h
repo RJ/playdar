@@ -20,6 +20,7 @@
 #define __RESOLVER__H__
 
 #include <list>
+#include <boost/asio.hpp>
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/condition.hpp>
@@ -32,8 +33,8 @@
 #include <DynamicClass.hpp>
 
 #include "playdar/streaming_strategy.h"
-#include "playdar/ss_localfile.hpp"
-#include "playdar/ss_curl.hpp"
+//#include "playdar/ss_localfile.hpp"
+//#include "playdar/ss_curl.hpp"
 
 namespace playdar {
 

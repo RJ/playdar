@@ -30,7 +30,7 @@
 #include <boost/function.hpp>
 
 #include "playdar/resolver.h"
-
+#include "playdar/ss_curl.hpp"
 #include "playdar/rs_script.h"
 
 // Generic track calculation stuff:
