@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="moost_http"
-	ProjectGUID="{22A8A61C-64CB-4BED-BB35-EDD5CD4D374C}"
-	RootNamespace="moost_http"
+	Name="api"
+	ProjectGUID="{85DC1DE6-385F-44F8-954F-C8A55E950A3F}"
+	RootNamespace="api"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;&quot;../../../deps/sqlite3pp-read-only&quot;;&quot;../../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../../deps/pdl-0.3.0/include&quot;;../../../deps/moost_http/include;&quot;../../../deps/uriparser-0.7.5/include&quot;;&quot;../../../deps/taglib-1.5&quot;;&quot;../../../deps/taglib-1.5/taglib/toolkit&quot;;&quot;../../../deps/libcurl-7.19.3/include&quot;"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;API_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -60,11 +60,19 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
-				OutputFile="..\..\lib\$(ProjectName)d.lib"
+				Name="VCLinkerTool"
+				OutputFile="..\..\debug\bin\$(ProjectName).resolver"
+				LinkIncremental="2"
+				AdditionalLibraryDirectories="../../debug/lib"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -76,6 +84,12 @@
 				Name="VCFxCopTool"
 			/>
 			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -83,7 +97,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -104,9 +118,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/pdl-0.3.0/include;../../../deps/moost_http/include;../../../deps/uriparser-0.7.5/include;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
-				RuntimeLibrary="0"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;API_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -122,11 +136,21 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
-				OutputFile="..\..\lib\$(ProjectName).lib"
+				Name="VCLinkerTool"
+				OutputFile="..\..\release\bin\$(ProjectName).resolver"
+				LinkIncremental="1"
+				AdditionalLibraryDirectories="../../release/lib"
+				GenerateDebugInformation="true"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				TargetMachine="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -136,6 +160,12 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCWebDeploymentTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -151,19 +181,7 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\deps\moost_http\src\http\filesystem_request_handler.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\src\http\mime_types.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\src\http\reply.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\src\http\request_parser.cpp"
+				RelativePath="..\..\..\resolvers\api\api.cpp"
 				>
 			</File>
 		</Filter>
@@ -173,43 +191,11 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\connection.hpp"
+				RelativePath="..\..\..\resolvers\api\api.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\filesystem_request_handler.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\header.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\mime_types.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\reply.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\request.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\request_handler_base.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\request_parser.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\deps\moost_http\include\moost\http\server.hpp"
+				RelativePath="..\..\..\includes\playdar\playdar_plugin_include.h"
 				>
 			</File>
 		</Filter>
@@ -219,10 +205,6 @@
 			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
 			>
 		</Filter>
-		<File
-			RelativePath=".\ReadMe.txt"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="scanner"
-	ProjectGUID="{42F71C8D-692A-415A-BAF0-9F78018E5FD9}"
-	RootNamespace="scanner"
+	Name="local"
+	ProjectGUID="{DA39DD41-8006-4817-9758-6393DBCE9F36}"
+	RootNamespace="local"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12"
+				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LOCAL_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,12 +61,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib tagd.lib"
-				OutputFile="..\..\bin\$(ProjectName)d.exe"
+				OutputFile="..\..\debug\bin\$(ProjectName).resolver"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../lib"
+				AdditionalLibraryDirectories="../../debug/lib"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -98,7 +97,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="1"
+			ConfigurationType="2"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -119,9 +118,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
-				RuntimeLibrary="0"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12"
+				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;LOCAL_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -138,12 +137,11 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib curllib.lib tag.lib"
-				OutputFile="..\..\bin\$(ProjectName).exe"
+				OutputFile="..\..\release\bin\$(ProjectName).resolver"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../lib"
+				AdditionalLibraryDirectories="../../release/lib"
 				GenerateDebugInformation="true"
-				SubSystem="1"
+				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -190,10 +188,6 @@
 				RelativePath="..\..\..\resolvers\local\rs_local_library.cpp"
 				>
 			</File>
-			<File
-				RelativePath="..\..\..\resolvers\local\scanner\scanner.cpp"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -210,6 +204,10 @@
 			</File>
 			<File
 				RelativePath="..\..\..\resolvers\local\library_sql.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\includes\playdar\playdar_plugin_include.h"
 				>
 			</File>
 			<File

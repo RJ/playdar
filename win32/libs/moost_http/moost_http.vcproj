@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="sqlite3pp"
-	ProjectGUID="{6EB01853-F77A-4389-B9BE-FD0B935E5775}"
-	RootNamespace="sqlite3pp"
+	Name="moost_http"
+	ProjectGUID="{22A8A61C-64CB-4BED-BB35-EDD5CD4D374C}"
+	RootNamespace="moost_http"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;&quot;../../../deps/sqlite3pp-read-only&quot;;&quot;../../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../../deps/pdl-0.3.0/include&quot;;../../../deps/moost_http/include;&quot;../../../deps/uriparser-0.7.5/include&quot;;&quot;../../../deps/taglib-1.5&quot;;&quot;../../../deps/taglib-1.5/taglib/toolkit&quot;;&quot;../../../deps/libcurl-7.19.3/include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,7 +61,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="..\..\lib\$(ProjectName)d.lib"
+				OutputFile="..\..\debug\lib\$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -104,9 +104,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12"
-				PreprocessorDefinitions="WIN32;NDEBUG;_LIB"
-				RuntimeLibrary="0"
+				AdditionalIncludeDirectories="../../../includes;../../../deps/boost.uuid;../../../deps/boost.process;../../../deps/json_spirit_v3.00;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/pdl-0.3.0/include;../../../deps/moost_http/include;../../../deps/uriparser-0.7.5/include;../../../deps/taglib-1.5;../../../deps/taglib-1.5/taglib/toolkit;../../../deps/libcurl-7.19.3/include"
+				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -123,7 +123,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="..\..\lib\$(ProjectName).lib"
+				OutputFile="..\..\release\lib\$(ProjectName).lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -151,7 +151,19 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\deps\sqlite3pp-read-only\sqlite3pp.cpp"
+				RelativePath="..\..\..\deps\moost_http\src\http\filesystem_request_handler.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\src\http\mime_types.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\src\http\reply.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\src\http\request_parser.cpp"
 				>
 			</File>
 		</Filter>
@@ -161,7 +173,43 @@
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
 			<File
-				RelativePath="..\..\..\deps\sqlite3pp-read-only\sqlite3pp.h"
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\connection.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\filesystem_request_handler.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\header.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\mime_types.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\reply.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\request.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\request_handler_base.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\request_parser.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\..\deps\moost_http\include\moost\http\server.hpp"
 				>
 			</File>
 		</Filter>

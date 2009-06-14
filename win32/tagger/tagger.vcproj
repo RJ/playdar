@@ -2,9 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="boffin"
-	ProjectGUID="{028305E0-4194-44EB-BDA9-0F87544FA394}"
-	RootNamespace="boffin"
+	Name="tagger"
+	ProjectGUID="{1D3168EF-AD6A-440D-BCC5-C16C7AC0ED6C}"
+	RootNamespace="tagger"
 	Keyword="Win32Proj"
 	>
 	<Platforms>
@@ -19,7 +19,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			>
 			<Tool
@@ -40,11 +40,11 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;BOFFIN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
+				AdditionalIncludeDirectories="../../includes;../../deps/json_spirit_v3.00;&quot;../../deps/pdl-0.3.0/include&quot;;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/libcurl-7.19.3/include&quot;"
+				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="1"
+				RuntimeLibrary="3"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -61,12 +61,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spiritd.lib sqlite3ppd.lib sqlite-amalgamationd.lib curllib.lib"
-				OutputFile="..\..\..\plugins\$(ProjectName)d.resolver"
+				AdditionalDependencies="curllib.lib"
+				OutputFile="..\debug\bin\$(ProjectName).exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="../../lib"
+				AdditionalLibraryDirectories="../debug/lib"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -98,7 +98,7 @@
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="2"
+			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -119,9 +119,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="../../../includes;../../../deps/json_spirit_v3.00;../../../deps/pdl-0.3.0/include;../../../deps/sqlite3pp-read-only;../../../deps/sqlite-amalgamation-3_6_12;../../../deps/libcurl-7.19.3/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;BOFFIN_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT;WIN32_LEAN_AND_MEAN"
-				RuntimeLibrary="0"
+				AdditionalIncludeDirectories="../../includes;../../deps/json_spirit_v3.00;&quot;../../deps/pdl-0.3.0/include&quot;;&quot;../../deps/sqlite3pp-read-only&quot;;&quot;../../deps/sqlite-amalgamation-3_6_12&quot;;&quot;../../deps/libcurl-7.19.3/include&quot;"
+				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;NOMINMAX;_WIN32_WINNT"
+				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="true"
@@ -138,12 +138,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="json_spirit.lib sqlite3pp.lib sqlite-amalgamation.lib curllib.lib"
-				OutputFile="..\..\..\plugins\$(ProjectName).resolver"
+				AdditionalDependencies="curllib.lib"
+				OutputFile="..\release\bin\$(ProjectName).exe"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="../../lib"
+				AdditionalLibraryDirectories="../release/lib"
 				GenerateDebugInformation="true"
-				SubSystem="2"
+				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="1"
@@ -183,37 +183,49 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\..\resolvers\boffin\boffin.cpp"
+				RelativePath="..\..\resolvers\boffin\BoffinDb.cpp"
 				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\boffin\BoffinDb.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\boffin\ResultSet.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\boffin\RqlOpProcessor.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\boffin\RqlOpProcessorTagCloud.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\..\resolvers\boffin\SimilarArtists.cpp"
-				>
-			</File>
-			<Filter
-				Name="parser"
-				>
-				<File
-					RelativePath="..\..\..\resolvers\boffin\parser\parser.cpp"
+				<FileConfiguration
+					Name="Debug|Win32"
 					>
-				</File>
-			</Filter>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\resolvers\boffin\Tagger.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"

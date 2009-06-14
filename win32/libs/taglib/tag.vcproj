@@ -81,14 +81,14 @@
 				Name="VCLinkerTool"
 				AdditionalOptions=" /STACK:10000000 /machine:I386 /debug"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  "
-				OutputFile="..\..\bin\tagd.dll"
+				OutputFile="..\..\debug\bin\tag.dll"
 				Version="1.5"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories=""
 				GenerateManifest="true"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile="Debug\tagd.pdb"
-				ImportLibrary="..\..\lib\tagd.lib"
+				ImportLibrary="..\..\debug\lib\tag.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -180,13 +180,13 @@
 				Name="VCLinkerTool"
 				AdditionalOptions=" /STACK:10000000 /machine:I386"
 				AdditionalDependencies="$(NOINHERIT) kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib  "
-				OutputFile="..\..\bin\tag.dll"
+				OutputFile="..\..\release\bin\tag.dll"
 				Version="1.5"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories=""
 				GenerateManifest="true"
 				ProgramDatabaseFile="Release\tagd.pdb"
-				ImportLibrary="..\..\lib\tag.lib"
+				ImportLibrary="..\..\release\lib\tag.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"

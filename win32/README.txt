@@ -1,1 +1,1 @@
-First open and compile the solution in win32_libs (release and/or debug), then you can compile the one in playdar!
+There is one solution (playdar.sln) which contains all the projects with the correct dependencies set
