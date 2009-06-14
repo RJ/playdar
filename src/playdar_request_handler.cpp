@@ -716,7 +716,6 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
     cout << "-> " << ss->debug() << endl;
 
     boost::shared_ptr<HttpAsyncAdaptor> hp(new HttpAsyncAdaptor(rep.shared_from_this()));
-//    AsyncAdaptor_ptr ap(hp);
     ss->start_reply(hp);
 }
 
@@ -732,8 +731,10 @@ playdar_request_handler::serve_dynamic( moost::http::reply& rep,
     if(ifs.fail())
     {
         cerr << "FAIL" << endl;
+        rep.stock_reply(moost::http::reply::not_found);
         return;
     }
+
     typedef std::pair<string,string> pair_t;
     ostringstream os;
     string line;
