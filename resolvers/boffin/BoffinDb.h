@@ -137,7 +137,9 @@ public:
         }
         return count;
     }
-    
+
+    boost::tuple<int, int> summary();
+
     sqlite3pp::database& db()
     {
         return m_db;

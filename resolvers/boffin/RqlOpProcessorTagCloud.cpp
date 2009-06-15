@@ -15,28 +15,11 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-/***************************************************************************
- *   Copyright 2007-2009 Last.fm Ltd.                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.         *
- ***************************************************************************/
 
 
 #include "RqlOpProcessorTagCloud.h"
 #include "parser/enums.h"
+#include "parser/parser.h"
 #include "../local/library.h"
 #include "SimilarArtists.h"
 #include <boost/bind.hpp>
@@ -46,7 +29,40 @@ using namespace std;
 using namespace fm::last::query_parser;
 
 
-RqlOpProcessorTagCloud::RqlOpProcessorTagCloud(RqlOpProcessorTagCloud::Iterator begin, RqlOpProcessorTagCloud::Iterator end, BoffinDb& library, SimilarArtists& similarArtists)
+static RqlOp root2op( const querynode_data& node )
+{
+   RqlOp op;
+   op.isRoot = true;
+   op.name = node.name;
+   op.type = node.type;
+   op.weight = node.weight;
+
+   return op;
+}
+
+
+static RqlOp leaf2op( const querynode_data& node )
+{
+   RqlOp op;
+   op.isRoot = false;
+
+   if ( node.ID < 0 )
+      op.name = node.name;
+   else
+   {
+      ostringstream oss;
+      oss << '<' << node.ID << '>';
+      op.name = oss.str();
+   }
+   op.type = node.type;
+   op.weight = node.weight;
+
+   return op;
+}
+
+
+
+RqlDbProcessor::RqlDbProcessor(RqlDbProcessor::Iterator begin, RqlDbProcessor::Iterator end, BoffinDb& library, SimilarArtists& similarArtists)
     : m_library(library)
     , m_similarArtists(similarArtists)
     , m_it(begin)
@@ -55,7 +71,7 @@ RqlOpProcessorTagCloud::RqlOpProcessorTagCloud(RqlOpProcessorTagCloud::Iterator 
 }
 
 void 
-RqlOpProcessorTagCloud::next()
+RqlDbProcessor::next()
 {
     if (++m_it == m_end) {
         // how could the parser do this to us?
@@ -79,7 +95,7 @@ string_join(const string& a, const string& b, const string& separator)
 // build up a big query by componding select statements like.
 // appends parameters to params
 string 
-RqlOpProcessorTagCloud::process(Params &params)
+RqlDbProcessor::process(Params &params)
 {
     if (m_it->isRoot) {
         // note the operator type, then move on and get the operands
@@ -129,7 +145,7 @@ RqlOpProcessorTagCloud::process(Params &params)
 
 
 string
-RqlOpProcessorTagCloud::globalTag(Params& params)
+RqlDbProcessor::globalTag(Params& params)
 {
     params.push_back(m_it->name);
     return 
@@ -139,62 +155,70 @@ RqlOpProcessorTagCloud::globalTag(Params& params)
 }
 
 string
-RqlOpProcessorTagCloud::userTag(Params& params)
+RqlDbProcessor::userTag(Params& params)
 {
     // todo: we have no user tags yet
     return globalTag(params);
 }
 
 string
-RqlOpProcessorTagCloud::artist(Params& params)
+RqlDbProcessor::artist(Params& params)
 {
     // todo
     return "";
 }
 
 string
-RqlOpProcessorTagCloud::similarArtist(Params& params)
+RqlDbProcessor::similarArtist(Params& params)
 {
     // todo
     return "";
 }
 
-// static
-RqlOpProcessorTagCloud::TagCloudVecP
-RqlOpProcessorTagCloud::process(RqlOpProcessorTagCloud::Iterator begin, 
-                                RqlOpProcessorTagCloud::Iterator end, 
-                                BoffinDb& library, 
-                                SimilarArtists& similarArtists)
+//static 
+RqlDbProcessor::QueryPtr
+RqlDbProcessor::parseAndProcess(
+    const std::string& rql, 
+    const std::string& query1, const std::string& query2,
+    BoffinDb& library, SimilarArtists& similarArtists)
+{
+    parser p;
+    if (!p.parse(rql)) {
+        throw std::runtime_error("rql parse error");
+    }
+
+    std::vector<RqlOp> ops;
+    p.getOperations<RqlOp>(
+        boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
+        &root2op, 
+        &leaf2op);
+    return process(
+        ops.begin(), ops.end(), 
+        query1, query2,
+        library, similarArtists);
+}
+
+//static 
+RqlDbProcessor::QueryPtr 
+RqlDbProcessor::process(
+    Iterator begin, Iterator end, 
+    const std::string& query1, const std::string& query2, 
+    BoffinDb& library, SimilarArtists& similarArtists)
 {
     Params params;
+    string sql = 
+        query1 + " WHERE track_tag.track IN (" + 
+        RqlDbProcessor(begin, end, library, similarArtists).process(params) + 
+        ") " + query2;
 
-    string queryString(
-    "SELECT name, sum(weight), count(weight), sum(pd.file.duration) "
-    "FROM track_tag "
-    "INNER JOIN tag ON track_tag.tag = tag.rowid "
-    "INNER JOIN pd.file_join ON track_tag.tag = pd.file_join.track "
-    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id "
-    "WHERE track_tag.track "
-    "IN (" + 
-    RqlOpProcessorTagCloud(begin, end, library, similarArtists).process(params) + 
-    ") GROUP BY tag.rowid");
+    //cout << sql << endl;
 
-    //cout << queryString << endl;
-
-    sqlite3pp::query qry(library.db(), queryString.data());
+    QueryPtr qry(new sqlite3pp::query(library.db(), sql.data()));
     int i = 1;
     BOOST_FOREACH(const string& s, params) {
-        qry.bind(i, s.data());
+        qry->bind(i, s.data());
         i++;
     }
-
-    TagCloudVecP p( new BoffinDb::TagCloudVec() );
-    float maxWeight = 0;
-    for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-        p->push_back( i->get_columns<string, float, int, int>(0, 1, 2, 3) );
-        maxWeight = max( maxWeight, p->back().get<1>() );
-    }
-
-    return p;
+    return qry;
 }
 

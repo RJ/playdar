@@ -114,13 +114,19 @@ BoffinDb::get_tag_cloud(int limit /* = 0 */)
         maxWeight = max( maxWeight, p->back().get<1>() );
     }
     
-    //if (maxWeight > 0) {
-    //    for( TagCloudVec::iterator i = p->begin(); i != p->end(); ++i ) {
-    //        i->get<1>() = i->get<1>() / maxWeight;
-    //    }
-    //}
-    
     return p;
+}
+
+// returns a tuple of: the count of files, total duration
+boost::tuple<int, int>
+BoffinDb::summary()
+{
+    sqlite3pp::query qry(m_db, "SELECT count(duration), sum(duration) FROM pd.file");
+    sqlite3pp::query::iterator i = qry.begin();
+    if (i != qry.end()) {
+        return i->get_columns<int, int>(0, 1);
+    }
+    return boost::tuple<int, int>(-1, -1);
 }
 
 void
