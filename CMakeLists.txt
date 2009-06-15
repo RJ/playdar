@@ -27,7 +27,7 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
-                    /home/rj/src/libf2f/include # TODO hack
+                    # /home/rj/src/libf2f/include # TODO hack
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
@@ -43,7 +43,7 @@ INCLUDE_DIRECTORIES(
 
 # Always check local/lib first:
 LINK_DIRECTORIES(   /usr/local/lib 
-                    /home/rj/src/libf2f/lib # TODO hack
+                    # /home/rj/src/libf2f/lib # TODO hack
                 ) 
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
