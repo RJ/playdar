@@ -195,11 +195,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\resolvers\boffin\RqlOpProcessor.cpp"
+				RelativePath="..\..\..\resolvers\boffin\RqlDbProcessor.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\resolvers\boffin\RqlOpProcessorTagCloud.cpp"
+				RelativePath="..\..\..\resolvers\boffin\RqlOpProcessor.cpp"
 				>
 			</File>
 			<File

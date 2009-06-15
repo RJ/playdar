@@ -17,7 +17,7 @@
 */
 
 
-#include "RqlOpProcessorTagCloud.h"
+#include "RqlDbProcessor.h"
 #include "parser/enums.h"
 #include "parser/parser.h"
 #include "../local/library.h"

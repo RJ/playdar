@@ -21,7 +21,7 @@
 #include "boffin.h"
 #include "BoffinDb.h"
 #include "RqlOpProcessor.h"
-#include "RqlOpProcessorTagCloud.h"
+#include "RqlDbProcessor.h"
 #include "RqlOp.h"
 #include "BoffinSample.h"
 #include "SampleAccumulator.h"

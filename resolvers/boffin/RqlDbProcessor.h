@@ -16,8 +16,8 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef RQL_OP_PROCESSOR_TAG_CLOUD_H
-#define RQL_OP_PROCESSOR_TAG_CLOUD_H
+#ifndef RQL_DB_PROCESSOR_H
+#define RQL_DB_PROCESSOR_H
  
 #include <list>
 #include <vector>
