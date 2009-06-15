@@ -169,10 +169,12 @@ RqlOpProcessorTagCloud::process(RqlOpProcessorTagCloud::Iterator begin,
     Params params;
 
     string queryString(
-    "SELECT name, sum(weight), count(weight) "
+    "SELECT name, sum(weight), count(weight), sum(pd.file.duration) "
     "FROM track_tag "
     "INNER JOIN tag ON track_tag.tag = tag.rowid "
-    "WHERE track "
+    "INNER JOIN pd.file_join ON track_tag.tag = pd.file_join.track "
+    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id "
+    "WHERE track_tag.track "
     "IN (" + 
     RqlOpProcessorTagCloud(begin, end, library, similarArtists).process(params) + 
     ") GROUP BY tag.rowid");
@@ -189,7 +191,7 @@ RqlOpProcessorTagCloud::process(RqlOpProcessorTagCloud::Iterator begin,
     TagCloudVecP p( new BoffinDb::TagCloudVec() );
     float maxWeight = 0;
     for(sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i) {
-        p->push_back( i->get_columns<string, float, int>(0, 1, 2) );
+        p->push_back( i->get_columns<string, float, int, int>(0, 1, 2, 3) );
         maxWeight = max( maxWeight, p->back().get<1>() );
     }
 

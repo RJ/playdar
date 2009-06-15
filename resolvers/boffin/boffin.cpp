@@ -76,14 +76,19 @@ using namespace playdar;
 namespace TagCloudItem
 {
 
-    static ri_ptr createTagCloudItem(const std::string& name, float weight, int trackCount, const std::string& source)
+    static ri_ptr createTagCloudItem(
+        const std::string& name, 
+        float weight, 
+        int tracks, 
+        int seconds,
+        const std::string& source)
     {
         ri_ptr rip( new ResolvedItem );
         rip->set_json_value( "name", name );
         rip->set_json_value( "weight", weight );
-        rip->set_json_value( "count", trackCount );
+        rip->set_json_value( "count", tracks );
+        rip->set_json_value( "seconds", seconds );
         rip->set_json_value( "source", source );
-
         return rip;
     }
 
@@ -205,9 +210,14 @@ boffin::start_resolving(boost::shared_ptr<ResolverQuery> rq)
 
 static
 ri_ptr 
-makeTagCloudItem(const boost::tuple<std::string, float, int>& in, const std::string& source)
+makeTagCloudItem(const boost::tuple<std::string, float, int, int>& in, const std::string& source)
 {
-    return TagCloudItem::createTagCloudItem(in.get<0>(), in.get<1>(), in.get<2>(), source);
+    return TagCloudItem::createTagCloudItem(
+        in.get<0>(), 
+        in.get<1>(), 
+        in.get<2>(), 
+        in.get<3>(), 
+        source);
 }
 
 
