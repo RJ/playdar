@@ -5,7 +5,7 @@ ADD_LIBRARY( boffin SHARED
              SimilarArtists.cpp
              parser/parser.cpp 
              RqlOpProcessor.cpp 
-             RqlOpProcessorTagCloud.cpp
+             RqlDbProcessor.cpp
              ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
              ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_writer.cpp             
              )
