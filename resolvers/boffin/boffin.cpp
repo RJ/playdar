@@ -292,7 +292,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 tv = m_db->get_tag_cloud();
             } else {
                 tv = shared_ptr< BoffinDb::TagCloudVec >( new BoffinDb::TagCloudVec );
-                RqlDbProcessor::parseAndProcess(
+                bool ok = RqlDbProcessor::parseAndProcess(
                     rql, 
                     "SELECT name, sum(weight), count(weight), sum(pd.file.duration) "
                     "FROM track_tag "
@@ -303,6 +303,9 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                     "GROUP BY tag.rowid",
                     *m_db, *m_sa,
                     boost::bind(&query_to_tagvec, tv, _1));
+                if (!ok) {
+                    cout << "Boffin rql parse error: " << rql << endl;
+                } 
             }
             cout << "Boffin retrieved tagcloud..";
         }
@@ -332,7 +335,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
             if (rql == "*") {
                 summary = m_db->summary();
             } else {
-                RqlDbProcessor::parseAndProcess(
+                bool ok = RqlDbProcessor::parseAndProcess(
                     rql, 
                     "SELECT count(pd.file.duration), sum(pd.file.duration) "
                     "FROM pd.file_join "
@@ -341,8 +344,10 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                     "",
                     *m_db, *m_sa,
                     boost::bind(&query_to_summary, boost::ref(summary), _1));
+                if (!ok) {
+                    cout << "Boffin rql parse error: " << rql << endl;
+                } 
             }
-            cout << "Boffin retrieved summary..";
         }
 
         if (summary.get<0>() != -1) {

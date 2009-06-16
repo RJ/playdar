@@ -42,9 +42,9 @@ public:
     typedef std::vector<RqlOp>::const_iterator Iterator;
     typedef boost::function<void(sqlite3pp::query&)> Callback;
 
-    // throws runtime_error on parsing problem
+    // returns false on parsing problem
     static 
-    void 
+    bool 
     parseAndProcess(
         const std::string& rql, 
         const std::string& query1, const std::string& query2,

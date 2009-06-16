@@ -176,7 +176,7 @@ RqlDbProcessor::similarArtist(Params& params)
 }
 
 //static 
-void
+bool
 RqlDbProcessor::parseAndProcess(
     const std::string& rql, 
     const std::string& query1, const std::string& query2,
@@ -185,7 +185,7 @@ RqlDbProcessor::parseAndProcess(
 {
     parser p;
     if (!p.parse(rql)) {
-        throw std::runtime_error("rql parse error");
+        return false;
     }
 
     std::vector<RqlOp> ops;
@@ -197,6 +197,7 @@ RqlDbProcessor::parseAndProcess(
         ops.begin(), ops.end(), 
         query1, query2,
         library, similarArtists, cb);
+    return true;
 }
 
 //static 
