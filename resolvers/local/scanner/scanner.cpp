@@ -50,6 +50,7 @@ Library *gLibrary;
 
 int scanned, skipped, ignored = 0;
 
+#if 0   //deadcode
 string url_encode( const string& p )
 {
     // url encode everything between '/' character
@@ -67,6 +68,7 @@ string url_encode( const string& p )
     }
     return ret;
 }
+#endif
 
 string urlify(const string& p)
 {
