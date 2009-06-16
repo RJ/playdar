@@ -32,31 +32,32 @@ class SimilarArtists;
 // tracks extracted using an RQL query
 //
 // Provide two query strings such that this makes sense:
-//      query1 + " WHERE track_tag.track IN ( ) " + query2
+//      query1 + " (SELECT trackid... ) " + query2
 //
-// RqlDbProcessor fills in the track ids from the RQL
-// and returns a query
+// RqlDbProcessor callsback with the sqlite3pp query object
 //
 class RqlDbProcessor
 {
 public:
     typedef std::vector<RqlOp>::const_iterator Iterator;
-    typedef boost::shared_ptr<sqlite3pp::query> QueryPtr;
+    typedef boost::function<void(sqlite3pp::query&)> Callback;
 
     // throws runtime_error on parsing problem
     static 
-    QueryPtr 
+    void 
     parseAndProcess(
         const std::string& rql, 
         const std::string& query1, const std::string& query2,
-        BoffinDb& library, SimilarArtists& similarArtists);
+        BoffinDb& library, SimilarArtists& similarArtists,
+        Callback cb);
 
     static 
-    QueryPtr 
+    void
     process(
         Iterator begin, Iterator end, 
         const std::string& query1, const std::string& query2, 
-        BoffinDb& library, SimilarArtists& similarArtists);
+        BoffinDb& library, SimilarArtists& similarArtists,
+        Callback cb);
 
 private:
     typedef std::list<std::string> Params;

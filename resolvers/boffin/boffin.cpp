@@ -221,6 +221,21 @@ makeTagCloudItem(const boost::tuple<std::string, float, int, int>& in, const std
         source);
 }
 
+static
+void
+query_to_tagvec(boost::shared_ptr< BoffinDb::TagCloudVec > tv, sqlite3pp::query& qry)
+{
+    for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); i++) {
+        tv->push_back( i->get_columns<string, float, int, int>(0, 1, 2, 3) );
+    }
+}
+
+static
+void
+query_to_summary(boost::tuple<int, int>& summary, sqlite3pp::query& qry)
+{
+    summary = qry.begin()->get_columns<int, int>(0, 1);
+}
 
 void
 boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
@@ -277,18 +292,17 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                 tv = m_db->get_tag_cloud();
             } else {
                 tv = shared_ptr< BoffinDb::TagCloudVec >( new BoffinDb::TagCloudVec );
-                RqlDbProcessor::QueryPtr qry = RqlDbProcessor::parseAndProcess(
+                RqlDbProcessor::parseAndProcess(
                     rql, 
                     "SELECT name, sum(weight), count(weight), sum(pd.file.duration) "
                     "FROM track_tag "
                     "INNER JOIN tag ON track_tag.tag = tag.rowid "
                     "INNER JOIN pd.file_join ON track_tag.tag = pd.file_join.track "
-                    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id ",
+                    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id "
+                    "WHERE track_tag.track IN ",
                     "GROUP BY tag.rowid",
-                    *m_db, *m_sa);
-                for (sqlite3pp::query::iterator i = qry->begin(); i != qry->end(); i++) {
-                    tv->push_back( i->get_columns<string, float, int, int>(0, 1, 2, 3) );
-                }
+                    *m_db, *m_sa,
+                    boost::bind(&query_to_tagvec, tv, _1));
             }
             cout << "Boffin retrieved tagcloud..";
         }
@@ -312,24 +326,21 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
     } else if (rq->param_exists("boffin_summary") && rq->param_type("boffin_summary") == json_spirit::str_type) {
         string rql( rq->param("boffin_summary").get_str() );
 
-        boost::tuple<int, int> summary(-1, -1);
+        boost::tuple<int, int> summary(-1, -1);     // numer of files, total duration
         {
             boost::progress_timer t;
             if (rql == "*") {
                 summary = m_db->summary();
             } else {
-                RqlDbProcessor::QueryPtr qry = RqlDbProcessor::parseAndProcess(
+                RqlDbProcessor::parseAndProcess(
                     rql, 
                     "SELECT count(pd.file.duration), sum(pd.file.duration) "
-                    "FROM track_tag "
-                    "INNER JOIN tag ON track_tag.tag = tag.rowid "
-                    "INNER JOIN pd.file_join ON track_tag.tag = pd.file_join.track "
-                    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id ",
+                    "FROM pd.file_join "
+                    "INNER JOIN pd.file ON pd.file_join.file = pd.file.id "
+                    "WHERE pd.file_join.track IN ",
                     "",
-                    *m_db, *m_sa);
-                if (qry->begin() != qry->end()) {
-                    summary = qry->begin()->get_columns<int, int>(0, 1);
-                }
+                    *m_db, *m_sa,
+                    boost::bind(&query_to_summary, boost::ref(summary), _1));
             }
             cout << "Boffin retrieved summary..";
         }

@@ -176,11 +176,12 @@ RqlDbProcessor::similarArtist(Params& params)
 }
 
 //static 
-RqlDbProcessor::QueryPtr
+void
 RqlDbProcessor::parseAndProcess(
     const std::string& rql, 
     const std::string& query1, const std::string& query2,
-    BoffinDb& library, SimilarArtists& similarArtists)
+    BoffinDb& library, SimilarArtists& similarArtists,
+    RqlDbProcessor::Callback cb)
 {
     parser p;
     if (!p.parse(rql)) {
@@ -192,33 +193,32 @@ RqlDbProcessor::parseAndProcess(
         boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
         &root2op, 
         &leaf2op);
-    return process(
+    process(
         ops.begin(), ops.end(), 
         query1, query2,
-        library, similarArtists);
+        library, similarArtists, cb);
 }
 
 //static 
-RqlDbProcessor::QueryPtr 
+void
 RqlDbProcessor::process(
     Iterator begin, Iterator end, 
     const std::string& query1, const std::string& query2, 
-    BoffinDb& library, SimilarArtists& similarArtists)
+    BoffinDb& library, SimilarArtists& similarArtists,
+    RqlDbProcessor::Callback cb)
 {
     Params params;
     string sql = 
-        query1 + " WHERE track_tag.track IN (" + 
+        query1 + " (" + 
         RqlDbProcessor(begin, end, library, similarArtists).process(params) + 
         ") " + query2;
-
-    //cout << sql << endl;
-
-    QueryPtr qry(new sqlite3pp::query(library.db(), sql.data()));
+//    cout << sql << endl;  // debug
+    sqlite3pp::query qry(library.db(), sql.data());
     int i = 1;
     BOOST_FOREACH(const string& s, params) {
-        qry->bind(i, s.data());
+        qry.bind(i, s.data());
         i++;
     }
-    return qry;
+    cb(qry);
 }
 
