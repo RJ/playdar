@@ -297,7 +297,7 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
                     "SELECT name, sum(weight), count(weight), sum(pd.file.duration) "
                     "FROM track_tag "
                     "INNER JOIN tag ON track_tag.tag = tag.rowid "
-                    "INNER JOIN pd.file_join ON track_tag.tag = pd.file_join.track "
+                    "INNER JOIN pd.file_join ON track_tag.track = pd.file_join.track "
                     "INNER JOIN pd.file ON pd.file_join.file = pd.file.id "
                     "WHERE track_tag.track IN ",
                     "GROUP BY tag.rowid",
