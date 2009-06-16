@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
         BoffinDb db(argv[2], argv[1]);
             
         // build up the request:
-        db.map_files_without_tags(track_out);
+        db.map_tracks_without_tags(track_out);
         ossreq.flush();
         issreq = new istringstream(ossreq.str());
 

@@ -49,10 +49,10 @@ public:
 
     // for each track without tags, call f(track_id, artist_sortname, album_sortname, track_sortname)
     template<typename Functor>
-    void map_files_without_tags(Functor f)
+    void map_tracks_without_tags(Functor f)
     {
         sqlite3pp::query qry(m_db, 
-            "SELECT pd.file_join.track, pd.artist.sortname, pd.album.sortname, pd.track.sortname FROM pd.file_join "
+            "SELECT DISTINCT pd.file_join.track, pd.artist.sortname, pd.album.sortname, pd.track.sortname FROM pd.file_join "
             "INNER JOIN pd.artist ON pd.file_join.artist = pd.artist.id "
             "LEFT JOIN pd.album ON pd.file_join.album = pd.album.id "
             "INNER JOIN pd.track ON pd.file_join.track = pd.track.id "
