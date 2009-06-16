@@ -225,9 +225,9 @@ makeTagCloudItem(const boost::tuple<std::string, float, int, int>& in, const std
 void
 boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
 {
-    if (rq->param_exists("boffin_rql") && rq->param_type("boffin_rql") == json_spirit::str_type) {
+    if (rq->param_exists("boffin_tracks") && rq->param_type("boffin_tracks") == json_spirit::str_type) {
         parser p;
-        if (p.parse(rq->param("boffin_rql").get_str())) {
+        if (p.parse(rq->param("boffin_tracks").get_str())) {
             std::vector<RqlOp> ops;
             p.getOperations<RqlOp>(
                 boost::bind(&std::vector<RqlOp>::push_back, boost::ref(ops), _1),
@@ -264,11 +264,11 @@ boffin::resolve(boost::shared_ptr<ResolverQuery> rq)
         } 
         parseFail(p.getErrorLine(), p.getErrorOffset());
      
-    } else if (rq->param_exists("boffin_tracks") && rq->param_type("boffin_tracks") == json_spirit::str_type) {
+    } else if (rq->param_exists("boffin_tags") && rq->param_type("boffin_tags") == json_spirit::str_type) {
         typedef std::pair< json_spirit::Object, ss_ptr > result_pair;
         using namespace boost;
 
-        string rql( rq->param("boffin_tracks").get_str() );
+        string rql( rq->param("boffin_tags").get_str() );
 
         shared_ptr< BoffinDb::TagCloudVec > tv;
         {
@@ -371,7 +371,7 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     }
 
     const char* operation;
-    if (req.parts()[1] == "tagcloud") {
+    if (req.parts()[1] == "tags") {
         operation = "boffin_tags";
     } else if (req.parts()[1] == "tracks") {
         operation = "boffin_tracks";
