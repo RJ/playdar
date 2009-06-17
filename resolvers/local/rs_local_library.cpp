@@ -173,6 +173,7 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
     return candidates;
 }
 
+// todo: set content-encoding
 bool
 local::authed_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& pauth) 
 { 
@@ -215,7 +216,6 @@ local::authed_http_handler(const playdar_request& req, playdar_response& resp, p
     } else {
         return false;
     }
-
 
     string retval;
     if( req.getvar_exists( "jsonp" ))
