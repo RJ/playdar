@@ -44,7 +44,6 @@ private:
     playdar::auth * m_pauth;    
 
     std::string sid_to_url(source_uid sid); 
-    void handle_json_query(std::string query, const moost::http::request& req, moost::http::reply& rep);
     void handle_rest_api( const playdar_request& req, moost::http::reply& rep, std::string permissions);
 
     void serve_body(const class playdar_response&, moost::http::reply& rep);

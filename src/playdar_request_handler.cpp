@@ -623,7 +623,7 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     }
     
     string artist   = req.parts()[1];
-    string album    = req.parts()[2].length()?req.parts()[2]:"";
+    string album    = req.parts()[2];
     string track    = req.parts()[3];
     boost::shared_ptr<ResolverQuery> rq = TrackRQBuilder::build(artist, album, track);
     rq->set_from_name(app()->conf()->name());
@@ -648,27 +648,6 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     url += results[0]->id();
     rep.set_status( moost::http::reply::moved_temporarily );
     rep.add_header( "Location", url );
-    rep.write_finish();
-}
-
-void 
-playdar_request_handler::handle_json_query(string query, const moost::http::request& req, moost::http::reply& rep)
-{
-    using namespace json_spirit;
-    cout << "Handling JSON query:" << endl << query << endl;
-    Value jval;
-
-    // what is this loop?
-    do
-    {
-        if(!read( query, jval )) break;
-        
-        return;
-        
-    } while(false);
-    
-    cerr << "Failed to parse JSON" << endl;
-    rep.write_content("error");
     rep.write_finish();
 }
 
