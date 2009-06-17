@@ -91,7 +91,6 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
     if( tokenizer.begin() != tokenizer.end())
         base = *tokenizer.begin();
 
-//     
     boost::to_lower(base);
     HandlerMap::iterator handler = m_urlHandlers.find( base );
     if( handler != m_urlHandlers.end())
@@ -111,9 +110,11 @@ void
 playdar_request_handler::handle_auth1( const playdar_request& req,
                                        moost::http::reply& rep)
 {
-    if( !req.getvar_exists("website") ||
-        !req.getvar_exists("name") )
-                return;
+    if( !req.getvar_exists("website") || !req.getvar_exists("name") )
+    {
+        rep.stock_reply(moost::http::reply::bad_request);
+        return;
+    }
 
     string ftoken = app()->resolver()->gen_uuid();
     m_pauth->add_formtoken( ftoken );
@@ -128,16 +129,15 @@ playdar_request_handler::handle_auth1( const playdar_request& req,
         rep.write_finish();
     } else {
         // webpage response
-        // todo: check this for html escapes?
         map<string, string> vars;
         vars["<%URL%>"]="";
         if(req.getvar_exists("receiverurl"))
         {
-            vars["<%URL%>"] = req.getvar("receiverurl");
+            vars["<%URL%>"] = htmlentities(req.getvar("receiverurl"));
         }
-        vars["<%FORMTOKEN%>"]=ftoken;
-        vars["<%WEBSITE%>"]=req.getvar("website");
-        vars["<%NAME%>"]=req.getvar("name");
+        vars["<%FORMTOKEN%>"]=ftoken;   // ours. it's clean.
+        vars["<%WEBSITE%>"]=htmlentities(req.getvar("website"));
+        vars["<%NAME%>"]=htmlentities(req.getvar("name"));
         string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.html");
         serve_dynamic(rep, filename, vars);
     }
@@ -160,8 +160,7 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
     {
         string tok = app()->resolver()->gen_uuid(); 
         m_pauth->create_new(tok, req.postvar("website"), req.postvar("name"), req.useragent() );
-        if( !req.postvar_exists("receiverurl") ||
-            req.postvar("receiverurl")=="" )
+        if( !req.postvar_exists("receiverurl") || req.postvar("receiverurl")=="" )
         {
             if (req.postvar_exists("json")) {
                 // json response
@@ -173,26 +172,29 @@ playdar_request_handler::handle_auth2( const playdar_request& req, moost::http::
                 rep.write_finish();
             } else {
                 // webpage response
-                // todo: check this for html escapes
                 map<string,string> vars;
-                vars["<%WEBSITE%>"]=req.postvar("website");
-                vars["<%NAME%>"]=req.postvar("name");
-                vars["<%AUTHCODE%>"]=tok;
+                vars["<%WEBSITE%>"]=htmlentities(req.postvar("website"));
+                vars["<%NAME%>"]=htmlentities(req.postvar("name"));
+                vars["<%AUTHCODE%>"]=tok;   // token is ours, it's clean.
                 string filename = app()->conf()->get(string("www_root"), string("www")).append("/static/auth.na.html");
                 serve_dynamic(rep, filename, vars);
             }
         }
         else
         {
-            // todo: sanitise receiverurl. protect against header injection?!
-            ostringstream os;
             const string& recvurl = req.postvar( "receiverurl" );
-            os  << recvurl
-            << ( recvurl.find( "?" ) == string::npos ? "?" : "&" )
-            << "authtoken=" << tok
-            << "#" << tok;
-            rep.add_header( "Location", os.str() );
-            rep.stock_reply(moost::http::reply::moved_permanently);
+            if (recvurl.find_first_of("\r\n") == string::npos) {
+                // receiverurl is clean enough
+                ostringstream os;
+                os  << recvurl
+                << ( recvurl.find( "?" ) == string::npos ? "?" : "&" )
+                << "authtoken=" << tok
+                << "#" << tok;
+                rep.add_header( "Location", os.str() );
+                rep.stock_reply(moost::http::reply::moved_permanently);
+            } else {
+                rep.stock_reply(moost::http::reply::bad_request);
+            }
         }
     }
     else
