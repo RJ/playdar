@@ -62,7 +62,8 @@ public:
     bool authed_http_handler(const playdar_request& req, playdar_response&, playdar::auth& pauth);
     bool anon_http_handler(const playdar_request&, playdar_response&, playdar::auth& );
     
-    json_spirit::Object get_capabilities() const;
+    // from ResolverService:
+    virtual json_spirit::Value capabilities() const;
 
 protected:
 

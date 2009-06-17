@@ -253,8 +253,9 @@ local::anon_http_handler(const playdar_request& req, playdar_response& resp, pla
    return false; 
 }
 
-json_spirit::Object 
-local::get_capabilities() const
+//value
+json_spirit::Value
+local::capabilities() const
 {
     json_spirit::Object o;
     o.push_back( json_spirit::Pair( "plugin", name() ));

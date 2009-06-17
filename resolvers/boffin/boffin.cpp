@@ -436,8 +436,9 @@ boffin::authed_http_handler(const playdar_request& req, playdar_response& resp, 
     return true;
 }
 
-json_spirit::Object 
-boffin::get_capabilities() const
+// virtual
+json_spirit::Value
+boffin::capabilities() const
 {
     json_spirit::Object o;
     o.push_back( json_spirit::Pair( "plugin", name() ));
