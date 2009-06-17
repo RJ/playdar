@@ -39,7 +39,31 @@ public:
     {
         init( s.c_str(), isBody );
     }
+
+    void add_header( const std::string& k, const std::string& v, bool replace = true )
+    {
+        if( replace || m_headers.find(k) == m_headers.end() )
+            m_headers[k] = v;
+    }
+
+    void set_response_code( const int code ) 
+    {
+        m_responseCode = code;
+    }
     
+    operator const std::string &() const
+    { 
+        return m_string;
+    }
+    
+    const std::string& str() const{ return m_string; }
+
+    int response_code() const{ return m_responseCode; }
+    const std::map<std::string,std::string>& headers() const{ return m_headers; }
+
+    bool is_valid(){ return m_valid; }
+    
+private:
     void init( const char* s, bool isBody )
     {
         add_header( "Content-Type", "text/html" );
@@ -76,30 +100,6 @@ public:
         m_string = r.str();
     }
 
-    void add_header( const std::string& k, const std::string& v, bool replace = true )
-    {
-        if( replace || m_headers.find(k) == m_headers.end() )
-            m_headers[k] = v;
-    }
-
-    void set_response_code( const int code ) 
-    {
-        m_responseCode = code;
-    }
-    
-    operator const std::string &() const
-    { 
-        return m_string;
-    }
-    
-    const std::string& str() const{ return m_string; }
-
-    int response_code() const{ return m_responseCode; }
-    const std::map<std::string,std::string>& headers() const{ return m_headers; }
-
-    bool is_valid(){ return m_valid; }
-    
-private:
     std::string m_string;
     std::map<std::string,std::string> m_headers;
     int m_responseCode;
