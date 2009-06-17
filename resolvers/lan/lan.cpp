@@ -20,6 +20,7 @@
 
 #include "playdar/resolver_query.hpp"
 #include "playdar/playdar_request.h"
+#include "playdar/utils/htmlentities.hpp"
 
 #include <ctime>
 
@@ -29,7 +30,11 @@ using namespace json_spirit;
 using namespace json_spirit;
 
 namespace playdar {
+
+using namespace utils;
+
 namespace resolvers {
+
 
 bool
 lan::init(pa_ptr pap)
@@ -472,7 +477,6 @@ lan::receive_pang(map<string,Value> & om,
     m_lannodes.erase(from_name);
 }
 
-
 bool endsWith(const std::string& s, const std::string& tail)
 {
     const std::string::size_type slen = s.length(), tlen = tail.length();
@@ -507,18 +511,17 @@ lan::anon_http_handler(const playdar_request& req, playdar_response& resp, playd
 
     ostringstream os;
     os  << "<h2>LAN</h2>"
-        << "<p>Detected nodes:"
-        << "<table>" 
-        << "<tr style=\"font-weight:bold;\">"
-        << "<td>Name</td> <td>Address</td> <td>Seconds since last ping</td>"
-        << "</td>"
-        << endl;
+        "<p>Detected nodes:"
+        "<table>" 
+        "<tr style=\"font-weight:bold;\">"
+        "<td>Name</td> <td>Address</td> <td>Seconds since last ping</td>"
+        "</td>" << endl;
     BOOST_FOREACH( const LanPair& p, m_lannodes )
     {
-        os  << "<tr><td>" << p.first << "</td>"
-            << "<td><a href=\"" << p.second.http_base << "/\">"<< p.second.http_base <<"</a></td>"
-            << "<td>" << (now - p.second.lastdate) << "</td>"
-            << "</tr>" << endl;
+        os  << "<tr><td>" << htmlentities(p.first) << "</td>"
+            "<td><a href=\"" << htmlentities(p.second.http_base) << "/\">"<< htmlentities(p.second.http_base) <<"</a></td>"
+            "<td>" << (now - p.second.lastdate) << "</td>"
+            "</tr>" << endl;
     }
     os  << "</ul></p>" << endl;
     
