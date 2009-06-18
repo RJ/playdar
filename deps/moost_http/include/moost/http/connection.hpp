@@ -121,9 +121,14 @@ void connection<RequestHandler>::handle_read( const boost::system::error_code& e
 
     try {
         if ( result )
-           request_handler_.handle_request_base(request_, *reply_);
+        {
+            request_.origin = socket_.remote_endpoint().address().to_string();
+            request_handler_.handle_request_base(request_, *reply_);
+        }
         else if ( !result )
+        {
            reply_->stock_reply(reply::bad_request);
+        }
     } catch (std::runtime_error& e) {
         std::cerr << "caught: " << e.what();
         int i = 0;
