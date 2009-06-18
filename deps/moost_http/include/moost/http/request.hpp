@@ -19,7 +19,8 @@ struct request
   int http_version_minor;
   std::vector<header> headers;
   std::string content; // the content (body) of the request
-
+  std::string origin; // ip address of client
+  
   std::vector<header>::iterator find_header(const std::string & header_name)
   {
     std::vector<header>::iterator result;

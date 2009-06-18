@@ -84,7 +84,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 {
     //TODO: Handle % encodings
     
-    cout << "HTTP " << req.method << " " << req.uri << endl;
+    cout << "HTTP " << req.method << " " << req.uri << " " << req.origin << endl;
+    if( req.origin != "127.0.0.1" && req.uri.substr(0,5) != "/sid/" )
+    {
+        cout << "BLOCKED. Only localhost may access non /sid/ urls." << endl;
+        rep.stock_reply(moost::http::reply::unauthorized);
+        return;
+    }
     
     boost::tokenizer<boost::char_separator<char> > tokenizer(req.uri, boost::char_separator<char>("/?"));
     string base;
