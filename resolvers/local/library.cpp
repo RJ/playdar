@@ -539,7 +539,7 @@ Library::get_field(string table, int id, string field)
 }
 
 
-// replace whitespace with ' ' and replace multiple whitespace with single
+// replace whitespace and other control codes with ' ' and replace multiple spaces with single
 static
 string 
 fixspaces(const string& s)
@@ -548,7 +548,7 @@ fixspaces(const string& s)
     bool prevWasSpace = false;
     r.reserve(s.length());
     for (string::const_iterator i = s.begin(); i != s.end(); i++) {
-        if (*i > 0 && isspace(*i)) {
+        if (*i > 0 && *i <= ' ') {
             if (!prevWasSpace) {
                 r += ' ';
                 prevWasSpace = true;
