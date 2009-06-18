@@ -53,7 +53,7 @@ playdar_request_handler::init(MyApplication * app)
 {
     m_disableAuth = app->conf()->get<bool>( "disableauth", false );
     cout << "HTTP handler online." << endl;
-    m_pauth = new playdar::auth(app->conf()->get<string>( "db", "" ));
+    m_pauth = new playdar::auth(app->conf()->get<string>( "authdb", "" ));
     m_app = app;
     // built-in handlers:
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );

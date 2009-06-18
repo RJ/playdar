@@ -83,6 +83,7 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
                 ${SRC}/main.cpp
+		${SRC}/auth.cpp
 
                 # json parser:
                 ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  

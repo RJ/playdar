@@ -76,18 +76,6 @@ CREATE TABLE IF NOT EXISTS file_join (
 );
 CREATE INDEX file_join_track ON file_join(track);
 
--- HTTP Authentication 
-
-DROP TABLE IF EXISTS playdar_auth;
-CREATE TABLE IF NOT EXISTS playdar_auth (
-    token TEXT NOT NULL PRIMARY KEY,
-    website TEXT NOT NULL,
-    name TEXT NOT NULL,
-    ua TEXT NOT NULL,
-    mtime INTEGER NOT NULL,
-    permissions TEXT NOT NULL
-);
-
 -- Schema version, and misc playdar settings
 
 CREATE TABLE IF NOT EXISTS playdar_system (
