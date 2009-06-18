@@ -13,7 +13,7 @@
 
 #include "playdar/resolver_query.hpp"
 #include "playdar/playdar_request.h"
-#include "playdar/auth.hpp"
+#include "playdar/auth.h"
 
 #include "servent.h"
 #include "ss_darknet.h"

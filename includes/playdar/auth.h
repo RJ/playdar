@@ -16,8 +16,8 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef _PLAYDAR_AUTH_HPP_
-#define _PLAYDAR_AUTH_HPP_
+#ifndef _PLAYDAR_AUTH_H_
+#define _PLAYDAR_AUTH_H_
 
 #include <map>
 #include <string>

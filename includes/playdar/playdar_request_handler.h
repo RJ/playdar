@@ -26,7 +26,7 @@
 #include <moost/http.hpp>
 
 #include "playdar/application.h"
-#include "playdar/auth.hpp"
+#include "playdar/auth.h"
 
 namespace playdar {
 

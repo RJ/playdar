@@ -19,7 +19,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
-#include "playdar/auth.hpp"
+#include "playdar/auth.h"
 #include "auth_sql.h"
 
 namespace playdar {
