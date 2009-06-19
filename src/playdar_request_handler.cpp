@@ -370,17 +370,15 @@ playdar_request_handler::handle_settings( const playdar_request& req,
     {
         ostringstream os;
         os  << "<h2>Configuration</h2>"
-            << "<p>"
-            << "Config options are stored as a JSON object in the file: "
-            << "<code>" << htmlentities(app()->conf()->filename()) << "</code>"
-            << "</p>"
-            << "<p>"
-            << "The contents of the file are shown below, to edit it use "
-            << "your favourite text editor."
-            << "</p>"
-            << "<pre>"
-            << htmlentities(app()->conf()->str())
-            << "</pre>"
+            "<p>"
+            "Config options are stored as a JSON object in the file: "
+            "<code>" << htmlentities(app()->conf()->filename()) << "</code>"
+            "</p>"
+            "<p>"
+            "The contents of the file are shown below, to edit it use "
+            "your favourite text editor."
+            "</p>"
+            "<pre>" << htmlentities(app()->conf()->str()) << "</pre>"
             ;
         serve_body(os.str(), rep);
     }
@@ -388,28 +386,43 @@ playdar_request_handler::handle_settings( const playdar_request& req,
     {
         ostringstream os;
         os  << "<h2>Authenticated Sites</h2>";
-        typedef map<string,string> auth_t;
-        if( req.getvar_exists("revoke"))
+
+        if (req.getvar_exists("revoke"))
         {
             m_pauth->deauth(req.getvar("revoke"));
+
+            if (req.getvar_exists("jsonp")) 
+            {
+                // handle the entire jsonp response right here:
+                string content = req.getvar("jsonp") + "();\n";
+                rep.set_status(moost::http::reply::ok);
+                rep.add_header("Content-Type", "text/javascript; charset=utf-8");
+                rep.add_header("Content-Length", content.size());
+                rep.write_content(content);
+                rep.write_finish();
+                return;
+            } 
+
             os  << "<p style=\"font-weight:bold;\">"
-                << "You have revoked access for auth-token: "
+                "You have revoked access for auth-token: "
                 << htmlentities(req.getvar("revoke"))
                 << "</p>";
         }
+
+        typedef map<string,string> auth_t;
         vector< auth_t > v = m_pauth->get_all_authed();
         os  << "<p>"
-            << "The first time a site requests access to your Playdar, "
-            << "you'll have a chance to allow/deny it. You can see the list "
-            << "of authenticated sites here, and delete any if necessary."
-            << "</p>"
-            << "<table style=\"width:95%\">"
-            <<  "<tr style=\"font-weight:bold;\">"
-            <<   "<td>Name</td>"
-            <<   "<td>Website</td>"
-            <<   "<td>Auth Code / User-Agent</td>"
-            <<   "<td>Options</td>"
-            <<  "</tr>"
+            "The first time a site requests access to your Playdar, "
+            "you'll have a chance to allow/deny it. You can see the list "
+            "of authenticated sites here, and delete any if necessary."
+            "</p>"
+            "<table style=\"width:95%\">"
+               "<tr style=\"font-weight:bold;\">"
+               "<td>Name</td>"
+               "<td>Website</td>"
+               "<td>Auth Code / User-Agent</td>"
+               "<td>Options</td>"
+              "</tr>"
             << endl;
         int i = 0;
         string formtoken = app()->resolver()->gen_uuid();
@@ -417,20 +430,21 @@ playdar_request_handler::handle_settings( const playdar_request& req,
         BOOST_FOREACH( auth_t &m, v )
         {
             os  << "<tr style=\"background-color:" << ((i++%2==0)?"#ccc":"") << ";\">"
-                <<  "<td>" << htmlentities(m["name"]) << "</td>"
-                <<  "<td>" << htmlentities(m["website"]) << "</td>"
-                <<  "<td>" << htmlentities(m["token"]) << "<br/><small>"
-                <<  htmlentities(m["ua"]) << "</small></td>"
-                <<  "<td><a href=\"/settings/auth/?revoke="  
-                << htmlentities(m["token"]) <<"\">Revoke</a>"
-                <<  "</td>"
-                << "</tr>";
+                "<td>" << htmlentities(m["name"]) << "</td>"
+                "<td>" << htmlentities(m["website"]) << "</td>"
+                "<td>" << htmlentities(m["token"]) << "<br/><small>"
+                << htmlentities(m["ua"]) << "</small></td>"
+                "<td><a href=\"/settings/auth/?revoke="  
+                << htmlentities(m["token"]) << "\">Revoke</a>"
+                "</td>"
+                "</tr>";
         }
         os  << "</table>" << endl;
+
         serve_body( os.str(), rep );
     }
     else
-        rep.stock_reply(moost::http::reply::not_found);
+        rep.stock_reply(moost::http::reply::bad_request);
 }
 
 string 
