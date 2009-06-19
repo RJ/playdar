@@ -205,10 +205,12 @@ bool add_file(const Path& p, int mtime)
                             tag->track() );
 
         // fixspaces ensures the field separation doesn't get messed up
+        // this output is all for display purposes, so munged control-codes are ok
         cout << "TRACK:\t" 
              << fixspaces(artist) << "\t" 
              << fixspaces(album)  << "\t" 
-             << fixspaces(track)  << endl;
+             << fixspaces(track)  << "\t"
+             << fixspaces(toUtf8(p.string())) << endl;
 
         scanned++;
         return true;
