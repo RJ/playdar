@@ -8,38 +8,26 @@ Playdar also builds on Mac OS X (intel) using gcc + stuff from macports.
 
 Linux Dependencies
 ------------------
-Assuming debian/ubuntu. Otherwise find similarly named packages:
+Assuming ubuntu 9.04 (Otherwise find similarly named packages)
+NB: You need boost libs version 1.35 or higher.
+In a nutshell:
 
-1) sudo apt-get install \
-    sqlite3 libsqlite3-dev \
-    cmake \
-    libtag1-dev \
-    libossp-uuid-dev libossp-uuid15
+ # Your build environment:
+ sudo apt-get install git-core cmake build-essential
 
-    NB: "libossp-uuid" is different to "libuuid" in debian. 
-        make sure you install the correct uuid package.
+ # Boost libs:
+ sudo apt-get install libboost-thread1.37.0 libboost-system1.37.0 libboost-program-options1.37.0 libboost-regex1.37.0 libboost-filesystem1.37.0 libboost-date-time1.37.0
 
-2) Need boost, but also boost::asio, which was only added to boost "recently".
-   If your distro has >= boost 1.35 then install all the 1.35 boost packages
-   you can find, including -dev versions, and it will work. Deb/Lenny has it.
+ # Boost headers:
+ sudo apt-get install libboost-program-options1.37-dev libboost-regex1.37-dev libboost-system1.37-dev libboost-thread1.37-dev libboost1.37-dev
 
-   If your distro boost packages are < 1.35:
-   Build boost from source. It's easy, but can take ~45mins to build. 
-   See boost.org for latest version.
-   NB: check the --layout option to configure, i missed this and it left 
-       -gcc43-mt in the filenames, I ended up fixing it manually like this:
-       $ cd /usr/local/lib
-       $ for f in `ls libboo*-gcc43-mt.so`; do L=`echo $f \
-         | sed 's/-gcc43-mt//'`; echo $L; ln -s $f $L; done
+ # Needed by playdar core:
+ sudo apt-get install sqlite3 libsqlite3-dev libtag1-dev libcurl3 libcurl4-gnutls-dev
 
-  In Ubuntu 8.10 (intrepid) you can do this:
+ # Needed by playdar audioscrobbler plugin:
+ sudo apt-get install libxml2 libxml2-dev libssl-dev
 
-  sudo apt-get install libboost-thread1.35-dev libboost-thread1.35.0 \
-   libboost-system1.35-dev libboost-system1.35.0 libboost-regex1.35-dev \
-   libboost-regex1.35.0 libboost-program-options1.35.0 \
-   libboost-program-options1.35-dev libboost-iostreams1.35.0 \
-   libboost-iostreams1.35-dev libboost-filesystem1.35.0 \
-   libboost-filesystem1.35-dev doxygen
+
 
 Mac Dependencies
 ----------------
@@ -47,7 +35,7 @@ Using Leopard MacPorts:
 
     sudo port selfupdate
     sudo port upgrade installed
-    sudo port install cmake boost ossp-uuid taglib
+    sudo port install cmake boost taglib
 
 
 Windows Dependenceies
@@ -61,43 +49,42 @@ Compile it:
 If you've installed something in non-standard locations, look in CMakeLists.txt
 at the include/library paths and make changes if need be.
 
- $ cd playdar-daemon
+NB: if you are using linux x86_64 read the notes near the top of CMakeLists.txt
+
+ $ cd playdar
  $ cd build
  $ cmake ..
 
-Build the daemon with built-in local library resolver:
+Build the main app and the core plugins:
 
- $ make playdar
+ $ make
 
-Build the other plugins:
+Change back to the playdar top level dir:
 
- $ make lan_udp
- $ make gateway_script  # NB: requires boost >=1.37
- $ make darknet
-
-Or to just build everything at once:
-
- $ make 
+ $ cd ..
 
 First Run and Scanning
 ----------------------
-Make the empty database:
+Run the scanner to index your music and create the database:
 
- $ sqlite3 ./collection.db < etc/schema.sql
-
-Now run the scanner to index your music:
-
- $ ./scanner ./collection.db /your/mp3/dir
+ $ ./bin/scanner ./collection.db /your/mp3/dir
 
 
 Running Playdar
 ---------------
 Edit etc/playdar.conf and specify your name etc.
-Run playdar from the playdar-daemon directory: 
+Run playdar from the top level playdar directory: 
 
     $ ./bin/playdar -c ./etc/playdar.conf
 
 Now hit up: http://localhost:8888/ to check it's running.
-Make JSON requests yourself, go to /stats, or more importantly:
 
-Check out www.playdar.org for the latest demo interface.
+Check out www.playdar.org for the latest demo interface to test it' working
+or try playlick.com for a playlist app.
+
+Help / Troubleshooting
+----------------------
+IRC: #playdar on irc.freenode.net
+Email: www.playdar.org has a link to our mailing list
+
+
