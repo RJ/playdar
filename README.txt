@@ -1,6 +1,6 @@
-Playdar is a music content resolver, and set of music-related services upon
-which you can build cool services, especially web apps that can take advantage
-of your local music collection.
+Playdar is a music content resolver, and consistent API for accessing music
+from a variety of sources. Applications and web apps can use playdar to find,
+play and organise music you have access to.
 
 See http://www.playdar.org/ for more information and demos.
 
