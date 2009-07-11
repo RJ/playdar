@@ -46,10 +46,10 @@ namespace resolvers {
 class lan : public ResolverPlugin<lan>
 {
     public:
-    lan(): socket_( 0 ),
-           broadcast_endpoint_( 0 ){}
+    lan(): socket_( 0 ){}
     
     virtual bool init(pa_ptr pap);
+    void setup_endpoints();
 
     void run();
     void start_resolving(boost::shared_ptr<ResolverQuery> rq);
@@ -98,12 +98,18 @@ private:
                       size_t bytes_recvd,
                       char * scratch );
 
+    void async_send( const std::string& message ); 
     void async_send( boost::asio::ip::udp::endpoint * remote_endpoint,
-                     std::string message );
+                     const std::string& message );
 
     boost::asio::ip::udp::socket * socket_;
     boost::asio::ip::udp::endpoint sender_endpoint_;
-    boost::asio::ip::udp::endpoint * broadcast_endpoint_;
+    //boost::asio::ip::udp::endpoint * broadcast_endpoint_;
+    
+    // list of UDP endpoints to send queries to
+    // typically this just contains the multicast address
+    std::vector<boost::asio::ip::udp::endpoint*> m_endpoints;
+    
     enum { max_length = 1024 };
     char data_[max_length];
     

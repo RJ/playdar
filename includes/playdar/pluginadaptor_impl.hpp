@@ -72,6 +72,11 @@ public:
         return m_config->name();
     }
     
+    virtual json_spirit::Value get_json(const std::string& key) const
+    {
+        return m_config->get_json(key);
+    }
+    
     virtual json_spirit::Value getstring(const std::string& key, const std::string& def) const
     {
         // TODO

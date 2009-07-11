@@ -24,6 +24,9 @@
 
 #include <ctime>
 
+/// port used for binding the udp endpoints only (nothing to do with tcp/http):
+#define DEFAULT_LAN_PORT 8888
+
 using namespace std;
 using namespace json_spirit;
 
@@ -40,13 +43,12 @@ bool
 lan::init(pa_ptr pap)
 {
     m_pap = pap;
-    broadcast_endpoint_ = 
-        new boost::asio::ip::udp::endpoint
-         (  boost::asio::ip::address::from_string
-            ("239.255.0.1"),
-            8888 );
-            //(pap->get<string> ("plugins.lan.multicast", "")), 
-            // pap->get("plugins.lan.port", 0) );
+    setup_endpoints();
+    if( m_endpoints.size() == 0 )
+    {
+        cerr << "LAN: Error, no valid endpoints configured" << endl;
+        return false;
+    }
 
     m_responder_thread.reset( new boost::thread(boost::bind(&lan::run, this)) );
     return true;
@@ -65,8 +67,62 @@ lan::~lan() throw()
     if( socket_ )
         delete(socket_);
     
-    if( broadcast_endpoint_ )
-        delete(broadcast_endpoint_);
+    //if( broadcast_endpoint_ )
+    //    delete(broadcast_endpoint_);
+}
+
+/// decide what udp endpoints queries will be sent to.
+/// if nothing is specified, just use the default multicast
+/// otherwise send to everything in the list from the config file
+void
+lan::setup_endpoints()
+{
+    Value endpoints = m_pap->get_json("plugins.lan.endpoints");
+    if( endpoints == Value::null || endpoints.type() != array_type )
+    {
+        // nothing specified, default is just the multicast address:
+        m_endpoints.push_back( 
+            new boost::asio::ip::udp::endpoint
+            (  boost::asio::ip::address::from_string
+               ("239.255.0.1"), DEFAULT_LAN_PORT )
+        );
+        cout << "LAN plugin using default multicast address of 239.255.0.1" << endl;
+    }
+    else // manual config of endpoints:
+    {
+        vector<Value> eps = endpoints.get_array();
+        BOOST_FOREACH( Value v, eps )
+        {
+            unsigned short port = DEFAULT_LAN_PORT;
+            string ip;
+            if( v.type() == str_type )
+            {
+                ip = v.get_str();
+            } 
+            else if( v.type() != array_type )
+            {
+                continue;
+            }
+            else
+            {
+                vector<Value> pairv = v.get_array();
+                if( pairv.size() == 0 ) continue;
+                if( pairv[0].type() != str_type ) continue;
+                // set port, if specified in the array:
+                if( pairv.size() > 1 && pairv[1].type() == int_type )
+                    port = pairv[1].get_int();
+                ip = pairv[0].get_str();
+            }
+            // add new endpoint to the vector:    
+            try
+            {
+                m_endpoints.push_back( 
+                 new boost::asio::ip::udp::endpoint(
+                 boost::asio::ip::address::from_string( ip ), port ) );    
+            }catch(...){}
+        }
+        cout << "LAN plugin has " << m_endpoints.size() << " endpoints configured." << endl;
+    }
 }
 
 void
@@ -76,7 +132,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
     //cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
-    async_send(broadcast_endpoint_, querystr.str());
+    async_send(querystr.str());
 }
 
 void 
@@ -140,9 +196,20 @@ lan::start_listening(boost::asio::io_service& io_service,
                 
 }
 
+/// send to all configured endpoints:
+void 
+lan::async_send( const string& message )
+{
+    BOOST_FOREACH( boost::asio::ip::udp::endpoint * ep, m_endpoints )
+    {
+        async_send( ep, message ); 
+    }
+}
+
+/// send to specific endpoints:
 void 
 lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
-                       string message)                       
+                       const string& message)                       
 {
     if(message.length()>max_length)
     {
@@ -360,7 +427,7 @@ lan::send_ping()
     jq.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
     ostringstream os;
     write_formatted( jq, os );
-    async_send(broadcast_endpoint_, os.str());
+    async_send(os.str());
 }
 
 /// pong reply back to specific user
@@ -389,7 +456,7 @@ lan::send_pang()
     o.push_back( Pair("from_name", m_pap->hostname()) );
     ostringstream os;
     write_formatted( o, os );
-    async_send(broadcast_endpoint_, os.str());
+    async_send(os.str());
 }
 
 void
