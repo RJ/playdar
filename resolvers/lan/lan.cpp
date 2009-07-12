@@ -26,6 +26,7 @@
 
 /// port used for binding the udp endpoints only (nothing to do with tcp/http):
 #define DEFAULT_LAN_PORT 8888
+#define DEFAULT_LAN_ENDPOINT "239.255.0.1"
 
 using namespace std;
 using namespace json_spirit;
@@ -84,9 +85,9 @@ lan::setup_endpoints()
         m_endpoints.push_back( 
             new boost::asio::ip::udp::endpoint
             (  boost::asio::ip::address::from_string
-               ("239.255.0.1"), DEFAULT_LAN_PORT )
+               (DEFAULT_LAN_ENDPOINT), DEFAULT_LAN_PORT )
         );
-        cout << "LAN plugin using default multicast address of 239.255.0.1" << endl;
+        cout << "LAN plugin using default multicast address of " << DEFAULT_LAN_ENDPOINT << endl;
     }
     else // manual config of endpoints:
     {
@@ -154,15 +155,14 @@ void
 lan::run()
 {
     m_io_service.reset( new boost::asio::io_service );
+    // it's very rare that you'd need to manually specify the listen port+ip:
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    ("239.255.0.1"),
-                    8888 );
-                    //(m_pap->get<string>("plugins.lan.multicast", "")), 
-                    // m_pap->get<int>("plugins.lan.port", 0)); 
+                    ( m_pap->get<string>("plugins.lan.listenip", DEFAULT_LAN_ENDPOINT) ),
+                    m_pap->get<int>("plugins.lan.listenport", DEFAULT_LAN_PORT) ); 
     
-    cout << "DL UDP Resolver is online udp://" 
+    cout << "LAN Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
          << socket_->local_endpoint().port()
          << endl;
@@ -424,7 +424,7 @@ lan::send_ping()
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
     jq.push_back( Pair("from_name", m_pap->hostname()) );
-    jq.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
+    jq.push_back( Pair("http_port", m_pap->get("http_port", 8888)) ); //TODO get from config?
     ostringstream os;
     write_formatted( jq, os );
     async_send(os.str());
@@ -439,7 +439,7 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
     o.push_back( Pair("from_name", m_pap->hostname()) );
-    o.push_back( Pair("http_port", 8888/*m_pap->get("http_port", 8888)*/) );
+    o.push_back( Pair("http_port", m_pap->get("http_port", 8888)) );//TODO get from config?
     ostringstream os;
     write_formatted( o, os );
     async_send( &sender_endpoint, os.str() );
