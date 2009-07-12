@@ -1,8 +1,11 @@
-ScrobSub 2
-==========
-A cross-platform plain-c library that allows you to submit scrobbles to Last.fm
-using the official Audioscrobbler application, or if that isn't installed,
-independently.
+ScrobSub
+========
+A cross-platform plain-c library that allows you to submit scrobbles to
+Last.fm using the official Audioscrobbler application, or if that isn't
+installed, independently.
+
+The license is BSD, so use it in commercial or open source software as you see
+fit.
 
 Max Howell <max@last.fm>
 
@@ -13,21 +16,50 @@ This does not compile to a dynamic library. You need to compile it into your
 application. Indeed, (on Linux) this is duplication, but it's a very small
 amount of code, and we provide many options for which libraries it uses.
 
-You need to compile in scrobsub.c and some of the implementation files. You
-can pick and choose from the portable/ directory. Or for instance use 
-cocoa/scrobsub.m, although the Cocoa implementation requires a Cocoa run loop.
+scrosub.c does the actual scrobbling, however it depends on a number of 
+platform specific scrobsub_* functions. If you like you can write your own (if
+perhaps you'd contribute them to the project?), however we provide default
+implementations for all major platforms:
 
-So pick whichever suits you, or write a new one (there's only a few functions to
-reimplement) and submit it.
+Linux
+-----
+gcc -std=c99 scrobsub.c auth-libxml2 http-curl md5.c relay.c -lcrypto -lxml2 -lcurl
 
-You also will need to define a number of preprocessor constants:
+OS X
+----
+Tiger and above are shipped with all the required libraries from the Linux
+example so you can use those. This is preferable if you don't run a Cocoa 
+event loop. If you do though, we provide a Cocoa implementation:
+
+gcc scrobsub.c scrobsub.m md5.c relay.c -FCocoa
+
+Windows
+-------
+cl /TP scrobsub.c scrobsub-winsock.c md5.c relay.c
+
+Note that scrobsub.c is C99, and Visual Studio still isn't compliant, so you
+need to compile with the /TP switch; this compiles the files as though they
+are C++. You can still link to the C-runtime though.
+
+All platforms
+-------------
+You need to define a number of preprocessor constants:
 
 SCROBSUB_CLIENT_VERSION
 SCROBSUB_CLIENT_ID
 SCROBSUB_API_KEY
 SCROBSUB_SHARED_SECRET
 
-What these represent should be apparent once you have read: http://last.fm/api
+What these represent should be apparent after reading: http://last.fm/api
+
+Relay only
+----------
+If you have already built a scrobbling solution and want to stick with it then
+you may consider only compiling in the relay code. At program start call
+scrobsub_launch_audioscrobbler(), if that function returns false use your own
+code otherwise use the scrobsub_relay functions. The rationale for this is
+that if the user has installed the official client then they probably would
+like you to use it.
 
 
 Practical concerns
@@ -37,3 +69,10 @@ them, you will need to call these functions in a separate thread. Or you can
 rely on the user installing the official Last.fm Audioscrobbler application:
 
 #define SCROBSUB_ALWAYS_RELAY 1
+
+
+Development Notes
+=================
+Efficiency in memory consumption was prioritised because we want to be as 
+little a burden to other software as possible. As a result the code is 
+quite unreadable. Sorry about that.

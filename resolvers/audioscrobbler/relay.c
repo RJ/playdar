@@ -1,27 +1,40 @@
-/***************************************************************************
- *   Copyright 2005-2009 Last.fm Ltd.                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Steet, Fifth Floor, Boston, MA  02110-1301, USA.          *
- ***************************************************************************/
+/*
+   Copyright 2009 Last.fm Ltd.
 
-// Created by Max Howell <max@last.fm>
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
 
+   1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+
+   THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+   IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+   OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+   IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY DIRECT, INDIRECT,
+   INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+   NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
+   THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   
+   This file was originally created by Max Howell <max@last.fm>
+*/
 #include "scrobsub.h"
 #if __APPLE__
 #include <ApplicationServices/ApplicationServices.h>
+#endif
+
+#if __APPLE__
+bool scrobsub_fsref(FSRef* fsref)
+{
+    OSStatus err = LSFindApplicationForInfo(kLSUnknownCreator, CFSTR("fm.last.Audioscrobbler"), NULL, fsref, NULL);
+    return err != kLSApplicationNotFoundErr;
+}
 #endif
 
 /** returns false if Audioscrobbler is not installed */
@@ -29,8 +42,7 @@ bool scrobsub_launch_audioscrobbler()
 {
 #if __APPLE__
     FSRef fsref;
-    OSStatus err = LSFindApplicationForInfo(kLSUnknownCreator, CFSTR("fm.last.Audioscrobbler"), NULL, &fsref, NULL);
-    if (err == kLSApplicationNotFoundErr) 
+    if (!scrobsub_fsref(&fsref))
         return false;
     
     LSApplicationParameters p = {0};
@@ -38,15 +50,14 @@ bool scrobsub_launch_audioscrobbler()
     p.application = &fsref;
     LSOpenApplication( &p, NULL ); //won't launch if already running
     return true; //TODO if failed to launch we should log it
-#else
-    return false;
 #endif
 }
 
 #if __APPLE__
 static void script(const char* cmd)
 {
-    char a[] = "osascript -e 'tell application \"Audioscrobbler\" to ";
+    // the $ allows us to escape single quotes inside a single quoted string
+    char a[] = "osascript -e $'tell application \"Audioscrobbler\" to ";
     char b[sizeof(a)+strlen(cmd)+2];
     strcpy(b, a);
     strcat(b, cmd);
@@ -63,18 +74,40 @@ void scrobsub_relay(int state)
     }
 }
 
-void scrobsub_relay_start(const char* artist, const char* title, int duration)
+static inline uint strcat_escape_quotes(char* dst, char* src)
 {
-    #define FORMAT "start \""SCROBSUB_CLIENT_ID"\" with \"%s\" by \"%s\" duration %d"
-    char s[sizeof(FORMAT)+strlen(artist)+strlen(title)];
-    snprintf(s, sizeof(s), FORMAT, title, artist, duration);
-    script(s);
+    // get to the end of the dst string first
+    while(*dst)
+        dst++;
+    
+    char* c;
+    while(c = *src++){
+        if(c == '\'' || c == '"')
+            *dst++ = '\\';
+        *dst++ = c;
+    }
+    *dst = '\0';
 }
 
-#else
-void scrobsub_relay(int state)
-{}
+void scrobsub_relay_start(const char* artist, const char* title, int durationi)
+{    
+    #define START "start \"" SCROBSUB_CLIENT_ID "\" with \""
+    #define BY "\" by \""
+    #define DURATION "\" duration %d   " //strlen("%d")+3 = 5 digits, thus up to 99,999 seconds
 
-void scrobsub_relay_start(const char* artist, const char* title, int duration)
-{}
+    const uint N = sizeof(START BY DURATION) +
+                   strlen(artist)*2 + // double the length of maybe-quoted strings
+                   strlen(title)*2;
+    char s[N];
+    strcpy(s, START);
+    strcat_escape_quotes(s, title);
+    strcat(s, BY);
+    strcat_escape_quotes(s, artist);
+    
+    char durations[] = DURATION;
+    snprintf(durations, sizeof(durations), DURATION, durationi);
+    strcat(s, durations);
+
+    script(s);
+}
 #endif //__APPLE__

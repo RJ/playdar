@@ -4,10 +4,10 @@ IF(NOT WIN32)
     ADD_LIBRARY( audioscrobbler SHARED audioscrobbler_plugin.cpp
                                        scrobsub.c
                                        relay.c
-                                       portable/auth-libxml2.c
-                                       portable/http-curl.c
-                                       portable/md5.c
-                                       portable/persistence-simple.c )
+                                       auth-libxml2.c
+                                       http-curl.c
+                                       md5.c
+                                       persistence-simple.c )
 
     ADD_DEFINITIONS( -w -std=c99
                      -DSCROBSUB_SHARED_SECRET="e800f85bb46beeca0af4175724e97b2e"
