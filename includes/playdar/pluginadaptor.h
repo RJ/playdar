@@ -48,7 +48,7 @@ public:
     
     template <typename T>
     inline T get(const std::string& key, const T& def) const;
-
+    virtual json_spirit::Value get_json(const std::string& key) const = 0;
     // results are a vector of json result objects
     virtual bool report_results(const query_uid& qid, const std::vector< json_spirit::Object >&) = 0;
 

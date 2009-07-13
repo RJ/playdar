@@ -67,6 +67,8 @@ public:
     template <typename T>
     T get(std::string k, T def) const;
 
+
+
     // NOT WORKING YET
     template <typename T>
     bool set(std::string k, T def);
@@ -97,6 +99,33 @@ public:
 
     std::string filename() 
     { return m_filename; }
+    
+    /// gets json Value for a given key
+    json_spirit::Value get_json(std::string k) const
+    {
+        json_spirit::Value def;
+        
+        std::vector<std::string> toks;
+        boost::split(toks, k, boost::is_any_of("."));
+        json_spirit::Value val = m_mainval;
+        std::map<std::string, json_spirit::Value> mp;
+        unsigned int i = 0;
+        //cout << "getting: " << k << " size: " << toks.size() << endl;
+        do
+        {
+            if(val.type() != json_spirit::obj_type) return def;
+            json_spirit::obj_to_map(val.get_obj(), mp);
+            if( mp.find(toks[i]) == mp.end() )
+            {
+                //cerr << "1 Can't find " << toks[i] << endl;
+                return def;
+            }
+            //cout << "Got " << toks[i] << endl;
+            val = mp[toks[i]];
+        }
+        while(++i < toks.size());
+        return val;
+    }
 
 private:
    
@@ -132,6 +161,9 @@ T Config::get(std::string k, T def) const
     while(++i < toks.size());
     return val.get_value<T>();
 }
+
+
+
 
 template <typename T>
 bool Config::set(std::string k, T def) 
