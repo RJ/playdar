@@ -75,7 +75,9 @@ static void start(const playdar_request& rq)
 static string config(bool auth_required)
 {
     if (!auth_required || scrobsub_finish_auth())
-        return "<p>Playdar is authorized to <a href='http://www.last.fm/help/faq?category=Scrobbling'>scrobble</a>. "
+        return "<p>Playdar is authorized to "
+               "<a href='http://www.last.fm/help/faq?category=Scrobbling'>scrobble</a> "
+               "as "+string(scrobsub_username)+". "
                "To revoke, visit <a href='http://www.last.fm/settings/applications'>Last.fm</a>.</p>";
     
     char url[110];
