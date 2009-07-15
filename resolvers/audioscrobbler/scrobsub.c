@@ -125,12 +125,13 @@ static char* escape(const char* in)
     const char hexnumbers[] = "0123456789ABCDEF"; 
     #define toHexHelper(c) hexnumbers[(c) & 0xf]
     
-    int const n = strlen(in);
+    int const n = strlen(in); 
+    int const nn = n*3 + 1;
 #if SCROBSUB_NO_C99
     // we only use alloca on Windows as its use is discouraged on BSD
-    char* outs = (char*)alloca(n);
+    char* outs = (char*)alloca(nn);
 #else
-    char outs[n*3];
+    char outs[nn];
 #endif
     
     char* out = outs;
