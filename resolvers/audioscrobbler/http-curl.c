@@ -37,7 +37,7 @@ static size_t curl_writer(void* in, size_t size, size_t N, void* out)
     size_t x;
     N *= size;
     for(x=0; x<N; ++x){
-        if (n-- <= 0) break;
+        if (++n == 255) break;
         *(char*)out++ = *(char*)in++;
     }
     
@@ -46,7 +46,7 @@ static size_t curl_writer(void* in, size_t size, size_t N, void* out)
 
 void scrobsub_get(char response[256], const char* url)
 {
-    n = 256;
+    n = 0;
     
     CURL* h = curl_easy_init(); //TODO may return NULL
     curl_easy_setopt(h, CURLOPT_URL, url);
@@ -55,15 +55,20 @@ void scrobsub_get(char response[256], const char* url)
     CURLcode result = curl_easy_perform(h);
     curl_easy_cleanup(h);
     
-    response[255-n] = '\0'; // curl_writer won't null terminate
+    response[n] = '\0'; // curl_writer won't null terminate
 }
 
 void scrobsub_post(char response[256], const char* url, const char* post_data)
-{   
+{
+    n = 0;
+
     CURL* h = curl_easy_init(); //TODO may return NULL
     curl_easy_setopt(h, CURLOPT_POSTFIELDS, post_data);
     curl_easy_setopt(h, CURLOPT_URL, url);
+    curl_easy_setopt(h, CURLOPT_WRITEFUNCTION, curl_writer);
+    curl_easy_setopt(h, CURLOPT_WRITEDATA, response);
     curl_easy_perform(h);
     curl_easy_cleanup(h);
-    strcpy(response, "OK\n"); //TODO
+
+    response[n] = '\0'; // curl_writer won't null terminate
 }
