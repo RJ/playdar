@@ -230,23 +230,22 @@ static void submit()
     char post_data[n];
 #endif
     
-    n = snprintf(post_data, n,
-                     "s=%s"
-                 "&a[0]=%s"
-                 "&t[0]=%s"
-                 "&b[0]=%s"
-                 "&l[0]=%d"
-                 "&n[0]=%d"
-                 "&m[0]=%s"
-                 "&i[0]=%d"
-                 "&o[0]=%c"
-                 "&r[0]=%c",
-                 session_id, artist, track, album, duration, track_number, mbid, start_time, 'P', rating);
-    
-    for (int x=0; x<2; ++x){    
+    for(int x=0; x<2; ++x){
+        n = snprintf(post_data, n,
+                         "s=%s"
+                     "&a[0]=%s"
+                     "&t[0]=%s"
+                     "&b[0]=%s"
+                     "&l[0]=%d"
+                     "&n[0]=%d"
+                     "&m[0]=%s"
+                     "&i[0]=%d"
+                     "&o[0]=%c"
+                     "&r[0]=%c",
+                     session_id, artist, track, album, duration, track_number, mbid, start_time, 'P', rating);
         char response[128];
         scrobsub_post(response, submit_url, post_data);
-        
+
         if(ok(response)) break;
         printf("E: %s: %s%s", __FUNCTION__, response, post_data);
         if(strcmp(response, "BADSESSION\n") != 0) break;
@@ -291,13 +290,7 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
     scrobsub_change_metadata(_artist, _track, _album);
     start_time = now();
     pause_time = 0;
-    
-    //TODO, don't emit np if user is skipping fast, then you need a timer
-    //    static time_t previous_np = 0;
-    //    time_t time = now();
-    //    if(time - previous_np < 4)
-    //NOTE I pushed this into our GUIs, maybe that is all that matters
-    
+
     //TODO don't submit track number if 0
 
     #define POST_DATA_LENGTH 32+4+2+N+2+6*3
@@ -306,23 +299,22 @@ void scrobsub_start(const char* _artist, const char* _track, unsigned int _durat
 #else
     char post_data[POST_DATA_LENGTH];
 #endif    
-    snprintf(post_data, sizeof(post_data),
-                           "s=%s"
-                          "&a=%s"
-                          "&t=%s"
-                          "&b=%s"
-                          "&l=%d"
-                          "&n=%d"
-                          "&m=%s",
-                          session_id,
-                          artist,
-                          track,
-                          album,
-                          duration,
-                          track_number,
-                          mbid);
-    
     for(int x = 0; x < 2; ++x){
+        snprintf(post_data, sizeof(post_data),
+                               "s=%s"
+                              "&a=%s"
+                              "&t=%s"
+                              "&b=%s"
+                              "&l=%d"
+                              "&n=%d"
+                              "&m=%s",
+                              session_id,
+                              artist,
+                              track,
+                              album,
+                              duration,
+                              track_number,
+                              mbid);
         char response[256];
         scrobsub_post(response, np_url, post_data);
         if(ok(response))
