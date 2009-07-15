@@ -59,7 +59,8 @@ bool scrobsub_retrieve_credentials()
     FILE* fp = fopen_session_file("r");
     if(!fp) return false;
     scrobsub_session_key = malloc(33);
-    fread(scrobsub_session_key, sizeof(char), 32, fp);
+    size_t r = fread(scrobsub_session_key, sizeof(char), 32, fp);
+    if(r!=32) {scrobsub_session_key = 0; return false;}
     fseek(fp, 0, SEEK_END);
     long n = ftell(fp)-32; //determine length of username
     fseek(fp, 32, SEEK_SET);
