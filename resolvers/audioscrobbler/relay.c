@@ -110,4 +110,13 @@ void scrobsub_relay_start(const char* artist, const char* title, int durationi)
 
     script(s);
 }
+
+#else //TODO!
+
+void scrobsub_relay_start(const char* artist, const char* title, int duration)
+{}
+
+void scrobsub_relay(int state)
+{}
+
 #endif //__APPLE__
