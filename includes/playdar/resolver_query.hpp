@@ -19,7 +19,6 @@
 #ifndef __RESOLVER_QUERY_H__
 #define __RESOLVER_QUERY_H__
 
-//#include "playdar/application.h"
 #include "playdar/types.h"
 #include "playdar/config.hpp"
 #include "playdar/resolved_item.h"
@@ -41,7 +40,7 @@ class ResolverQuery
 {
 public:
     ResolverQuery()
-        : m_solved(false), m_cancelled(false), m_origin_local(false)
+        : m_solved(false), m_cancelled(false), m_stopped(false),  m_origin_local(false)
     {
         // set initial "last access" time:
         time(&m_atime);
@@ -83,6 +82,9 @@ public:
     
     /// returns true if query cancelled and pending destruction. (hint, release your ptr)
     bool cancelled() const { return m_cancelled; }
+    
+    bool stopped() const { return m_stopped; }
+    void stop() { m_stopped = true; }
     
     virtual json_spirit::Object get_json() const
     {
@@ -180,9 +182,10 @@ public:
     {
         if (!m_cancelled) {
             boost::mutex::scoped_lock lock(m_mut);
-            if (rip->score() == 1.0) {
-                m_solved = true;
-            }
+            // may as well still collect results, even if solved:
+            //if (rip->score() == 1.0) {
+            //    m_solved = true;
+            //}
 			m_results.push_back(rip); 
             // fire callbacks:
             BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
@@ -203,9 +206,10 @@ public:
             BOOST_FOREACH(const ri_ptr& rip, results) {
                 // decide if this result "solves" the query:
                 // for now just assume score of 1 means solved.
-                if(rip->score() == 1.0) {
-                    m_solved = true;
-                }
+                // may as wel still collect results, even if solved:
+                //if(rip->score() == 1.0) {
+                //    m_solved = true;
+                //}
                 // fire callbacks:
                 BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
 					cb(id(), rip);
@@ -292,6 +296,10 @@ private:
 
     // set to true if trying to cancel/delete this query (if so, don't bother working with it)
     bool m_cancelled;
+    
+    // set to true once query origin has a result, gives up or times out
+    // (especially useful in query-flooding environments like p2p)
+    bool m_stopped;
 
     // last access time (used to know if this query is stale and can be deleted)
     // mutable: it's auto-updated to mark the atime in various places.
