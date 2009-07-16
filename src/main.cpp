@@ -88,7 +88,51 @@ string default_config_path()
         throw;
     }
     path config_base = p;
-    return (config_base/"playdar/playdar.json").string();
+    return (config_base/"playdar/playdar.conf").string();
+#endif
+}
+
+/// finds full path to config file, checks default locations etc
+string find_config_file()
+{
+    using boost::filesystem::path;
+
+#if __APPLE__
+    if(getenv("HOME"))
+    {
+        path home = getenv("HOME");
+        return (home/"Library/Preferences/org.playdar.json").string();
+    }
+    else
+    {
+        cerr << "Error, $HOME not set." << endl;
+        throw;
+    }
+#elif _WIN32
+    return ""; //TODO refer to Qt documentation to get code to do this
+#else
+    string p;
+    if(getenv("XDG_CONFIG_HOME"))
+    {
+        p = getenv("XDG_CONFIG_HOME");
+    }
+    else if(getenv("HOME"))
+    {
+        p = string(getenv("HOME")) + "/.config";
+    }
+    else
+    {
+        cerr << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
+        throw;
+    }
+    path config_base = p;
+    string confpath =  (config_base/"playdar/playdar.conf").string();
+    if( boost::filesystem::exists(confpath) ) 
+        return confpath;
+    if( boost::filesystem::exists("/etc/playdar/playdar.conf") )
+        return "/etc/playdar/playdar.conf";
+    // fail
+    return "";
 #endif
 }
 
@@ -141,7 +185,7 @@ int main(int ac, char *av[])
 {
     po::options_description generic("Generic options");
     generic.add_options()
-        ("config,c",  po::value<string>()->default_value(default_config_path()), "path to config file")
+        ("config,c",  po::value<string>(), "use specified config file")
         ("version,v", "print version string")
         ("help,h",    "print this message")
         ;
@@ -184,16 +228,21 @@ int main(int ac, char *av[])
         return 0;
     }
     
-    if(!vm.count("config"))
+    string configfile;
+    if( vm.count("config") )
     {
-        cerr << "You must use a config file." << endl;
+        configfile = vm["config"].as<string>();
+    }else{
+        configfile = find_config_file();
+    }
+    if( !boost::filesystem::exists(configfile) )
+    {
+        cerr << "Config file not found" << endl;
         return 1;
     }
-
+    
     try 
     {
-        
-        string configfile = vm["config"].as<string>();
         cout << "Using config file: " << configfile << endl;
         Config conf(configfile);
         if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
