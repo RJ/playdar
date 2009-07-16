@@ -27,7 +27,6 @@ FIND_PACKAGE(Sqlite3 REQUIRED)
 FIND_PACKAGE(CURL REQUIRED)
 INCLUDE_DIRECTORIES(
                     ${PLAYDAR_PATH}/includes  # playdar includes
-                    # /home/rj/src/libf2f/include # TODO hack
                     ${Boost_INCLUDE_DIR}
                     ${SQLITE3_INCLUDE_DIR}
                     ${TAGLIB_INCLUDES}
@@ -43,7 +42,6 @@ INCLUDE_DIRECTORIES(
 
 # Always check local/lib first:
 LINK_DIRECTORIES(   /usr/local/lib 
-                    # /home/rj/src/libf2f/lib # TODO hack
                 ) 
 
 SET(CMAKE_VERBOSE_MAKEFILE ON)
@@ -63,8 +61,8 @@ IF(WIN32)
 ENDIF(WIN32)
 
 IF(NOT WIN32)
-    # removes operators like "and", "or" and "not"
-    ADD_DEFINITIONS(-Wall) # -ggdb
+    # ADD_DEFINITIONS(-ggdb)
+    ADD_DEFINITIONS(-Wall)
     ADD_DEFINITIONS(-g )
     ADD_DEFINITIONS(-fno-operator-names)
     ADD_DEFINITIONS(-fPIC)
@@ -77,13 +75,12 @@ ADD_EXECUTABLE( playdar
                 ${SRC}/rs_script.cpp
                 
                 ${SRC}/utils/uuid.cpp
-#                ${SRC}/utils/base64.cpp
                 ${SRC}/utils/levenshtein.cpp
 
                 ${SRC}/playdar_request_handler.cpp
                 ${SRC}/playdar_request.cpp
                 ${SRC}/main.cpp
-		${SRC}/auth.cpp
+                ${SRC}/auth.cpp
 
                 # json parser:
                 ${DEPS}/json_spirit_v3.00/json_spirit/json_spirit_reader.cpp  
@@ -96,9 +93,10 @@ ADD_EXECUTABLE( playdar
                 ${DEPS}/pdl-0.3.0/src/DynamicLoader.cpp
                 ${DEPS}/pdl-0.3.0/src/LoaderException.cpp
             
+                # Wrapper for sqlite API
                 ${DEPS}/sqlite3pp-read-only/sqlite3pp.cpp
                 
-                # moost http:
+                # moost httpd:
                 ${DEPS}/moost_http/src/http/filesystem_request_handler.cpp
                 ${DEPS}/moost_http/src/http/mime_types.cpp
                 ${DEPS}/moost_http/src/http/reply.cpp
@@ -106,8 +104,8 @@ ADD_EXECUTABLE( playdar
               )
 
 TARGET_LINK_LIBRARIES( playdar 
-                       ${CURL_LIBRARIES}
-                       ${SQLITE3_LIBRARIES}
+                       ${CURL_LIBRARIES}      # MIT/X derivate
+                       ${SQLITE3_LIBRARIES}   # public domain
                        ${TAGLIB_LIBRARIES}    # LGPL/MPL
                        ${SQLITE3_LIBRARIES}   # public domain
 					   ${Boost_LIBRARIES}	  # Boost license
