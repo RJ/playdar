@@ -74,7 +74,10 @@ static void start(const playdar_request& rq)
 
 static string config(bool auth_required)
 {
-    if (!auth_required || scrobsub_finish_auth())
+    if (scrobsub_query_relay())
+        return "<p>Playdar is relaying scrobbles to your official Last.fm Audioscrobbler client.</p>";
+    
+    if (!auth_required || scrobsub_finish_auth() && scrobsub_username)
         return "<p>Playdar is authorized to "
                "<a href='http://www.last.fm/help/faq?category=Scrobbling'>scrobble</a> "
                "as "+string(scrobsub_username)+". "

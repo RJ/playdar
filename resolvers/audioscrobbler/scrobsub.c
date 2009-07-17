@@ -95,7 +95,12 @@ void scrobsub_init(void(*callback)(int, const char*))
     track = (char*)malloc(0);
     album = (char*)malloc(0);
     mbid = (char*)malloc(0);
-}    
+}
+
+bool scrobsub_query_relay()
+{
+    return relay;
+}
 
 static void get_handshake_auth(char out[33], time_t time)
 {
@@ -125,10 +130,10 @@ static char* escape(const char* in)
     const char hexnumbers[] = "0123456789ABCDEF"; 
     #define toHexHelper(c) hexnumbers[(c) & 0xf]
     
-    int const n = strlen(in); 
+    int const n = strlen(in);
     int const nn = n*3 + 1;
 #if SCROBSUB_NO_C99
-    // we only use alloca on Windows as its use is discouraged on BSD
+    // we only use alloca on Windows as its use is discouraged on BSD    
     char* outs = (char*)alloca(nn);
 #else
     char outs[nn];
@@ -153,6 +158,7 @@ static char* escape(const char* in)
     }
     *out = '\0';
 
+    // we strdup here rather than malloc above to keep memory consumption lower
     return strdup(outs);
 }
 

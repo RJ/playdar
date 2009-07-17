@@ -47,6 +47,10 @@ extern "C" {
 /** Indeed, call this at your earliest convenience! */
 void scrobsub_init(void(*callback)(int event, const char* message));
 
+/** @returns true if scrobsub is relaying scrobbles to the official Last.fm
+  * Audioscrobbler application */
+bool scrobsub_query_relay();
+
 /** @see scrobsub_auth. Scrobbling will not function until your application is
   * auth'd. However we will be caching scrobbles in memory. */
 #define SCROBSUB_AUTH_REQUIRED 0
