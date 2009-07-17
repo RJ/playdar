@@ -37,10 +37,9 @@ static size_t curl_writer(void* in, size_t size, size_t N, void* out)
     size_t x;
     N *= size;
     for(x=0; x<N; ++x){
-        if (++n == 255) break;
         *(char*)out++ = *(char*)in++;
+        if (++n == 255) break;
     }
-    
     return x;
 }
 

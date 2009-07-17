@@ -32,25 +32,25 @@ bool scrobsub_persist_credentials();
 static char* token = 0;
 
 //TODO localise and get webservice error
-//TODO error handling
+
 
 void scrobsub_auth(char out_url[110])
 {
+    out_url = 0;
+
     char url[] = "http://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key=" SCROBSUB_API_KEY;
     char response[256];
     scrobsub_get(response, url);
 
-    xmlInitParser(); //TODO can't tell if safe to call more than once, but don't want to call unless auth is done to save initialisations
-    xmlDocPtr doc = xmlParseMemory(response, strlen(response)); //TODO can return NULL
+    xmlInitParser();
+    xmlDocPtr doc = xmlParseMemory(response, strlen(response));
     xmlXPathContextPtr ctx = xmlXPathNewContext(doc);
     xmlXPathObjectPtr obj = xmlXPathEvalExpression("/lfm/token/text()", ctx);
-    
-    if(!obj) return; // leak, but I don't care, this is an unlikely route
-
-    token = strdup(obj->nodesetval->nodeTab[0]->content);
-    strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
-    strcat(out_url, token);
-    
+    if(obj){
+        token = strdup(obj->nodesetval->nodeTab[0]->content);
+        strcpy(out_url, "http://www.last.fm/api/auth/?api_key=" SCROBSUB_API_KEY "&token=");
+        strcat(out_url, token);
+    }
     xmlXPathFreeObject(obj);
     xmlXPathFreeContext(ctx);
     xmlFreeDoc(doc);
@@ -71,7 +71,7 @@ bool scrobsub_finish_auth()
     char response[256];
     scrobsub_get(response, url);
 
-    xmlDocPtr doc = xmlParseMemory(response, 256); //TODO can return NULL
+    xmlDocPtr doc = xmlParseMemory(response, 256);
     xmlXPathContextPtr ctx = xmlXPathNewContext(doc);
     xmlXPathObjectPtr obj_key = xmlXPathEvalExpression("/lfm/session/key/text()", ctx);
     xmlXPathObjectPtr obj_name = xmlXPathEvalExpression("/lfm/session/name/text()", ctx);

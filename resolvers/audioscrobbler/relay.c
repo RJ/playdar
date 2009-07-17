@@ -74,13 +74,13 @@ void scrobsub_relay(int state)
     }
 }
 
-static inline uint strcat_escape_quotes(char* dst, char* src)
+static inline void strcat_escape_quotes(char* dst, const char* src)
 {
     // get to the end of the dst string first
     while(*dst)
         dst++;
     
-    char* c;
+    char c;
     while(c = *src++){
         if(c == '\'' || c == '"')
             *dst++ = '\\';
