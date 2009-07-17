@@ -280,6 +280,19 @@ Library::get_album_id(int artistid, const string& name_orig)
     return id;
 }
 
+int
+Library::get_random_fid()
+{
+    boost::mutex::scoped_lock lock(m_mut);
+    string sql = "SELECT id FROM file WHERE size > 0 AND rowid > (abs(random()) % (SELECT max(rowid) FROM file)) LIMIT 1";
+    sqlite3pp::query qry(m_db, sql.c_str());
+    for (sqlite3pp::query::iterator i = qry.begin(); i != qry.end(); ++i)
+    {
+        return (*i).get<int>(0);
+    }
+    return -1;
+}
+
 vector<scorepair>
 Library::search_catalogue(string table, string name_orig)
 {

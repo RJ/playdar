@@ -101,24 +101,50 @@ local::run()
 void
 local::process( rq_ptr rq )
 {
-    vector< json_spirit::Object > final_results;
-    // get candidates (rough potential matches):
-    vector<scorepair> candidates = find_candidates(rq, 10);
-    // now do the "real" scoring of candidate results:
-    string reason; // for scoring debug.
-    BOOST_FOREACH(scorepair &sp, candidates)
+    //Ignore this if it's missing artist+track fields
+    if( !rq->param_exists( "artist" ) 
+        || rq->param("artist").type() != str_type
+        || !rq->param_exists( "track" )
+        || rq->param("track").type() != str_type )
     {
-        // multiple files in our collection may have matching metadata.
-        // add them all to the results.
-        vector<int> fids = m_library->get_fids_for_tid(sp.id);
-        BOOST_FOREACH(int fid, fids)
+        return;
+    }
+    vector< json_spirit::Object > final_results;
+    
+    // check if this is a special "random" query
+    if( rq->param("artist").get_str() == "*" &&
+        rq->param("track").get_str() == "*" )
+    {
+        int fid = m_library->get_random_fid();
+        if( fid == -1 ) return;
+        json_spirit::Object js;
+        ResolvedItemBuilder::createFromFid( *m_library, fid, js );
+        js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
+        js.push_back( json_spirit::Pair( "source", m_pap->hostname()) );
+        js.push_back( json_spirit::Pair( "score", 0.99) );
+        // dangerous, will propagate forever? muhahah
+        final_results.push_back( js );
+    }
+    else // end special random query check
+    {
+        // get candidates (rough potential matches):
+        vector<scorepair> candidates = find_candidates(rq, 10);
+        // now do the "real" scoring of candidate results:
+        string reason; // for scoring debug.
+        BOOST_FOREACH(scorepair &sp, candidates)
         {
-            json_spirit::Object js;
-            js.reserve(12);
-            ResolvedItemBuilder::createFromFid( *m_library, fid, js );
-            js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
-            js.push_back( json_spirit::Pair( "source", m_pap->hostname()) );
-            final_results.push_back( js );
+            // multiple files in our collection may have matching metadata.
+            // add them all to the results.
+            vector<int> fids = m_library->get_fids_for_tid(sp.id);
+            BOOST_FOREACH(int fid, fids)
+            {
+                json_spirit::Object js;
+                js.reserve(12);
+                ResolvedItemBuilder::createFromFid( *m_library, fid, js );
+                js.push_back( json_spirit::Pair( "sid", m_pap->gen_uuid()) );
+                js.push_back( json_spirit::Pair( "source", m_pap->hostname()) );
+                final_results.push_back( js );
+            }
         }
     }
     if(final_results.size())
@@ -138,11 +164,6 @@ local::find_candidates(rq_ptr rq, unsigned int limit)
 { 
     vector<scorepair> candidates;
     float maxartscore = 0;
-    
-    //Ignore this request_query - nothing that this can resolve from.
-    if( !rq->param_exists( "artist" ) ||
-        !rq->param_exists( "track" ))
-        return candidates;
     
     vector<scorepair> artistresults =
         m_library->search_catalogue("artist", rq->param( "artist" ).get_str());

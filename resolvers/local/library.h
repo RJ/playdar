@@ -59,6 +59,8 @@ public:
     int num_artists();
     int num_albums();
     int num_tracks();
+    
+    int get_random_fid();
 
     bool build_index(std::string);
     static std::string sortname(const std::string& name);
