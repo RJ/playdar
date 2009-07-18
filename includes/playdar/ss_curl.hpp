@@ -199,8 +199,9 @@ public:
         if (m_curlres) {
             std::cout << "Curl error: " << m_curlerror << std::endl;
             m_reply->write_cancel();
+        } else {
+            m_reply->write_finish();
         }
-        m_reply->write_finish();
         curl_easy_cleanup( m_curl );
     }
     

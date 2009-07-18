@@ -53,7 +53,7 @@ playdar_request_handler::init(MyApplication * app)
 {
     m_disableAuth = app->conf()->get<bool>( "disableauth", false );
     cout << "HTTP handler online." << endl;
-    m_pauth = new playdar::auth(app->conf()->get<string>( "authdb", "" ));
+    m_pauth = new playdar::auth(app->conf()->get<string>( "authdb", "auth.db" ));
     m_app = app;
     // built-in handlers:
     m_urlHandlers[ "" ] = boost::bind( &playdar_request_handler::handle_root, this, _1, _2 );
@@ -217,6 +217,8 @@ void
 playdar_request_handler::handle_crossdomain( const playdar_request& req,
                                              moost::http::reply& rep)
 {
+    // TODO FIXME doesn't this mean flash movies can read your localhost 
+    // config gui?
     ostringstream os;
     os  << "<?xml version=\"1.0\"?>" << endl
         << "<!DOCTYPE cross-domain-policy SYSTEM \"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd\">"

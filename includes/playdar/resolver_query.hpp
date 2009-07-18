@@ -182,10 +182,9 @@ public:
     {
         if (!m_cancelled) {
             boost::mutex::scoped_lock lock(m_mut);
-            // may as well still collect results, even if solved:
-            //if (rip->score() == 1.0) {
-            //    m_solved = true;
-            //}
+            if (rip->score() == 1.0) {
+                m_solved = true;
+            }
 			m_results.push_back(rip); 
             // fire callbacks:
             BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
@@ -206,10 +205,9 @@ public:
             BOOST_FOREACH(const ri_ptr& rip, results) {
                 // decide if this result "solves" the query:
                 // for now just assume score of 1 means solved.
-                // may as wel still collect results, even if solved:
-                //if(rip->score() == 1.0) {
-                //    m_solved = true;
-                //}
+                if(rip->score() == 1.0) {
+                    m_solved = true;
+                }
                 // fire callbacks:
                 BOOST_FOREACH(rq_callback_t & cb, m_callbacks) {
 					cb(id(), rip);
