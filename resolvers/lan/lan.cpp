@@ -219,15 +219,22 @@ lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
     //cout << "UDPsend[" << remote_endpoint.address() 
     //     << ":" << remote_endpoint.port() << "]"
     //     << "(" << message << ")" << endl;
-    char * buf = (char*)malloc(message.length());
-    memcpy(buf, message.data(), message.length());
-    socket_->async_send_to(     
-            boost::asio::buffer(buf,message.length()), 
-            *remote_endpoint,
-            boost::bind(&lan::handle_send, this,
-                boost::asio::placeholders::error,
-                boost::asio::placeholders::bytes_transferred,
-                buf));
+    
+    // you can set numcopies to 2 or 3 for lossy networks:
+    int copies = m_pap->get<int>("plugins.lan.numcopies", 1);
+    if(copies<1) copies=1;
+    for(int j = 0; j<copies; j++)
+    {
+        char * buf = (char*)malloc(message.length());
+        memcpy(buf, message.data(), message.length());
+        socket_->async_send_to(     
+                boost::asio::buffer(buf,message.length()), 
+                *remote_endpoint,
+                boost::bind(&lan::handle_send, this,
+                    boost::asio::placeholders::error,
+                    boost::asio::placeholders::bytes_transferred,
+                    buf));
+    }
 }
 
 void lan::handle_send(   const boost::system::error_code& error,
