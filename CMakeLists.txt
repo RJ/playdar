@@ -9,9 +9,6 @@ SET(DEPS "${PLAYDAR_PATH}/deps")
 SET(RESOLVERS_DIR "${PLAYDAR_PATH}/resolvers")
 SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PLAYDAR_PATH}/bin")
 
-# Don't really do 'make install' properly yet:
-SET(CMAKE_INSTALL_PREFIX "/usr/local")
-
 # on linux x86-64 set this to OFF if you are having (-fPIC...) build problems.
 # then: cd build/ && rm -rf CMakeCache.txt CMakeFiles/ cmake_install.cmake resolvers/
 # then: cmake .. ; make
