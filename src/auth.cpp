@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <iostream>
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include "playdar/auth.h"

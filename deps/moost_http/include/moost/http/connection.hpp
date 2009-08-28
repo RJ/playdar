@@ -1,6 +1,7 @@
 #ifndef __MOOST_HTTP_CONNECTION_HPP__
 #define __MOOST_HTTP_CONNECTION_HPP__
 
+#include <iostream>
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>
 #include <boost/array.hpp>
