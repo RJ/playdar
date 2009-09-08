@@ -30,6 +30,7 @@ using namespace std;
 auth::auth(const string& dbfilepath)
     : m_db(dbfilepath.c_str())
 {
+    m_dbfilepath = dbfilepath;
     check_db();
 }
     
@@ -160,7 +161,8 @@ auth::create_db_schema()
             cmd.execute();
         }
     }
-    cout << "Schema created." << endl;
+    cout << "Schema created, reopening." << endl;
+    m_db.connect( m_dbfilepath.c_str() ); // this will close/flush and reopen the file
 }
 
 
