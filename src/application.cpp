@@ -18,6 +18,7 @@
 */
 #include "playdar/application.h"
 #include "playdar/resolver.h"
+#include "playdar/logger.h"
 #include <boost/program_options.hpp>
 #include <boost/asio.hpp>
 #include <playdar/playdar_request_handler.h>
@@ -35,8 +36,8 @@ MyApplication::MyApplication(Config c)
 
 MyApplication::~MyApplication()
 {
-    cout << "DTOR MyApplication" << endl;
-    cout << "Stopping resolver..." << endl;
+    log::info() << "DTOR MyApplication" << endl;
+    log::info() << "Stopping resolver..." << endl;
     delete(m_resolver);
 }
      

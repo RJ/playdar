@@ -348,14 +348,16 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 {
                     ResolvedItem ri(resobj);
 
-                    ostringstream rbs;
-                    rbs << "http://"
-                    << sender_endpoint_.address()
-                    << ":"
-                    << sender_endpoint_.port()
-                    << "/sid/"
-                    << ri.id();
-                    ri.set_url( rbs.str() );
+                    if (ri.id().length()) {
+                        ostringstream rbs;
+                        rbs << "http://"
+                        << sender_endpoint_.address()
+                        << ":"
+                        << sender_endpoint_.port()
+                        << "/sid/"
+                        << ri.id();
+                        ri.set_url( rbs.str() );
+                    }
 
                     final_results.push_back( ri.get_json() );
                     m_pap->report_results( qid, final_results );
