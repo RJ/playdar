@@ -77,7 +77,7 @@ Run playdar from the top level playdar directory:
 
     $ ./bin/playdar -c ./etc/playdar.conf
 
-Now hit up: http://localhost:8888/ to check it's running.
+Now hit up: http://localhost:60210/ to check it's running.
 
 Check out www.playdar.org for the latest demo interface to test it' working
 or try playlick.com for a playlist app.
