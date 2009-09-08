@@ -31,6 +31,8 @@
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
 
+#define DEFAULT_HTTP_PORT 60210
+
 namespace playdar {
 
 // wrapper around JSON config file
@@ -86,7 +88,7 @@ public:
     std::string httpbase()
     {
         std::ostringstream s;
-        s << "http://127.0.0.1"  << ":" << get<int>("http_port", 8888);
+        s << "http://127.0.0.1"  << ":" << get<int>("http_port", DEFAULT_HTTP_PORT);
         return s.str();
     }
     

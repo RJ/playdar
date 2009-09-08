@@ -189,15 +189,6 @@ int main(int ac, char *av[])
         ("version,v", "print version string")
         ("help,h",    "print this message")
         ;
-/*
-            ("name",        po::value<string>(),
-                "Name used for your collection on the network")
-            ("db",          po::value<string>(),
-                "Path to your database file")
-            ("http_port",   po::value<int>(&opt)->default_value(8888),
-                "Port used for local webserver")
-            ;
-*/
     po::options_description cmdline_options;
     cmdline_options.add(generic);
 
