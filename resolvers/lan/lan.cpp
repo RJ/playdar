@@ -78,7 +78,7 @@ lan::~lan() throw()
 void
 lan::setup_endpoints()
 {
-    Value endpoints = m_pap->get_json("plugins.lan.endpoints");
+    Value endpoints = m_pap->get_json("endpoints");
     if( endpoints == Value::null || endpoints.type() != array_type )
     {
         // nothing specified, default is just the multicast address:
@@ -159,8 +159,8 @@ lan::run()
     start_listening(*m_io_service,
                     boost::asio::ip::address::from_string("0.0.0.0"),
                     boost::asio::ip::address::from_string
-                    ( m_pap->get<string>("plugins.lan.listenip", DEFAULT_LAN_ENDPOINT) ),
-                    m_pap->get<int>("plugins.lan.listenport", DEFAULT_LAN_PORT) ); 
+                    ( m_pap->get<string>("listenip", DEFAULT_LAN_ENDPOINT) ),
+                    m_pap->get<int>("listenport", DEFAULT_LAN_PORT) ); 
     
     cout << "LAN Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
@@ -209,7 +209,7 @@ lan::async_send( const string& message )
 /// send to specific endpoints:
 void 
 lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
-                       const string& message)                       
+                const string& message)
 {
     if(message.length()>max_length)
     {
@@ -221,7 +221,7 @@ lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
     //     << "(" << message << ")" << endl;
     
     // you can set numcopies to 2 or 3 for lossy networks:
-    int copies = m_pap->get<int>("plugins.lan.numcopies", 1);
+    int copies = m_pap->get<int>("numcopies", 1);
     if(copies<1) copies=1;
     for(int j = 0; j<copies; j++)
     {

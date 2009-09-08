@@ -44,7 +44,8 @@ public:
 private:
     void check_db();
     void create_db_schema();
-
+    
+    std::string m_dbfilepath;
     std::set<std::string> m_formtokens;
     sqlite3pp::database m_db;
     boost::mutex m_mut;

@@ -19,18 +19,8 @@
 #ifndef _PLUGIN_ADAPTOR_IMPL_H_
 #define _PLUGIN_ADAPTOR_IMPL_H_
 
-//// must be first because ossp uuid.h is stubborn and name-conflicts with
-//// the uuid_t in unistd.h. It gets round this with preprocessor magic. But
-//// this causes PAIN and HEARTACHE for everyone else in the world, so well done
-//// to you guys at OSSP. *claps*
-//#ifdef HAS_OSSP_UUID_H
-//#include <ossp/uuid.h>
-//#else
-//// default source package for ossp-uuid doesn't namespace itself
-//#include <uuid.h> 
-//#endif
-
 #include <boost/shared_ptr.hpp>
+#include <boost/filesystem.hpp>
 #include <vector>
 #include <string>
 
@@ -45,10 +35,23 @@ class PluginAdaptorImpl : public PluginAdaptor
 {
 public:
     PluginAdaptorImpl(Config * c, Resolver * r, const std::string& className)
-        : m_config(c), 
-          m_resolver(r),
+        : m_resolver(r),
           m_className( className )
     {
+        boost::filesystem::path p(c->config_dir());
+        std::string confname(className);
+        confname+=".conf";
+        p /= confname;
+        if( boost::filesystem::exists( p ) )
+        {
+            m_config = new Config( p.string() );
+            std::cout << "Using plugin config file: "<< p.string() << std::endl;
+        }
+        else
+        {
+            std::cout << "Using default config for " << className << std::endl;
+            m_config = new Config();
+        }
     }
     
     virtual std::string playdar_version() const 

@@ -54,8 +54,8 @@ ostream& operator<<(ostream& os, const vector<T>& v)
     return os;
 }
 
-
-string default_config_path()
+/// finds config dir, checks default locations etc
+string find_config_dir()
 {
     using boost::filesystem::path;
 
@@ -63,7 +63,7 @@ string default_config_path()
     if(getenv("HOME"))
     {
         path home = getenv("HOME");
-        return (home/"Library/Preferences/org.playdar.json").string();
+        return (home/"Library/Preferences/playdar").string();
     }
     else
     {
@@ -88,49 +88,11 @@ string default_config_path()
         throw;
     }
     path config_base = p;
-    return (config_base/"playdar/playdar.conf").string();
-#endif
-}
-
-/// finds full path to config file, checks default locations etc
-string find_config_file()
-{
-    using boost::filesystem::path;
-
-#if __APPLE__
-    if(getenv("HOME"))
-    {
-        path home = getenv("HOME");
-        return (home/"Library/Preferences/org.playdar.json").string();
-    }
-    else
-    {
-        cerr << "Error, $HOME not set." << endl;
-        throw;
-    }
-#elif _WIN32
-    return ""; //TODO refer to Qt documentation to get code to do this
-#else
-    string p;
-    if(getenv("XDG_CONFIG_HOME"))
-    {
-        p = getenv("XDG_CONFIG_HOME");
-    }
-    else if(getenv("HOME"))
-    {
-        p = string(getenv("HOME")) + "/.config";
-    }
-    else
-    {
-        cerr << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
-        throw;
-    }
-    path config_base = p;
-    string confpath =  (config_base/"playdar/playdar.conf").string();
+    string confpath =  (config_base/"playdar").string();
     if( boost::filesystem::exists(confpath) ) 
         return confpath;
-    if( boost::filesystem::exists("/etc/playdar/playdar.conf") )
-        return "/etc/playdar/playdar.conf";
+    if( boost::filesystem::exists("/etc/playdar") )
+        return "/etc/playdar";
     // fail
     return "";
 #endif
@@ -138,6 +100,7 @@ string find_config_file()
 
 void start_http_server(string ip, int port, int conc, MyApplication* app)
 {
+    if(conc<1) conc=1;
     cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << " with " << conc << " threads" << endl;
     moost::http::server<playdar_request_handler> s(ip, port, conc);
     s.request_handler().init(app);
@@ -185,8 +148,8 @@ int main(int ac, char *av[])
 {
     po::options_description generic("Generic options");
     generic.add_options()
-        ("config,c",  po::value<string>(), "use specified config file")
-        ("version,v", "print version string")
+        ("config,c",  po::value<string>(), "use specified config directory")
+        ("version,v", "print version information")
         ("help,h",    "print this message")
         ;
     po::options_description cmdline_options;
@@ -219,16 +182,23 @@ int main(int ac, char *av[])
         return 0;
     }
     
-    string configfile;
+    string configdir, configfile;
+    
     if( vm.count("config") )
     {
-        configfile = vm["config"].as<string>();
+        configdir = vm["config"].as<string>();
     }else{
-        configfile = find_config_file();
+        configdir = find_config_dir();
     }
+    if( !boost::filesystem::is_directory( configdir ) )
+    {
+        cerr << "config directory not found: " << configdir << endl;
+        return -5;
+    }
+    configfile = configdir += "/playdar.conf";
     if( !boost::filesystem::exists(configfile) )
     {
-        cerr << "Config file not found" << endl;
+        cerr << "Config file not found: " << configfile << endl;
         return 1;
     }
     
@@ -238,20 +208,17 @@ int main(int ac, char *av[])
         Config conf(configfile);
         if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
         {
-            cerr << "Please edit " << configfile << endl;
-            cerr << "YOURNAMEHERE is not a valid name." << endl;
-            cerr << "Autodetecting name: " << conf.name() << endl;
+            cout << "Autodetecting name: " << conf.name() << endl;
         }
 
 #ifndef WIN32
-        /// this might not compile on windows?
+        //TODO we need a shutdown/signal handler for windows too.
         struct sigaction setmask;
         sigemptyset( &setmask.sa_mask );
         setmask.sa_handler = sigfunc;
         setmask.sa_flags   = 0;
-        sigaction( SIGHUP, &setmask, (struct sigaction *) NULL );
+        sigaction( SIGHUP,  &setmask, (struct sigaction *) NULL );
         sigaction( SIGINT,  &setmask, (struct sigaction *) NULL );
-        /// probably need to look for WM_BLAHWTFMSG or something.
 #endif
 
         try
@@ -270,8 +237,8 @@ int main(int ac, char *av[])
         string ip = "0.0.0.0"; 
         boost::thread http_thread(
             boost::bind( &start_http_server, 
-                         ip, app->conf()->get<int>("http_port", 0),
-                         boost::thread::hardware_concurrency()+1,
+                         ip, app->conf()->get<int>("http_port", 60210),
+                         app->conf()->get<int>("http_threads", boost::thread::hardware_concurrency()+1),
                          app )
             );
         

@@ -30,6 +30,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/foreach.hpp>
 #include <boost/lexical_cast.hpp>
+#include "boost/filesystem.hpp"
 
 #define DEFAULT_HTTP_PORT 60210
 
@@ -37,12 +38,22 @@ namespace playdar {
 
 // wrapper around JSON config file
 // instance of this is also passed to plugins.
+
 class Config
 {
 public:
+    Config(){}
+    
     Config(const std::string& f) : m_filename(f)
     {
         reload();
+    }
+    
+    // gets directory where config files are located
+    std::string config_dir() const
+    {
+        boost::filesystem::path p(m_filename);
+        return p.parent_path().string();
     }
     
     void reload()

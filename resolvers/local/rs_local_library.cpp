@@ -41,8 +41,8 @@ bool
 local::init(pa_ptr pap)
 {
     m_pap = pap;
-   
-    m_library = new Library( pap->getstring( "db", "" ).get_str());
+    string default_db_path = "collection.db";
+    m_library = new Library( m_pap->getstring( "database", default_db_path ).get_str());
 
     m_exiting = false;
     cout << "Local library resolver: " << m_library->num_files() 
