@@ -101,7 +101,8 @@ Library::create_db_schema()
         sqlite3pp::command cmd(m_db, s.c_str());
         cmd.execute();
     }
-    cout << "Schema created." << endl;
+    cout << "Schema created, reopening." << endl;
+    m_db.connect( m_dbfilepath.c_str() ); // this will close/flush and reopen
 }
 
 bool
