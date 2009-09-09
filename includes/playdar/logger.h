@@ -57,7 +57,7 @@ protected:
 
         m_stream = s_streamMap[ filename ]; 
 
-        *m_stream << std::endl << T::logType() << ":"; 
+        *m_stream << T::logType() << ":"; 
         //UNLOCK
     }
     static std::map< std::string, stream_ptr > s_streamMap;
