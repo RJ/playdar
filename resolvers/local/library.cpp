@@ -26,6 +26,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "library_sql.h"
+#include "playdar/logger.h"
 
 using namespace std;
 
@@ -38,12 +39,12 @@ Library::Library(const string& dbfilepath)
     m_dbfilepath = dbfilepath;
     // confirm DB is correct version, or create schema if first run
     check_db();
-    cout << "library DB opened ok" << endl;
+    log::info() << "library DB opened ok" << endl;
 }
 
 Library::~Library()
 {
-    cout << "DTOR library" << endl;
+    log::info() << "DTOR library" << endl;
 }
 
 void
@@ -57,19 +58,19 @@ Library::check_db()
       {
         // unusual - table exists but doesn't contain this row.
         // could have been created wrongly
-        cerr << "Errror, playdar_system table missing schema_version key!" << endl
+        log::error() << "Errror, playdar_system table missing schema_version key!" << endl
              << "Maybe you created the database wrong, or it's corrupt." << endl
              << "Try deleting it and re-scanning?" << endl;
         throw; // not caught here.
       }
       string val = (*i).get<string>(0);
-      cout << "Database schema detected as version " << val << endl;
+      log::info() << "Database schema detected as version " << val << endl;
       // check the schema version is what we expect
       // TODO auto-upgrade to newest schema version as needed.
       if( val != "2" )
       {
-        cerr << "Schema version too old. TODO handle auto-upgrades" << endl;
-        cerr << "To upgrade from 1->2, run this: alter table playdar_auth add column ua text not null default \"\"; update playdar_system set value=\"2\" where key=\"schema_version\";"
+        log::error() << "Schema version too old. TODO handle auto-upgrades" << endl;
+        log::error() << "To upgrade from 1->2, run this: alter table playdar_auth add column ua text not null default \"\"; update playdar_system set value=\"2\" where key=\"schema_version\";"
         << endl;
 
         throw; // not caught here
@@ -80,7 +81,7 @@ Library::check_db()
     {
       // probably doesn't exist yet, try and create it
       // 
-      cout << "database_error: " << err.what() << endl;
+      log::warning() << "database_error: " << err.what() << endl;
       create_db_schema();
     }
     
@@ -89,7 +90,7 @@ Library::check_db()
 void
 Library::create_db_schema()
 {
-    cout << "Attempting to create DB schema..." << endl;
+    log::info() << "Attempting to create DB schema..." << endl;
     string sql(  playdar::get_playdar_sql() );
     vector<string> statements;
     boost::split( statements, sql, boost::is_any_of(";") );
@@ -97,11 +98,11 @@ Library::create_db_schema()
     {
         boost::trim( s );
         if(s.empty()) continue;
-        cout << "Executing: " << s << endl;
+        log::info() << "Executing: " << s << endl;
         sqlite3pp::command cmd(m_db, s.c_str());
         cmd.execute();
     }
-    cout << "Schema created, reopening." << endl;
+    log::info() << "Schema created, reopening." << endl;
     m_db.connect( m_dbfilepath.c_str() ); // this will close/flush and reopen
 }
 
@@ -154,7 +155,7 @@ Library::add_file(  const string& url, int mtime, int size, const string& md5, c
     cmd.bind(6, duration);
     cmd.bind(7, bitrate);
     if(cmd.execute() != SQLITE_OK){
-        cerr<<"Error inserting into file table"<<endl;
+        log::warning() << "Error inserting into file table"<<endl;
         return 0;
     }
     fileid = static_cast<int>( m_db.last_insert_rowid() );
@@ -175,7 +176,7 @@ Library::add_file(  const string& url, int mtime, int size, const string& md5, c
     cmd2.bind(4, trkid);
     boost::mutex::scoped_lock lock(m_mut);
     if(cmd2.execute() != SQLITE_OK){
-        cerr<<"Error inserting into file_join table"<<endl;
+        log::warning() << "Error inserting into file_join table"<<endl;
         return 0;
     }
     return fileid; 
@@ -204,7 +205,7 @@ Library::get_artist_id(const string& name_orig)
     cmd.bind(1,name_orig.c_str(),true);
     cmd.bind(2,sortname.c_str(),true);
     if(SQLITE_OK != cmd.execute()){
-        cerr << "Failed to insert artist: " << name_orig << endl;
+        log::warning() << "Failed to insert artist: " << name_orig << endl;
         return 0;
     }
     id = static_cast<int>( m_db.last_insert_rowid() );
@@ -238,7 +239,7 @@ Library::get_track_id(int artistid, const string& name_orig)
     cmd.bind(2, name_orig.c_str(), true);
     cmd.bind(3, sortname.c_str(), true);
     if(SQLITE_OK != cmd.execute()){
-        cerr << "Failed to insert track: " << name_orig << endl;
+        log::warning() << "Failed to insert track: " << name_orig << endl;
         return 0;
     }
     id = static_cast<int>( m_db.last_insert_rowid() );
@@ -272,7 +273,7 @@ Library::get_album_id(int artistid, const string& name_orig)
     cmd.bind(2, name_orig.c_str(), true);
     cmd.bind(3, sortname.c_str(), true);
     if(SQLITE_OK != cmd.execute()){
-        cerr << "Failed to insert album: " << name_orig << endl;
+        log::warning() << "Failed to insert album: " << name_orig << endl;
         return 0;
     }
     id = static_cast<int>( m_db.last_insert_rowid() );

@@ -20,6 +20,7 @@
 #include <boost/algorithm/string.hpp>
 #include "playdar/playdar_request.h"
 #include "playdar/track_rq_builder.hpp"
+#include "playdar/logger.h"
 
 namespace playdar {
 namespace resolvers {
@@ -113,7 +114,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
                 }
                 else 
                 {
-                    cout << "WARNING - resolve request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
+                    log::info() << "WARNING - resolve request provided a QID, but that QID already exists as a running query. Assigning a new QID." << endl;
                     // new qid assigned automatically if we don't provide one.
                 }
             }
@@ -123,7 +124,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
             }
             if( !rq->isValidTrack() ) // usually caused by empty track name or something.
             {
-                cout << "Tried to dispatch an invalid query, failing." << endl;
+                log::info() << "Tried to dispatch an invalid query, failing." << endl;
                 playdar_response r("");
                 r.set_response_code( 400 ); // bad_request
                 resp = r;
@@ -147,7 +148,7 @@ api::authed_http_handler(const playdar_request& req, playdar_response& resp, pla
         {
             if( !m_pap->query_exists( req.getvar("qid") ) )
             {
-                cerr << "Error get_results(" << req.getvar("qid") << ") - qid went away." << endl;
+                log::error() << "Error get_results(" << req.getvar("qid") << ") - qid went away." << endl;
                 playdar_response r("");
                 r.set_response_code( 404 ); // bad_request
                 resp = r;

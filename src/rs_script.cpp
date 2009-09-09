@@ -23,6 +23,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "playdar/resolver.h"
+#include "playdar/logger.h"
 
 /*
 This resolver spawns an external process, typically a python/ruby script
@@ -56,7 +57,7 @@ rs_script::init(pa_ptr pap)
     m_scriptpath = m_pap->scriptpath();
     if(m_scriptpath=="")
     {
-        cout << "No script path specified. gateway plugin failed." 
+        log::info() << "No script path specified. gateway plugin failed." 
              << endl;
         m_name = "MISSING SCRIPT PATH";
         m_dead = true;
@@ -65,17 +66,17 @@ rs_script::init(pa_ptr pap)
     }
     else if(!boost::filesystem::exists(m_scriptpath))
     {
-        cout << "-> FAILED - script doesn't exist at: " << m_scriptpath << endl;
+        log::error() << "-> FAILED - script doesn't exist at: " << m_scriptpath << endl;
         return false;
     }
     else
     {
         m_name = m_scriptpath; // should be overwritten by script settings
-        cout << "Starting resolver process: "<<m_scriptpath << endl;
+        log::info() << "Starting resolver process: "<<m_scriptpath << endl;
         // wait for script to send us a settings object:
         boost::mutex::scoped_lock lk(m_mutex_settings);
         init_worker(); // launch script
-        cout << "-> Waiting for settings from script (5 secs)..." << endl;
+        log::info() << "-> Waiting for settings from script (5 secs)..." << endl;
         if(!m_got_settings) 
         {
             boost::xtime time; 
@@ -86,13 +87,13 @@ rs_script::init(pa_ptr pap)
         
         if(m_got_settings)
         {
-            cout << "-> OK, script reports name: " << m_name << endl;
+            log::info() << "-> OK, script reports name: " << m_name << endl;
             // dispatcher thread:
             m_dt = new boost::thread(boost::bind(&rs_script::run, this));
         }
         else
         {
-            cout << "-> FAILED - script didn't report any settings" << endl;
+            log::error() << "-> FAILED - script didn't report any settings" << endl;
             m_dead = true;
             m_weight = 0; // disable us.
             return false;
@@ -103,7 +104,7 @@ rs_script::init(pa_ptr pap)
 
 rs_script::~rs_script() throw()
 {
-    cout <<"DTOR Resolver script " << endl;
+    log::info() <<"DTOR Resolver script " << endl;
     m_exiting = true;
     m_cond.notify_all();
     if(m_dt) m_dt->join();
@@ -119,7 +120,7 @@ rs_script::start_resolving(rq_ptr rq)
         cerr << "Not dispatching to script:  " << m_scriptpath << endl;
         return;
     }
-    //cout << "gateway dispatch enqueue: " << rq->str() << endl;
+    //log::info() << "gateway dispatch enqueue: " << rq->str() << endl;
     if(!rq->cancelled())
     {
         boost::mutex::scoped_lock lk(m_mutex);
@@ -138,7 +139,7 @@ rs_script::run()
         {
             rq_ptr rq;
             {
-                //cout << "Waiting on something" << endl;
+                //log::info() << "Waiting on something" << endl;
                 boost::mutex::scoped_lock lk(m_mutex);
                 if(m_pending.size() == 0) m_cond.wait(lk);
                 if(m_exiting || m_dead) break;
@@ -148,7 +149,7 @@ rs_script::run()
             // dispatch query to script:
             if(rq && !rq->cancelled())
             {
-                //cout << "Got " << rq->str() << endl;
+                //log::info() << "Got " << rq->str() << endl;
                 ostringstream os;
                 write_formatted( rq->get_json(), os );
                 string msg = os.str();
@@ -161,9 +162,9 @@ rs_script::run()
     }
     catch(...)
     {
-        cout << "exception in rs_script runner." << endl;
+        log::error() << "exception in rs_script runner." << endl;
     }
-    cout << "rs_script dispatch runner ending" << endl;
+    log::info() << "rs_script dispatch runner ending" << endl;
 }
 
 
@@ -199,7 +200,7 @@ rs_script::process_stderr()
 void 
 rs_script::process_output()
 {
-    cout << "Gateway process_output started.." <<endl;
+    log::info() << "Gateway process_output started.." <<endl;
     using namespace json_spirit;
     bp::pistream &is = m_c->get_stdout();
     Value j;
@@ -305,7 +306,7 @@ rs_script::process_output()
             m_pap->report_results( qid, v );
         }   
     }
-    cout << "Gateway plugin read loop exited" << endl;
+    log::info() << "Gateway plugin read loop exited" << endl;
     m_dead = true;
 }
 

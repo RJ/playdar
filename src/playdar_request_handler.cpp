@@ -41,6 +41,7 @@
 #include "playdar/utils/htmlentities.hpp"
 #include "playdar/CometSession.hpp"
 #include "playdar/HttpAsyncAdaptor.hpp"
+#include "playdar/logger.h"
 
 using namespace std;
 
@@ -52,7 +53,7 @@ void
 playdar_request_handler::init(MyApplication * app)
 {
     m_disableAuth = app->conf()->get<bool>( "disableauth", false );
-    cout << "HTTP handler online." << endl;
+    log::info() << "HTTP handler online." << endl;
     m_pauth = new playdar::auth(app->conf()->get<string>( "authdb", "auth.db" ));
     m_app = app;
     // built-in handlers:
@@ -84,13 +85,13 @@ playdar_request_handler::handle_request(const moost::http::request& req, moost::
 {
     //TODO: Handle % encodings
     
-    cout << "HTTP " << req.method << " " << req.uri << " " << req.origin << endl;
+    log::info() << "HTTP " << req.method << " " << req.uri << " " << req.origin << endl;
     if( req.origin != "127.0.0.1" &&
         req.origin != "::1" && // not tested the ipv6 check
         req.origin != "0:0:0:0:0:0:0:1" && 
         req.uri.substr(0,5) != "/sid/" )
     {
-        cout << "BLOCKED. Only localhost may access non /sid/ urls." << endl;
+        log::info() << "BLOCKED. Only localhost may access non /sid/ urls." << endl;
         rep.stock_reply(moost::http::reply::unauthorized);
         return;
     }
@@ -321,7 +322,7 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
 
     if( rs == 0 )
     {
-        cout << "No plugin of that name found." << endl;
+        log::info() << "No plugin of that name found." << endl;
         rep.stock_reply(moost::http::reply::not_found);
         return;
     }
@@ -333,17 +334,17 @@ playdar_request_handler::handle_pluginurl( const playdar_request& req,
         string whom;
         if(m_disableAuth || m_pauth->is_valid(req.getvar("auth"), whom) )
         {
-            //cout << "AUTH: validated " << whom << endl;
+            //log::info() << "AUTH: validated " << whom << endl;
             permissions = "*"; // allow all.
         }
         else
         {
-            //cout << "AUTH: Invalid authtoken." << endl;
+            //log::info() << "AUTH: Invalid authtoken." << endl;
         }
     }
     else
     {
-        //cout << "AUTH: no auth value provided." << endl;
+        //log::info() << "AUTH: no auth value provided." << endl;
     }
 
     playdar_response resp;
@@ -526,7 +527,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
     {
         if( req.parts().size() == 1 )
         {
-            cout << "Query handler, parts: " << req.parts()[0] << endl;
+            //log::info() << "Query handler, parts: " << req.parts()[0] << endl;
 
             const string& s = handle_queries_root(req);
             serve_body( s, rep );
@@ -534,7 +535,7 @@ playdar_request_handler::handle_queries( const playdar_request& req,
         }
         else if( req.parts().size() == 2 )
         {
-            cout << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
+            //log::info() << "Query handler, parts: " << req.parts()[0] << ", " << req.parts()[1] << endl;
 
             query_uid qid = req.parts()[1];
             rq_ptr rq = app()->resolver()->rq(qid);
@@ -648,9 +649,9 @@ playdar_request_handler::handle_quickplay( const playdar_request& req,
     
     if (results.size() && !results[0]->json_value( "url", "" ).empty()) {
         json_spirit::Object ro = results[0]->get_json();
-        cout << "Top result:" <<endl;
-        json_spirit::write_formatted( ro, cout );
-        cout << endl;
+        //log::info() << "Top result:" <<endl;
+        //json_spirit::write_formatted( ro, cout );
+        //log::info() << endl;
         string url = "/sid/";
         url += results[0]->id();
         rep.set_status( moost::http::reply::moved_temporarily );
@@ -695,7 +696,7 @@ playdar_request_handler::serve_static_file(const moost::http::request& req, moos
 void
 playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
 {
-    cout << "Serving SID " << sid << endl;
+    log::info() << "Serving SID " << sid << endl;
     ss_ptr ss = app()->resolver()->get_ss(sid);
     if(!ss)
     {
@@ -703,7 +704,7 @@ playdar_request_handler::serve_sid( moost::http::reply& rep, source_uid sid)
         rep.stock_reply(moost::http::reply::not_found);
         return;
     }
-    cout << "-> " << ss->debug() << endl;
+    log::info() << "-> " << ss->debug() << endl;
 
     boost::shared_ptr<HttpAsyncAdaptor> hp(new HttpAsyncAdaptor(rep.shared_from_this()));
     ss->start_reply(hp);
@@ -754,7 +755,7 @@ playdar_request_handler::handle_comet(const playdar_request& req, moost::http::r
             static std::string startArray("[");
             rep.write_content( startArray );
         } else {
-            cout << "couldn't create comet session" << endl;
+            log::error() << "couldn't create comet session" << endl;
             rep.stock_reply( moost::http::reply::internal_server_error );
         }
     } else {

@@ -32,6 +32,7 @@
 #include "playdar/resolver.h"
 #include "playdar/ss_curl.hpp"
 #include "playdar/rs_script.h"
+#include "playdar/logger.h"
 
 // Generic track calculation stuff:
 #include "playdar/track_rq_builder.hpp"
@@ -56,7 +57,7 @@ Resolver::Resolver(MyApplication * app)
     :m_app(app), m_exiting(false)
 {
     m_id_counter = 0;
-    cout << "Resolver starting..." << endl;
+    log::info() << "Resolver starting..." << endl;
     
     m_t = new boost::thread(boost::bind(&Resolver::dispatch_runner, this));
     
@@ -87,29 +88,28 @@ Resolver::Resolver(MyApplication * app)
     }
     catch(...)
     {
-        cout << "Error loading resolver plugins." << endl;
+        log::error() << "Error loading resolver plugins." << endl;
     }
-    typedef std::pair<string,ResolverService*> pairx;
-    BOOST_FOREACH( pairx px, m_pluginNameMap )
-    {
-        cout << px.first << ", " ;
-    }
-    cout << endl;
+    //typedef std::pair<string,ResolverService*> pairx;
+    //BOOST_FOREACH( pairx px, m_pluginNameMap )
+    //{
+    //    log::info() << px.first << ", " ;
+    //}
+    //log::info() << endl;
     
     // sort the list of resolvers by weight, descending:
     boost::function<bool (const pa_ptr &, const pa_ptr&)> sortfun =
         boost::bind(&Resolver::pluginadaptor_sorter, this, _1, _2);
     sort(m_resolvers.begin(), m_resolvers.end(), sortfun);
-    cout << endl;
-    cout << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
+    //cout << endl;
+    log::info() << "Loaded resolvers (" << m_resolvers.size() << ")" << endl;
     BOOST_FOREACH( pa_ptr & pa, m_resolvers )
     {
-        cout << "RESOLVER w:" << pa->weight() << "\tp:" << pa->preference() 
+        log::info() << "RESOLVER w:" << pa->weight() << "\tp:" << pa->preference() 
              << "\tt:" << pa->targettime() 
              << "\t[" << (pa->script()?"script":"plugin") << "]  " 
              << pa->rs()->name() << endl;
     }
-    cout << endl;
 }
 
 /// set up SS factories for every protocol curl can handle
@@ -124,7 +124,7 @@ Resolver::detect_curl_capabilities()
     for(int i = 0; (proto = cv->protocols[i]) ; i++ )
     {
         string p(proto);
-        cout << "SS factory registered for: " << p << endl ;
+        log::info() << "SS factory registered for: " << p << endl ;
         m_ss_factories[ p ] = ssf; // add an SS factory for this protocol
     }
 }
@@ -158,7 +158,7 @@ Resolver::load_resolver_scripts()
     using namespace boost::filesystem;
     
     path const etc = "scripts"; //FIXME don't depend on working directory
-    cout << "Loading resolver scripts from: " << etc << endl;
+    log::info() << "Loading resolver scripts from: " << etc << endl;
 
     if (!exists(etc) || !is_directory(etc)) return;     // avoid the throw
 
@@ -179,11 +179,11 @@ Resolver::load_resolver_scripts()
             if (name=="README.txt")
                 continue;
             if (app()->conf()->get<bool>(conf+".enabled", true) == false){
-                cout << "-> Skipping '"+name+"' - disabled in config file";
+                log::info() << "-> Skipping '"+name+"' - disabled in config file";
                 continue;
             }
 
-            cout << "-> Loading: " << name << endl;
+            log::info() << "-> Loading: " << name << endl;
             
             pa_ptr pap( new PluginAdaptorImpl( app()->conf(), this, name ) );
             pap->set_script( true );
@@ -204,7 +204,7 @@ Resolver::load_resolver_scripts()
             if(pap->weight() > 0) 
             {
                 m_resolvers.push_back( pap );
-                cout << "-> OK [w:" << pap->weight() 
+                log::info() << "-> OK [w:" << pap->weight() 
                        << " p:" << pap->preference() 
                        << " t:" << pap->targettime() 
                        << "] " 
@@ -225,7 +225,7 @@ Resolver::load_resolver_plugins()
     namespace bfs = boost::filesystem;
     bfs::directory_iterator end_itr;
     bfs::path p( m_app->conf()->get(string("plugin_path"), string("plugins")) );
-    cout << "Loading resolver plugins from: " 
+    log::info() << "Loading resolver plugins from: " 
          << p.string() << endl;
 
     for(bfs::directory_iterator itr( p ); itr != end_itr; ++itr)
@@ -250,7 +250,7 @@ Resolver::load_resolver_plugins()
         confopt += ".enabled";
         if(app()->conf()->get<bool>(confopt, true) == false)
         {
-            cout << "Skipping '" << classname
+            log::info() << "Skipping '" << classname
                  <<"' - disabled in config file" << endl;
             continue;
         }
@@ -258,7 +258,7 @@ Resolver::load_resolver_plugins()
         {
             PDL::DynamicLoader & dynamicLoader =
                 PDL::DynamicLoader::Instance();
-            cout << "Loading resolver: " << pluginfile << endl;
+            log::info() << "Loading resolver: " << pluginfile << endl;
             ResolverServicePlugin * instance = 
                 dynamicLoader.GetClassInstance< ResolverServicePlugin >
                     ( pluginfile.c_str(), classname.c_str() );
@@ -270,7 +270,7 @@ Resolver::load_resolver_plugins()
                 continue;
             }
             m_pluginNameMap[ boost::to_lower_copy(classname) ] = instance;
-            cout << "Added pluginName " << boost::to_lower_copy(classname) << endl;
+            log::info() << "Added pluginName " << boost::to_lower_copy(classname) << endl;
             pap->set_script( false );
             pap->set_rs( instance );
             string rsopt = "plugins."+classname;
@@ -285,7 +285,7 @@ Resolver::load_resolver_plugins()
                 (rsopt + ".localonly", instance->localonly()) );
                 
             m_resolvers.push_back( pap );
-            cout << "-> OK [w:" << pap->weight() 
+            log::info() << "-> OK [w:" << pap->weight() 
                        << " p:" << pap->preference() 
                        << " t:" << pap->targettime() 
                        << "] " 
@@ -295,7 +295,7 @@ Resolver::load_resolver_plugins()
             typedef std::pair< std::string, boost::function<ss_ptr(std::string)> > sspair_t;
             BOOST_FOREACH( sspair_t sp, ssfacts )
             {
-                cout << "-> Added SS factory for protocol '"<<sp.first<<"'" << endl;
+                log::info() << "-> Added SS factory for protocol '"<<sp.first<<"'" << endl;
                 m_ss_factories[ sp.first ] = sp.second;
             }
         }
@@ -369,9 +369,9 @@ Resolver::dispatch_runner()
     }
     catch(...)
     {
-        cout << "Error exiting Resolver::dispatch_runner" << endl;
+        log::error() << "Error exiting Resolver::dispatch_runner" << endl;
     }
-    cout << "Resolver dispatch_runner terminating" << endl;
+    log::info() << "Resolver dispatch_runner terminating" << endl;
 }
 
 /// go thru list of resolversservices and dispatch in order
@@ -448,7 +448,7 @@ Resolver::run_pipeline_cont( rq_ptr rq,
 bool
 Resolver::add_results(query_uid qid, const vector< ri_ptr >& results, string via)
 {
-    cout << "add_results(" << results.size() << ", '"<< via << "')" << endl;
+    log::info() << "add_results(" << results.size() << ", '"<< via << "')" << endl;
     if(results.size()==0)
     {
         return true;
@@ -588,7 +588,7 @@ Resolver::calculate_score( const rq_ptr & rq, // query
 void 
 Resolver::cancel_query(const query_uid & qid)
 {
-    cout << "Cancelling query: " << qid << endl;
+    log::info() << "Cancelling query: " << qid << endl;
     // send cancel to all resolvers, in case they have cleanup to do:
     BOOST_FOREACH( pa_ptr pap, m_resolvers )
     {
@@ -627,7 +627,7 @@ Resolver::cancel_query(const query_uid & qid)
 void
 Resolver::cancel_query_timeout(query_uid qid)
 {
-    cout << "Stale timeout reached for QID: " << qid << endl;
+    log::info() << "Stale timeout reached for QID: " << qid << endl;
     rq_ptr rq;
     {
         boost::mutex::scoped_lock lock(m_mut_results);
@@ -645,7 +645,7 @@ Resolver::cancel_query_timeout(query_uid qid)
     }
     else if( m_qidtimers.find(qid) != m_qidtimers.end() ) // not stale, reset timer
     {
-        cout << "Not stale, resetting timer." << endl;
+        log::info() << "Not stale, resetting timer." << endl;
         m_qidtimers[qid]->expires_from_now(boost::posix_time::seconds(max_query_lifetime()-diff));
         m_qidtimers[qid]->async_wait(boost::bind(&Resolver::cancel_query_timeout, this, qid));
     }
@@ -730,7 +730,7 @@ Resolver::get_ss(const source_uid & sid)
         if( offset == string::npos ) return ss_ptr();
 
         string p = rip->url().substr(0, offset);
-        cout << "get a SS("<<p<<") for url: " << rip->url() << endl;
+        log::info() << "get a SS("<<p<<") for url: " << rip->url() << endl;
 
         map< std::string, boost::function<ss_ptr(std::string)> >::iterator itFac = 
             m_ss_factories.find(p);
@@ -743,7 +743,7 @@ Resolver::get_ss(const source_uid & sid)
             vector<string> xh = rip->get_extra_headers();
             BOOST_FOREACH( string h,  xh )
             {
-                cout << "Extra header: " << h<< endl;
+                log::info() << "Extra header: " << h<< endl;
                 ss->set_extra_header( h );
             }
             return ss;

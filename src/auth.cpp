@@ -22,6 +22,7 @@
 #include <boost/foreach.hpp>
 #include "playdar/auth.h"
 #include "auth_sql.h"
+#include "playdar/logger.h"
 
 namespace playdar {
 
@@ -121,13 +122,14 @@ auth::check_db()
         {
             // unusual - table exists but doesn't contain this row.
             // could have been created wrongly
-            cerr << "Error, settings table missing schema_version key!" << endl
-                << "Maybe you created the database wrong, or it's corrupt." << endl
-                << "Try deleting the auth database" << endl;
+            log::error() << 
+                "Error, settings table missing schema_version key! "
+                "Maybe you created the database wrong, or it's corrupt. "
+                "Try deleting the auth database" << endl;
             throw; // not caught here.
         }
         string val = (*i).get<string>(0);
-        cout << "Auth database schema detected as version " << val << endl;
+        log::info() << "Auth database schema detected as version " << val << endl;
         // check the schema version is what we expect
         // TODO auto-upgrade to newest schema version as needed.
         if( val != "2" )
@@ -140,7 +142,7 @@ auth::check_db()
     {
         // probably doesn't exist yet, try and create it
         // 
-        cout << "database_error: " << err.what() << endl;
+        log::error() << "database_error: " << err.what() << endl;
         create_db_schema();
     }
 }
@@ -148,7 +150,7 @@ auth::check_db()
 void 
 auth::create_db_schema()
 {
-    cout << "Attempting to create DB schema..." << endl;
+    log::info() << "Attempting to create DB schema..." << endl;
     string sql( playdar::get_auth_sql() );
     vector<string> statements;
     boost::split( statements, sql, boost::is_any_of(";") );
@@ -156,12 +158,12 @@ auth::create_db_schema()
     {
         boost::trim( s );
         if (!s.empty()) {
-            cout << "Executing: " << s << endl;
+            log::info() << "Executing: " << s << endl;
             sqlite3pp::command cmd(m_db, s.c_str());
             cmd.execute();
         }
     }
-    cout << "Schema created, reopening." << endl;
+    log::info() << "Schema created, reopening." << endl;
     m_db.connect( m_dbfilepath.c_str() ); // this will close/flush and reopen the file
 }
 

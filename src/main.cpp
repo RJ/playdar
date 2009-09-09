@@ -31,6 +31,7 @@
 #include <curl/curl.h>
 
 #include "playdar/playdar_request_handler.h"
+#include "playdar/logger.h"
 
 using namespace std;
 using namespace playdar;
@@ -41,7 +42,7 @@ MyApplication * app = 0;
 
 static void sigfunc(int sig)
 {
-    cout << "Signal handler." << endl;
+    log::info() << "Signal handler triggered" << endl;
     if ( app )
         app->shutdown(sig);
 }
@@ -67,7 +68,7 @@ string find_config_dir()
     }
     else
     {
-        cerr << "Error, $HOME not set." << endl;
+        log::error() << "Error, $HOME not set." << endl;
         throw;
     }
 #elif _WIN32
@@ -84,7 +85,7 @@ string find_config_dir()
     }
     else
     {
-        cerr << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
+        log::error() << "Error, $HOME or $XDG_CONFIG_HOME not set." << endl;
         throw;
     }
     path config_base = p;
@@ -101,7 +102,7 @@ string find_config_dir()
 void start_http_server(string ip, int port, int conc, MyApplication* app)
 {
     if(conc<1) conc=1;
-    cout << "HTTP server starting on: http://" << ip << ":" << port << "/" << " with " << conc << " threads" << endl;
+    log::info() << "HTTP server starting on: http://" << ip << ":" << port << "/" << " with " << conc << " threads" << endl;
     moost::http::server<playdar_request_handler> s(ip, port, conc);
     s.request_handler().init(app);
     // tell app how to stop the http server:
@@ -113,9 +114,9 @@ void start_http_server(string ip, int port, int conc, MyApplication* app)
     }
     catch( const boost::system::system_error& e )
     {
-        cerr << "HTTP server error: " << e.what() << endl;
+        log::error() << "HTTP server error: " << e.what() << endl;
     }
-    cout << "http_server thread exiting." << endl; 
+    log::info() << "http_server thread exiting." << endl; 
 }
 
 static void print_curl_info()
@@ -124,20 +125,21 @@ static void print_curl_info()
     curl_version_info_data * cv = curl_version_info(CURLVERSION_NOW);
     if(cv->age >= 0)
     {
-        cout << "Curl version:\t" << cv->version << endl;
+        log::info() << "Curl version:\t" << cv->version << endl;
         const char * proto;
         int i = 0;
-        cout << "* Protocols:\t";
+        log::info() << "* Protocols:\t";
         for(; (proto = cv->protocols[i]) ; i++ )
         {
-            cout << proto << ", " ;
+            log::info() << proto << ", " ;
         }
-        cout << endl;
-        cout << "* SSL:\t" << (cv->features&CURL_VERSION_SSL ? "YES" : "NO") << endl;
-        cout << "* IPv6:\t" << (cv->features&CURL_VERSION_IPV6 ? "YES" : "NO") << endl;
-        cout << "* LIBZ:\t" << (cv->features&CURL_VERSION_LIBZ ? "YES" : "NO") << endl;
+        log::info() 
+            << endl
+            << "* SSL:\t" << (cv->features&CURL_VERSION_SSL ? "YES" : "NO") << endl
+            << "* IPv6:\t" << (cv->features&CURL_VERSION_IPV6 ? "YES" : "NO") << endl
+            << "* LIBZ:\t" << (cv->features&CURL_VERSION_LIBZ ? "YES" : "NO") << endl;
     }else{
-        cerr << "Curl detection failed." << endl;
+        log::error() << "Curl detection failed." << endl;
         throw;
     }
     cout << endl;
@@ -204,11 +206,11 @@ int main(int ac, char *av[])
     
     try 
     {
-        cout << "Using config file: " << configfile << endl;
+        log::info() << "Using config file: " << configfile << endl;
         Config conf(configfile);
         if(conf.get<string>("name", "YOURNAMEHERE")=="YOURNAMEHERE")
         {
-            cout << "Autodetecting name: " << conf.name() << endl;
+            log::info() << "Autodetecting name: " << conf.name() << endl;
         }
 
 #ifndef WIN32
@@ -228,7 +230,7 @@ int main(int ac, char *av[])
         }
         catch(...)
         {
-            cerr << "Curl FAIL." << endl;
+            log::error() << "Curl FAIL." << endl;
             return 9;
         }
         
@@ -243,14 +245,14 @@ int main(int ac, char *av[])
             );
         
         http_thread.join();
-        cout << "HTTP server finished, destructing app..." << endl;
+        log::info() << "HTTP server finished, destructing app..." << endl;
         delete app;
-        cout << "App deleted." << endl;
+        log::info() << "App deleted." << endl;
         return 0;
     }
     catch(exception& e)
     {
-        cout << "Playdar main exception: " << e.what() << "\n";
+        log::error() << "Playdar main exception: " << e.what() << "\n";
         return 1;
     }
 

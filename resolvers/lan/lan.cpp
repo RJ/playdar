@@ -21,11 +21,12 @@
 #include "playdar/resolver_query.hpp"
 #include "playdar/playdar_request.h"
 #include "playdar/utils/htmlentities.hpp"
+#include "playdar/logger.h"
 
 #include <ctime>
 
 /// port used for binding the udp endpoints only (nothing to do with tcp/http):
-#define DEFAULT_LAN_PORT 8888
+#define DEFAULT_LAN_PORT 60210
 #define DEFAULT_LAN_ENDPOINT "239.255.0.1"
 
 using namespace std;
@@ -47,7 +48,7 @@ lan::init(pa_ptr pap)
     setup_endpoints();
     if( m_endpoints.size() == 0 )
     {
-        cerr << "LAN: Error, no valid endpoints configured" << endl;
+        log::error() << "LAN Error, no valid endpoints configured" << endl;
         return false;
     }
 
@@ -57,7 +58,7 @@ lan::init(pa_ptr pap)
 
 lan::~lan() throw()
 {
-    cout << "DTOR LAN " << endl;
+    //cout << "DTOR LAN " << endl;
     //send_pang(); // can't send when shutting down - crashes atm.
     if( m_io_service )
         m_io_service->stop();
@@ -87,7 +88,7 @@ lan::setup_endpoints()
             (  boost::asio::ip::address::from_string
                (DEFAULT_LAN_ENDPOINT), DEFAULT_LAN_PORT )
         );
-        cout << "LAN plugin using default multicast address of " << DEFAULT_LAN_ENDPOINT << endl;
+        log::info() << "LAN plugin using default multicast address of " << DEFAULT_LAN_ENDPOINT << endl;
     }
     else // manual config of endpoints:
     {
@@ -122,7 +123,7 @@ lan::setup_endpoints()
                  boost::asio::ip::address::from_string( ip ), port ) );    
             }catch(...){}
         }
-        cout << "LAN plugin has " << m_endpoints.size() << " endpoints configured." << endl;
+        log::info() << "LAN plugin has " << m_endpoints.size() << " endpoints configured." << endl;
     }
 }
 
@@ -132,7 +133,7 @@ lan::start_resolving(boost::shared_ptr<ResolverQuery> rq)
     using namespace json_spirit;
     ostringstream querystr;
     write_formatted( rq->get_json(), querystr );
-    //cout << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
+    //log::info() << "Resolving: " << querystr.str() << " through the LAN plugin" << endl;
     async_send(querystr.str());
 }
 
@@ -162,7 +163,7 @@ lan::run()
                     ( m_pap->get<string>("listenip", DEFAULT_LAN_ENDPOINT) ),
                     m_pap->get<int>("listenport", DEFAULT_LAN_PORT) ); 
     
-    cout << "LAN Resolver is online udp://" 
+    log::info() << "LAN Resolver is online udp://" 
          << socket_->local_endpoint().address() << ":"
          << socket_->local_endpoint().port()
          << endl;
@@ -211,15 +212,12 @@ void
 lan::async_send(boost::asio::ip::udp::endpoint * remote_endpoint,
                 const string& message)
 {
-    if(message.length()>max_length)
+    if( message.length() > max_length )
     {
-        cerr << "WARNING outgoing UDP message is rather large, haven't tested this, discarding." << endl;
+        log::error() << "WARNING outgoing UDP message is rather large, haven't tested this, discarding." << endl;
         return;
     }
-    //cout << "UDPsend[" << remote_endpoint.address() 
-    //     << ":" << remote_endpoint.port() << "]"
-    //     << "(" << message << ")" << endl;
-    
+
     // you can set numcopies to 2 or 3 for lossy networks:
     int copies = m_pap->get<int>("numcopies", 1);
     if(copies<1) copies=1;
@@ -283,7 +281,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
             Value mv;
             if(!read(msg, mv)) 
             {
-                cout << "lan: invalid JSON in this message, discarding." << endl;
+                log::warning() << "lan: invalid JSON in this message, discarding." << endl;
                 break; // Invalid JSON, ignore it.
             }
             Object qo = mv.get_obj();
@@ -299,7 +297,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
             }
             else
             {
-                cerr << "UDP msg rcvd without _msgtype - discarding"
+                log::warning() << "UDP msg rcvd without _msgtype - discarding"
                      << endl;
                 break;
             }
@@ -313,7 +311,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 } 
                 catch (...) 
                 {
-                    cout << "lan: missing fields in JSON query object, discarding" << endl;
+                    log::warning() << "lan: missing fields in JSON query object, discarding" << endl;
                     break; 
                 }
                 
@@ -338,7 +336,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 query_uid qid = r["qid"].get_str();
                 if(!m_pap->query_exists(qid))
                 {
-                    cout << "lan: Ignoring response - QID invalid or expired" << endl;
+                    log::warning() << "lan: Ignoring response - QID invalid or expired" << endl;
                     break;
                 }
                 //cout << "lan: Got udp response." <<endl;
@@ -367,7 +365,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
                 }
                 catch (...)
                 {
-                    cout << "lan: Missing fields in response json, discarding" << endl;
+                    log::warning() << "lan: Missing fields in response json, discarding" << endl;
                     break;
                 }
             }
@@ -394,7 +392,7 @@ lan::handle_receive_from(const boost::system::error_code& error,
     }
     else
     {
-        cerr << "Some error for udp" << endl;
+        log::warning() << "Some error for udp" << endl;
     }
 }
 
@@ -428,7 +426,7 @@ lan::send_response( query_uid qid,
 void
 lan::send_ping()
 {
-    cout << "LAN sending ping.." << endl;
+    log::info() << "LAN sending ping.." << endl;
     using namespace json_spirit;
     Object jq;
     jq.push_back( Pair("_msgtype", "ping") );
@@ -443,7 +441,7 @@ lan::send_ping()
 void
 lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
 {
-    cout << "LAN sending pong back to " 
+    log::info() << "LAN sending pong back to " 
          << sender_endpoint.address().to_string() <<".." << endl;
     Object o;
     o.push_back( Pair("_msgtype", "pong") );
@@ -458,7 +456,7 @@ lan::send_pong(boost::asio::ip::udp::endpoint sender_endpoint)
 void
 lan::send_pang()
 {
-    cout << "LAN sending pang.." << endl;
+    log::info() << "LAN sending pang.." << endl;
     using namespace json_spirit;
     Object o;
     o.push_back( Pair("_msgtype", "pang") );
@@ -474,18 +472,18 @@ lan::receive_ping(map<string,Value> & om,
 {
     if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
-        cout << "Malformed UDP PING dropped." << endl;
+        log::warning() << "Malformed UDP PING dropped." << endl;
         return;
     }
     // ignore pings sent from ourselves:
     if(om["from_name"]==m_pap->hostname()) return;
     if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
-        cout << "Malformed UDP PING dropped." << endl;
+        log::warning() << "Malformed UDP PING dropped." << endl;
         return;
     }
     string from_name = om["from_name"].get_str();
-    cout << "Received UDP PING from '" << from_name 
+    log::info() << "Received UDP PING from '" << from_name 
          << "' @ " << sender_endpoint.address().to_string()
          << endl;
     ostringstream hbase;
@@ -506,16 +504,16 @@ lan::receive_pong(map<string,Value> & om,
 {
     if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
-        cout << "Malformed UDP PONG dropped." << endl;
+        log::warning() << "Malformed UDP PONG dropped." << endl;
         return;
     }
     if(om.find("http_port")==om.end() || om["http_port"].type()!=int_type)
     {
-        cout << "Malformed UDP PONG dropped." << endl;
+        log::warning() << "Malformed UDP PONG dropped." << endl;
         return;
     }
     string from_name = om["from_name"].get_str();
-    cout << "Received UDP PONG from '" << from_name 
+    log::info() << "Received UDP PONG from '" << from_name 
          << "' @ " << sender_endpoint.address().to_string()
          << endl;
     ostringstream hbase;
@@ -528,13 +526,6 @@ lan::receive_pong(map<string,Value> & om,
     node.http_base = hbase.str();
     node.udp_ep = sender_endpoint;
     m_lannodes[from_name] = node;
-    cout << "Current LAN roster: ";
-    typedef std::pair<string,lannode> pair_t;
-    BOOST_FOREACH( pair_t p, m_lannodes )
-    {
-        cout << p.first << ": " << p.second.lastdate << ", ";
-    }
-    cout << endl;
 }
 
 void
@@ -543,11 +534,11 @@ lan::receive_pang(map<string,Value> & om,
 {
     if(om.find("from_name")==om.end() || om["from_name"].type()!=str_type)
     {
-        cout << "Malformed UDP PANG dropped." << endl;
+        log::warning() << "Malformed UDP PANG dropped." << endl;
         return;
     }
     string from_name = om["from_name"].get_str();
-    cout << "Received UDP PANG from '" << from_name 
+    log::info() << "Received UDP PANG from '" << from_name 
          << "' @ " << sender_endpoint.address().to_string()
          << endl;
     m_lannodes.erase(from_name);
@@ -562,7 +553,7 @@ bool endsWith(const std::string& s, const std::string& tail)
 bool
 lan::anon_http_handler(const playdar_request& req, playdar_response& resp, playdar::auth& /*pauth*/)
 {
-    cout << "request handler on lan for url: " << req.url() << endl;
+    log::info() << "request handler on lan for url: " << req.url() << endl;
 
     time_t now;
     time(&now);

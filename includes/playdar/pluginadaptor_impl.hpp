@@ -28,6 +28,7 @@
 #include "json_spirit/json_spirit.h"
 #include "playdar/config.hpp"
 #include "playdar/resolver.h"
+#include "playdar/logger.h"
 
 namespace playdar {
 
@@ -45,11 +46,11 @@ public:
         if( boost::filesystem::exists( p ) )
         {
             m_config = new Config( p.string() );
-            std::cout << "Using plugin config file: "<< p.string() << std::endl;
+            log::info() << "Using plugin config file: "<< p.string() << std::endl;
         }
         else
         {
-            std::cout << "Using default config for " << className << std::endl;
+            log::info() << "Using default config for " << className << std::endl;
             m_config = new Config();
         }
     }

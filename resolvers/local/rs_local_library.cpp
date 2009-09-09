@@ -25,6 +25,7 @@
 #include "playdar/resolver_query.hpp"
 #include "playdar/playdar_request.h"
 #include "playdar/playdar_response.h"
+#include "playdar/logger.h"
 
 using namespace std;
 
@@ -45,12 +46,12 @@ local::init(pa_ptr pap)
     m_library = new Library( m_pap->getstring( "database", default_db_path ).get_str());
 
     m_exiting = false;
-    cout << "Local library resolver: " << m_library->num_files() 
-         << " files indexed." << endl;
+    log::info() << "Local library resolver: " << m_library->num_files() 
+                << " files indexed." << endl;
     if(m_library->num_files() == 0)
     {
-        cout << endl << "WARNING! You don't have any files in your database!"
-             << "Run the scanner, then restart Playdar." << endl << endl;
+        log::info() << "WARNING! You don't have any files in your database!"
+                    << "Run the scanner, then restart Playdar." << endl;
     }
     // worker thread for doing actual resolving:
     m_t = new boost::thread(boost::bind(&local::run, this));
@@ -90,7 +91,7 @@ local::run()
     }
     catch(...)
     {
-        cout << "local runner exiting." << endl;
+        //cout << "local runner exiting." << endl;
     }
 }
 

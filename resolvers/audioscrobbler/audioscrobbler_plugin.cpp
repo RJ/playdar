@@ -19,6 +19,8 @@
 #include "scrobsub.h"
 #include "playdar/playdar_request.h"
 #include "playdar/playdar_response.h"
+#include "playdar/logger.h"
+
 using std::cout;
 using std::endl;
 using std::string;
@@ -34,7 +36,7 @@ audioscrobbler::scrobsub_callback(int e, const char*s)
     if (e == SCROBSUB_AUTH_REQUIRED && !instance->auth_required)
     {
         instance->auth_required = true;
-        cout << "You need to authenticate scrobbling, visit http://localhost:8888/audioscrobbler/config/" << endl; //FIXME hardcoded url
+        log::info() << "You need to authenticate scrobbling, visit http://localhost:60210/audioscrobbler/config/" << endl; //FIXME hardcoded url
     }
 }
 
@@ -102,7 +104,7 @@ audioscrobbler::anon_http_handler(const playdar_request& rq, playdar_response& r
 bool
 audioscrobbler::authed_http_handler(const playdar_request& rq, playdar_response& resp,  playdar::auth& pauth)
 {
-    cout << "audioscrobbler: Authed HTTP" << endl;
+    log::info() << "audioscrobbler: Authed HTTP" << endl;
     
     if(rq.parts().size()<2) return false;
 
